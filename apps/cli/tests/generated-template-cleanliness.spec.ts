@@ -12,6 +12,7 @@ import { makeTestConfigProvider } from './support/config-provider'
 import {
   reactPresetProjectConfig,
   vueCustomProjectConfig,
+  vueMinimalPresetProjectConfig,
   vuePresetProjectConfig,
 } from './support/fixtures'
 
@@ -107,6 +108,32 @@ function expectReactCounterStoreClean(label: string, templateRelativePath: strin
   expect(output, `${subject} must use space indentation`).not.toContain('\t')
   expect(output, `${subject} must separate imports from runtime declarations`).not.toMatch(/^import .+\n(?:export|interface)/m)
   expect(output, `${subject} must not wrap a single state setter parameter`).not.toContain('create<CounterState>((set)')
+}
+
+function expectVueSfcClean(label: string, templateRelativePath: string, output: string) {
+  const subject = `${label} (${templateRelativePath})`
+
+  expectTextClean(label, templateRelativePath, output)
+  expect(output, `${subject} must put style content on the line after the opening tag`).toMatch(
+    /<style scoped(?: lang="(?:less|scss)")?>\n/,
+  )
+  expect(output, `${subject} must not put style content on the opening tag line`).not.toMatch(
+    /<style scoped(?: lang="(?:less|scss)")?>[^\n]/,
+  )
+  expect(output, `${subject} must not render extra blank lines before closing template`).not.toMatch(
+    /\n[ \t]*\n<\/template>/,
+  )
+}
+
+function expectVueCounterStoreClean(label: string, templateRelativePath: string, output: string) {
+  const subject = `${label} (${templateRelativePath})`
+
+  expectTextClean(label, templateRelativePath, output)
+  expectSnippetsInOrder(label, output, [
+    'import { defineStore } from \'pinia\'',
+    'import { computed, ref } from \'vue\'',
+  ])
+  expect(output, `${subject} must render a trailing comma in the returned object`).toContain('    decrement,\n  }')
 }
 
 describe('generated template cleanliness', () => {
@@ -219,6 +246,86 @@ describe('generated template cleanliness', () => {
     const output = await renderTemplate(templateRelativePath, config)
 
     expectReactCounterStoreClean(label, templateRelativePath, output)
+  })
+
+  it.each([
+    [
+      'vue router with state',
+      'fragments/vue/App.vue.hbs',
+      vuePresetProjectConfig,
+    ],
+    [
+      'vue no-router without state',
+      'fragments/vue/App.vue.hbs',
+      {
+        ...vueCustomProjectConfig,
+        router: false,
+        stateManagement: false,
+      },
+    ],
+    [
+      'vue home with state',
+      'fragments/vue/Home.vue.hbs',
+      vuePresetProjectConfig,
+    ],
+    [
+      'vue home without state',
+      'fragments/vue/Home.vue.hbs',
+      vueMinimalPresetProjectConfig,
+    ],
+    [
+      'vue about with state',
+      'fragments/vue/About.vue.hbs',
+      vuePresetProjectConfig,
+    ],
+    [
+      'vue about without state',
+      'fragments/vue/About.vue.hbs',
+      vueMinimalPresetProjectConfig,
+    ],
+    [
+      'vue counter with state',
+      'fragments/vue/Counter.vue.hbs',
+      vuePresetProjectConfig,
+    ],
+    [
+      'vue counter without state',
+      'fragments/vue/Counter.vue.hbs',
+      vueMinimalPresetProjectConfig,
+    ],
+  ] as const)('renders vue SFC cleanly for %s', async (label, templateRelativePath, config) => {
+    const output = await renderTemplate(templateRelativePath, config)
+
+    expectVueSfcClean(label, templateRelativePath, output)
+
+    if (templateRelativePath === 'fragments/vue/About.vue.hbs') {
+      expect(output, `${label} must not render the unused About.vue Counter import`).not.toContain(
+        'import Counter from \'../components/Counter.vue\'\n</script>',
+      )
+    }
+  })
+
+  it('renders router links with Vue multiline content newlines', async () => {
+    const templateRelativePath = 'fragments/vue/App.vue.hbs'
+    const output = await renderTemplate(templateRelativePath, vuePresetProjectConfig)
+
+    expectVueSfcClean('vue router with state', templateRelativePath, output)
+    expect(output, 'router links must not keep same-line content').not.toContain(
+      '<RouterLink to="/" class="nav-link">Home</RouterLink>',
+    )
+    expect(output, 'home router link must render content on its own line').toContain(
+      '        <RouterLink\n          to="/"\n          class="nav-link"\n        >\n          Home\n        </RouterLink>',
+    )
+    expect(output, 'about router link must render content on its own line').toContain(
+      '        <RouterLink\n          to="/about"\n          class="nav-link"\n        >\n          About\n        </RouterLink>',
+    )
+  })
+
+  it('renders vue counter store cleanly for state-management output', async () => {
+    const templateRelativePath = 'fragments/vue/counter-store.ts.hbs'
+    const output = await renderTemplate(templateRelativePath, vuePresetProjectConfig)
+
+    expectVueCounterStoreClean('vue counter store', templateRelativePath, output)
   })
 
   it.each([

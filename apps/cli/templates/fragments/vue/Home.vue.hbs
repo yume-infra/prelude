@@ -4,12 +4,13 @@ import Counter from '../components/Counter.vue'
 
 <template>
   <div class="home">
-  <section class="block">
-  <h2{{#if (eq @config.cssPreprocessor 'tailwind')}} class="text-green-300"{{/if}}> counter:</h2>
+    <section class="block">
+      <h2{{#if (eq @config.cssPreprocessor 'tailwind')}} class="text-green-300"{{/if}}>
+        counter:
+      </h2>
       <Counter />
     </section>
   </div>
-  
 </template>
 
 {{> vue/style }}

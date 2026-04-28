@@ -1,5 +1,5 @@
-import { ref{{#if (eq @config.language 'typescript')}}, computed{{/if}} } from 'vue'
 import { defineStore } from 'pinia'
+import { {{#if (eq @config.language 'typescript')}}computed, {{/if}}ref } from 'vue'
 
 export const useCounterStore = defineStore('counter', () => {
   const count = ref(0)
@@ -22,6 +22,6 @@ export const useCounterStore = defineStore('counter', () => {
     doubleCount,
     {{/if}}
     increment,
-    decrement
+    decrement,
   }
 })
