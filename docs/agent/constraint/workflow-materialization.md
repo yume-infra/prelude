@@ -110,6 +110,15 @@ post-generate command 不应隐藏文件生成规则。能稳定表示为 plan t
 
 当多个 owner 需要共同修改 compiler options、references、paths、types 等字段时，TypeScript config 应被视为新的结构化热点文件，接入 structured target contribution 与 same-path mutation merge，而不是继续把 capability-specific 条件塞进模板。
 
+### Linter 编辑器配置
+
+当前 `antfu-eslint` 由 workspace / bootstrap owner 生成 `eslint.config.mjs`，并同步生成编辑器项目配置。
+
+- VSCode 配置目标为 `.vscode/settings.json`。
+- Zed 配置目标为 `.zed/settings.json`。
+
+编辑器配置仍按 fragment render 处理，因为每个目标文件由单一 owner 生成，内容主要是固定形状的项目级配置。新增编辑器支持时，应优先新增独立目标文件，不要把编辑器行为塞进 `eslint.config.mjs`，也不要让单个编辑器配置承担另一个编辑器的兼容规则。
+
 ## 路径与安全边界
 
 生成任务的 target path 应保持 project-relative 语义。

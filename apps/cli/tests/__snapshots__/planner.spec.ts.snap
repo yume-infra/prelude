@@ -193,6 +193,15 @@ exports[`planner snapshots > builds a deterministic plan for react custom 1`] = 
         "owner": "workspace-bootstrap",
         "unit": "fragment-render",
       },
+      "path": ".zed/settings.json",
+      "src": "/virtual/templates/fragments/common/linter/zed.settings.json.hbs",
+    },
+    {
+      "kind": "render",
+      "ownership": {
+        "owner": "workspace-bootstrap",
+        "unit": "fragment-render",
+      },
       "path": ".gitignore",
       "src": "/virtual/templates/fragments/common/gitignore.hbs",
     },
@@ -485,6 +494,15 @@ exports[`planner snapshots > builds a deterministic plan for react preset 1`] = 
       },
       "path": ".vscode/settings.json",
       "src": "/virtual/templates/fragments/common/linter/vscode.settings.json.hbs",
+    },
+    {
+      "kind": "render",
+      "ownership": {
+        "owner": "workspace-bootstrap",
+        "unit": "fragment-render",
+      },
+      "path": ".zed/settings.json",
+      "src": "/virtual/templates/fragments/common/linter/zed.settings.json.hbs",
     },
     {
       "kind": "render",
@@ -788,6 +806,15 @@ exports[`planner snapshots > builds a deterministic plan for vue custom 1`] = `
         "owner": "workspace-bootstrap",
         "unit": "fragment-render",
       },
+      "path": ".zed/settings.json",
+      "src": "/virtual/templates/fragments/common/linter/zed.settings.json.hbs",
+    },
+    {
+      "kind": "render",
+      "ownership": {
+        "owner": "workspace-bootstrap",
+        "unit": "fragment-render",
+      },
       "path": ".gitignore",
       "src": "/virtual/templates/fragments/common/gitignore.hbs",
     },
@@ -1077,6 +1104,15 @@ exports[`planner snapshots > builds a deterministic plan for vue preset 1`] = `
       },
       "path": ".vscode/settings.json",
       "src": "/virtual/templates/fragments/common/linter/vscode.settings.json.hbs",
+    },
+    {
+      "kind": "render",
+      "ownership": {
+        "owner": "workspace-bootstrap",
+        "unit": "fragment-render",
+      },
+      "path": ".zed/settings.json",
+      "src": "/virtual/templates/fragments/common/linter/zed.settings.json.hbs",
     },
     {
       "kind": "render",

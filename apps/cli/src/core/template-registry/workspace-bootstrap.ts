@@ -18,6 +18,12 @@ export const workspaceBootstrapTemplates: TemplateRegistry<SharedFrontendAppConf
     condition: config => config.linting === 'antfu-eslint',
     ownership: workspaceFragmentRender,
   },
+  'zed.settings.json': {
+    template: makeTemplatePath('fragments/common/linter/zed.settings.json.hbs'),
+    target: '.zed/settings.json',
+    condition: config => config.linting === 'antfu-eslint',
+    ownership: workspaceFragmentRender,
+  },
 
   '.gitignore': {
     template: makeTemplatePath('fragments/common/gitignore.hbs'),
@@ -53,6 +59,7 @@ function pickTemplateRegistryEntries<T>(
 export const workspaceBootstrapLintAndGitTemplates = pickTemplateRegistryEntries(workspaceBootstrapTemplates, [
   'eslint.config.mjs',
   'vscode.settings.json',
+  'zed.settings.json',
   '.gitignore',
 ])
 
