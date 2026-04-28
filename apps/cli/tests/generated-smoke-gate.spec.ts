@@ -6,6 +6,7 @@ import { describe, expect, it } from 'vitest'
 import {
   assertGeneratedLintProject,
   assertGeneratedPackageLintContract,
+  assertGeneratedProjectPackage,
   formatGeneratedSmokeError,
   generatedLintArgs,
   shouldRunLintForPreset,
@@ -15,6 +16,12 @@ const reactFullCase = {
   label: 'react full preset',
   preset: 'react-full',
   projectName: 'lint-strategy-react-full',
+} satisfies GeneratedSmokeCase
+
+const reactMinimalCase = {
+  label: 'react minimal preset',
+  preset: 'react-minimal',
+  projectName: 'smoke-react-minimal',
 } satisfies GeneratedSmokeCase
 
 async function withTempProject(run: (dir: string) => Promise<void>) {
@@ -76,6 +83,29 @@ describe('generated smoke gate contract', () => {
     expect(error.message).toContain('[linked-smoke] react-full build failed')
     expect(error.message).toContain('exitCode: unknown')
     expect(error.message).toContain('timedOut: false')
+  })
+
+  it('accepts generated minimal package manifests without requiring lint assets', async () => {
+    await withTempProject(async (dir) => {
+      await writeFile(path.join(dir, 'package.json'), JSON.stringify({
+        name: 'smoke-react-minimal',
+        scripts: {
+          build: 'tsc -b && vite build',
+        },
+      }), 'utf8')
+
+      await expect(assertGeneratedProjectPackage(dir, reactMinimalCase, 'generated-smoke')).resolves.toMatchObject({
+        name: 'smoke-react-minimal',
+      })
+    })
+  })
+
+  it('rejects generated projects without package manifests', async () => {
+    await withTempProject(async (dir) => {
+      await expect(assertGeneratedProjectPackage(path.join(dir, 'missing-project'), reactFullCase, 'generated-smoke')).rejects.toThrow(
+        '[generated-smoke] react-full generated project must include package.json',
+      )
+    })
   })
 
   it('accepts valid lint-enabled generated package contracts', () => {

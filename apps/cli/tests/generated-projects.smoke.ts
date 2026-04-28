@@ -1,20 +1,22 @@
-import assert from 'node:assert/strict'
+import type { GeneratedSmokeCase } from './support/generated-smoke-gate'
 import { access, mkdtemp, rm } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
-import { execa } from 'execa'
+import {
+  assertGeneratedLintProject,
+  assertGeneratedProjectPackage,
+  assertNonInteractiveGeneration,
+  generatedLintArgs,
+  runGeneratedSmokePhase,
+  shouldRunLintForPreset,
+} from './support/generated-smoke-gate'
 
-interface SmokeCase {
-  readonly label: string
-  readonly preset: 'react-minimal' | 'react-full' | 'vue-minimal' | 'vue-full'
-  readonly projectName: string
-}
-
+const smokePrefix = 'generated-smoke'
 const testsDir = path.dirname(fileURLToPath(import.meta.url))
 const cliDistPath = path.resolve(testsDir, '../dist/index.js')
 
-const smokeCases: readonly SmokeCase[] = [
+const smokeCases: readonly GeneratedSmokeCase[] = [
   {
     label: 'react minimal preset',
     preset: 'react-minimal',
@@ -37,13 +39,16 @@ const smokeCases: readonly SmokeCase[] = [
   },
 ]
 
-async function runSmokeCase(rootDir: string, testCase: SmokeCase) {
+async function runSmokeCase(rootDir: string, testCase: GeneratedSmokeCase) {
   const generatedDir = path.join(rootDir, testCase.projectName)
-  console.log(`\n[smoke] generating ${testCase.label} in ${generatedDir}`)
 
-  const generation = await execa(
-    'node',
-    [
+  const generation = await runGeneratedSmokePhase({
+    prefix: smokePrefix,
+    testCase,
+    phase: 'generation',
+    cwd: rootDir,
+    command: 'node',
+    args: [
       cliDistPath,
       '--preset',
       testCase.preset,
@@ -52,51 +57,77 @@ async function runSmokeCase(rootDir: string, testCase: SmokeCase) {
       '--no-install',
       '--no-git',
     ],
-    {
-      cwd: rootDir,
-      env: {
-        CI: '1',
-        FORCE_COLOR: '0',
-      },
-    },
+    stdio: 'pipe',
+  })
+
+  assertNonInteractiveGeneration(`${generation.stdout}\n${generation.stderr}`, testCase, smokePrefix)
+  await assertGeneratedProjectPackage(generatedDir, testCase, smokePrefix)
+
+  await runGeneratedSmokePhase({
+    prefix: smokePrefix,
+    testCase,
+    phase: 'install',
+    cwd: generatedDir,
+    command: 'pnpm',
+    args: ['install', '--ignore-scripts'],
+  })
+
+  await runGeneratedSmokePhase({
+    prefix: smokePrefix,
+    testCase,
+    phase: 'build',
+    cwd: generatedDir,
+    command: 'pnpm',
+    args: ['build'],
+  })
+
+  if (shouldRunLintForPreset(testCase.preset)) {
+    await assertGeneratedLintProject(generatedDir, testCase, smokePrefix)
+    await runGeneratedSmokePhase({
+      prefix: smokePrefix,
+      testCase,
+      phase: 'lint',
+      cwd: generatedDir,
+      command: 'pnpm',
+      args: generatedLintArgs,
+    })
+    return
+  }
+
+  console.log(
+    `[${smokePrefix}] ${testCase.preset} lint skipped: preset policy disables generated lint for ${testCase.projectName}`,
   )
+}
 
-  assert.ok(!generation.stdout.includes('?'), 'non-interactive smoke should not print prompt questions')
-
-  console.log(`[smoke] installing dependencies for ${testCase.label}`)
-  await execa('pnpm', ['install', '--ignore-scripts'], {
-    cwd: generatedDir,
-    stdio: 'inherit',
-    env: {
-      CI: '1',
-      FORCE_COLOR: '0',
-    },
-  })
-
-  console.log(`[smoke] building generated ${testCase.label} project`)
-  await execa('pnpm', ['build'], {
-    cwd: generatedDir,
-    stdio: 'inherit',
-    env: {
-      CI: '1',
-      FORCE_COLOR: '0',
-    },
-  })
+async function assertBuiltCliAvailable() {
+  try {
+    await access(cliDistPath)
+  }
+  catch (error) {
+    throw new Error(`[${smokePrefix}] Built CLI not found at ${cliDistPath}. Run pnpm --filter create-yume build before this smoke.`, { cause: error })
+  }
 }
 
 async function main() {
-  await access(cliDistPath)
+  await assertBuiltCliAvailable()
 
   const rootDir = await mkdtemp(path.join(tmpdir(), 'create-yume-smoke-'))
+  let passed = false
 
   try {
     for (const testCase of smokeCases) {
       await runSmokeCase(rootDir, testCase)
     }
-    console.log(`\n[smoke] all generated project checks passed in ${rootDir}`)
+    passed = true
+    console.log(`[${smokePrefix}] all generated project checks passed in ${rootDir}`)
   }
   finally {
-    await rm(rootDir, { recursive: true, force: true })
+    if (passed) {
+      await rm(rootDir, { recursive: true, force: true })
+    }
+    else {
+      console.error(`[${smokePrefix}] kept failed temp root for inspection: ${rootDir}`)
+    }
   }
 }
 

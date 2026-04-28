@@ -124,14 +124,18 @@ export function assertNonInteractiveGeneration(output: string, testCase: Generat
   )
 }
 
-export function assertGeneratedPackageLintContract(packageJson: unknown, testCase: GeneratedSmokeCase, prefix: string) {
+export function assertGeneratedPackageProjectContract(packageJson: unknown, testCase: GeneratedSmokeCase, prefix: string) {
   assert.ok(isRecord(packageJson), `[${prefix}] ${testCase.preset} package.json must be an object`)
   assert.equal(
     packageJson.name,
     testCase.projectName,
     `[${prefix}] ${testCase.preset} package.json must use the generated project name`,
   )
-  assert.ok(isRecord(packageJson.scripts), `[${prefix}] ${testCase.preset} package.json must include scripts`)
+}
+
+export function assertGeneratedPackageLintContract(packageJson: unknown, testCase: GeneratedSmokeCase, prefix: string) {
+  assertGeneratedPackageProjectContract(packageJson, testCase, prefix)
+  assert.ok(isRecord(packageJson) && isRecord(packageJson.scripts), `[${prefix}] ${testCase.preset} package.json must include scripts`)
   assert.equal(
     packageJson.scripts.lint,
     'eslint',
@@ -139,14 +143,40 @@ export function assertGeneratedPackageLintContract(packageJson: unknown, testCas
   )
 }
 
-export async function assertGeneratedLintProject(generatedDir: string, testCase: GeneratedSmokeCase, prefix: string) {
+export async function assertGeneratedProjectPackage(generatedDir: string, testCase: GeneratedSmokeCase, prefix: string) {
   const packageJsonPath = path.join(generatedDir, 'package.json')
-  const eslintConfigPath = path.join(generatedDir, 'eslint.config.mjs')
 
-  await access(packageJsonPath)
-  await access(eslintConfigPath)
+  try {
+    await access(generatedDir)
+    await access(packageJsonPath)
+  }
+  catch (error) {
+    throw new Error(
+      `[${prefix}] ${testCase.preset} generated project must include package.json at ${packageJsonPath}`,
+      { cause: error },
+    )
+  }
 
   const rawPackageJson = await readFile(packageJsonPath, 'utf8')
   const packageJson = JSON.parse(rawPackageJson) as unknown
+  assertGeneratedPackageProjectContract(packageJson, testCase, prefix)
+
+  return packageJson
+}
+
+export async function assertGeneratedLintProject(generatedDir: string, testCase: GeneratedSmokeCase, prefix: string) {
+  const eslintConfigPath = path.join(generatedDir, 'eslint.config.mjs')
+  const packageJson = await assertGeneratedProjectPackage(generatedDir, testCase, prefix)
+
+  try {
+    await access(eslintConfigPath)
+  }
+  catch (error) {
+    throw new Error(
+      `[${prefix}] ${testCase.preset} must include eslint.config.mjs for the lint-enabled full preset at ${eslintConfigPath}`,
+      { cause: error },
+    )
+  }
+
   assertGeneratedPackageLintContract(packageJson, testCase, prefix)
 }
