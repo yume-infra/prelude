@@ -21,9 +21,25 @@ const dec = () => { count.value-- }
 <template>
   <div class="counter">
     <div class="counter-row">
-      <button type="button" class="btn btn-sm" @click="dec" aria-label="decrement">-</button>
-      <span class="count" aria-live="polite">\{{ count }}</span>
-      <button type="button" class="btn btn-sm" @click="inc" aria-label="increment">+</button>
+      <button
+        type="button"
+        class="btn btn-sm"
+        aria-label="decrement"
+        @click="dec"
+      >
+        -
+      </button>
+      <span class="count" aria-live="polite">
+        \{{ count }}
+      </span>
+      <button
+        type="button"
+        class="btn btn-sm"
+        aria-label="increment"
+        @click="inc"
+      >
+        +
+      </button>
     </div>
   </div>
 </template>

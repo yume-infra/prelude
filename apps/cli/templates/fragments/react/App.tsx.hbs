@@ -1,33 +1,26 @@
-{{!-- Consolidated router logic using withHash to avoid重复条件 --}}
-{{#withHash hasRouter=(or (eq @config.router 'react-router') (eq @config.router 'tanstack-router')) isRR=(eq @config.router 'react-router')}}
-  {{#if hasRouter}}
-    {{#if isRR}}
+{{#if (eq @config.router 'react-router')}}
 import { NavLink, Outlet } from 'react-router-dom'
-    {{else}}
+{{else if (eq @config.router 'tanstack-router')}}
 import { Link, Outlet } from '@tanstack/react-router'
-    {{/if}}
-  {{else}}
+{{else}}
 import Home from './home'
-  {{/if}}
-{{/withHash}}
+{{/if}}
 
-{{#withHash hasRouter=(or (eq @config.router 'react-router') (eq @config.router 'tanstack-router'))}}
 export default function App() {
   return (
     <div id="app">
       <main className="container">
-        {{#if hasRouter}}
-          {{> react/router-links}}
-        {{/if}}
+{{#if (or (eq @config.router 'react-router') (eq @config.router 'tanstack-router'))}}
+        {{> react/router-links}}
+{{/if}}
         <section className="content">
-          {{#if hasRouter}}
-            <Outlet />
-          {{else}}
-            <Home />
-          {{/if}}
+{{#if (or (eq @config.router 'react-router') (eq @config.router 'tanstack-router'))}}
+          <Outlet />
+{{else}}
+          <Home />
+{{/if}}
         </section>
       </main>
     </div>
   )
 }
-{{/withHash}}

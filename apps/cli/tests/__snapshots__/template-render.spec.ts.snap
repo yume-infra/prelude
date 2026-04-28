@@ -106,30 +106,30 @@ export const useCounterStore = create<CounterState>(set => ({
 `;
 
 exports[`template render snapshots > renders react main with react-router 1`] = `
-"import './style.less'
-import { createRoot } from 'react-dom/client'
-
+"import { createRoot } from 'react-dom/client'
 import { RouterProvider } from 'react-router-dom'
 import router from './router'
+import './style.less'
+
 createRoot(document.getElementById('root')!).render(<RouterProvider router={router} />)
 "
 `;
 
 exports[`template render snapshots > renders react main with tanstack router 1`] = `
-"import './style.scss'
-import { createRoot } from 'react-dom/client'
-
+"import { createRoot } from 'react-dom/client'
 import { RouterProvider } from '@tanstack/react-router'
 import router from './router'
+import './style.scss'
+
 createRoot(document.getElementById('root')!).render(<RouterProvider router={router} />)
 "
 `;
 
 exports[`template render snapshots > renders react main without router 1`] = `
-"import './style.scss'
-import { createRoot } from 'react-dom/client'
-
+"import { createRoot } from 'react-dom/client'
 import App from './pages/app'
+import './style.scss'
+
 createRoot(document.getElementById('root')!).render(<App />)
 "
 `;
@@ -359,9 +359,25 @@ const dec = store.decrement
 <template>
   <div class="counter">
     <div class="counter-row">
-      <button type="button" class="btn btn-sm" @click="dec" aria-label="decrement">-</button>
-      <span class="count" aria-live="polite">{{ count }}</span>
-      <button type="button" class="btn btn-sm" @click="inc" aria-label="increment">+</button>
+      <button
+        type="button"
+        class="btn btn-sm"
+        aria-label="decrement"
+        @click="dec"
+      >
+        -
+      </button>
+      <span class="count" aria-live="polite">
+        {{ count }}
+      </span>
+      <button
+        type="button"
+        class="btn btn-sm"
+        aria-label="increment"
+        @click="inc"
+      >
+        +
+      </button>
     </div>
   </div>
 </template>
@@ -388,9 +404,25 @@ const dec = () => { count.value-- }
 <template>
   <div class="counter">
     <div class="counter-row">
-      <button type="button" class="btn btn-sm" @click="dec" aria-label="decrement">-</button>
-      <span class="count" aria-live="polite">{{ count }}</span>
-      <button type="button" class="btn btn-sm" @click="inc" aria-label="increment">+</button>
+      <button
+        type="button"
+        class="btn btn-sm"
+        aria-label="decrement"
+        @click="dec"
+      >
+        -
+      </button>
+      <span class="count" aria-live="polite">
+        {{ count }}
+      </span>
+      <button
+        type="button"
+        class="btn btn-sm"
+        aria-label="increment"
+        @click="inc"
+      >
+        +
+      </button>
     </div>
   </div>
 </template>

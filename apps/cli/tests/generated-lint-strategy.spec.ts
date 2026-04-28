@@ -211,9 +211,9 @@ describe('generated lint strategy', () => {
 
     expectSnippetsInOrder(routerStrategyLabel, output, [
       'import { createBrowserRouter } from \'react-router-dom\'',
+      'import About from \'../pages/about\'',
       'import App from \'../pages/app\'',
       'import Home from \'../pages/home\'',
-      'import About from \'../pages/about\'',
       'const router = createBrowserRouter([',
       'element: <App />',
       '{ index: true, element: <Home /> }',
@@ -256,9 +256,9 @@ describe('generated lint strategy', () => {
 
     expectSnippetsInOrder('TanStack Router branch', output, [
       'import { createRootRoute, createRoute, createRouter, Outlet } from \'@tanstack/react-router\'',
-      'import Home from \'../pages/home\'',
       'import About from \'../pages/about\'',
       'import App from \'../pages/app\'',
+      'import Home from \'../pages/home\'',
       'const rootRoute = createRootRoute({',
       'export const routeTree = rootRoute.addChildren([',
       'const router = createRouter({ routeTree })',

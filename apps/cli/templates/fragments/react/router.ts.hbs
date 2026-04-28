@@ -1,8 +1,8 @@
 {{#if (eq @config.router 'react-router')}}
 import { createBrowserRouter } from 'react-router-dom'
+import About from '../pages/about'
 import App from '../pages/app'
 import Home from '../pages/home'
-import About from '../pages/about'
 
 const router = createBrowserRouter([
   {
@@ -17,10 +17,10 @@ const router = createBrowserRouter([
 
 {{else if (eq @config.router 'tanstack-router')}}
 import { createRootRoute, createRoute, createRouter, Outlet } from '@tanstack/react-router'
-import Home from '../pages/home'
 import About from '../pages/about'
 import App from '../pages/app'
-    
+import Home from '../pages/home'
+
 const rootRoute = createRootRoute({
   component: () => <App />,
 })

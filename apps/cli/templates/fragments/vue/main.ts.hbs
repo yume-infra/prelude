@@ -1,12 +1,12 @@
-import { createApp } from 'vue'
-import App from './App.vue'
-{{> global/import-root-css }}
-{{#if @config.router}}
-import router from './router'
-{{/if}}
 {{#if @config.stateManagement}}
 import { createPinia } from 'pinia'
 {{/if}}
+import { createApp } from 'vue'
+import App from './App.vue'
+{{#if @config.router}}
+import router from './router'
+{{/if}}
+{{> global/import-root-css }}
 
 createApp(App)
 {{#if @config.stateManagement}}
