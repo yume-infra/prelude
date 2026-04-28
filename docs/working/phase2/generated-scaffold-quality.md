@@ -106,9 +106,9 @@ risk: affects Vue preset and custom Vue create flow
 - Vue style 块是通过模板手写规整，还是引入额外 formatter。
 - Tailwind / lightningcss warning 是否属于本阶段修复范围。
 
-## 推荐 Skill：generated-scaffold-audit
+## 可复用 Skill：generated-scaffold-audit
 
-可考虑新增一个项目本地 skill，名称建议为 `generated-scaffold-audit`。
+项目本地 skill 已固化在 `.agents/skills/generated-scaffold-audit/SKILL.md`。后续 agent 遇到生成项目质量、生成物 lint、模板溯源或 scaffold DX audit 时，应先调用该 skill，并按其 `workflows/audit-generated-output.md` 执行；不应重新发明审计流程。
 
 触发场景：
 
@@ -118,15 +118,15 @@ risk: affects Vue preset and custom Vue create flow
 - “scaffold DX audit”
 - “preset generated project audit”
 
-建议流程：
+固定流程：
 
 1. 生成或复用真实 example 项目。
-2. 对每个生成项目运行 `build` 和 `lint`，默认不自动修复。
-3. 收集命令行输出，并按问题类型归类。
+2. 对 lint-enabled full preset 运行 `build` 与 `pnpm lint --max-warnings=0`，minimal preset 保持 build-only。
+3. 收集命令、退出码、超时状态和脱敏输出摘录，并按问题类型归类。
 4. 可选收集编辑器 / LSP diagnostics，用于模拟用户打开项目的第一印象。
-5. 将每条问题映射回模板、partial、JSON mutation、package policy 或生成项目配置。
-6. 输出可执行修复计划。
-7. 只有在模板清理完成后，才把 `lint` 加入生成项目 smoke 的硬门槛。
+5. 将每条问题映射回模板、partial、JSON mutation、package policy、lint strategy、dependency/build warning 或生成项目配置。
+6. 使用 `.agents/skills/generated-scaffold-audit/templates/audit-report.md` 输出可继续执行的审计报告。
+7. 只有在模板清理和策略边界闭合后，才调整生成项目 smoke 的硬门槛。
 
 重要约束：
 
@@ -134,6 +134,7 @@ risk: affects Vue preset and custom Vue create flow
 - 可以在临时生成物中运行 auto-fix 来观察期望输出，但只能作为参考。
 - 最终修复应回到模板、配置策略或生成逻辑。
 - 命令行 `build` / `lint` 是通过与否的主信号；编辑器 / LSP diagnostics 是补充信号。
+- Tailwind / lightningcss build warning 与 `lint --max-warnings=0` 失败必须分开记录。
 
 ## 测试生成项目的 Agent Lead 文件
 
