@@ -221,6 +221,46 @@ export default defineConfig({
 "
 `;
 
+exports[`template render snapshots > renders vue about with state management 1`] = `
+"<template>
+  <div class="about">
+    <section class="block">
+      <h1>About</h1>
+      <p>本项目由 create-yume 生成，集成现代化前端工程配置。</p>
+    </section>
+  </div>
+</template>
+
+<style scoped lang="less">
+.about { padding: 16px 0; }
+.block { margin: 12px 0; }
+h1 { font-size: 22px; margin-bottom: 8px; }
+h2 { font-size: 18px; margin: 12px 0 8px; }
+p { margin: 8px 0; }
+</style>
+"
+`;
+
+exports[`template render snapshots > renders vue about without state management 1`] = `
+"<template>
+  <div class="about">
+    <section class="block">
+      <h1>About</h1>
+      <p>本项目由 create-yume 生成，集成现代化前端工程配置。</p>
+    </section>
+  </div>
+</template>
+
+<style scoped lang="less">
+.about { padding: 16px 0; }
+.block { margin: 12px 0; }
+h1 { font-size: 22px; margin-bottom: 8px; }
+h2 { font-size: 18px; margin: 12px 0 8px; }
+p { margin: 8px 0; }
+</style>
+"
+`;
+
 exports[`template render snapshots > renders vue app with router and state management 1`] = `
 "<script setup lang="ts">
 import { RouterView } from 'vue-router'
@@ -274,6 +314,141 @@ import Home from './views/Home.vue'
 
 <style scoped lang="scss">
 .container { max-width: 960px; margin: 0 auto; padding: 0 16px; }
+</style>
+"
+`;
+
+exports[`template render snapshots > renders vue counter store 1`] = `
+"import { defineStore } from 'pinia'
+import { computed, ref } from 'vue'
+
+export const useCounterStore = defineStore('counter', () => {
+  const count = ref(0)
+
+  const doubleCount = computed(() => count.value * 2)
+
+  function increment() {
+    count.value++
+  }
+
+  function decrement() {
+    count.value--
+  }
+
+  return {
+    count,
+    doubleCount,
+    increment,
+    decrement,
+  }
+})
+"
+`;
+
+exports[`template render snapshots > renders vue counter with state management 1`] = `
+"<script setup lang="ts">
+import { storeToRefs } from 'pinia'
+import { useCounterStore } from '../stores/counter'
+
+const store = useCounterStore()
+const { count } = storeToRefs(store)
+const inc = store.increment
+const dec = store.decrement
+</script>
+
+<template>
+  <div class="counter">
+    <div class="counter-row">
+      <button type="button" class="btn btn-sm" @click="dec" aria-label="decrement">-</button>
+      <span class="count" aria-live="polite">{{ count }}</span>
+      <button type="button" class="btn btn-sm" @click="inc" aria-label="increment">+</button>
+    </div>
+  </div>
+</template>
+
+<style scoped lang="less">
+.counter { margin: 8px auto; max-width: 320px; }
+.counter-row { display: flex; align-items: center; gap: 8px; justify-content: center; }
+.count { min-width: 40px; text-align: center; padding: 4px 8px; border: 1px solid #ddd; border-radius: 6px; }
+.btn { padding: 6px 10px; border: 1px solid #ddd; background: #f7f7f7; border-radius: 6px; cursor: pointer; }
+.btn.btn-sm { font-size: 14px; }
+</style>
+"
+`;
+
+exports[`template render snapshots > renders vue counter without state management 1`] = `
+"<script setup lang="ts">
+import { ref } from 'vue'
+
+const count = ref(0)
+const inc = () => { count.value++ }
+const dec = () => { count.value-- }
+</script>
+
+<template>
+  <div class="counter">
+    <div class="counter-row">
+      <button type="button" class="btn btn-sm" @click="dec" aria-label="decrement">-</button>
+      <span class="count" aria-live="polite">{{ count }}</span>
+      <button type="button" class="btn btn-sm" @click="inc" aria-label="increment">+</button>
+    </div>
+  </div>
+</template>
+
+<style scoped lang="less">
+.counter { margin: 8px auto; max-width: 320px; }
+.counter-row { display: flex; align-items: center; gap: 8px; justify-content: center; }
+.count { min-width: 40px; text-align: center; padding: 4px 8px; border: 1px solid #ddd; border-radius: 6px; }
+.btn { padding: 6px 10px; border: 1px solid #ddd; background: #f7f7f7; border-radius: 6px; cursor: pointer; }
+.btn.btn-sm { font-size: 14px; }
+</style>
+"
+`;
+
+exports[`template render snapshots > renders vue home with state management 1`] = `
+"<script setup lang="ts">
+import Counter from '../components/Counter.vue'
+</script>
+
+<template>
+  <div class="home">
+    <section class="block">
+      <h2>
+        counter:
+      </h2>
+      <Counter />
+    </section>
+  </div>
+</template>
+
+<style scoped lang="less">
+.home { padding: 16px 0; }
+.block { margin: 12px 0; }
+h2 { font-size: 18px; margin-bottom: 8px; }
+</style>
+"
+`;
+
+exports[`template render snapshots > renders vue home without state management 1`] = `
+"<script setup lang="ts">
+import Counter from '../components/Counter.vue'
+</script>
+
+<template>
+  <div class="home">
+    <section class="block">
+      <h2>
+        counter:
+      </h2>
+      <Counter />
+    </section>
+  </div>
+</template>
+
+<style scoped lang="less">
+.home { padding: 16px 0; }
+.block { margin: 12px 0; }
+h2 { font-size: 18px; margin-bottom: 8px; }
 </style>
 "
 `;

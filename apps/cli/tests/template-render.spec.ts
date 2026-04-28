@@ -13,6 +13,7 @@ import {
   reactCustomProjectConfig,
   reactPresetProjectConfig,
   vueCustomProjectConfig,
+  vueMinimalPresetProjectConfig,
   vuePresetProjectConfig,
 } from './support/fixtures'
 
@@ -148,6 +149,41 @@ describe('template render snapshots', () => {
         router: false,
         stateManagement: false,
       },
+    ],
+    [
+      'vue home with state management',
+      'fragments/vue/Home.vue.hbs',
+      vuePresetProjectConfig,
+    ],
+    [
+      'vue home without state management',
+      'fragments/vue/Home.vue.hbs',
+      vueMinimalPresetProjectConfig,
+    ],
+    [
+      'vue about with state management',
+      'fragments/vue/About.vue.hbs',
+      vuePresetProjectConfig,
+    ],
+    [
+      'vue about without state management',
+      'fragments/vue/About.vue.hbs',
+      vueMinimalPresetProjectConfig,
+    ],
+    [
+      'vue counter with state management',
+      'fragments/vue/Counter.vue.hbs',
+      vuePresetProjectConfig,
+    ],
+    [
+      'vue counter without state management',
+      'fragments/vue/Counter.vue.hbs',
+      vueMinimalPresetProjectConfig,
+    ],
+    [
+      'vue counter store',
+      'fragments/vue/counter-store.ts.hbs',
+      vuePresetProjectConfig,
     ],
   ] as const)('renders %s', async (_name, templateRelativePath, config) => {
     const output = await renderTemplate(templateRelativePath, config)
