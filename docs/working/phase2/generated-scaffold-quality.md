@@ -267,6 +267,21 @@ S03 已闭合的策略结论如下：
 
 执行边界：S04 可以修改完整 smoke matrix，但不应回退 S03 的静态 import、JSON source-order 或 minimal-preset lint 边界。若 S04 发现新的 lint failure，应先判断它是模板输出问题、生成策略问题、依赖/build warning，还是 smoke 命令定位问题，再决定是否回到模板或策略文档。
 
+## S04 smoke-gate 结果与后续 handoff
+
+S04 的读者是继续维护生成项目质量门槛的维护者和 agent。读完本节后，应能执行一个动作：在改动生成模板、CLI bin/link 入口或生成项目验证策略后，选择并解释正确的 smoke gate。
+
+S04 已把真实生成项目 smoke 从“能生成、能安装、能构建”升级为 build + lint gate：preset matrix smoke 覆盖 React/Vue minimal/full，linked smoke 覆盖通过全局 link 后调用 `create-yume` 的 React/Vue full example 路径。所有生成项目都必须构建；lint-enabled full preset 还必须运行 `pnpm lint --max-warnings=0`，因此 0 error 与 0 warning 已成为 full preset 生成质量的硬门槛。
+
+仍需保留的边界如下：
+
+1. minimal preset 仍是 build-only。它们不应为了统一 smoke 形态而新增 ESLint config、lint script 或额外依赖；缺少这些 lint 资产不是 minimal preset 失败。
+2. linked smoke 必须继续证明真实 linked bin/bootstrap 路径，而不是退回只调用构建产物的快捷路径。这个路径用于捕捉 package bin、global link、生成时安装与 example 工作区边界问题。
+3. Tailwind/lightningcss build warning 仍属于构建/依赖策略问题，不是 ESLint warning。不要把 build 输出里的 lightningcss warning 解释成 `--max-warnings=0` lint gate 失败。
+4. 失败排查应先看 smoke phase：generation、link、install/bootstrap、build、lint 分别指向不同责任面。lint phase 失败优先反查生成模板或 lint 策略；link/bootstrap 失败优先排查 package bin、pnpm global state、registry/cache 或 generated workspace 设置。
+
+S04 之后，如果后续 slice 修改生成项目质量策略，至少应重新运行 generated smoke 与 linked smoke，并保留 `--max-warnings=0` 作为 full preset lint gate，除非有新的策略决策明确修改 lint-enabled preset 的定义。
+
 ## 建议迭代顺序
 
 1. 建立生成物审计报告格式，保留当前 React / Vue preset 的 lint 输出摘要。
@@ -274,8 +289,8 @@ S03 已闭合的策略结论如下：
 3. 修复机械模板问题：README 末尾换行、Vite config 空行、ESLint config 格式、Vue SFC 缩进与 style 块换行。
 4. 修复明显语义问题：Vue 未使用导入、入口 import order。
 5. 评估策略问题：React Refresh、JSON key order、Tailwind / lightningcss warning。
-6. 将 `pnpm lint` 加入 linked generated-project smoke。
-7. 把流程固化为 `generated-scaffold-audit` skill。
+6. 已完成：将 build + `pnpm lint --max-warnings=0` 加入 generated 与 linked smoke gate，其中 minimal preset 保持 build-only。
+7. 后续：把流程固化为 `generated-scaffold-audit` skill。
 
 ## 非目标
 

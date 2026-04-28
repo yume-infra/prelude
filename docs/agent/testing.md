@@ -49,3 +49,5 @@ pnpm verify
 ```bash
 pnpm smoke:examples
 ```
+
+S04 之后，真实生成项目 smoke 的质量门槛是 build + lint：`smoke:generated` 与 linked `smoke:examples` 都必须构建生成项目，并且只对 lint-enabled 生成项目运行 `pnpm lint --max-warnings=0`。minimal preset 仍是 build-only；不要把缺少 ESLint 配置或 lint script 当作 minimal preset 失败。
