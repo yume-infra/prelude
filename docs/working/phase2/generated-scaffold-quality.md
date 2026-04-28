@@ -283,15 +283,41 @@ S04 已把真实生成项目 smoke 从“能生成、能安装、能构建”升
 
 S04 之后，如果后续 slice 修改生成项目质量策略，至少应重新运行 generated smoke 与 linked smoke，并保留 `--max-warnings=0` 作为 full preset lint gate，除非有新的策略决策明确修改 lint-enabled preset 的定义。
 
+## Phase 2 完成 handoff：M005 后如何继续
+
+M005 关闭后，Phase 2 的生成项目质量策略已经进入稳定 handoff 状态。后续维护者和 agent 的动作应从这里继续：先确认要改动的是模板输出、CLI bin/link 入口、生成项目验证策略，还是新的 milestone 能力；再选择对应的 smoke gate，而不是重新打开已经闭合的策略争论。
+
+已完成的质量证据如下：
+
+1. S04 已关闭 generated-project smoke gate。`smoke:generated` 覆盖当前支持的 React / Vue minimal 与 full preset：所有生成项目必须 build；lint-enabled full preset 还必须运行 `pnpm lint --max-warnings=0`。
+2. S04 已关闭 linked example smoke gate。`smoke:examples` 继续证明真实 linked bin/bootstrap 路径，React / Vue full example 在 link 后必须 build，并通过 `pnpm lint --max-warnings=0`。
+3. S05 已把生成物审计流程固化为 `generated-scaffold-audit` skill。后续遇到生成项目质量、生成物 lint、模板溯源或 scaffold DX audit 时，应先调用该 skill，不要重新发明审计流程。
+4. minimal preset 仍是 build-only policy。不要把缺少 lint script、ESLint config 或 lint 依赖描述成 minimal preset 的当前失败；只有新的真实 smoke failure 才能推动策略复审。
+5. Tailwind / lightningcss 输出仍按 build/dependency warning 处理，不属于 ESLint `--max-warnings=0` lint warning。排查时必须先区分 build warning 与 lint gate failure。
+
+已关闭的策略边界如下：
+
+- 不要在没有新 smoke failure 的情况下重开 React Router 静态 import 策略。
+- 不要在没有新 smoke failure 的情况下重开 package manifest / TypeScript config 的 JSON source-order 策略。
+- 不要在没有新 smoke failure 的情况下重开 minimal-preset lint policy。
+- 若出现新的失败，先按 `generated-scaffold-audit` 的流程定位到模板、partial、JSON mutation、package policy、lint strategy、dependency/build warning 或生成项目配置，再决定是否修改策略。
+
+后续 milestone 的并行序列如下：M006 `depends_on` M005，M008 `depends_on` M005，因此 M005 后 M006 与 M008 可以通过 `/gsd parallel start` 并行启动。M007 `depends_on` M006，不能早于 M006。M009 `depends_on` M006 与 M008，在两个依赖都完成前保持 draft / blocking。
+
+建议在以下场景重新运行 generated / linked smoke：
+
+- 修改 React / Vue 模板、partial、package manifest 生成策略或 TypeScript / ESLint 配置输出。
+- 修改 CLI bin、link、bootstrap、install 或 example workspace 路径。
+- 修改 generated scaffold audit skill、smoke matrix、lint-enabled preset 定义或 `--max-warnings=0` gate。
+- 新增诊断、preview、dry run 或 post-generate file task 能力时，需要证明没有破坏 Phase 2 已建立的生成项目质量基线。
+
 ## 建议迭代顺序
 
-1. 建立生成物审计报告格式，保留当前 React / Vue preset 的 lint 输出摘要。
-2. 为 linked smoke / example 生成项目设计 agent lead 文件，明确生成来源、检查目标和反查模板边界。
-3. 修复机械模板问题：README 末尾换行、Vite config 空行、ESLint config 格式、Vue SFC 缩进与 style 块换行。
-4. 修复明显语义问题：Vue 未使用导入、入口 import order。
-5. 评估策略问题：React Refresh、JSON key order、Tailwind / lightningcss warning。
-6. 已完成：将 build + `pnpm lint --max-warnings=0` 加入 generated 与 linked smoke gate，其中 minimal preset 保持 build-only。
-7. 后续：把流程固化为 `generated-scaffold-audit` skill。
+1. 已完成：建立生成物审计报告格式，保留当前 React / Vue preset 的 lint 输出摘要。
+2. 已完成：为 generated 与 linked smoke 明确 build + lint gate，其中 minimal preset 保持 build-only。
+3. 已完成：修复 React / Vue full preset 的模板与策略问题，使 `pnpm lint --max-warnings=0` 成为 full preset 硬门槛。
+4. 已完成：将流程固化为 `generated-scaffold-audit` skill。
+5. 后续：按 M006、M008、M007、M009 的 `depends_on` 顺序继续推进 Phase 3 / Phase 4，不回退 Phase 2 已关闭策略。
 
 ## 非目标
 
