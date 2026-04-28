@@ -2,7 +2,6 @@ import type { ComposeDSL, JsonBuilder } from '@/core/services/planner'
 import type { ProjectConfig } from '@/schema/project-config'
 import { describe, expect, it } from 'vitest'
 import { makeProjectName } from '@/brand/project-name'
-import { sortJsonKeys } from '@/utils/file-helper'
 import { buildPackageJson } from '../../../src/core/modifier/package-json'
 
 function renderPackageJson(config: ProjectConfig) {
@@ -61,11 +60,12 @@ function renderPackageJson(config: ProjectConfig) {
   buildPackageJson(dsl, config)
 
   expect(readExisting).toBe(false)
+  expect(shouldSortKeys).toBe(false)
   const draft = base ? base() : {}
   for (const reducer of reducers)
     reducer(draft)
   finalize?.(draft)
-  const jsonOutput = shouldSortKeys ? sortJsonKeys(draft) : draft
+  const jsonOutput = draft
 
   if (!jsonOutput)
     throw new Error('package.json was not produced')
@@ -74,6 +74,18 @@ function renderPackageJson(config: ProjectConfig) {
 }
 
 describe('buildPackageJson', () => {
+  const expectedFullPackageTopLevelOrder = [
+    'name',
+    'type',
+    'version',
+    'description',
+    'license',
+    'engines',
+    'scripts',
+    'dependencies',
+    'devDependencies',
+  ]
+
   it('writes latest common tooling versions for a full react template', () => {
     const packageJson = renderPackageJson({
       type: 'react',
@@ -88,6 +100,29 @@ describe('buildPackageJson', () => {
       cssPreprocessor: 'css',
       cssFramework: 'none',
     })
+
+    expect(Object.keys(packageJson)).toEqual(expectedFullPackageTopLevelOrder)
+    expect(Object.keys(packageJson.scripts as Record<string, unknown>)).toEqual([
+      'build',
+      'dev',
+      'lint',
+      'lint:fix',
+      'preview',
+    ])
+    expect(Object.keys(packageJson.devDependencies as Record<string, unknown>)).toEqual([
+      '@antfu/eslint-config',
+      '@commitlint/cli',
+      '@commitlint/config-conventional',
+      '@eslint-react/eslint-plugin',
+      '@types/react',
+      '@types/react-dom',
+      'eslint',
+      'eslint-plugin-react-hooks',
+      'eslint-plugin-react-refresh',
+      'husky',
+      'lint-staged',
+      'typescript',
+    ])
 
     expect(packageJson.devDependencies).toMatchObject({
       '@antfu/eslint-config': '^8.2.0',
@@ -141,6 +176,29 @@ describe('buildPackageJson', () => {
       cssPreprocessor: 'sass',
       cssFramework: 'tailwind',
     })
+
+    expect(Object.keys(packageJson)).toEqual(expectedFullPackageTopLevelOrder)
+    expect(Object.keys(packageJson.dependencies as Record<string, unknown>)).toEqual([
+      '@tailwindcss/vite',
+      '@vitejs/plugin-vue',
+      '@vue/compiler-sfc',
+      'pinia',
+      'tailwindcss',
+      'vite',
+      'vue',
+      'vue-router',
+    ])
+    expect(Object.keys(packageJson.devDependencies as Record<string, unknown>)).toEqual([
+      '@antfu/eslint-config',
+      '@commitlint/cli',
+      '@commitlint/config-conventional',
+      '@vue/tsconfig',
+      'eslint',
+      'husky',
+      'lint-staged',
+      'sass',
+      'typescript',
+    ])
 
     expect(packageJson.dependencies).toMatchObject({
       '@vitejs/plugin-vue': '^6.0.6',

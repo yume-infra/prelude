@@ -1,6 +1,7 @@
 import type { ComposeDSL } from '@/core/services/planner'
 import type { ProjectConfig } from '@/schema/project-config'
 import { makePackageName } from '@/brand/package-name'
+import { finalizePackageJsonOrder } from '@/core/modifier/package-json-order'
 import { applyReactRouterPackageJson, applyVueRouterPackageJson } from '@/core/owners/router'
 import { applyReactStateManagementPackageJson, applyVueStateManagementPackageJson } from '@/core/owners/state-management'
 import { contributionTrace, ContributionUnitKind, WorkspaceBootstrapOwner } from '@/core/ownership/model'
@@ -59,6 +60,10 @@ export function buildPackageJson(dsl: ComposeDSL, config: ProjectConfig) {
       applyReactRouterPackageJson(entry, config)
     }
 
-    entry.sortKeys(true)
+    function applyPackageJsonOrder(draft: Record<string, unknown>) {
+      finalizePackageJsonOrder(draft)
+    }
+
+    entry.finalize(applyPackageJsonOrder)
   }
 }

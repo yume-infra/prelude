@@ -26,6 +26,9 @@ exports[`planner snapshots > builds a deterministic plan for react custom 1`] = 
         "type": "module",
         "version": "0.0.0",
       },
+      "finalize": {
+        "reducer": "applyPackageJsonOrder",
+      },
       "kind": "json",
       "ownership": {
         "owner": "workspace-bootstrap",
@@ -113,7 +116,6 @@ exports[`planner snapshots > builds a deterministic plan for react custom 1`] = 
           "reducer": "modify",
         },
       ],
-      "sortKeys": true,
     },
     {
       "kind": "render",
@@ -334,6 +336,9 @@ exports[`planner snapshots > builds a deterministic plan for react preset 1`] = 
         "type": "module",
         "version": "0.0.0",
       },
+      "finalize": {
+        "reducer": "applyPackageJsonOrder",
+      },
       "kind": "json",
       "ownership": {
         "owner": "workspace-bootstrap",
@@ -421,7 +426,6 @@ exports[`planner snapshots > builds a deterministic plan for react preset 1`] = 
           "reducer": "modify",
         },
       ],
-      "sortKeys": true,
     },
     {
       "kind": "render",
@@ -642,6 +646,9 @@ exports[`planner snapshots > builds a deterministic plan for vue custom 1`] = `
         "type": "module",
         "version": "0.0.0",
       },
+      "finalize": {
+        "reducer": "applyPackageJsonOrder",
+      },
       "kind": "json",
       "ownership": {
         "owner": "workspace-bootstrap",
@@ -726,7 +733,6 @@ exports[`planner snapshots > builds a deterministic plan for vue custom 1`] = `
           "reducer": "modify",
         },
       ],
-      "sortKeys": true,
     },
     {
       "kind": "render",
@@ -947,6 +953,9 @@ exports[`planner snapshots > builds a deterministic plan for vue preset 1`] = `
         "type": "module",
         "version": "0.0.0",
       },
+      "finalize": {
+        "reducer": "applyPackageJsonOrder",
+      },
       "kind": "json",
       "ownership": {
         "owner": "workspace-bootstrap",
@@ -1031,7 +1040,6 @@ exports[`planner snapshots > builds a deterministic plan for vue preset 1`] = `
           "reducer": "modify",
         },
       ],
-      "sortKeys": true,
     },
     {
       "kind": "render",
