@@ -3,8 +3,9 @@
 ## 提交信息
 
 1. 使用 conventional commits。
-2. 使用标准 commitlint conventional 配置校验提交信息；不使用 lobe-commit 生成提交信息。
-3. 提交信息可手写，格式示例：`feat: add workspace bootstrap hooks`。
+2. 使用 commitlint conventional 配置校验提交结构；为兼容 GSD auto-mode 根据任务摘要生成的提交，`subject-case`、`subject-full-stop` 与 `header-max-length` 不作为阻断规则。
+3. 不使用 lobe-commit 生成提交信息。
+4. 提交信息可手写，格式示例：`feat: add workspace bootstrap hooks`。
 
 ## 提交前验证
 
