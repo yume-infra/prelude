@@ -383,12 +383,20 @@ Linked smoke passed and generated/build both linked full examples. The additiona
 - No command output was malformed enough to prevent classification.
 - Missing `lint` scripts are recorded as baseline gaps instead of being skipped.
 
-## Relationship to Phase 2 slices
+## Requirement coverage and downstream consumption
+
+Requirement coverage:
+
+- `R006`（当前支持的 React/Vue 生成项目真实生成后通过 build 与 lint）：本报告记录了 React/Vue preset matrix 与 linked full examples 的 `build` / `lint --max-warnings=0` 现状，证明 build 当前通过、lint 仍存在已分类缺口，因此它是后续修复的 baseline，而不是完成证明。
+- `R008`（从真实生成项目审计出发，再反查模板、partial、配置或生成策略）：本报告先保留真实生成项目命令证据，再在 source map 中把 findings 反查到 durable owner，避免从模板结构猜问题。
+- `R010`（提供 reusable `generated-scaffold-audit` skill）：本报告为 `S05` 提供可复用审计流程的输入样例、分类词汇、证据字段与 negative-test handling，但不在 `S01` 中实现 skill。
+
+Downstream consumption:
 
 - `S02` should consume mechanical `template whitespace`, import order, unused import, and obvious generated style issues.
 - `S03` should consume rethink-required `framework lint semantics`, `generated config policy`, and `dependency/build warning` findings.
-- `S04` should consume the linked smoke gap: build smoke passes even when `lint --max-warnings=0` fails.
-- `S05` should consume this report as vocabulary/examples for a reusable generated-scaffold audit workflow.
+- `S04` should consume the linked smoke gap: build smoke passes even when `lint --max-warnings=0` fails, so gate design must decide how lint evidence enters generated-project smoke.
+- `S05` should consume this report as vocabulary/examples for a reusable generated-scaffold audit workflow, including `generated file`, `command/tooling output`, `durable source owner`, `classification`, `mechanical`, and `rethink-required`.
 
 ## Reader-test checklist
 

@@ -14,6 +14,8 @@
 
 本阶段关注的是生成物质量，而不是新增 scaffold 类型、远程模板、插件系统或已有项目增量更新。
 
+当前可执行证据与 source map 见：[生成项目审计基线与 source map](./generated-scaffold-audit-baseline.md)。
+
 ## 愿景
 
 生成项目应满足以下质量约束：
