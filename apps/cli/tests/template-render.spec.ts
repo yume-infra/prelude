@@ -29,6 +29,16 @@ const templateEngineLayer = TemplateEngineLive.pipe(
   ),
 )
 
+const reactZustandProjectConfig = {
+  ...reactPresetProjectConfig,
+  stateManagement: 'zustand',
+} satisfies ProjectConfig
+
+const reactNoStateProjectConfig = {
+  ...reactPresetProjectConfig,
+  stateManagement: 'none',
+} satisfies ProjectConfig
+
 function renderTemplate(templateRelativePath: string, config: ProjectConfig) {
   return Effect.runPromise(
     Effect.gen(function* () {
@@ -66,6 +76,31 @@ describe('template render snapshots', () => {
       'react main with tanstack router',
       'fragments/react/main.tsx.hbs',
       reactCustomProjectConfig,
+    ],
+    [
+      'react counter component with jotai',
+      'fragments/react/Counter.tsx.hbs',
+      reactPresetProjectConfig,
+    ],
+    [
+      'react counter component with zustand',
+      'fragments/react/Counter.tsx.hbs',
+      reactZustandProjectConfig,
+    ],
+    [
+      'react counter component without state management',
+      'fragments/react/Counter.tsx.hbs',
+      reactNoStateProjectConfig,
+    ],
+    [
+      'react counter store with jotai',
+      'fragments/react/Counter.ts.hbs',
+      reactPresetProjectConfig,
+    ],
+    [
+      'react counter store with zustand',
+      'fragments/react/Counter.ts.hbs',
+      reactZustandProjectConfig,
     ],
     [
       'vite config for react with tailwind',

@@ -20,6 +20,91 @@ export default antfu({
 "
 `;
 
+exports[`template render snapshots > renders react counter component with jotai 1`] = `
+"import { useAtom } from 'jotai'
+import { countAtom } from '../stores/counter'
+
+export default function Counter() {
+  const [count, setCount] = useAtom(countAtom)
+  const inc = () => setCount(c => c + 1)
+  const dec = () => setCount(c => c - 1)
+  return (
+    <div className="counter">
+      <div className="counter-row">
+        <button type="button" className="btn btn-sm" onClick={dec} aria-label="decrement">-</button>
+        <span className="count" aria-live="polite">{count}</span>
+        <button type="button" className="btn btn-sm" onClick={inc} aria-label="increment">+</button>
+      </div>
+    </div>
+  )
+}
+"
+`;
+
+exports[`template render snapshots > renders react counter component with zustand 1`] = `
+"import { useCounterStore } from '../stores/counter'
+
+export default function Counter() {
+  const count = useCounterStore(s => s.count)
+  const inc = useCounterStore(s => s.inc)
+  const dec = useCounterStore(s => s.dec)
+  return (
+    <div className="counter">
+      <div className="counter-row">
+        <button type="button" className="btn btn-sm" onClick={dec} aria-label="decrement">-</button>
+        <span className="count" aria-live="polite">{count}</span>
+        <button type="button" className="btn btn-sm" onClick={inc} aria-label="increment">+</button>
+      </div>
+    </div>
+  )
+}
+"
+`;
+
+exports[`template render snapshots > renders react counter component without state management 1`] = `
+"import { useState } from 'react'
+
+export default function Counter() {
+  const [count, setCount] = useState(0)
+  const inc = () => setCount(c => c + 1)
+  const dec = () => setCount(c => c - 1)
+  return (
+    <div className="counter">
+      <div className="counter-row">
+        <button type="button" className="btn btn-sm" onClick={dec} aria-label="decrement">-</button>
+        <span className="count" aria-live="polite">{count}</span>
+        <button type="button" className="btn btn-sm" onClick={inc} aria-label="increment">+</button>
+      </div>
+    </div>
+  )
+}
+"
+`;
+
+exports[`template render snapshots > renders react counter store with jotai 1`] = `
+"import { atom } from 'jotai'
+
+export const countAtom = atom<number>(0)
+"
+`;
+
+exports[`template render snapshots > renders react counter store with zustand 1`] = `
+"import { create } from 'zustand'
+
+interface CounterState {
+  count: number
+  inc: () => void
+  dec: () => void
+}
+
+export const useCounterStore = create<CounterState>(set => ({
+  count: 0,
+  inc: () => set(s => ({ count: s.count + 1 })),
+  dec: () => set(s => ({ count: s.count - 1 })),
+}))
+"
+`;
+
 exports[`template render snapshots > renders react main with react-router 1`] = `
 "import './style.less'
 import { createRoot } from 'react-dom/client'

@@ -28,6 +28,16 @@ const templateEngineLayer = TemplateEngineLive.pipe(
   ),
 )
 
+const reactZustandProjectConfig = {
+  ...reactPresetProjectConfig,
+  stateManagement: 'zustand',
+} satisfies ProjectConfig
+
+const reactNoStateProjectConfig = {
+  ...reactPresetProjectConfig,
+  stateManagement: 'none',
+} satisfies ProjectConfig
+
 function renderTemplate(templateRelativePath: string, config: ProjectConfig) {
   return Effect.runPromise(
     Effect.gen(function* () {
@@ -79,6 +89,24 @@ function expectSnippetsAbsent(label: string, output: string, snippets: readonly 
   for (const snippet of snippets) {
     expect(output, `${label} must not include ${snippet}`).not.toContain(snippet)
   }
+}
+
+function expectReactCounterComponentClean(label: string, templateRelativePath: string, output: string) {
+  const subject = `${label} (${templateRelativePath})`
+
+  expectTextClean(label, templateRelativePath, output)
+  expect(output, `${subject} must put JSX return parentheses on separate lines`).not.toContain('return (<')
+  expect(output, `${subject} must render JSX on the line after return (`).toContain('return (\n    <div className="counter">')
+  expect(output, `${subject} must close the JSX return on its own line`).toContain('\n  )\n}')
+}
+
+function expectReactCounterStoreClean(label: string, templateRelativePath: string, output: string) {
+  const subject = `${label} (${templateRelativePath})`
+
+  expectTextClean(label, templateRelativePath, output)
+  expect(output, `${subject} must use space indentation`).not.toContain('\t')
+  expect(output, `${subject} must separate imports from runtime declarations`).not.toMatch(/^import .+\n(?:export|interface)/m)
+  expect(output, `${subject} must not wrap a single state setter parameter`).not.toContain('create<CounterState>((set)')
 }
 
 describe('generated template cleanliness', () => {
@@ -155,6 +183,42 @@ describe('generated template cleanliness', () => {
     expectViteConfigClean(label, templateRelativePath, output)
     expectSnippetsInOrder(label, output, orderedSnippets)
     expectSnippetsAbsent(label, output, absentSnippets)
+  })
+
+  it.each([
+    [
+      'react jotai',
+      reactPresetProjectConfig,
+    ],
+    [
+      'react zustand',
+      reactZustandProjectConfig,
+    ],
+    [
+      'react no state',
+      reactNoStateProjectConfig,
+    ],
+  ] as const)('renders react counter component cleanly for %s', async (label, config) => {
+    const templateRelativePath = 'fragments/react/Counter.tsx.hbs'
+    const output = await renderTemplate(templateRelativePath, config)
+
+    expectReactCounterComponentClean(label, templateRelativePath, output)
+  })
+
+  it.each([
+    [
+      'react jotai',
+      reactPresetProjectConfig,
+    ],
+    [
+      'react zustand',
+      reactZustandProjectConfig,
+    ],
+  ] as const)('renders react counter store cleanly for %s', async (label, config) => {
+    const templateRelativePath = 'fragments/react/Counter.ts.hbs'
+    const output = await renderTemplate(templateRelativePath, config)
+
+    expectReactCounterStoreClean(label, templateRelativePath, output)
   })
 
   it.each([
