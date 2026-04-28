@@ -1,8 +1,17 @@
 import type { Preset } from '@/schema/preset'
-import type { BuildTool, CSSFramework, CSSPreprocessor, SharedFrontendAppConfig } from '@/schema/project-config'
+import type {
+  BuildTool,
+  CSSFramework,
+  CSSPreprocessor,
+  SharedFrontendAppConfig,
+} from '@/schema/project-config'
 import type { TemplateRegistry } from '@/schema/template-registry'
 import { makeTemplatePath } from '@/brand/template-path'
-import { contributionTrace, ContributionUnitKind, FrontendScaffoldOwner } from '@/core/ownership/model'
+import {
+  contributionTrace,
+  ContributionUnitKind,
+  FrontendScaffoldOwner,
+} from '@/core/ownership/model'
 import {
   workspaceBootstrapCodeQualityTemplates,
   workspaceBootstrapLintAndGitTemplates,
@@ -18,10 +27,16 @@ interface FrontendLeafQuestionContract<T> {
   readonly options: readonly SelectOption<T>[]
 }
 
-type SharedFrontendPolicy = Pick<SharedFrontendAppConfig, 'buildTool' | 'cssPreprocessor' | 'cssFramework'>
+type SharedFrontendPolicy = Pick<
+  SharedFrontendAppConfig,
+  'buildTool' | 'cssPreprocessor' | 'cssFramework'
+>
 type FrontendPreset = Preset
 
-const frontendFragmentRender = contributionTrace(FrontendScaffoldOwner, ContributionUnitKind.FragmentRender)
+const frontendFragmentRender = contributionTrace(
+  FrontendScaffoldOwner,
+  ContributionUnitKind.FragmentRender,
+)
 
 export const sharedFrontendQuestionContracts = {
   buildTool: {
@@ -48,7 +63,10 @@ export const sharedFrontendQuestionContracts = {
   } satisfies FrontendLeafQuestionContract<CSSFramework>,
 } as const
 
-const sharedFrontendPresetDefaults: Record<FrontendPreset, SharedFrontendPolicy> = {
+const sharedFrontendPresetDefaults: Record<
+  FrontendPreset,
+  SharedFrontendPolicy
+> = {
   'react-minimal': {
     buildTool: 'vite',
     cssPreprocessor: 'less',
@@ -71,65 +89,72 @@ const sharedFrontendPresetDefaults: Record<FrontendPreset, SharedFrontendPolicy>
   },
 }
 
-export function getSharedFrontendPresetDefaults(preset: FrontendPreset): SharedFrontendPolicy {
+export function getSharedFrontendPresetDefaults(
+  preset: FrontendPreset,
+): SharedFrontendPolicy {
   return sharedFrontendPresetDefaults[preset]
 }
 
-export const sharedFrontendTemplates: TemplateRegistry<SharedFrontendAppConfig> = {
-  'index.html': {
-    template: makeTemplatePath('fragments/common/index.html.hbs'),
-    target: 'index.html',
-    condition: () => true,
-    ownership: frontendFragmentRender,
-  },
+export const sharedFrontendTemplates: TemplateRegistry<SharedFrontendAppConfig>
+  = {
+    'index.html': {
+      template: makeTemplatePath('fragments/common/index.html.hbs'),
+      target: 'index.html',
+      condition: () => true,
+      ownership: frontendFragmentRender,
+    },
 
-  'vite.config.ts': {
-    template: makeTemplatePath('fragments/common/vite.config.ts.hbs'),
-    target: config => `vite.config.${config.language === 'typescript' ? 'ts' : 'js'}`,
-    condition: config => config.buildTool === 'vite',
-    ownership: frontendFragmentRender,
-  },
+    'vite.config.ts': {
+      template: makeTemplatePath('fragments/common/vite.config.ts.hbs'),
+      target: config =>
+        `vite.config.${config.language === 'typescript' ? 'ts' : 'js'}`,
+      condition: config => config.buildTool === 'vite',
+      ownership: frontendFragmentRender,
+    },
 
-  'tsconfig.json': {
-    template: makeTemplatePath('fragments/common/ts/tsconfig.json.hbs'),
-    target: 'tsconfig.json',
-    condition: config => config.language === 'typescript',
-    ownership: frontendFragmentRender,
-  },
-  'tsconfig.node.json': {
-    template: makeTemplatePath('fragments/common/ts/tsconfig.node.json.hbs'),
-    target: 'tsconfig.node.json',
-    condition: config => config.language === 'typescript' && config.buildTool === 'vite',
-    ownership: frontendFragmentRender,
-  },
-  'tsconfig.app.json': {
-    template: makeTemplatePath('fragments/common/ts/tsconfig.app.json.hbs'),
-    target: 'tsconfig.app.json',
-    condition: config => config.language === 'typescript',
-    ownership: frontendFragmentRender,
-  },
+    'tsconfig.json': {
+      template: makeTemplatePath('fragments/common/ts/tsconfig.json.hbs'),
+      target: 'tsconfig.json',
+      condition: config => config.language === 'typescript',
+      ownership: frontendFragmentRender,
+    },
+    'tsconfig.node.json': {
+      template: makeTemplatePath('fragments/common/ts/tsconfig.node.json.hbs'),
+      target: 'tsconfig.node.json',
+      condition: config =>
+        config.language === 'typescript' && config.buildTool === 'vite',
+      ownership: frontendFragmentRender,
+    },
+    'tsconfig.app.json': {
+      template: makeTemplatePath('fragments/common/ts/tsconfig.app.json.hbs'),
+      target: 'tsconfig.app.json',
+      condition: config => config.language === 'typescript',
+      ownership: frontendFragmentRender,
+    },
 
-  'vite-env.d.ts': {
-    template: makeTemplatePath('fragments/common/ts/vite-env.d.ts.hbs'),
-    target: 'src/vite-env.d.ts',
-    condition: config => config.language === 'typescript' && config.buildTool === 'vite',
-    ownership: frontendFragmentRender,
-  },
+    'vite-env.d.ts': {
+      template: makeTemplatePath('fragments/common/ts/vite-env.d.ts.hbs'),
+      target: 'src/vite-env.d.ts',
+      condition: config =>
+        config.language === 'typescript' && config.buildTool === 'vite',
+      ownership: frontendFragmentRender,
+    },
 
-  'README.md': {
-    template: makeTemplatePath('fragments/common/README.md.hbs'),
-    target: 'README.md',
-    condition: () => true,
-    ownership: frontendFragmentRender,
-  },
+    'README.md': {
+      template: makeTemplatePath('fragments/common/README.md.hbs'),
+      target: 'README.md',
+      condition: () => true,
+      ownership: frontendFragmentRender,
+    },
 
-  'style.css': {
-    template: makeTemplatePath('fragments/common/css/style.css.hbs'),
-    target: config => `src/style.${config.cssPreprocessor === 'css' ? 'css' : config.cssPreprocessor === 'less' ? 'less' : 'scss'}`,
-    condition: () => true,
-    ownership: frontendFragmentRender,
-  },
-}
+    'style.css': {
+      template: makeTemplatePath('fragments/common/css/style.css.hbs'),
+      target: config =>
+        `src/style.${config.cssPreprocessor === 'css' ? 'css' : config.cssPreprocessor === 'less' ? 'less' : 'scss'}`,
+      condition: () => true,
+      ownership: frontendFragmentRender,
+    },
+  }
 
 function pickTemplateRegistryEntries<T>(
   registry: TemplateRegistry<T>,
@@ -140,23 +165,26 @@ function pickTemplateRegistryEntries<T>(
   ) as TemplateRegistry<T>
 }
 
-const sharedFrontendCoreTemplates = pickTemplateRegistryEntries(sharedFrontendTemplates, [
-  'index.html',
-  'vite.config.ts',
-  'tsconfig.json',
-  'tsconfig.node.json',
-  'tsconfig.app.json',
-  'vite-env.d.ts',
-])
+const sharedFrontendCoreTemplates = pickTemplateRegistryEntries(
+  sharedFrontendTemplates,
+  [
+    'index.html',
+    'vite.config.ts',
+    'tsconfig.json',
+    'tsconfig.node.json',
+    'tsconfig.app.json',
+    'vite-env.d.ts',
+  ],
+)
 
-const sharedFrontendFinishingTemplates = pickTemplateRegistryEntries(sharedFrontendTemplates, [
-  'README.md',
-  'style.css',
-])
+const sharedFrontendFinishingTemplates = pickTemplateRegistryEntries(
+  sharedFrontendTemplates,
+  ['README.md', 'style.css'],
+)
 
-export function assembleFrontendFamilyTemplates<T extends SharedFrontendAppConfig>(
-  familyLocalTemplates: TemplateRegistry<T>,
-): TemplateRegistry<T> {
+export function assembleFrontendFamilyTemplates<
+  T extends SharedFrontendAppConfig,
+>(familyLocalTemplates: TemplateRegistry<T>): TemplateRegistry<T> {
   return {
     ...(sharedFrontendCoreTemplates as TemplateRegistry<T>),
     ...(workspaceBootstrapLintAndGitTemplates as TemplateRegistry<T>),
