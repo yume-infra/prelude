@@ -62,6 +62,25 @@ function expectViteConfigClean(label: string, templateRelativePath: string, outp
   expect(output, `${subject} must keep plugin entries comma-terminated`).toMatch(/\w+\(\),\n/)
 }
 
+function expectSnippetsInOrder(label: string, output: string, snippets: readonly string[]) {
+  let previousIndex = -1
+
+  for (const snippet of snippets) {
+    const currentIndex = output.indexOf(snippet)
+
+    expect(currentIndex, `${label} must include ${snippet}`).toBeGreaterThanOrEqual(0)
+    expect(currentIndex, `${label} must render ${snippet} after the prior snippet`).toBeGreaterThan(previousIndex)
+
+    previousIndex = currentIndex
+  }
+}
+
+function expectSnippetsAbsent(label: string, output: string, snippets: readonly string[]) {
+  for (const snippet of snippets) {
+    expect(output, `${label} must not include ${snippet}`).not.toContain(snippet)
+  }
+}
+
 describe('generated template cleanliness', () => {
   it.each([
     [
@@ -102,6 +121,7 @@ describe('generated template cleanliness', () => {
         'react(),',
         'tailwindcss(),',
       ],
+      [],
     ],
     [
       'vue full with tailwind',
@@ -113,6 +133,7 @@ describe('generated template cleanliness', () => {
         'vue(),',
         'tailwindcss(),',
       ],
+      [],
     ],
     [
       'vue custom without tailwind',
@@ -122,16 +143,18 @@ describe('generated template cleanliness', () => {
         'import { defineConfig } from \'vite\'',
         'vue(),',
       ],
+      [
+        'import tailwindcss from \'@tailwindcss/vite\'',
+        'tailwindcss(),',
+      ],
     ],
-  ] as const)('renders vite config cleanly for %s', async (label, config, snippets) => {
+  ] as const)('renders vite config cleanly for %s', async (label, config, orderedSnippets, absentSnippets) => {
     const templateRelativePath = 'fragments/common/vite.config.ts.hbs'
     const output = await renderTemplate(templateRelativePath, config)
 
     expectViteConfigClean(label, templateRelativePath, output)
-
-    for (const snippet of snippets) {
-      expect(output, `${label} must include ${snippet}`).toContain(snippet)
-    }
+    expectSnippetsInOrder(label, output, orderedSnippets)
+    expectSnippetsAbsent(label, output, absentSnippets)
   })
 
   it.each([
@@ -153,6 +176,24 @@ describe('generated template cleanliness', () => {
     expect(output, `${label} must not render blank config entries`).not.toMatch(/,\n\s*,/)
     expect(output, `${label} must render the framework config branch`).toContain(frameworkSnippet)
     expect(output, `${label} must keep ignores comma-terminated`).toContain('ignores: [\'docs/**\'],')
+  })
+
+  it('renders vscode eslint settings with common generated snippets', async () => {
+    const templateRelativePath = 'fragments/common/linter/vscode.settings.json.hbs'
+    const output = await renderTemplate(templateRelativePath, reactPresetProjectConfig)
+
+    expectTextClean('react full', templateRelativePath, output)
+    expectSnippetsInOrder('react full vscode settings', output, [
+      '"source.fixAll.eslint": "explicit"',
+      '"source.organizeImports": "never"',
+      '"eslint.rules.customizations": [',
+      '{ "rule": "style/*", "severity": "off", "fixable": true }',
+      '"eslint.validate": [',
+      '"typescript"',
+      '"typescriptreact"',
+      '"vue"',
+      '"jsonc"',
+    ])
   })
 
   it('renders zed eslint settings as parseable project settings', async () => {
