@@ -1,8 +1,11 @@
 import antfu from '@antfu/eslint-config'
 
-export default antfu(
-      { 
-        ignores: ['docs/**'],
-        {{#if (eq @config.type 'react')}} react: true{{/if}}
-      }
-)
+export default antfu({
+  ignores: ['docs/**'],
+{{#if (eq @config.type 'react')}}
+  react: true,
+{{/if}}
+{{#if (eq @config.type 'vue')}}
+  vue: true,
+{{/if}}
+})

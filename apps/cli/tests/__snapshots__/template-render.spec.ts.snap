@@ -3,24 +3,20 @@
 exports[`template render snapshots > renders eslint config for react 1`] = `
 "import antfu from '@antfu/eslint-config'
 
-export default antfu(
-      { 
-        ignores: ['docs/**'],
-         react: true
-      }
-)
+export default antfu({
+  ignores: ['docs/**'],
+  react: true,
+})
 "
 `;
 
 exports[`template render snapshots > renders eslint config for vue 1`] = `
 "import antfu from '@antfu/eslint-config'
 
-export default antfu(
-      { 
-        ignores: ['docs/**'],
-        
-      }
-)
+export default antfu({
+  ignores: ['docs/**'],
+  vue: true,
+})
 "
 `;
 
@@ -83,16 +79,15 @@ p { margin: 8px 0; }
 `;
 
 exports[`template render snapshots > renders vite config for react with tailwind 1`] = `
-"import { defineConfig } from 'vite'
+"import tailwindcss from '@tailwindcss/vite'
 import react from '@vitejs/plugin-react'
-import tailwindcss from '@tailwindcss/vite'
+import { defineConfig } from 'vite'
 
 // https://vite.dev/config/
 export default defineConfig({
   plugins: [
-    
-    react()
-    , tailwindcss()
+    react(),
+    tailwindcss(),
   ],
   server: {
     host: '127.0.0.1',
@@ -104,16 +99,15 @@ export default defineConfig({
 `;
 
 exports[`template render snapshots > renders vite config for vue with tailwind 1`] = `
-"import { defineConfig } from 'vite'
+"import tailwindcss from '@tailwindcss/vite'
 import vue from '@vitejs/plugin-vue'
-import tailwindcss from '@tailwindcss/vite'
+import { defineConfig } from 'vite'
 
 // https://vite.dev/config/
 export default defineConfig({
   plugins: [
-    vue()
-    
-    , tailwindcss()
+    vue(),
+    tailwindcss(),
   ],
   server: {
     host: '127.0.0.1',
@@ -125,15 +119,13 @@ export default defineConfig({
 `;
 
 exports[`template render snapshots > renders vite config for vue without tailwind 1`] = `
-"import { defineConfig } from 'vite'
-import vue from '@vitejs/plugin-vue'
+"import vue from '@vitejs/plugin-vue'
+import { defineConfig } from 'vite'
 
 // https://vite.dev/config/
 export default defineConfig({
   plugins: [
-    vue()
-    
-    
+    vue(),
   ],
   server: {
     host: '127.0.0.1',

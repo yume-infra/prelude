@@ -1,20 +1,26 @@
-import { defineConfig } from 'vite'
+{{#if (eq @config.cssFramework 'tailwind')}}
+import tailwindcss from '@tailwindcss/vite'
+{{/if}}
 {{#if (eq @config.type 'react')}}
 import react from '@vitejs/plugin-react'
 {{/if}}
 {{#if (eq @config.type 'vue')}}
 import vue from '@vitejs/plugin-vue'
 {{/if}}
-{{#if (eq @config.cssFramework 'tailwind')}}
-import tailwindcss from '@tailwindcss/vite'
-{{/if}}
+import { defineConfig } from 'vite'
 
 // https://vite.dev/config/
 export default defineConfig({
   plugins: [
-    {{#if (eq @config.type 'vue')}}vue(){{/if}}
-    {{#if (eq @config.type 'react')}}react(){{/if}}
-    {{#if (eq @config.cssFramework 'tailwind')}}{{#if (or (eq @config.type 'vue') (eq @config.type 'react'))}}, {{/if}}tailwindcss(){{/if}}
+{{#if (eq @config.type 'react')}}
+    react(),
+{{/if}}
+{{#if (eq @config.type 'vue')}}
+    vue(),
+{{/if}}
+{{#if (eq @config.cssFramework 'tailwind')}}
+    tailwindcss(),
+{{/if}}
   ],
   server: {
     host: '127.0.0.1',
