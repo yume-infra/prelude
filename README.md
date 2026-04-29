@@ -59,8 +59,21 @@ node apps/cli/dist/index.js
 # 非交互 preset 模式
 node apps/cli/dist/index.js --preset react-full --name my-app --install
 
+# 预览生成计划，不创建目录、不写文件、不执行命令
+node apps/cli/dist/index.js --preset react-full --name my-app --dry-run
+
 # 失败时保留现场，方便排错
 node apps/cli/dist/index.js --p vue-full --name my-app --no-rollback
+```
+
+### Dry run 预览
+
+`--dry-run` 会复用正常的配置收集与计划构建路径，并打印 human-readable 预览：计划生成的文件、组合型任务的 owner/unit trace、将要执行的 post-generate commands，以及已结构化的 post-generate file actions（例如 Husky hook 文件）。
+
+Dry run 不会创建目标目录、不会写入生成文件、不会执行 `pnpm install`、`git init`、Husky 初始化或任何其他后置命令。它只展示已经进入 PlanSpec 的文件任务和 file actions；未结构化的外部命令内部副作用不会被猜测或展开预览。
+
+```bash
+node apps/cli/dist/index.js --preset react-full --name my-app --dry-run --install --git
 ```
 
 ### 可选：建立全局链接

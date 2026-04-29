@@ -11,8 +11,9 @@
 3. 构建 `Plan` / `PlanSpec`。
 4. 应用 plan。
 5. 执行 post-generate command。
+6. 执行 post-generate file action。
 
-Handlebars fragment render、JSON / text mutation、static asset copy 和 post-generate command 都只是这条 workflow 下的 materialization strategy，不是多套 workflow。
+Handlebars fragment render、JSON / text mutation、static asset copy、post-generate command 和 post-generate file action 都只是这条 workflow 下的 materialization strategy，不是多套 workflow。
 
 ## 读者与行动
 
@@ -76,7 +77,25 @@ Handlebars fragment render、JSON / text mutation、static asset copy 和 post-g
 - 行为不适合表示为文件写入。
 - 命令可以明确归属到 owner 与 phase。
 
-post-generate command 不应隐藏文件生成规则。能稳定表示为 plan task 的文件产物，应优先进入 plan，共享 `PlanSpec`、rollback 和 ownership trace。外部命令只保留真正依赖外部工具执行的行为。
+post-generate command 不应隐藏文件生成规则。能稳定表示为 plan task 或 post-generate file action 的文件产物，应进入对应文件策略，共享 `PlanSpec`、rollback 和 ownership trace。外部命令只保留真正依赖外部工具执行的行为。
+
+### Post-Generate File Action
+
+当文件写入必须发生在外部 post-generate command 之后时，使用 post-generate file action。
+
+适用情况：
+
+- 文件内容可由当前配置稳定计算。
+- 文件写入必须等待外部工具初始化完成，例如 Husky hook 需要在 `pnpm exec husky init` 后覆盖最终内容。
+- 文件效果应在 `PlanSpec` / dry run 中可见。
+- 写入失败应接入生成目录 rollback。
+
+不适用情况：
+
+- 行为依赖包管理器、Git 或工具 CLI 执行；这仍是 post-generate command。
+- 文件效果只是外部命令的内部副作用，当前系统没有结构化表示；dry run 不应猜测。
+
+当前 Husky hook 写入已经是 post-generate file action：`pnpm install` / `git init` / `pnpm add -D husky` / `pnpm exec husky init` 仍是 command，`.husky/pre-commit` 与 `.husky/commit-msg` 的最终 hook 内容由 file action 在命令之后写入。不要把这些 hook 提前移动到 plan apply 阶段；`husky init` 可能创建或覆盖 hook 文件。
 
 ## 热点文件约束
 
@@ -104,11 +123,15 @@ post-generate command 不应隐藏文件生成规则。能稳定表示为 plan t
 
 新增 dependency、script、devDependency、engine 等规则时，应由对应 owner 贡献 JSON mutation，并保持 mutation 可序列化为可解释的 `PlanSpec`。如果新增 capability 时必须直接修改中心 `package.json` 聚合函数，说明 owner contribution 边界还不够深。
 
+当前实现中，package policy 通过 package manifest contribution collector 汇合：`package-manifest-contributions.ts` 负责排序、same-value dedupe、provenance 和 owner-aware conflict diagnostics；`package-json.ts` 只收集 scaffold-family、workspace/bootstrap、router 与 state-management owner 的 contributions，并提交单个 package json task。新增 package 规则时应优先扩展 owner contribution API 与对应 owner 测试，而不是恢复中心 package policy 表或 Handlebars helper。
+
+面向 M007 preview / dry run 时，package manifest contribution 的可解释单元应至少保留 target path、section、key、owner(s) 与 value；不要通过重新解析最终 `package.json` 文本来猜测来源。
+
 ### TypeScript 配置
 
-当前 TypeScript config 仍适合 fragment render，因为内容相对固定，主要由 scaffold-family owner 决定。
+当前 TypeScript config 仍适合 fragment render，因为内容相对固定，主要由 scaffold-family owner 决定。M006 未迁移 `tsconfig`；它只把 `package.json` 的 package policy 收敛为 structured package manifest contributions。
 
-当多个 owner 需要共同修改 compiler options、references、paths、types 等字段时，TypeScript config 应被视为新的结构化热点文件，接入 structured target contribution 与 same-path mutation merge，而不是继续把 capability-specific 条件塞进模板。
+当多个 owner 需要共同修改 compiler options、references、paths、types 等字段时，TypeScript config 应被视为新的结构化热点文件，接入 structured target contribution 与 same-path mutation merge，而不是继续把 capability-specific 条件塞进模板。没有这类新需求前，`tsconfig` 只作为 deferred hotspot watchlist 保留，不应为了“对齐 package manifest”而提前迁移。
 
 ### Linter 编辑器配置
 
@@ -125,7 +148,9 @@ post-generate command 不应隐藏文件生成规则。能稳定表示为 plan t
 
 在引入 plan preview、dry run、外部 `PlanSpec` 读取或更多生成目标前，应确保 plan build 或 plan apply 拒绝绝对 target path 与 `..` 越界 target path。模板源路径和生成目标路径应继续使用不同 brand。
 
-当前命令主要用于依赖安装、Git 初始化和工具初始化，通常不处理 secret。在引入 token、认证、远程模板、私有 registry 或外部服务前，必须先定义 command output 的 redaction 或降级策略。失败诊断应保留 command、args、cwd、exit code、owner、unit 和 phase，但不得持久化敏感 stdout / stderr。
+当前命令主要用于依赖安装、Git 初始化和工具初始化，通常不处理 secret。M008 的当前边界是：`CommandError` 应保留 command、args、cwd、cause，以及平台失败对象暴露的完整 stdout / stderr / output；当前不做 redaction，也不做 truncation。
+
+在引入 token、认证、远程模板、私有 registry、插件来源、authenticated external services 或 secret-bearing command env 前，必须先定义 command output 的 redaction 或降级策略。失败诊断应继续保留 command、args、cwd、exit code（如可用）、owner、unit 和 phase，但不得持久化未处理的敏感 stdout / stderr。
 
 远程模板、插件化模板来源、Node 项目脚手架和已有项目增量更新仍不在当前产品范围内。若未来要进入实现，必须先更新用户侧系统架构、执行约束、验证矩阵，并重新评估 preserved core、路径边界和 command output 安全边界。
 
@@ -133,13 +158,16 @@ post-generate command 不应隐藏文件生成规则。能稳定表示为 plan t
 
 plan preview 和 dry run 是用户可见能力，不是新的 workflow。
 
-如果引入这些能力，应满足以下约束：
+当前实现只提供 `--dry-run`，不提供单独 `--preview` flag，也不提供 `--json` 或其他稳定机器可读 contract。输出是 human-readable preview，数据源仍必须是 `PlanSpec`。如果未来要增加 JSON 输出，应作为新的 contract 重新规划和测试，而不是把当前文本输出当作隐式 API。
+
+如果引入或修改这些能力，应满足以下约束：
 
 1. 复用正常的 config collection 与 plan build。
 2. 以 `PlanSpec` 为唯一数据源。
-3. 展示 target path、task kind、owner、unit 和 post-generate command。
+3. 展示 target path、task kind、owner、unit、post-generate command 和 post-generate file action。
 4. dry run 不写入文件、不创建目录、不执行外部命令。
 5. 如果文件产物仍隐藏在 post-generate command 中，preview 只能展示命令，不能声称已完整展示文件内容。
+6. 不要在 dry run 中猜测命令副作用；只有已经进入 `postGenerateFileActions` 的文件效果才能作为文件 action 展示。
 
 涉及用户可见输出时，必须同步检查用户文档。
 
@@ -152,6 +180,7 @@ plan preview 和 dry run 是用户可见能力，不是新的 workflow。
 - 修改 rollback、path boundary 或 plan apply 行为时，覆盖失败路径。
 - 修改依赖版本、package manifest、Vite、TypeScript、React 或 Vue 主模板时，考虑运行 generated project smoke。
 - 修改 command phase 时，验证命令顺序、失败诊断和敏感输出边界。
+- 修改 post-generate file action 时，验证命令先于 file action、路径越界拒绝、写入失败 rollback、以及真实生成项目中的最终文件内容。
 
 ## 反模式
 

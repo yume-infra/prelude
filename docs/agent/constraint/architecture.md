@@ -58,6 +58,7 @@
 - JSON / text mutation
 - static asset copy
 - post-generate command
+- post-generate file action
 
 在解释 template registry ownership、package mutations 和 bootstrap 行为时，应优先按这些单元理解。
 
@@ -66,6 +67,8 @@
 以下边界工作应被视为已落地现实，没有新证据前不要重新争论：
 
 - `CommandService.execute` 已被收进 service boundary，调用方依赖 `CommandService`，而不是 platform executor requirement。
+- command failure diagnostics 当前通过 `CommandError` 保留 command、args、cwd、cause，以及可用的 stdout / stderr / output。当前本地命令范围不做 redaction；若未来进入私有 registry、token、远程模板、插件来源、authenticated external services 或 secret-bearing env，必须先重新定义 command output redaction / 降级策略。
+- Husky hook 最终文件内容当前通过 post-generate file action 写入：Husky 初始化仍是 post-generate command，`.husky/pre-commit` 与 `.husky/commit-msg` 在命令之后写入并进入 `PlanSpec` / dry run 可见范围。不要把这些 hook 写入提前移动到 plan apply 阶段。
 - planner 已在 plan application 开始前拒绝 duplicate target-path conflicts，这属于核心执行契约的一部分。
 - shared frontend config 只保留真正共享的语义；React 与 Vue 的 router / state semantics 已分开建模。
 - `router` 与 `state-management` 都已经是 capability owner，不应再按“只有 router 是试点”的旧口径理解。
