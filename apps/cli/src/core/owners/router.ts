@@ -1,3 +1,4 @@
+import type { PackageManifestContribution } from '@/core/modifier/package-manifest-contributions'
 import type { JsonBuilder } from '@/core/services/planner'
 import type { ReactProjectConfig, ReactRouter, VueProjectConfig } from '@/schema/project-config'
 import type { TemplateRegistryEntry } from '@/schema/template-registry'
@@ -54,6 +55,39 @@ export const VueRouterAboutTemplate: TemplateRegistryEntry<VueProjectConfig> = {
   target: 'src/views/About.vue',
   condition: hasVueRouter,
   ownership: routerFragmentRender,
+}
+
+export function getReactRouterPackageContributions(config: ReactProjectConfig): PackageManifestContribution[] {
+  if (config.router === 'react-router') {
+    return [{
+      ownership: routerPackageJsonMutation,
+      sections: {
+        dependencies: { 'react-router': '^7.14.2', 'react-router-dom': '^7.14.2' },
+      },
+    }]
+  }
+
+  if (config.router === 'tanstack-router') {
+    return [{
+      ownership: routerPackageJsonMutation,
+      sections: {
+        dependencies: { '@tanstack/react-router': '^1.168.23' },
+      },
+    }]
+  }
+
+  return []
+}
+
+export function getVueRouterPackageContributions(config: VueProjectConfig): PackageManifestContribution[] {
+  return config.router
+    ? [{
+        ownership: routerPackageJsonMutation,
+        sections: {
+          dependencies: { 'vue-router': '^5.0.4' },
+        },
+      }]
+    : []
 }
 
 export function applyReactRouterPackageJson(entry: JsonBuilder, config: ReactProjectConfig): JsonBuilder {

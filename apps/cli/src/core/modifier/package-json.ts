@@ -1,13 +1,25 @@
-import type { ComposeDSL } from '@/core/services/planner'
+import type { PackageManifestContribution, PackageManifestSection } from './package-manifest-contributions'
+import type { ComposeDSL, JsonBuilder } from '@/core/services/planner'
 import type { ProjectConfig } from '@/schema/project-config'
 import { makePackageName } from '@/brand/package-name'
 import { finalizePackageJsonOrder } from '@/core/modifier/package-json-order'
-import { applyReactRouterPackageJson, applyVueRouterPackageJson } from '@/core/owners/router'
-import { applyReactStateManagementPackageJson, applyVueStateManagementPackageJson } from '@/core/owners/state-management'
-import { contributionTrace, ContributionUnitKind, WorkspaceBootstrapOwner } from '@/core/ownership/model'
-import { applyWorkspaceBootstrapPackageJson } from '@/core/workspace-bootstrap'
-import { deps, devDeps, scripts, when } from '@/utils/file-helper'
-import { isFrontendProject, isReactProject, isVueProject } from '@/utils/type-guard'
+import { collectPackageManifestContributions } from '@/core/modifier/package-manifest-contributions'
+import {
+  getReactRouterPackageContributions,
+  getVueRouterPackageContributions,
+} from '@/core/owners/router'
+import { getScaffoldFamilyPackageContributions } from '@/core/owners/scaffold-family'
+import {
+  getReactStateManagementPackageContributions,
+  getVueStateManagementPackageContributions,
+} from '@/core/owners/state-management'
+import {
+  contributionTrace,
+  ContributionUnitKind,
+  WorkspaceBootstrapOwner,
+} from '@/core/ownership/model'
+import { getWorkspaceBootstrapPackageContributions } from '@/core/workspace-bootstrap'
+import { isReactProject, isVueProject } from '@/utils/type-guard'
 
 function basePackageJson(config: ProjectConfig) {
   return {
@@ -25,45 +37,79 @@ function basePackageJson(config: ProjectConfig) {
   }
 }
 
+export function getPackageManifestContributions(config: ProjectConfig): PackageManifestContribution[] {
+  return [
+    ...getScaffoldFamilyPackageContributions(config),
+    ...getWorkspaceBootstrapPackageContributions(config),
+    ...(isVueProject(config)
+      ? [
+          ...getVueStateManagementPackageContributions(config),
+          ...getVueRouterPackageContributions(config),
+        ]
+      : []),
+    ...(isReactProject(config)
+      ? [
+          ...getReactStateManagementPackageContributions(config),
+          ...getReactRouterPackageContributions(config),
+        ]
+      : []),
+  ]
+}
+
+export function collectPackageManifestForConfig(config: ProjectConfig) {
+  return collectPackageManifestContributions({
+    base: basePackageJson(config),
+    contributions: getPackageManifestContributions(config),
+  })
+}
+
+function addSectionEntries(
+  draft: Record<string, unknown>,
+  section: PackageManifestSection,
+  entries: Record<string, unknown>,
+) {
+  const current = draft[section]
+  const target = Object.prototype.toString.call(current) === '[object Object]'
+    ? current as Record<string, unknown>
+    : {}
+
+  Object.assign(target, entries)
+  draft[section] = target
+}
+
+function applyPackageContribution(entry: JsonBuilder, contribution: PackageManifestContribution) {
+  for (const [key, value] of Object.entries(contribution.fields ?? {})) {
+    entry.modify((draft) => {
+      draft[key] = value
+    }, contribution.ownership)
+  }
+
+  for (const [section, entries] of Object.entries(contribution.sections ?? {}) as Array<[PackageManifestSection, Record<string, unknown>]>) {
+    entry.modify((draft) => {
+      addSectionEntries(draft, section, entries)
+    }, contribution.ownership)
+  }
+}
+
 export function buildPackageJson(dsl: ComposeDSL, config: ProjectConfig) {
   const entry = dsl.json('package.json', contributionTrace(WorkspaceBootstrapOwner, ContributionUnitKind.JsonTextMutation))
     .base(() => basePackageJson(config))
-    .modify(when(config.language === 'typescript', devDeps({ typescript: '^6.0.3' })))
 
-  applyWorkspaceBootstrapPackageJson(entry, config)
+  const packageContributions = getPackageManifestContributions(config)
 
-  if (isFrontendProject(config)) {
-    entry
-      .modify(when(config.buildTool === 'vite', deps({ vite: '^8.0.9' })))
-      .modify(when(config.buildTool === 'vite', scripts({ dev: 'vite', build: 'vite build', preview: 'vite preview' })))
+  // Keep the structured collector on the production build path as the owner-aware
+  // conflict/provenance boundary. PlanService still materializes package.json via
+  // per-contribution reducers so dry-run can show reducer ownership; tests assert
+  // the materialized output stays aligned with this collected manifest.
+  collectPackageManifestForConfig(config)
 
-      .modify(when(config.cssPreprocessor === 'sass', devDeps({ sass: '^1.99.0' })))
-      .modify(when(config.cssPreprocessor === 'less', devDeps({ less: '^4.6.4' })))
-
-      .modify(when(config.cssFramework === 'tailwind', deps({ 'tailwindcss': '^4.2.4', '@tailwindcss/vite': '^4.2.4' })))
-
-    if (isVueProject(config)) {
-      entry
-        .modify(when(config.language === 'typescript', devDeps({ '@vue/tsconfig': '^0.9.1' })))
-        .modify(when(config.buildTool === 'vite', deps({ '@vitejs/plugin-vue': '^6.0.6', '@vue/compiler-sfc': '^3.5.32' })))
-        .modify(deps({ vue: '^3.5.32' }))
-      applyVueStateManagementPackageJson(entry, config)
-      applyVueRouterPackageJson(entry, config)
-    }
-    else if (isReactProject(config)) {
-      entry
-        .modify(deps({ 'react': '^19.2.5', 'react-dom': '^19.2.5' }))
-        .modify(when(config.buildTool === 'vite', deps({ '@vitejs/plugin-react': '^6.0.1' })))
-        .modify(when(config.linting === 'antfu-eslint', devDeps({ '@eslint-react/eslint-plugin': '^3.0.0', 'eslint-plugin-react-hooks': '^7.1.1', 'eslint-plugin-react-refresh': '^0.5.2' })))
-        .modify(when(config.language === 'typescript', devDeps({ '@types/react': '^19.2.14', '@types/react-dom': '^19.2.3' })))
-      applyReactStateManagementPackageJson(entry, config)
-      applyReactRouterPackageJson(entry, config)
-    }
-
-    function applyPackageJsonOrder(draft: Record<string, unknown>) {
-      finalizePackageJsonOrder(draft)
-    }
-
-    entry.finalize(applyPackageJsonOrder)
+  for (const contribution of packageContributions) {
+    applyPackageContribution(entry, contribution)
   }
+
+  function applyPackageJsonOrder(draft: Record<string, unknown>) {
+    finalizePackageJsonOrder(draft)
+  }
+
+  entry.finalize(applyPackageJsonOrder)
 }

@@ -1,3 +1,4 @@
+import type { PackageManifestContribution } from '@/core/modifier/package-manifest-contributions'
 import type { JsonBuilder } from '@/core/services/planner'
 import type { ReactProjectConfig, ReactStateManagement, VueProjectConfig } from '@/schema/project-config'
 import type { TemplateRegistryEntry } from '@/schema/template-registry'
@@ -40,6 +41,39 @@ export const VueCounterStoreTemplate: TemplateRegistryEntry<VueProjectConfig> = 
   target: config => `src/stores/counter.${config.language === 'typescript' ? 'ts' : 'js'}`,
   condition: hasVueStateManagement,
   ownership: stateManagementFragmentRender,
+}
+
+export function getReactStateManagementPackageContributions(config: ReactProjectConfig): PackageManifestContribution[] {
+  if (config.stateManagement === 'zustand') {
+    return [{
+      ownership: stateManagementPackageJsonMutation,
+      sections: {
+        dependencies: { zustand: '^5.0.12' },
+      },
+    }]
+  }
+
+  if (config.stateManagement === 'jotai') {
+    return [{
+      ownership: stateManagementPackageJsonMutation,
+      sections: {
+        dependencies: { jotai: '^2.19.1' },
+      },
+    }]
+  }
+
+  return []
+}
+
+export function getVueStateManagementPackageContributions(config: VueProjectConfig): PackageManifestContribution[] {
+  return hasVueStateManagement(config)
+    ? [{
+        ownership: stateManagementPackageJsonMutation,
+        sections: {
+          dependencies: { pinia: '^3.0.4' },
+        },
+      }]
+    : []
 }
 
 export function applyReactStateManagementPackageJson(entry: JsonBuilder, config: ReactProjectConfig): JsonBuilder {

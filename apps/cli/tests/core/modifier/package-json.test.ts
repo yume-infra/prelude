@@ -2,7 +2,8 @@ import type { ComposeDSL, JsonBuilder } from '@/core/services/planner'
 import type { ProjectConfig } from '@/schema/project-config'
 import { describe, expect, it } from 'vitest'
 import { makeProjectName } from '@/brand/project-name'
-import { buildPackageJson } from '../../../src/core/modifier/package-json'
+import { buildPackageJson, collectPackageManifestForConfig } from '../../../src/core/modifier/package-json'
+import { projectConfigs } from '../../support/fixtures'
 
 function renderPackageJson(config: ProjectConfig) {
   let readExisting = false
@@ -74,6 +75,10 @@ function renderPackageJson(config: ProjectConfig) {
 }
 
 describe('buildPackageJson', () => {
+  it.each(projectConfigs)('keeps materialized package.json aligned with the package manifest collector for $type/$name', (config) => {
+    expect(renderPackageJson(config)).toEqual(collectPackageManifestForConfig(config).manifest)
+  })
+
   const expectedFullPackageTopLevelOrder = [
     'name',
     'type',
