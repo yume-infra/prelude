@@ -1,6 +1,7 @@
 import { Effect, Either } from 'effect'
 import { describe, expect, it } from 'vitest'
 import { parseCliArgs, parseRawCliArgs } from '../../src/core/cli-args'
+import { HELP_TEXT } from '../../src/core/cli-help'
 
 describe('parseRawCliArgs', () => {
   it('normalizes aliases and negated booleans for the non-interactive preset flow', () => {
@@ -12,6 +13,7 @@ describe('parseRawCliArgs', () => {
       '--no-install',
       '--no-git',
       '--no-rollback',
+      '--dry-run',
       '-h',
     ])).toEqual({
       _: [],
@@ -21,6 +23,7 @@ describe('parseRawCliArgs', () => {
       git: false,
       help: true,
       rollback: false,
+      dryRun: true,
     })
   })
 
@@ -36,6 +39,28 @@ describe('parseRawCliArgs', () => {
       name: 'demo-app',
       rollback: true,
     })
+  })
+  it('normalizes the dry-run negated boolean', () => {
+    expect(parseRawCliArgs([
+      '--preset',
+      'react-full',
+      '--name',
+      'demo-app',
+      '--no-dry-run',
+    ])).toEqual({
+      _: [],
+      preset: 'react-full',
+      name: 'demo-app',
+      rollback: true,
+      dryRun: false,
+    })
+  })
+})
+
+describe('hELP_TEXT', () => {
+  it('documents the dry-run flag and safety promise', () => {
+    expect(HELP_TEXT).toContain('--dry-run')
+    expect(HELP_TEXT).toContain('without writing files or running commands')
   })
 })
 

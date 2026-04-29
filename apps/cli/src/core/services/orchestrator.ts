@@ -17,6 +17,10 @@ import { buildTemplates } from './compose'
 import { withProjectAnnotations } from './observability'
 
 interface OrchestratorServiceShape {
+  readonly build: (
+    baseDir: TargetDir,
+    config: ProjectConfig,
+  ) => Effect.Effect<Plan, FileIOError | TemplateError>
   readonly execute: (
     baseDir: TargetDir,
     config: ProjectConfig,
@@ -35,26 +39,33 @@ export class OrchestratorService extends Effect.Service<OrchestratorService>()(
       const templateRoot = makeTemplatePath(path.resolve(__dirname, '../templates'))
       const partialRoot = makeTemplatePath(path.join(templateRoot, 'partials'))
 
-      const execute: OrchestratorServiceShape['execute'] = (baseDir, config, options) =>
+      const buildProgram = (config: ProjectConfig) => (dsl: ComposeDSL) => {
+        if (!isFrontendProject(config))
+          return
+
+        // root.svg + package.json
+        buildRootSvg(dsl, templateRoot)
+        buildPackageJson(dsl, config)
+
+        // 注册模板（纯函数）
+        buildTemplates(dsl, templateRoot, config)
+      }
+
+      const build: OrchestratorServiceShape['build'] = (baseDir, config) =>
         Effect.gen(function* () {
           // 1. 准备模板引擎（helpers + 框架/global partials）
           yield* templateEngine.prepare(config, partialRoot)
 
-          // 2. 组合 DSL（纯同步，不能产生 Effect）
-          const program = (dsl: ComposeDSL) => {
-            if (!isFrontendProject(config))
-              return
+          // 2. 组合 DSL（纯同步，不能产生 Effect）并生成计划
+          return yield* planner.build(buildProgram(config))
+        }).pipe(
+          Effect.withSpan('orchestrator.build'),
+          withProjectAnnotations(config, 'orchestrator.build', baseDir),
+        )
 
-            // root.svg + package.json
-            buildRootSvg(dsl, templateRoot)
-            buildPackageJson(dsl, config)
-
-            // 注册模板（纯函数）
-            buildTemplates(dsl, templateRoot, config)
-          }
-
-          // 4. 生成计划并应用
-          const plan = yield* planner.build(program)
+      const execute: OrchestratorServiceShape['execute'] = (baseDir, config, options) =>
+        Effect.gen(function* () {
+          const plan = yield* build(baseDir, config)
           yield* planner.apply(plan, baseDir, config, options)
           return plan
         }).pipe(
@@ -62,7 +73,7 @@ export class OrchestratorService extends Effect.Service<OrchestratorService>()(
           withProjectAnnotations(config, 'orchestrator.execute', baseDir),
         )
 
-      return { execute } satisfies OrchestratorServiceShape
+      return { build, execute } satisfies OrchestratorServiceShape
     }),
     dependencies: [PlanService.Default, TemplateEngineService.Default],
   },

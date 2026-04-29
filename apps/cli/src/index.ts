@@ -8,6 +8,7 @@ import { Effect, Either, Layer, Logger } from 'effect'
 import { AppConfig } from '@/config/app-config'
 import { parseCliArgs, parseRawCliArgs } from '@/core/cli-args'
 import { CliContext, CliContextLive } from '@/core/cli-context'
+import { HELP_TEXT } from '@/core/cli-help'
 import { OrchestratorLive } from '@/core/services/orchestrator'
 import { TracingLive } from '@/core/services/tracing'
 import { FsLive } from '~/fs'
@@ -15,27 +16,8 @@ import { TemplateEngineLive } from '~/template-engine'
 import { showConfigSummary, showWelcome } from './core/compose'
 import { collectQuestions } from './core/questions/compose'
 import { CommandLive } from './core/services/command'
-import { finishProject, generateProject } from './core/services/compose'
+import { finishProject, generateProject, previewProject } from './core/services/compose'
 import { PlanLive } from './core/services/planner'
-
-const HELP_TEXT = `Usage:
-  create-yume --preset react-minimal --name my-app [--install | --no-install] [--git | --no-git]
-  create-yume --preset react-full --name my-app [--install | --no-install] [--git | --no-git]
-  create-yume --preset vue-minimal --name my-app [--install | --no-install] [--git | --no-git]
-  create-yume --preset vue-full --name my-app [--install | --no-install] [--git | --no-git]
-
-Options:
-  --preset, --p <preset> Project preset combination: react-minimal | react-full | vue-minimal | vue-full
-  --name <project>      Target project name (letters, numbers, hyphens, underscores)
-  --install             Run pnpm install after generation
-  --no-install          Skip pnpm install after generation
-  --git                 Force Git initialization on
-  --no-git              Force Git initialization off
-  --rollback            Remove generated files if generation fails (default)
-  --no-rollback         Keep generated files when generation fails
-  --help, -h            Show this help message
-  --version, -v         Show CLI version
-`
 
 function readPackageVersion() {
   const packageJson = JSON.parse(
@@ -117,6 +99,13 @@ const main = Effect.gen(function* () {
 
   const projectConfig = yield* collectQuestions
   yield* showConfigSummary(projectConfig)
+
+  if (cli.args.dryRun) {
+    const preview = yield* previewProject(projectConfig)
+    yield* Effect.sync(() => console.log(preview))
+    return
+  }
+
   const plan = yield* generateProject(projectConfig)
   yield* finishProject(projectConfig, plan, {
     rollbackOnFailure: cli.args.rollback ?? true,

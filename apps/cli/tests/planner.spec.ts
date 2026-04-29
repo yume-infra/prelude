@@ -149,6 +149,52 @@ describe('state management ownership boundaries', () => {
 })
 
 describe('scaffold-family shared frontend policy', () => {
+  it('traces scaffold-owned package contributions through reducer ownership', async () => {
+    const reactPlan = await Effect.runPromise(buildPlanSpec(reactPresetProjectConfig))
+    const vuePlan = await Effect.runPromise(buildPlanSpec(vuePresetProjectConfig))
+    const reactPackageJsonTask = reactPlan.tasks.find(task => task.kind === 'json' && task.path === 'package.json')
+    const vuePackageJsonTask = vuePlan.tasks.find(task => task.kind === 'json' && task.path === 'package.json')
+
+    expect(reactPackageJsonTask?.kind).toBe('json')
+    expect(vuePackageJsonTask?.kind).toBe('json')
+    if (reactPackageJsonTask?.kind !== 'json' || vuePackageJsonTask?.kind !== 'json') {
+      throw new Error('package.json task was not a json task')
+    }
+
+    expect(reactPackageJsonTask.reducers).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          ownership: {
+            owner: 'frontend-scaffold',
+            unit: 'json-text-mutation',
+          },
+        }),
+        expect.objectContaining({
+          ownership: {
+            owner: 'react-scaffold',
+            unit: 'json-text-mutation',
+          },
+        }),
+      ]),
+    )
+    expect(vuePackageJsonTask.reducers).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          ownership: {
+            owner: 'frontend-scaffold',
+            unit: 'json-text-mutation',
+          },
+        }),
+        expect.objectContaining({
+          ownership: {
+            owner: 'vue-scaffold',
+            unit: 'json-text-mutation',
+          },
+        }),
+      ]),
+    )
+  })
+
   it('omits vite-owned files when the build tool is disabled', async () => {
     const reactPlan = await Effect.runPromise(buildPlanSpec({
       ...reactPresetProjectConfig,

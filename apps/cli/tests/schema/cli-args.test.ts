@@ -21,4 +21,21 @@ describe('cliArgsSchema', () => {
       expect(formatted).toContain('react-minimal')
     }
   })
+
+  it('decodes the dry-run flag', async () => {
+    const result = await Effect.runPromise(
+      Effect.either(
+        decodeCliArgs({
+          preset: 'react-full',
+          name: 'demo-app',
+          dryRun: true,
+        }),
+      ),
+    )
+
+    expect(Either.isRight(result)).toBe(true)
+    if (Either.isRight(result)) {
+      expect(result.right.dryRun).toBe(true)
+    }
+  })
 })

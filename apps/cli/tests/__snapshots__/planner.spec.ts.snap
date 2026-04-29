@@ -37,11 +37,64 @@ exports[`planner snapshots > builds a deterministic plan for react custom 1`] = 
       "path": "package.json",
       "reducers": [
         {
+          "ownership": {
+            "owner": "frontend-scaffold",
+            "unit": "json-text-mutation",
+          },
           "reducer": "modify",
         },
         {
           "ownership": {
-            "owner": "workspace-bootstrap",
+            "owner": "frontend-scaffold",
+            "unit": "json-text-mutation",
+          },
+          "reducer": "modify",
+        },
+        {
+          "ownership": {
+            "owner": "frontend-scaffold",
+            "unit": "json-text-mutation",
+          },
+          "reducer": "modify",
+        },
+        {
+          "ownership": {
+            "owner": "frontend-scaffold",
+            "unit": "json-text-mutation",
+          },
+          "reducer": "modify",
+        },
+        {
+          "ownership": {
+            "owner": "frontend-scaffold",
+            "unit": "json-text-mutation",
+          },
+          "reducer": "modify",
+        },
+        {
+          "ownership": {
+            "owner": "react-scaffold",
+            "unit": "json-text-mutation",
+          },
+          "reducer": "modify",
+        },
+        {
+          "ownership": {
+            "owner": "react-scaffold",
+            "unit": "json-text-mutation",
+          },
+          "reducer": "modify",
+        },
+        {
+          "ownership": {
+            "owner": "react-scaffold",
+            "unit": "json-text-mutation",
+          },
+          "reducer": "modify",
+        },
+        {
+          "ownership": {
+            "owner": "react-scaffold",
             "unit": "json-text-mutation",
           },
           "reducer": "modify",
@@ -75,30 +128,10 @@ exports[`planner snapshots > builds a deterministic plan for react custom 1`] = 
           "reducer": "modify",
         },
         {
-          "reducer": "modify",
-        },
-        {
-          "reducer": "modify",
-        },
-        {
-          "reducer": "modify",
-        },
-        {
-          "reducer": "modify",
-        },
-        {
-          "reducer": "modify",
-        },
-        {
-          "reducer": "modify",
-        },
-        {
-          "reducer": "modify",
-        },
-        {
-          "reducer": "modify",
-        },
-        {
+          "ownership": {
+            "owner": "workspace-bootstrap",
+            "unit": "json-text-mutation",
+          },
           "reducer": "modify",
         },
         {
@@ -347,11 +380,64 @@ exports[`planner snapshots > builds a deterministic plan for react preset 1`] = 
       "path": "package.json",
       "reducers": [
         {
+          "ownership": {
+            "owner": "frontend-scaffold",
+            "unit": "json-text-mutation",
+          },
           "reducer": "modify",
         },
         {
           "ownership": {
-            "owner": "workspace-bootstrap",
+            "owner": "frontend-scaffold",
+            "unit": "json-text-mutation",
+          },
+          "reducer": "modify",
+        },
+        {
+          "ownership": {
+            "owner": "frontend-scaffold",
+            "unit": "json-text-mutation",
+          },
+          "reducer": "modify",
+        },
+        {
+          "ownership": {
+            "owner": "frontend-scaffold",
+            "unit": "json-text-mutation",
+          },
+          "reducer": "modify",
+        },
+        {
+          "ownership": {
+            "owner": "frontend-scaffold",
+            "unit": "json-text-mutation",
+          },
+          "reducer": "modify",
+        },
+        {
+          "ownership": {
+            "owner": "react-scaffold",
+            "unit": "json-text-mutation",
+          },
+          "reducer": "modify",
+        },
+        {
+          "ownership": {
+            "owner": "react-scaffold",
+            "unit": "json-text-mutation",
+          },
+          "reducer": "modify",
+        },
+        {
+          "ownership": {
+            "owner": "react-scaffold",
+            "unit": "json-text-mutation",
+          },
+          "reducer": "modify",
+        },
+        {
+          "ownership": {
+            "owner": "react-scaffold",
             "unit": "json-text-mutation",
           },
           "reducer": "modify",
@@ -385,30 +471,10 @@ exports[`planner snapshots > builds a deterministic plan for react preset 1`] = 
           "reducer": "modify",
         },
         {
-          "reducer": "modify",
-        },
-        {
-          "reducer": "modify",
-        },
-        {
-          "reducer": "modify",
-        },
-        {
-          "reducer": "modify",
-        },
-        {
-          "reducer": "modify",
-        },
-        {
-          "reducer": "modify",
-        },
-        {
-          "reducer": "modify",
-        },
-        {
-          "reducer": "modify",
-        },
-        {
+          "ownership": {
+            "owner": "workspace-bootstrap",
+            "unit": "json-text-mutation",
+          },
           "reducer": "modify",
         },
         {
@@ -657,11 +723,50 @@ exports[`planner snapshots > builds a deterministic plan for vue custom 1`] = `
       "path": "package.json",
       "reducers": [
         {
+          "ownership": {
+            "owner": "frontend-scaffold",
+            "unit": "json-text-mutation",
+          },
           "reducer": "modify",
         },
         {
           "ownership": {
-            "owner": "workspace-bootstrap",
+            "owner": "frontend-scaffold",
+            "unit": "json-text-mutation",
+          },
+          "reducer": "modify",
+        },
+        {
+          "ownership": {
+            "owner": "frontend-scaffold",
+            "unit": "json-text-mutation",
+          },
+          "reducer": "modify",
+        },
+        {
+          "ownership": {
+            "owner": "frontend-scaffold",
+            "unit": "json-text-mutation",
+          },
+          "reducer": "modify",
+        },
+        {
+          "ownership": {
+            "owner": "vue-scaffold",
+            "unit": "json-text-mutation",
+          },
+          "reducer": "modify",
+        },
+        {
+          "ownership": {
+            "owner": "vue-scaffold",
+            "unit": "json-text-mutation",
+          },
+          "reducer": "modify",
+        },
+        {
+          "ownership": {
+            "owner": "vue-scaffold",
             "unit": "json-text-mutation",
           },
           "reducer": "modify",
@@ -695,27 +800,10 @@ exports[`planner snapshots > builds a deterministic plan for vue custom 1`] = `
           "reducer": "modify",
         },
         {
-          "reducer": "modify",
-        },
-        {
-          "reducer": "modify",
-        },
-        {
-          "reducer": "modify",
-        },
-        {
-          "reducer": "modify",
-        },
-        {
-          "reducer": "modify",
-        },
-        {
-          "reducer": "modify",
-        },
-        {
-          "reducer": "modify",
-        },
-        {
+          "ownership": {
+            "owner": "workspace-bootstrap",
+            "unit": "json-text-mutation",
+          },
           "reducer": "modify",
         },
         {
@@ -964,11 +1052,57 @@ exports[`planner snapshots > builds a deterministic plan for vue preset 1`] = `
       "path": "package.json",
       "reducers": [
         {
+          "ownership": {
+            "owner": "frontend-scaffold",
+            "unit": "json-text-mutation",
+          },
           "reducer": "modify",
         },
         {
           "ownership": {
-            "owner": "workspace-bootstrap",
+            "owner": "frontend-scaffold",
+            "unit": "json-text-mutation",
+          },
+          "reducer": "modify",
+        },
+        {
+          "ownership": {
+            "owner": "frontend-scaffold",
+            "unit": "json-text-mutation",
+          },
+          "reducer": "modify",
+        },
+        {
+          "ownership": {
+            "owner": "frontend-scaffold",
+            "unit": "json-text-mutation",
+          },
+          "reducer": "modify",
+        },
+        {
+          "ownership": {
+            "owner": "frontend-scaffold",
+            "unit": "json-text-mutation",
+          },
+          "reducer": "modify",
+        },
+        {
+          "ownership": {
+            "owner": "vue-scaffold",
+            "unit": "json-text-mutation",
+          },
+          "reducer": "modify",
+        },
+        {
+          "ownership": {
+            "owner": "vue-scaffold",
+            "unit": "json-text-mutation",
+          },
+          "reducer": "modify",
+        },
+        {
+          "ownership": {
+            "owner": "vue-scaffold",
             "unit": "json-text-mutation",
           },
           "reducer": "modify",
@@ -1002,27 +1136,10 @@ exports[`planner snapshots > builds a deterministic plan for vue preset 1`] = `
           "reducer": "modify",
         },
         {
-          "reducer": "modify",
-        },
-        {
-          "reducer": "modify",
-        },
-        {
-          "reducer": "modify",
-        },
-        {
-          "reducer": "modify",
-        },
-        {
-          "reducer": "modify",
-        },
-        {
-          "reducer": "modify",
-        },
-        {
-          "reducer": "modify",
-        },
-        {
+          "ownership": {
+            "owner": "workspace-bootstrap",
+            "unit": "json-text-mutation",
+          },
           "reducer": "modify",
         },
         {

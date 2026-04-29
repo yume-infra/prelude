@@ -12,6 +12,7 @@ export interface RawCliArgs {
   readonly help?: boolean
   readonly version?: boolean
   readonly rollback?: boolean
+  readonly dryRun?: boolean
 }
 
 type MutableRawCliArgs = {
@@ -25,11 +26,12 @@ function hasRemovedYesArg(argv: string[]) {
 export function parseRawCliArgs(argv: string[]): RawCliArgs {
   const parsed = mri(argv, {
     alias: {
-      h: 'help',
-      p: 'preset',
-      v: 'version',
+      'h': 'help',
+      'p': 'preset',
+      'v': 'version',
+      'dry-run': 'dryRun',
     },
-    boolean: ['install', 'git', 'help', 'version', 'rollback'],
+    boolean: ['install', 'git', 'help', 'version', 'rollback', 'dry-run', 'dryRun'],
     default: {
       rollback: true,
     },
@@ -51,6 +53,8 @@ export function parseRawCliArgs(argv: string[]): RawCliArgs {
     rawArgs.version = parsed.version
   if (parsed.rollback !== undefined)
     rawArgs.rollback = parsed.rollback
+  if (parsed.dryRun !== undefined)
+    rawArgs.dryRun = parsed.dryRun
 
   return rawArgs
 }

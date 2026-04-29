@@ -24,6 +24,7 @@ export function makeFsMockLayer(
     ensureDir: () => Effect.void,
     remove: () => Effect.void,
     copyFile: () => Effect.void,
+    chmod: () => Effect.void,
     ...overrides,
   }))
 }

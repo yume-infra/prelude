@@ -5,6 +5,8 @@ import {
   applyWorkspaceBootstrapPackageJson,
   getWorkspaceBootstrapCommandSpecs,
   getWorkspaceBootstrapHookSpecs,
+  getWorkspaceBootstrapPackageContributions,
+  getWorkspaceBootstrapPostGenerateFileActions,
   getWorkspaceBootstrapPresetDefaults,
   resolveWorkspaceBootstrapInstallPolicy,
   shouldAskWorkspaceBootstrapCodeQuality,
@@ -59,20 +61,6 @@ function applyWorkspacePackageMutations(config: Parameters<typeof applyWorkspace
   return { draft, reducers }
 }
 
-function huskyHookCommand(path: string, content: string, executable: boolean) {
-  return {
-    command: 'node',
-    args: [
-      '-e',
-      [
-        'const fs = require("node:fs");',
-        `fs.writeFileSync(${JSON.stringify(path)}, ${JSON.stringify(content)});`,
-        ...(executable ? [`fs.chmodSync(${JSON.stringify(path)}, 0o755);`] : []),
-      ].join(''),
-    ],
-  }
-}
-
 describe('workspace/bootstrap contract', () => {
   it('keeps code-quality prompts gated by git and linting choices', () => {
     expect(shouldAskWorkspaceBootstrapCodeQuality({
@@ -125,6 +113,59 @@ describe('workspace/bootstrap contract', () => {
     })).toBe(false)
   })
 
+  it('exposes package contributions with workspace ownership metadata', () => {
+    const contributions = getWorkspaceBootstrapPackageContributions(reactPresetProjectConfig)
+
+    expect(contributions).toEqual([
+      {
+        ownership: workspaceBootstrapPackageJsonMutation,
+        sections: {
+          devDependencies: {
+            '@antfu/eslint-config': '^8.2.0',
+            'eslint': '^10.2.1',
+          },
+          scripts: {
+            'lint': 'eslint',
+            'lint:fix': 'eslint --fix',
+          },
+        },
+      },
+      {
+        ownership: workspaceBootstrapPackageJsonMutation,
+        sections: {
+          devDependencies: {
+            husky: '^9.1.7',
+          },
+        },
+      },
+      {
+        ownership: workspaceBootstrapPackageJsonMutation,
+        sections: {
+          devDependencies: {
+            'lint-staged': '^16.4.0',
+          },
+        },
+      },
+      {
+        ownership: workspaceBootstrapPackageJsonMutation,
+        sections: {
+          devDependencies: {
+            '@commitlint/cli': '^20.5.0',
+            '@commitlint/config-conventional': '^20.5.0',
+          },
+        },
+      },
+    ])
+  })
+
+  it('omits package contributions when workspace package policy is disabled', () => {
+    expect(getWorkspaceBootstrapPackageContributions({
+      git: false,
+      linting: 'none',
+      codeQuality: [],
+    })).toEqual([])
+  })
+
   it('applies package mutations with workspace ownership metadata', () => {
     const { draft, reducers } = applyWorkspacePackageMutations(reactPresetProjectConfig)
 
@@ -163,7 +204,7 @@ describe('workspace/bootstrap contract', () => {
     )
   })
 
-  it('keeps Husky hook writes structured instead of hidden in shell redirection', () => {
+  it('keeps Husky hook writes structured as post-generate file actions', () => {
     expect(getWorkspaceBootstrapHookSpecs(reactPresetProjectConfig)).toEqual([
       {
         path: '.husky/pre-commit',
@@ -177,13 +218,36 @@ describe('workspace/bootstrap contract', () => {
       },
     ])
 
+    expect(getWorkspaceBootstrapPostGenerateFileActions(reactPresetProjectConfig)).toEqual([
+      {
+        kind: 'write-file',
+        path: '.husky/pre-commit',
+        content: 'pnpm lint-staged\n',
+        phase: 'after-post-generate-commands',
+        ownership: {
+          owner: 'workspace-bootstrap',
+          unit: 'post-generate-file',
+        },
+        executable: false,
+      },
+      {
+        kind: 'write-file',
+        path: '.husky/commit-msg',
+        content: 'pnpm exec commitlint --edit "$1"\n',
+        phase: 'after-post-generate-commands',
+        ownership: {
+          owner: 'workspace-bootstrap',
+          unit: 'post-generate-file',
+        },
+        executable: true,
+      },
+    ])
+
     expect(
       getWorkspaceBootstrapCommandSpecs(reactPresetProjectConfig, true)
-        .filter(spec => spec.command === 'sh')
+        .filter(spec => spec.command === 'sh' || spec.command === 'node')
         .map(spec => spec.args.join(' ')),
-    ).not.toEqual(expect.arrayContaining([
-      expect.stringContaining('> .husky/'),
-    ]))
+    ).toEqual([])
   })
 
   it('keeps command policy in one workspace/bootstrap contract', () => {
@@ -191,16 +255,12 @@ describe('workspace/bootstrap contract', () => {
       { command: 'pnpm', args: ['install'] },
       { command: 'git', args: ['init'] },
       { command: 'pnpm', args: ['exec', 'husky', 'init'] },
-      huskyHookCommand('.husky/pre-commit', 'pnpm lint-staged\n', false),
-      huskyHookCommand('.husky/commit-msg', 'pnpm exec commitlint --edit "$1"\n', true),
     ])
 
     expect(getWorkspaceBootstrapCommandSpecs(reactPresetProjectConfig, false)).toEqual([
       { command: 'git', args: ['init'] },
       { command: 'pnpm', args: ['add', '-D', 'husky'] },
       { command: 'pnpm', args: ['exec', 'husky', 'init'] },
-      huskyHookCommand('.husky/pre-commit', 'pnpm lint-staged\n', false),
-      huskyHookCommand('.husky/commit-msg', 'pnpm exec commitlint --edit "$1"\n', true),
     ])
 
     expect(getWorkspaceBootstrapCommandSpecs({

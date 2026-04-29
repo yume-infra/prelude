@@ -5,6 +5,7 @@ import type {
   JsonLiteral,
   PlanOperationSpec,
   PlanSpec,
+  PostGenerateFileActionPhaseSpec,
 } from '@/schema/plan-spec'
 import { makeTemplatePath } from '@/brand/template-path'
 import { toPostGenerateCommandSpec } from '../../commands'
@@ -80,9 +81,19 @@ export interface TextTask extends ITask {
   base?: () => string
 }
 
+export interface PostGenerateFileAction {
+  kind: 'write-file'
+  path: string
+  content: string
+  phase: PostGenerateFileActionPhaseSpec
+  ownership?: ContributionTrace
+  executable?: boolean
+}
+
 export interface Plan {
   tasks: Task[]
   postGenerateCommands?: PostGenerateCommand[]
+  postGenerateFileActions?: PostGenerateFileAction[]
 }
 
 const planOperationSpecSymbol = Symbol('planOperationSpec')
@@ -205,6 +216,18 @@ export function toPlanSpec(plan: Plan): PlanSpec {
     ...(plan.postGenerateCommands
       ? {
           postGenerateCommands: plan.postGenerateCommands.map(toPostGenerateCommandSpec),
+        }
+      : {}),
+    ...(plan.postGenerateFileActions
+      ? {
+          postGenerateFileActions: plan.postGenerateFileActions.map(action => ({
+            kind: action.kind,
+            path: action.path,
+            content: action.content,
+            phase: action.phase,
+            ...(action.ownership ? { ownership: action.ownership } : {}),
+            ...(action.executable !== undefined ? { executable: action.executable } : {}),
+          })),
         }
       : {}),
   }

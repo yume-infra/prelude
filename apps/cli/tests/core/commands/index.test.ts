@@ -2,7 +2,7 @@ import { Effect, Layer } from 'effect'
 import { describe, expect, it } from 'vitest'
 import { makeProjectName } from '@/brand/project-name'
 import { CliContextLive } from '../../../src/core/cli-context'
-import { buildCommands, toPostGenerateCommandSpec } from '../../../src/core/commands/index'
+import { buildCommands, buildPostGenerateFileActions, toPostGenerateCommandSpec } from '../../../src/core/commands/index'
 import { reactProjectConfig } from '../../support/fixtures'
 import { makeCommandMockLayer } from '../../support/mock-layers'
 
@@ -30,6 +30,10 @@ async function collectCommands(install: boolean) {
   )
 }
 
+async function collectFileActions() {
+  return Effect.runPromise(buildPostGenerateFileActions(reactProjectConfig))
+}
+
 describe('buildCommands', () => {
   it('prepends pnpm install when the non-interactive CLI context requests installation', async () => {
     const commands = await collectCommands(true)
@@ -38,9 +42,8 @@ describe('buildCommands', () => {
       'pnpm install',
       'git init',
       'pnpm exec husky init',
-      expect.stringContaining('node -e const fs = require("node:fs");fs.writeFileSync(".husky/pre-commit"'),
-      expect.stringContaining('node -e const fs = require("node:fs");fs.writeFileSync(".husky/commit-msg"'),
     ])
+    expect(commands.map(formatCommand).join('\n')).not.toContain('node -e')
     expect(commands.map(formatCommand).join('\n')).not.toContain('> .husky/')
     expect(commands.map(formatCommand).join('\n')).not.toContain('prepare-commit-msg')
 
@@ -72,24 +75,31 @@ describe('buildCommands', () => {
           unit: 'post-generate-command',
         },
       },
-      expect.objectContaining({
-        command: 'node',
-        args: expect.arrayContaining([expect.stringContaining('writeFileSync(".husky/pre-commit"')]),
-        phase: 'after-plan-apply',
+    ])
+
+    await expect(collectFileActions()).resolves.toEqual([
+      {
+        kind: 'write-file',
+        path: '.husky/pre-commit',
+        content: 'pnpm lint-staged\n',
+        phase: 'after-post-generate-commands',
         ownership: {
           owner: 'workspace-bootstrap',
-          unit: 'post-generate-command',
+          unit: 'post-generate-file',
         },
-      }),
-      expect.objectContaining({
-        command: 'node',
-        args: expect.arrayContaining([expect.stringContaining('writeFileSync(".husky/commit-msg"')]),
-        phase: 'after-plan-apply',
+        executable: false,
+      },
+      {
+        kind: 'write-file',
+        path: '.husky/commit-msg',
+        content: 'pnpm exec commitlint --edit "$1"\n',
+        phase: 'after-post-generate-commands',
         ownership: {
           owner: 'workspace-bootstrap',
-          unit: 'post-generate-command',
+          unit: 'post-generate-file',
         },
-      }),
+        executable: true,
+      },
     ])
   })
 
@@ -100,9 +110,8 @@ describe('buildCommands', () => {
       'git init',
       'pnpm add -D husky',
       'pnpm exec husky init',
-      expect.stringContaining('node -e const fs = require("node:fs");fs.writeFileSync(".husky/pre-commit"'),
-      expect.stringContaining('node -e const fs = require("node:fs");fs.writeFileSync(".husky/commit-msg"'),
     ])
+    expect(commands.map(formatCommand).join('\n')).not.toContain('node -e')
     expect(commands.map(formatCommand).join('\n')).not.toContain('> .husky/')
     expect(commands.map(formatCommand).join('\n')).not.toContain('prepare-commit-msg')
   })

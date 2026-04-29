@@ -11,6 +11,7 @@ import {
 } from '@/core/ownership/model'
 import {
   getWorkspaceBootstrapCommandSpecs,
+  getWorkspaceBootstrapPostGenerateFileActions,
   resolveWorkspaceBootstrapInstallPolicy,
 } from '@/core/workspace-bootstrap'
 import { ask } from '../adapters/prompts'
@@ -65,4 +66,8 @@ export function buildCommands(config: ProjectConfig) {
     return getWorkspaceBootstrapCommandSpecs(config, installDeps)
       .map(spec => traceCommand(commandSvc.make(makeCommandName(spec.command), ...spec.args)))
   })
+}
+
+export function buildPostGenerateFileActions(config: ProjectConfig) {
+  return Effect.succeed(getWorkspaceBootstrapPostGenerateFileActions(config))
 }

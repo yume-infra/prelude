@@ -7,6 +7,7 @@ export const ContributionUnitKindSchema = Schema.Literal(
   'json-text-mutation',
   'static-asset-copy',
   'post-generate-command',
+  'post-generate-file',
 ).annotations({
   identifier: 'ContributionUnitKind',
   title: 'ContributionUnitKind',
@@ -113,6 +114,23 @@ export const PostGenerateCommandSpecSchema = Schema.Struct({
   title: 'PostGenerateCommandSpec',
 })
 
+export const PostGenerateFileActionPhaseSchema = Schema.Literal('after-post-generate-commands').annotations({
+  identifier: 'PostGenerateFileActionPhase',
+  title: 'PostGenerateFileActionPhase',
+})
+
+export const PostGenerateFileActionSpecSchema = Schema.Struct({
+  kind: Schema.Literal('write-file'),
+  path: Schema.String,
+  content: Schema.String,
+  phase: PostGenerateFileActionPhaseSchema,
+  ownership: Schema.optionalWith(ContributionTraceSchema, { exact: true }),
+  executable: Schema.optionalWith(Schema.Boolean, { exact: true }),
+}).annotations({
+  identifier: 'PostGenerateFileActionSpec',
+  title: 'PostGenerateFileActionSpec',
+})
+
 export const PlanTaskSpecSchema = Schema.Union(
   RenderTaskSpecSchema,
   CopyTaskSpecSchema,
@@ -126,6 +144,7 @@ export const PlanTaskSpecSchema = Schema.Union(
 export const PlanSpecSchema = Schema.Struct({
   tasks: Schema.Array(PlanTaskSpecSchema),
   postGenerateCommands: Schema.optionalWith(Schema.Array(PostGenerateCommandSpecSchema), { exact: true }),
+  postGenerateFileActions: Schema.optionalWith(Schema.Array(PostGenerateFileActionSpecSchema), { exact: true }),
 }).annotations({
   identifier: 'PlanSpec',
   title: 'PlanSpec',
@@ -140,6 +159,8 @@ export type JsonTaskSpec = Schema.Schema.Type<typeof JsonTaskSpecSchema>
 export type TextTaskSpec = Schema.Schema.Type<typeof TextTaskSpecSchema>
 export type PostGenerateCommandPhaseSpec = Schema.Schema.Type<typeof PostGenerateCommandPhaseSchema>
 export type PostGenerateCommandSpec = Schema.Schema.Type<typeof PostGenerateCommandSpecSchema>
+export type PostGenerateFileActionPhaseSpec = Schema.Schema.Type<typeof PostGenerateFileActionPhaseSchema>
+export type PostGenerateFileActionSpec = Schema.Schema.Type<typeof PostGenerateFileActionSpecSchema>
 export type PlanTaskSpec = Schema.Schema.Type<typeof PlanTaskSpecSchema>
 export type PlanSpec = Schema.Schema.Type<typeof PlanSpecSchema>
 

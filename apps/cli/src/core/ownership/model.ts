@@ -13,6 +13,7 @@ export const ContributionUnitKind = {
   JsonTextMutation: 'json-text-mutation',
   StaticAssetCopy: 'static-asset-copy',
   PostGenerateCommand: 'post-generate-command',
+  PostGenerateFile: 'post-generate-file',
 } as const
 
 export type ContributionUnitKindId = typeof ContributionUnitKind[keyof typeof ContributionUnitKind]

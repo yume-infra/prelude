@@ -18,6 +18,7 @@ export type {
   JsonTask,
   ModifyTask,
   Plan,
+  PostGenerateFileAction,
   RenderTask,
   Task,
   TextBuilder,

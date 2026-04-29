@@ -11,6 +11,7 @@ export const CliArgsSchema = Schema.Struct({
   help: Schema.optionalWith(Schema.Boolean, { exact: true }),
   version: Schema.optionalWith(Schema.Boolean, { exact: true }),
   rollback: Schema.optionalWith(Schema.Boolean, { exact: true }),
+  dryRun: Schema.optionalWith(Schema.Boolean, { exact: true }),
 }).annotations({
   identifier: 'CliArgs',
   title: 'CliArgs',

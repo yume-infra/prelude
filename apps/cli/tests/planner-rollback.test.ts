@@ -223,6 +223,68 @@ describe('planner rollback', () => {
     }
   })
 
+  it('rejects duplicate package json tasks instead of merging them at PlanService level', async () => {
+    const writes: string[] = []
+    const directories: string[] = []
+    const removes: string[] = []
+    const baseDir = makeTargetDir('/tmp/create-yume-duplicate-package-json')
+
+    const fsLayer = makeFsMockLayer({
+      makeDirectory: path =>
+        Effect.sync(() => {
+          directories.push(path)
+        }),
+      writeFileString: (path, content) =>
+        Effect.sync(() => {
+          writes.push(`${path}:${content}`)
+        }),
+      remove: path =>
+        Effect.sync(() => {
+          removes.push(path)
+        }),
+    })
+
+    const templateLayer = makeTemplateEngineMockLayer()
+
+    const appConfigLayer = Layer.succeed(AppConfig, AppConfig.make({
+      logLevel: LogLevel.Debug,
+      defaultConcurrency: 1,
+      tracingEndpoint: Option.none(),
+      debug: false,
+    }))
+
+    const layer = PlanService.DefaultWithoutDependencies.pipe(
+      Layer.provideMerge(Layer.mergeAll(appConfigLayer, fsLayer, templateLayer)),
+    )
+
+    const plan: Plan = {
+      tasks: [
+        { kind: 'json', path: 'package.json', reducers: [] },
+        { kind: 'json', path: 'package.json', reducers: [] },
+      ],
+    }
+
+    const exit = await Effect.runPromiseExit(
+      Effect.gen(function* () {
+        const planner = yield* PlanService
+        yield* planner.apply(plan, baseDir, reactProjectConfig)
+      }).pipe(Effect.provide(layer)),
+    )
+
+    expect(Exit.isFailure(exit)).toBe(true)
+    expect(writes).toEqual([])
+    expect(directories).toEqual([])
+    expect(removes).toEqual([])
+
+    if (Exit.isFailure(exit) && exit.cause._tag === 'Fail') {
+      expect(exit.cause.error).toBeInstanceOf(PlanConflictError)
+      expect(exit.cause.error).toMatchObject({
+        path: 'package.json',
+        taskKinds: ['json', 'json'],
+      })
+    }
+  })
+
   it('rejects duplicate target paths after canonical normalization', async () => {
     const writes: string[] = []
     const directories: string[] = []

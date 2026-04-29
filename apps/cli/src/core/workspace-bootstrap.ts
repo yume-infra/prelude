@@ -1,4 +1,5 @@
-import type { JsonBuilder } from '@/core/services/planner'
+import type { PackageManifestContribution } from '@/core/modifier/package-manifest-contributions'
+import type { JsonBuilder, PostGenerateFileAction } from '@/core/services/planner'
 import type { CodeQuality, Linting, ProjectConfig } from '@/schema/project-config'
 import { contributionTrace, ContributionUnitKind, WorkspaceBootstrapOwner } from '@/core/ownership/model'
 import { devDeps, scripts, when } from '@/utils/file-helper'
@@ -45,6 +46,11 @@ const commitLintHook = 'pnpm exec commitlint --edit "$1"\n'
 export const workspaceBootstrapPackageJsonMutation = contributionTrace(
   WorkspaceBootstrapOwner,
   ContributionUnitKind.JsonTextMutation,
+)
+
+export const workspaceBootstrapPostGenerateFileAction = contributionTrace(
+  WorkspaceBootstrapOwner,
+  ContributionUnitKind.PostGenerateFile,
 )
 
 export const workspaceBootstrapQuestionContracts = {
@@ -94,6 +100,54 @@ export function resolveWorkspaceBootstrapInstallPolicy(options: {
   return options.isInteractive ? 'prompt' : false
 }
 
+export function getWorkspaceBootstrapPackageContributions(
+  config: WorkspaceBootstrapPackagePolicy,
+): PackageManifestContribution[] {
+  const contributions: PackageManifestContribution[] = []
+
+  if (config.linting === 'antfu-eslint') {
+    contributions.push({
+      ownership: workspaceBootstrapPackageJsonMutation,
+      sections: {
+        devDependencies: { '@antfu/eslint-config': '^8.2.0', 'eslint': '^10.2.1' },
+        scripts: { 'lint': 'eslint', 'lint:fix': 'eslint --fix' },
+      },
+    })
+  }
+
+  if (config.codeQuality.length > 0) {
+    contributions.push({
+      ownership: workspaceBootstrapPackageJsonMutation,
+      sections: {
+        devDependencies: { husky: '^9.1.7' },
+      },
+    })
+  }
+
+  if (config.codeQuality.includes('lint-staged')) {
+    contributions.push({
+      ownership: workspaceBootstrapPackageJsonMutation,
+      sections: {
+        devDependencies: { 'lint-staged': '^16.4.0' },
+      },
+    })
+  }
+
+  if (config.codeQuality.includes('commitlint')) {
+    contributions.push({
+      ownership: workspaceBootstrapPackageJsonMutation,
+      sections: {
+        devDependencies: {
+          '@commitlint/cli': '^20.5.0',
+          '@commitlint/config-conventional': '^20.5.0',
+        },
+      },
+    })
+  }
+
+  return contributions
+}
+
 export function applyWorkspaceBootstrapPackageJson(
   entry: JsonBuilder,
   config: WorkspaceBootstrapPackagePolicy,
@@ -132,14 +186,15 @@ export function getWorkspaceBootstrapHookSpecs(config: WorkspaceBootstrapCommand
   return hooks
 }
 
-function renderHuskyHookCommandSpec(hook: WorkspaceBootstrapHookSpec): WorkspaceBootstrapCommandSpec {
-  const script = [
-    'const fs = require("node:fs");',
-    `fs.writeFileSync(${JSON.stringify(hook.path)}, ${JSON.stringify(hook.content)});`,
-    ...(hook.executable ? [`fs.chmodSync(${JSON.stringify(hook.path)}, 0o755);`] : []),
-  ].join('')
-
-  return { command: 'node', args: ['-e', script] }
+export function getWorkspaceBootstrapPostGenerateFileActions(config: WorkspaceBootstrapCommandPolicy): PostGenerateFileAction[] {
+  return getWorkspaceBootstrapHookSpecs(config).map(hook => ({
+    kind: 'write-file',
+    path: hook.path,
+    content: hook.content,
+    phase: 'after-post-generate-commands',
+    ownership: workspaceBootstrapPostGenerateFileAction,
+    executable: hook.executable,
+  }))
 }
 
 export function getWorkspaceBootstrapCommandSpecs(
@@ -162,7 +217,6 @@ export function getWorkspaceBootstrapCommandSpecs(
     }
 
     commands.push({ command: 'pnpm', args: ['exec', 'husky', 'init'] })
-    commands.push(...getWorkspaceBootstrapHookSpecs(config).map(renderHuskyHookCommandSpec))
   }
 
   return commands

@@ -1,3 +1,4 @@
+import * as fs from 'node:fs/promises'
 import { FileSystem } from '@effect/platform'
 import { Effect, pipe } from 'effect'
 import { FileIOError } from '@/core/errors'
@@ -20,6 +21,7 @@ interface FsServiceShape {
     options?: { recursive?: boolean, force?: boolean },
   ) => Effect.Effect<void, FileIOError>
   readonly copyFile: (src: string, dest: string) => Effect.Effect<void, FileIOError>
+  readonly chmod: (path: string, mode: number) => Effect.Effect<void, FileIOError>
 }
 
 export class FsService extends Effect.Service<FsService>()('FsService', {
@@ -102,7 +104,13 @@ export class FsService extends Effect.Service<FsService>()('FsService', {
         Effect.provideService(FileSystem.FileSystem, platformFs),
       )
 
-    return { exists, readFileString, writeFileString, readFile, writeFile, readDirectory, makeDirectory, ensureDir, remove, copyFile } satisfies FsServiceShape
+    const chmod: FsServiceShape['chmod'] = (path, mode) =>
+      Effect.tryPromise({
+        try: () => fs.chmod(path, mode),
+        catch: mapErr('chmod', path),
+      })
+
+    return { exists, readFileString, writeFileString, readFile, writeFile, readDirectory, makeDirectory, ensureDir, remove, copyFile, chmod } satisfies FsServiceShape
   }),
 }) {}
 
