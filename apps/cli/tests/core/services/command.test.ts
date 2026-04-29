@@ -1,5 +1,5 @@
 import type { StandardCommand } from '@effect/platform/Command'
-import { Error as PlatformError } from '@effect/platform'
+import { Command, Error as PlatformError } from '@effect/platform'
 import * as PlatformCommandExecutor from '@effect/platform/CommandExecutor'
 import { Effect, Layer } from 'effect'
 import { describe, expect, it } from 'vitest'
@@ -23,6 +23,31 @@ function makeCommandExecutorLayer(
     } satisfies PlatformCommandExecutor.CommandExecutor,
   )
 }
+
+describe('commandError', () => {
+  it('preserves command context and complete output diagnostics when provided', () => {
+    const cause = new Error('forced failure')
+    const error = new CommandError({
+      command: 'pnpm',
+      args: ['install'],
+      cwd: '/tmp/example',
+      cause,
+      stdout: 'stdout line 1\nstdout line 2',
+      stderr: 'stderr line 1\nstderr line 2',
+      output: 'combined line 1\ncombined line 2',
+    })
+
+    expect(error).toMatchObject({
+      command: 'pnpm',
+      args: ['install'],
+      cwd: '/tmp/example',
+      cause,
+      stdout: 'stdout line 1\nstdout line 2',
+      stderr: 'stderr line 1\nstderr line 2',
+      output: 'combined line 1\ncombined line 2',
+    })
+  })
+})
 
 describe('command service', () => {
   it('executes commands without leaking CommandExecutor to callers', async () => {
@@ -92,6 +117,47 @@ describe('command service', () => {
         command: 'git',
         args: ['status'],
         cause,
+      })
+    }
+  })
+
+  it('preserves available command output diagnostics on failures', async () => {
+    const outputFailure = {
+      reason: 'NonZeroExit',
+      stdout: 'stdout line 1\nstdout line 2',
+      stderr: 'stderr line 1\nstderr line 2',
+      output: 'combined line 1\ncombined line 2',
+    }
+    const executorLayer = makeCommandExecutorLayer(
+      () => Effect.fail(outputFailure as never),
+    )
+    const commandLayer = CommandService.Default.pipe(Layer.provide(executorLayer))
+
+    const result = await Effect.runPromiseExit(
+      Effect.gen(function* () {
+        const commands = yield* CommandService
+        const command = Command.workingDirectory(
+          commands.make(makeCommandName('pnpm'), 'install'),
+          '/tmp/generated-project',
+        ) as StandardCommand
+        return yield* commands.execute(command)
+      }).pipe(
+        Effect.provide(commandLayer),
+      ),
+    )
+
+    expect(result._tag).toBe('Failure')
+    if (result._tag === 'Failure') {
+      const failure = result.cause._tag === 'Fail' ? result.cause.error : undefined
+      expect(failure).toBeInstanceOf(CommandError)
+      expect(failure).toMatchObject({
+        command: 'pnpm',
+        args: ['install'],
+        cwd: '/tmp/generated-project',
+        cause: outputFailure,
+        stdout: 'stdout line 1\nstdout line 2',
+        stderr: 'stderr line 1\nstderr line 2',
+        output: 'combined line 1\ncombined line 2',
       })
     }
   })

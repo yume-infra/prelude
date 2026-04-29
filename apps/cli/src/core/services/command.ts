@@ -11,6 +11,32 @@ interface CommandServiceShape {
   readonly execute: (command: StandardCommand) => Effect.Effect<string, CommandError>
 }
 
+type CommandOutputDiagnostics = Pick<CommandError, 'stdout' | 'stderr' | 'output'>
+
+function asStringRecord(value: unknown): Record<string, unknown> | undefined {
+  if (typeof value !== 'object' || value === null)
+    return undefined
+
+  return value as Record<string, unknown>
+}
+
+function stringField(record: Record<string, unknown>, key: string) {
+  const value = record[key]
+  return typeof value === 'string' ? value : undefined
+}
+
+function extractCommandOutputDiagnostics(error: unknown): CommandOutputDiagnostics {
+  const record = asStringRecord(error)
+  if (!record)
+    return {}
+
+  return {
+    ...(stringField(record, 'stdout') !== undefined ? { stdout: stringField(record, 'stdout') } : {}),
+    ...(stringField(record, 'stderr') !== undefined ? { stderr: stringField(record, 'stderr') } : {}),
+    ...(stringField(record, 'output') !== undefined ? { output: stringField(record, 'output') } : {}),
+  }
+}
+
 export class CommandService extends Effect.Service<CommandService>()('CommandService', {
   effect: Effect.gen(function* () {
     const executor = yield* CommandExecutor
@@ -33,6 +59,7 @@ export class CommandService extends Effect.Service<CommandService>()('CommandSer
               command: command.command,
               args: [...command.args],
               ...(Option.isSome(command.cwd) ? { cwd: command.cwd.value } : {}),
+              ...extractCommandOutputDiagnostics(error),
               cause: error,
             })),
           )

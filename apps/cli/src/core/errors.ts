@@ -10,7 +10,7 @@ export class TemplateError extends Data.TaggedError('TemplateCompileError')<{
 }> {}
 
 export class FileIOError extends Data.TaggedError('FileIOError')<{
-  op: 'read' | 'write' | 'mkdir' | 'exists' | 'remove' | 'copy' | 'parse'
+  op: 'read' | 'write' | 'mkdir' | 'exists' | 'remove' | 'copy' | 'parse' | 'chmod'
   path: string
   message: string
   projectType?: string
@@ -25,6 +25,9 @@ export class CommandError extends Data.TaggedError('CommandError')<{
   cwd?: string
   shell?: boolean
   cause?: unknown
+  stdout?: string
+  stderr?: string
+  output?: string
 }> {}
 
 export class PlanConflictError extends Data.TaggedError('PlanConflictError')<{
