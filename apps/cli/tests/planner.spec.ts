@@ -52,6 +52,7 @@ describe('planner public boundary', () => {
     expect(plannerSource).toContain('import { applyPlan } from \'./plan/apply\'')
     expect(plannerSource).toContain('import { buildPlan } from \'./plan/build\'')
     expect(plannerSource).toContain('export { toPlanSpec } from \'./plan/build\'')
+    expect(plannerSource).toContain('export { projectPlanSpec } from \'./plan/build\'')
     expect(plannerSource).toContain('const build: PlanServiceShape[\'build\']')
     expect(plannerSource).toContain('const apply: PlanServiceShape[\'apply\']')
     expect(plannerSource).toContain('buildPlan(program)')

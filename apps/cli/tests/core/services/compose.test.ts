@@ -1,4 +1,5 @@
 import type { StandardCommand } from '@effect/platform/Command'
+import type { Plan } from '../../../src/core/services/planner'
 import { readFileSync } from 'node:fs'
 import path from 'node:path'
 import { Command } from '@effect/platform'
@@ -8,7 +9,7 @@ import { makeProjectName } from '@/brand/project-name'
 import { makeTargetDir } from '@/brand/target-dir'
 import { AppConfig } from '@/config/app-config'
 import { CliContextLive } from '@/core/cli-context'
-import { CommandError, FileIOError, PlanTargetPathError } from '@/core/errors'
+import { CommandError, FileIOError, PlanSpecProjectionError, PlanTargetPathError } from '@/core/errors'
 import { contributionTrace, ContributionUnitKind, WorkspaceBootstrapOwner } from '@/core/ownership/model'
 import { executeAllCommandsInDir, finishProject, previewProject, withWorkingDirectory } from '../../../src/core/services/compose'
 import { OrchestratorService } from '../../../src/core/services/orchestrator'
@@ -21,11 +22,13 @@ function makePreviewProjectLayer({
   directories = [],
   executedCommands = [],
   writtenPaths = [],
+  overridePlan,
 }: {
   readonly copiedPaths?: string[]
   readonly directories?: string[]
   readonly executedCommands?: string[]
   readonly writtenPaths?: string[]
+  readonly overridePlan?: Plan
 } = {}) {
   const appConfigLayer = Layer.succeed(AppConfig, AppConfig.make({
     logLevel: LogLevel.Debug,
@@ -50,9 +53,14 @@ function makePreviewProjectLayer({
   const planLayer = PlanService.DefaultWithoutDependencies.pipe(
     Layer.provideMerge(Layer.mergeAll(appConfigLayer, fsLayer, templateLayer)),
   )
-  const orchestratorLayer = OrchestratorService.DefaultWithoutDependencies.pipe(
-    Layer.provideMerge(Layer.mergeAll(planLayer, templateLayer)),
-  )
+  const orchestratorLayer = overridePlan
+    ? Layer.succeed(OrchestratorService, OrchestratorService.make({
+        build: () => Effect.succeed(overridePlan),
+        execute: () => Effect.succeed(overridePlan),
+      }))
+    : OrchestratorService.DefaultWithoutDependencies.pipe(
+        Layer.provideMerge(Layer.mergeAll(planLayer, templateLayer)),
+      )
   const cliLayer = CliContextLive({
     args: {
       _: [],
@@ -84,6 +92,22 @@ describe('command working directory helpers', () => {
     expect(source).toContain('commandUnit: command.ownership.unit')
     expect(source).toContain('commandPhase: command.phase')
     expect(source).not.toContain('withProjectAnnotations(config, \'command.execute\'')
+  })
+
+  it('routes preview and finish inspection through the typed PlanSpec projection boundary', () => {
+    const source = readFileSync(new URL('../../../src/core/services/compose.ts', import.meta.url), 'utf8')
+
+    expect(source).toContain('import { projectPlanSpec } from \'./planner\'')
+    expect(source).not.toContain('toPlanSpec')
+    expect(source).toContain('const planSpec = yield* projectPlanSpec({')
+    expect(source).toContain('return formatDryRunPreview(planSpec)')
+    expect(source).toContain('const tracedPlanSpec = yield* projectPlanSpec(plan)')
+    expect(source.indexOf('const tracedPlanSpec = yield* projectPlanSpec(plan)')).toBeLessThan(
+      source.indexOf('yield* executeAllCommandsInDir(plan.postGenerateCommands ?? [], targetDir)'),
+    )
+    expect(source.indexOf('yield* executeAllCommandsInDir(plan.postGenerateCommands ?? [], targetDir)')).toBeLessThan(
+      source.indexOf('yield* executeAllPostGenerateFileActionsInDir(plan.postGenerateFileActions ?? [], targetDir)'),
+    )
   })
 
   it('applies the target directory through Command.workingDirectory', () => {
@@ -216,6 +240,121 @@ describe('command working directory helpers', () => {
     expect(copiedPaths).toEqual([])
     expect(directories).toEqual([])
     expect(writtenPaths).toEqual([])
+  })
+
+  it('fails malformed preview and finish projection before post-generate side effects execute', async () => {
+    const malformedPlan: Plan = {
+      tasks: [
+        {
+          kind: 'render',
+          src: '/templates/app.hbs',
+          path: 'src/app.ts',
+          data: { invalid: () => 'not-json' },
+        },
+      ],
+      postGenerateCommands: [
+        {
+          command: Command.make('pnpm', 'install') as StandardCommand,
+          phase: 'after-plan-apply',
+          ownership: contributionTrace(WorkspaceBootstrapOwner, ContributionUnitKind.PostGenerateCommand),
+        },
+      ],
+      postGenerateFileActions: [
+        {
+          kind: 'write-file',
+          path: '.husky/pre-commit',
+          content: 'pnpm lint-staged\n',
+          phase: 'after-post-generate-commands',
+          ownership: contributionTrace(WorkspaceBootstrapOwner, ContributionUnitKind.PostGenerateFile),
+          executable: true,
+        },
+      ],
+    }
+    const copiedPaths: string[] = []
+    const directories: string[] = []
+    const previewExecutedCommands: string[] = []
+    const writtenPaths: string[] = []
+
+    const previewExit = await Effect.runPromiseExit(
+      previewProject(reactPresetProjectConfig).pipe(
+        Effect.provide(makePreviewProjectLayer({
+          copiedPaths,
+          directories,
+          executedCommands: previewExecutedCommands,
+          writtenPaths,
+          overridePlan: malformedPlan,
+        })),
+      ),
+    )
+
+    expect(previewExit._tag).toBe('Failure')
+    if (previewExit._tag === 'Failure') {
+      const failure = previewExit.cause._tag === 'Fail' ? previewExit.cause.error : undefined
+      expect(failure).toBeInstanceOf(PlanSpecProjectionError)
+      expect(failure).toMatchObject({
+        issues: [
+          {
+            taskKind: 'render',
+            targetPath: 'src/app.ts',
+            fieldPath: 'tasks[0].data.invalid',
+            reason: 'Unsupported function value cannot be projected to JsonLiteral',
+          },
+        ],
+      })
+    }
+    expect(previewExecutedCommands).toEqual([])
+    expect(copiedPaths).toEqual([])
+    expect(directories).toEqual([])
+    expect(writtenPaths).toEqual([])
+
+    const finishExecutedCommands: string[] = []
+    const fileActionEvents: string[] = []
+    const finishExit = await Effect.runPromiseExit(
+      finishProject(reactPresetProjectConfig, malformedPlan, { rollbackOnFailure: false }).pipe(
+        Effect.provide(
+          Layer.mergeAll(
+            makeFsMockLayer({
+              ensureDir: dir => Effect.sync(() => {
+                fileActionEvents.push(`mkdir:${dir}`)
+              }),
+              writeFileString: file => Effect.sync(() => {
+                fileActionEvents.push(`write:${file}`)
+              }),
+              chmod: file => Effect.sync(() => {
+                fileActionEvents.push(`chmod:${file}`)
+              }),
+              remove: file => Effect.sync(() => {
+                fileActionEvents.push(`remove:${file}`)
+              }),
+            }),
+            makeCommandMockLayer({
+              execute: command => Effect.sync(() => {
+                finishExecutedCommands.push(`${command.command} ${command.args.join(' ')}`)
+                return ''
+              }),
+            }),
+          ),
+        ),
+      ),
+    )
+
+    expect(finishExit._tag).toBe('Failure')
+    if (finishExit._tag === 'Failure') {
+      const failure = finishExit.cause._tag === 'Fail' ? finishExit.cause.error : undefined
+      expect(failure).toBeInstanceOf(PlanSpecProjectionError)
+      expect(failure).toMatchObject({
+        issues: [
+          {
+            taskKind: 'render',
+            targetPath: 'src/app.ts',
+            fieldPath: 'tasks[0].data.invalid',
+            reason: 'Unsupported function value cannot be projected to JsonLiteral',
+          },
+        ],
+      })
+    }
+    expect(finishExecutedCommands).toEqual([])
+    expect(fileActionEvents).toEqual([])
   })
 
   it('executes post-generate commands from the emitted plan', async () => {
