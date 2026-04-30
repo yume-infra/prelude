@@ -25,6 +25,7 @@ export type {
   TextTask,
 } from './plan/build'
 export { toPlanSpec } from './plan/build'
+export { projectPlanSpec } from './plan/build'
 
 interface PlanServiceShape {
   // 组合 tasks 但是不触发

@@ -85,3 +85,4 @@
 ## 相关约束
 
 - [Workflow Materialization 约束](./workflow-materialization.md)：定义 fragment render、JSON / text mutation、static asset copy 与 post-generate command 的使用边界。
+- [脚手架生成链路维护指南](../architecture-review/scaffold-pipeline-maintenance.md)：维护 M010 之后的链路审查结论、精简候选、保留契约和验证选择。

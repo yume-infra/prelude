@@ -1,5 +1,6 @@
 import type { PostGenerateCommand } from '../../commands'
 import type { TemplatePath } from '@/brand/template-path'
+import type { PlanSpecProjectionIssue } from '@/core/errors'
 import type { ContributionTrace } from '@/core/ownership/model'
 import type {
   JsonLiteral,
@@ -7,7 +8,9 @@ import type {
   PlanSpec,
   PostGenerateFileActionPhaseSpec,
 } from '@/schema/plan-spec'
+import { Effect } from 'effect'
 import { makeTemplatePath } from '@/brand/template-path'
+import { PlanSpecProjectionError } from '@/core/errors'
 import { toPostGenerateCommandSpec } from '../../commands'
 
 export interface JsonBuilder {
@@ -97,22 +100,41 @@ export interface Plan {
 }
 
 const planOperationSpecSymbol = Symbol('planOperationSpec')
+const planOperationRawInputSymbol = Symbol('planOperationRawInput')
 
-type JsonReducer = JsonTask['reducers'][number] & {
+type OperationWithProjectionMetadata = ((...args: any[]) => unknown) & {
   readonly [planOperationSpecSymbol]?: PlanOperationSpec
+  readonly [planOperationRawInputSymbol]?: unknown
 }
 
-type TextTransform = TextTask['transforms'][number] & {
-  readonly [planOperationSpecSymbol]?: PlanOperationSpec
+type ProjectionContext = Pick<PlanSpecProjectionIssue, 'taskKind' | 'targetPath'> & {
+  readonly issues: PlanSpecProjectionIssue[]
 }
 
-function annotateOperation<T extends (...args: any[]) => any>(fn: T, spec: PlanOperationSpec): T {
+interface ProjectionResult {
+  readonly spec: PlanSpec
+  readonly issues: PlanSpecProjectionIssue[]
+}
+
+function annotateOperation<T extends (...args: any[]) => any>(
+  fn: T,
+  spec: PlanOperationSpec,
+  rawInput?: unknown,
+): T {
   Object.defineProperty(fn, planOperationSpecSymbol, {
     value: spec,
     enumerable: false,
     configurable: false,
     writable: false,
   })
+  if (rawInput !== undefined) {
+    Object.defineProperty(fn, planOperationRawInputSymbol, {
+      value: rawInput,
+      enumerable: false,
+      configurable: false,
+      writable: false,
+    })
+  }
   return fn
 }
 
@@ -121,7 +143,7 @@ function getOperationSpec(fn: ((...args: any[]) => unknown) | undefined, fallbac
     return undefined
   }
 
-  const spec = (fn as JsonReducer | TextTransform)[planOperationSpecSymbol]
+  const spec = (fn as OperationWithProjectionMetadata)[planOperationSpecSymbol]
   if (spec) {
     return spec
   }
@@ -131,36 +153,121 @@ function getOperationSpec(fn: ((...args: any[]) => unknown) | undefined, fallbac
   }
 }
 
-function isJsonLiteral(value: unknown): value is JsonLiteral {
+function hasRawOperationInput(fn: ((...args: any[]) => unknown) | undefined): fn is OperationWithProjectionMetadata {
+  return !!fn && Object.hasOwn(fn, planOperationRawInputSymbol)
+}
+
+function unsupportedJsonReason(value: unknown): string {
+  if (value === undefined) {
+    return 'Unsupported undefined value cannot be projected to JsonLiteral'
+  }
+
+  return `Unsupported ${typeof value} value cannot be projected to JsonLiteral`
+}
+
+function isPlainJsonObject(value: object): value is Record<string, unknown> {
+  const prototype = Object.getPrototypeOf(value)
+  return prototype === Object.prototype || prototype === null
+}
+
+function projectJsonLiteral(value: unknown, fieldPath: string, context: ProjectionContext): JsonLiteral | undefined {
   if (value === null) {
-    return true
+    return null
   }
 
   switch (typeof value) {
     case 'string':
     case 'number':
     case 'boolean':
-      return true
+      return value
+    case 'undefined':
+    case 'function':
+    case 'symbol':
+    case 'bigint':
+      context.issues.push({
+        taskKind: context.taskKind,
+        targetPath: context.targetPath,
+        fieldPath,
+        reason: unsupportedJsonReason(value),
+      })
+      return undefined
     case 'object':
       if (Array.isArray(value)) {
-        return value.every(isJsonLiteral)
+        const arrayValue: JsonLiteral[] = []
+        for (let index = 0; index < value.length; index += 1) {
+          const item = projectJsonLiteral(value[index], `${fieldPath}[${index}]`, context)
+          if (item !== undefined) {
+            arrayValue.push(item)
+          }
+        }
+        return arrayValue
       }
-      return Object.values(value).every(isJsonLiteral)
+
+      if (!isPlainJsonObject(value)) {
+        context.issues.push({
+          taskKind: context.taskKind,
+          targetPath: context.targetPath,
+          fieldPath,
+          reason: 'Unsupported object value cannot be projected to JsonLiteral',
+        })
+        return undefined
+      }
+
+      return Object.fromEntries(
+        Object.entries(value)
+          .flatMap(([key, nestedValue]) => {
+            const projected = projectJsonLiteral(nestedValue, `${fieldPath}.${key}`, context)
+            return projected === undefined ? [] : [[key, projected]]
+          }),
+      )
     default:
-      return false
+      context.issues.push({
+        taskKind: context.taskKind,
+        targetPath: context.targetPath,
+        fieldPath,
+        reason: 'Unsupported unknown value cannot be projected to JsonLiteral',
+      })
+      return undefined
   }
 }
 
-function toJsonLiteral(value: unknown): JsonLiteral | undefined {
-  return isJsonLiteral(value) ? value : undefined
+function projectOperationSpec(
+  fn: ((...args: any[]) => unknown) | undefined,
+  fallbackName: string,
+  fieldPath: string,
+  context: ProjectionContext,
+): PlanOperationSpec | undefined {
+  const spec = getOperationSpec(fn, fallbackName)
+  if (!spec) {
+    return undefined
+  }
+
+  if (!hasRawOperationInput(fn)) {
+    return spec
+  }
+
+  const input = projectJsonLiteral(fn[planOperationRawInputSymbol], `${fieldPath}.input`, context)
+  return {
+    ...spec,
+    ...(input !== undefined ? { input } : {}),
+  }
 }
 
-export function toPlanSpec(plan: Plan): PlanSpec {
-  return {
-    tasks: plan.tasks.map((task) => {
+function projectPlanSpecSync(plan: Plan): ProjectionResult {
+  const issues: PlanSpecProjectionIssue[] = []
+  const spec: PlanSpec = {
+    tasks: plan.tasks.map((task, taskIndex) => {
+      const context: ProjectionContext = {
+        taskKind: task.kind,
+        targetPath: task.path,
+        issues,
+      }
+
       switch (task.kind) {
         case 'render': {
-          const data = task.data === undefined ? undefined : toJsonLiteral(task.data)
+          const data = task.data === undefined
+            ? undefined
+            : projectJsonLiteral(task.data, `tasks[${taskIndex}].data`, context)
           return {
             kind: 'render',
             path: task.path,
@@ -177,8 +284,10 @@ export function toPlanSpec(plan: Plan): PlanSpec {
             ...(task.ownership ? { ownership: task.ownership } : {}),
           }
         case 'json': {
-          const base = task.base ? toJsonLiteral(task.base()) : undefined
-          const finalize = getOperationSpec(task.finalize, 'finalize')
+          const base = task.base
+            ? projectJsonLiteral(task.base(), `tasks[${taskIndex}].base`, context)
+            : undefined
+          const finalize = projectOperationSpec(task.finalize, 'finalize', `tasks[${taskIndex}].finalize`, context)
           return {
             kind: 'json',
             path: task.path,
@@ -186,9 +295,14 @@ export function toPlanSpec(plan: Plan): PlanSpec {
             ...(task.readExisting !== undefined ? { readExisting: task.readExisting } : {}),
             ...(task.sortKeys !== undefined ? { sortKeys: task.sortKeys } : {}),
             ...(base !== undefined ? { base } : {}),
-            reducers: task.reducers.map((reducer) => {
-              const spec = getOperationSpec(reducer, 'modify')
-              return spec ?? { reducer: 'modify' }
+            reducers: task.reducers.map((reducer, reducerIndex) => {
+              const operation = projectOperationSpec(
+                reducer,
+                'modify',
+                `tasks[${taskIndex}].reducers[${reducerIndex}]`,
+                context,
+              )
+              return operation ?? { reducer: 'modify' }
             }),
             ...(finalize ? { finalize } : {}),
           }
@@ -202,8 +316,8 @@ export function toPlanSpec(plan: Plan): PlanSpec {
             ...(task.readExisting !== undefined ? { readExisting: task.readExisting } : {}),
             ...(base !== undefined ? { base } : {}),
             transforms: task.transforms.map((transform) => {
-              const spec = getOperationSpec(transform, 'transform')
-              return spec ?? { reducer: 'transform' }
+              const operation = projectOperationSpec(transform, 'transform', `tasks[${taskIndex}].transforms`, context)
+              return operation ?? { reducer: 'transform' }
             }),
           }
         }
@@ -231,6 +345,30 @@ export function toPlanSpec(plan: Plan): PlanSpec {
         }
       : {}),
   }
+
+  return { spec, issues }
+}
+
+function makeProjectionError(issues: PlanSpecProjectionIssue[]): PlanSpecProjectionError {
+  return new PlanSpecProjectionError({
+    message: `PlanSpec projection failed with ${issues.length} issue${issues.length === 1 ? '' : 's'}`,
+    issues,
+  })
+}
+
+export function projectPlanSpec(plan: Plan): Effect.Effect<PlanSpec, PlanSpecProjectionError> {
+  return Effect.suspend(() => {
+    const { spec, issues } = projectPlanSpecSync(plan)
+    return issues.length > 0 ? Effect.fail(makeProjectionError(issues)) : Effect.succeed(spec)
+  })
+}
+
+export function toPlanSpec(plan: Plan): PlanSpec {
+  const { spec, issues } = projectPlanSpecSync(plan)
+  if (issues.length > 0) {
+    throw makeProjectionError(issues)
+  }
+  return spec
 }
 
 export function buildPlan(program: (dsl: ComposeDSL) => void): Plan {
@@ -259,15 +397,13 @@ export function buildPlan(program: (dsl: ComposeDSL) => void): Plan {
         return builder
       },
       merge(patch, ownership) {
-        const input = typeof patch === 'function' ? undefined : toJsonLiteral(patch)
         const reducer = annotateOperation((draft: Record<string, unknown>) => {
           const obj = typeof patch === 'function' ? patch(draft) : patch
           Object.assign(draft, obj)
         }, {
           reducer: typeof patch === 'function' ? patch.name || 'merge' : 'merge',
           ...(ownership ? { ownership } : {}),
-          ...(input !== undefined ? { input } : {}),
-        })
+        }, typeof patch === 'function' ? undefined : patch)
         task.reducers.push(reducer)
         return builder
       },

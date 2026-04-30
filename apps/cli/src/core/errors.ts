@@ -42,6 +42,18 @@ export class PlanTargetPathError extends Data.TaggedError('PlanTargetPathError')
   message: string
 }> {}
 
+export interface PlanSpecProjectionIssue {
+  taskKind: string
+  targetPath: string
+  fieldPath: string
+  reason: string
+}
+
+export class PlanSpecProjectionError extends Data.TaggedError('PlanSpecProjectionError')<{
+  message: string
+  issues: PlanSpecProjectionIssue[]
+}> {}
+
 export class SchemaContractError extends Data.TaggedError('SchemaContractError')<{
   schema: string
   message: string
@@ -63,4 +75,5 @@ export type CLIError
     | CommandError
     | PlanConflictError
     | PlanTargetPathError
+    | PlanSpecProjectionError
     | UnknownError

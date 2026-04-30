@@ -20,7 +20,7 @@ import { VueTemplates } from '../template-registry/vue'
 import { CommandService } from './command'
 import { withProjectAnnotations } from './observability'
 import { OrchestratorService } from './orchestrator'
-import { toPlanSpec } from './planner'
+import { projectPlanSpec } from './planner'
 import { formatDryRunPreview } from './preview'
 import { collectTemplatePartialEntries } from './template-engine'
 
@@ -76,11 +76,12 @@ export function previewProject(projectConfig: ProjectConfig) {
     const plan = yield* orchestrator.build(targetDir, projectConfig)
     const postGenerateCommands = yield* buildCommands(projectConfig)
     const postGenerateFileActions = yield* buildPostGenerateFileActions(projectConfig)
-    return formatDryRunPreview(toPlanSpec({
+    const planSpec = yield* projectPlanSpec({
       ...plan,
       ...(postGenerateCommands.length > 0 ? { postGenerateCommands } : {}),
       ...(postGenerateFileActions.length > 0 ? { postGenerateFileActions } : {}),
-    }))
+    })
+    return formatDryRunPreview(planSpec)
   }).pipe(
     Effect.withSpan('preview.project'),
     withProjectAnnotations(projectConfig, 'preview.project', targetDir),
@@ -206,7 +207,7 @@ export function finishProject(
   const rollbackOnFailure = options?.rollbackOnFailure ?? true
 
   return Effect.gen(function* () {
-    const tracedPlanSpec = toPlanSpec(plan)
+    const tracedPlanSpec = yield* projectPlanSpec(plan)
     const postGenerateCommands = tracedPlanSpec.postGenerateCommands ?? []
     const postGenerateFileActions = tracedPlanSpec.postGenerateFileActions ?? []
     const postGenerateCommandTrace = postGenerateCommands
