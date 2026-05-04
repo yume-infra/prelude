@@ -3,7 +3,7 @@
   "name": "target-aware-package-template-composition",
   "title": "PRD-4: Target-Aware Package and Template Composition",
   "description": "Make package manifests, template registries, ownership, and PlanSpec projection target-aware for root and nested workspace packages.",
-  "status": "planning",
+  "status": "in_progress",
   "dev_type": "fullstack",
   "scope": "target-aware-package-template-composition",
   "package": "create-yume",
@@ -14,8 +14,8 @@
   "completedAt": null,
   "branch": "codex/target-aware-package-template-composition",
   "base_branch": "main",
-  "worktree_path": null,
-  "current_phase": 0,
+  "worktree_path": "/Users/sayori/Desktop/trellis-worktrees/codex/target-aware-package-template-composition",
+  "current_phase": 6,
   "next_action": [
     {
       "phase": 1,

@@ -4,7 +4,17 @@ import { Effect, Layer, LogLevel, Option } from 'effect'
 import { describe, expect, it } from 'vitest'
 import { makeTemplatePath } from '../src/brand/template-path'
 import { AppConfig } from '../src/config/app-config'
-import { buildPackageJson } from '../src/core/modifier/package-json'
+import {
+  buildPackageJson,
+  buildPackageManifestJson,
+  getPackageManifestContributions,
+} from '../src/core/modifier/package-json'
+import { packageManifestTargetPath } from '../src/core/modifier/package-manifest-contributions'
+import {
+  contributionTrace,
+  ContributionUnitKind,
+  FrontendPackageOwner,
+} from '../src/core/ownership/model'
 import { buildTemplates } from '../src/core/services/compose'
 import { PlanService, toPlanSpec } from '../src/core/services/planner'
 import { buildRootSvg } from '../src/core/template-registry/root-svg'
@@ -23,6 +33,7 @@ const templateRoot = makeTemplatePath('/virtual/templates')
 const plannerSource = readFileSync(new URL('../src/core/services/planner.ts', import.meta.url), 'utf8')
 const planBuildSource = readFileSync(new URL('../src/core/services/plan/build.ts', import.meta.url), 'utf8')
 const planApplySource = readFileSync(new URL('../src/core/services/plan/apply.ts', import.meta.url), 'utf8')
+const frontendPackageJsonMutation = contributionTrace(FrontendPackageOwner, ContributionUnitKind.JsonTextMutation)
 
 const plannerLayer = PlanService.DefaultWithoutDependencies.pipe(
   Layer.provideMerge(Layer.mergeAll(
@@ -46,6 +57,35 @@ function buildPlanSpec(config: ProjectConfig) {
       }
       buildPackageJson(dsl, config)
       buildTemplates(dsl, templateRoot, config)
+    })
+
+    return toPlanSpec(plan)
+  }).pipe(Effect.provide(plannerLayer))
+}
+
+function buildNestedFrontendPackagePlanSpec() {
+  return Effect.gen(function* () {
+    const planner = yield* PlanService
+    const packageTargetPath = packageManifestTargetPath('apps/web')
+    const plan = yield* planner.build((dsl) => {
+      buildPackageManifestJson(dsl, {
+        targetPath: packageTargetPath,
+        targetScope: 'package',
+        base: () => ({
+          name: '@demo/web',
+          type: 'module',
+          version: '0.0.0',
+          scripts: {},
+          dependencies: {},
+          devDependencies: {},
+        }),
+        contributions: getPackageManifestContributions(reactPresetProjectConfig),
+        ownership: frontendPackageJsonMutation,
+      })
+      buildTemplates(dsl, templateRoot, reactPresetProjectConfig, {
+        targetScope: 'package',
+        targetDirectory: 'apps/web',
+      })
     })
 
     return toPlanSpec(plan)
@@ -169,6 +209,84 @@ describe('workspace bootstrap ownership boundaries', () => {
     }
 
     expect(packageJsonTask.reducers).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          ownership: {
+            owner: 'workspace-bootstrap',
+            unit: 'json-text-mutation',
+          },
+        }),
+      ]),
+    )
+  })
+
+  it('projects nested package paths while filtering root-only templates and manifest contributions', async () => {
+    const plan = await Effect.runPromise(buildNestedFrontendPackagePlanSpec())
+    const packageJsonTask = plan.tasks.find(task => task.kind === 'json' && task.path === 'apps/web/package.json')
+    const paths = plan.tasks.map(task => task.path)
+
+    expect(paths).toEqual([
+      'apps/web/package.json',
+      'apps/web/index.html',
+      'apps/web/vite.config.ts',
+      'apps/web/tsconfig.json',
+      'apps/web/tsconfig.node.json',
+      'apps/web/tsconfig.app.json',
+      'apps/web/src/vite-env.d.ts',
+      'apps/web/README.md',
+      'apps/web/src/style.less',
+      'apps/web/src/pages/app.tsx',
+      'apps/web/src/pages/about.tsx',
+      'apps/web/src/pages/home.tsx',
+      'apps/web/src/components/Counter.tsx',
+      'apps/web/src/stores/counter.ts',
+      'apps/web/src/main.tsx',
+      'apps/web/src/router/index.tsx',
+    ])
+    expect(paths).not.toContain('apps/web/eslint.config.mjs')
+    expect(paths).not.toContain('apps/web/.gitignore')
+    expect(paths).not.toContain('apps/web/commitlint.config.ts')
+    expect(packageJsonTask).toMatchObject({
+      kind: 'json',
+      ownership: {
+        owner: 'frontend-package',
+        unit: 'json-text-mutation',
+      },
+    })
+    expect(packageJsonTask?.kind).toBe('json')
+    if (packageJsonTask?.kind !== 'json') {
+      throw new Error('nested package.json task was not a json task')
+    }
+
+    expect(packageJsonTask.reducers).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          ownership: {
+            owner: 'frontend-scaffold',
+            unit: 'json-text-mutation',
+          },
+        }),
+        expect.objectContaining({
+          ownership: {
+            owner: 'react-scaffold',
+            unit: 'json-text-mutation',
+          },
+        }),
+        expect.objectContaining({
+          ownership: {
+            owner: 'state-management',
+            unit: 'json-text-mutation',
+          },
+        }),
+        expect.objectContaining({
+          ownership: {
+            owner: 'router',
+            unit: 'json-text-mutation',
+          },
+        }),
+      ]),
+    )
+    expect(packageJsonTask.reducers).not.toEqual(
       expect.arrayContaining([
         expect.objectContaining({
           ownership: {

@@ -49,6 +49,8 @@ runtime 推断与校验规则如下：
 
 workspace package、`worker-app` 与 `library-package` 目前只是结构化 create spec 的未来输入边界。它们不得被解释为已经支持 workspace 子包调度、worker app / library package 生成或 `workspace:*` 依赖写入。
 
+当前代码允许内部 package manifest contribution 与 template registry 以 target-aware contract 表达 root/package/both scope，以及 nested package target path（例如 `apps/<name>/package.json`、`libs/<name>/package.json`）。这只是 PRD-5 之前的组合边界，不是用户可见的 workspace 子包生成能力开关。
+
 workspace package spec 可以声明内部依赖 link，目标可按 package id 或 package name 描述。当前只保留 link schema，用于后续 `workspace:*` emission 设计；本阶段不得实现依赖写入。
 
 ## 修改区域

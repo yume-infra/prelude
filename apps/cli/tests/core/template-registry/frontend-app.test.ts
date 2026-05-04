@@ -47,6 +47,7 @@ describe('frontend scaffold-family contract', () => {
       'commitlint.config.ts',
       '.lintstagedrc.json',
     ]))
+    expect(Object.values(workspaceBootstrapTemplates).every(template => template.scope === 'root')).toBe(true)
   })
 
   it('separates shared frontend templates from workspace bootstrap templates', () => {

@@ -1,9 +1,19 @@
-import type { PackageManifestContribution, PackageManifestSection } from './package-manifest-contributions'
+import type {
+  PackageManifestContribution,
+  PackageManifestSection,
+  PackageManifestTargetPath,
+} from './package-manifest-contributions'
+import type { ContributionTrace } from '@/core/ownership/model'
 import type { ComposeDSL, JsonBuilder } from '@/core/services/planner'
 import type { ProjectConfig } from '@/schema/project-config'
+import type { GenerationTargetScope } from '@/schema/target-scope'
 import { makePackageName } from '@/brand/package-name'
 import { finalizePackageJsonOrder } from '@/core/modifier/package-json-order'
-import { collectPackageManifestContributions } from '@/core/modifier/package-manifest-contributions'
+import {
+  collectPackageManifestContributions,
+  rootPackageManifestTargetPath,
+  shouldApplyPackageManifestContribution,
+} from '@/core/modifier/package-manifest-contributions'
 import {
   getReactRouterPackageContributions,
   getVueRouterPackageContributions,
@@ -69,6 +79,10 @@ function basePackageJson(config: ProjectConfig) {
   }
 }
 
+function packageManifestTargetScopeForConfig(config: ProjectConfig): GenerationTargetScope {
+  return isWorkspaceRootProject(config) ? 'root' : 'both'
+}
+
 export function getPackageManifestContributions(config: ProjectConfig): PackageManifestContribution[] {
   if (isWorkspaceRootProject(config)) {
     return getWorkspaceRootPackageContributions(config)
@@ -94,6 +108,8 @@ export function getPackageManifestContributions(config: ProjectConfig): PackageM
 
 export function collectPackageManifestForConfig(config: ProjectConfig) {
   return collectPackageManifestContributions({
+    targetPath: rootPackageManifestTargetPath,
+    targetScope: packageManifestTargetScopeForConfig(config),
     base: basePackageJson(config),
     contributions: getPackageManifestContributions(config),
   })
@@ -128,18 +144,44 @@ function applyPackageContribution(entry: JsonBuilder, contribution: PackageManif
 }
 
 export function buildPackageJson(dsl: ComposeDSL, config: ProjectConfig) {
-  const entry = dsl.json('package.json', contributionTrace(WorkspaceBootstrapOwner, ContributionUnitKind.JsonTextMutation))
-    .base(() => basePackageJson(config))
+  buildPackageManifestJson(dsl, {
+    targetPath: rootPackageManifestTargetPath,
+    targetScope: packageManifestTargetScopeForConfig(config),
+    base: () => basePackageJson(config),
+    contributions: getPackageManifestContributions(config),
+    ownership: contributionTrace(WorkspaceBootstrapOwner, ContributionUnitKind.JsonTextMutation),
+  })
+}
 
-  const packageContributions = getPackageManifestContributions(config)
+export function buildPackageManifestJson(dsl: ComposeDSL, options: {
+  readonly targetPath: PackageManifestTargetPath
+  readonly targetScope: GenerationTargetScope
+  readonly base: () => Record<string, unknown>
+  readonly contributions: readonly PackageManifestContribution[]
+  readonly ownership?: ContributionTrace
+}) {
+  const entry = dsl.json(options.targetPath, options.ownership)
+    .base(options.base)
 
   // Keep the structured collector on the production build path as the owner-aware
   // conflict/provenance boundary. PlanService still materializes package.json via
   // per-contribution reducers so dry-run can show reducer ownership; tests assert
   // the materialized output stays aligned with this collected manifest.
-  collectPackageManifestForConfig(config)
+  collectPackageManifestContributions({
+    targetPath: options.targetPath,
+    targetScope: options.targetScope,
+    base: options.base(),
+    contributions: options.contributions,
+  })
 
-  for (const contribution of packageContributions) {
+  for (const contribution of options.contributions) {
+    if (!shouldApplyPackageManifestContribution(contribution, {
+      targetPath: options.targetPath,
+      targetScope: options.targetScope,
+    })) {
+      continue
+    }
+
     applyPackageContribution(entry, contribution)
   }
 

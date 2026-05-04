@@ -14,6 +14,7 @@ describe('router package contributions', () => {
     })).toEqual([
       {
         ownership: routerPackageJsonMutation,
+        targetScope: 'package',
         sections: {
           dependencies: {
             'react-router': '^7.14.2',
@@ -31,6 +32,7 @@ describe('router package contributions', () => {
     })).toEqual([
       {
         ownership: routerPackageJsonMutation,
+        targetScope: 'package',
         sections: {
           dependencies: {
             '@tanstack/react-router': '^1.168.23',
@@ -54,6 +56,7 @@ describe('router package contributions', () => {
     })).toEqual([
       {
         ownership: routerPackageJsonMutation,
+        targetScope: 'package',
         sections: {
           dependencies: {
             'vue-router': '^5.0.4',

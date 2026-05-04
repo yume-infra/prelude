@@ -9,18 +9,21 @@ export const workspaceBootstrapTemplates: TemplateRegistry<BaseProjectConfig> = 
   'eslint.config.mjs': {
     template: makeTemplatePath('fragments/common/linter/eslint.config.mjs.hbs'),
     target: 'eslint.config.mjs',
+    scope: 'root',
     condition: config => config.linting === 'antfu-eslint',
     ownership: workspaceFragmentRender,
   },
   'vscode.settings.json': {
     template: makeTemplatePath('fragments/common/linter/vscode.settings.json.hbs'),
     target: '.vscode/settings.json',
+    scope: 'root',
     condition: config => config.linting === 'antfu-eslint',
     ownership: workspaceFragmentRender,
   },
   'zed.settings.json': {
     template: makeTemplatePath('fragments/common/linter/zed.settings.json.hbs'),
     target: '.zed/settings.json',
+    scope: 'root',
     condition: config => config.linting === 'antfu-eslint',
     ownership: workspaceFragmentRender,
   },
@@ -28,6 +31,7 @@ export const workspaceBootstrapTemplates: TemplateRegistry<BaseProjectConfig> = 
   '.gitignore': {
     template: makeTemplatePath('fragments/common/gitignore.hbs'),
     target: '.gitignore',
+    scope: 'root',
     condition: config => config.git === true,
     ownership: workspaceFragmentRender,
   },
@@ -35,6 +39,7 @@ export const workspaceBootstrapTemplates: TemplateRegistry<BaseProjectConfig> = 
   'commitlint.config.ts': {
     template: makeTemplatePath('fragments/common/code-quality/commitlint.config.ts.hbs'),
     target: config => `commitlint.config.${config.language === 'typescript' ? 'ts' : 'js'}`,
+    scope: 'root',
     condition: config => config.codeQuality.includes('commitlint'),
     ownership: workspaceFragmentRender,
   },
@@ -42,6 +47,7 @@ export const workspaceBootstrapTemplates: TemplateRegistry<BaseProjectConfig> = 
   '.lintstagedrc.json': {
     template: makeTemplatePath('fragments/common/code-quality/.lintstagedrc.json.hbs'),
     target: '.lintstagedrc.json',
+    scope: 'root',
     condition: config => config.codeQuality.includes('lint-staged'),
     ownership: workspaceFragmentRender,
   },
@@ -51,6 +57,7 @@ export const workspaceBootstrapRootTemplates: TemplateRegistry<WorkspaceRootConf
   'pnpm-workspace.yaml': {
     template: makeTemplatePath('fragments/common/workspace/pnpm-workspace.yaml.hbs'),
     target: 'pnpm-workspace.yaml',
+    scope: 'root',
     condition: () => true,
     ownership: workspaceFragmentRender,
   },
@@ -58,6 +65,7 @@ export const workspaceBootstrapRootTemplates: TemplateRegistry<WorkspaceRootConf
   'turbo.json': {
     template: makeTemplatePath('fragments/common/workspace/turbo.json.hbs'),
     target: 'turbo.json',
+    scope: 'root',
     condition: () => true,
     ownership: workspaceFragmentRender,
   },

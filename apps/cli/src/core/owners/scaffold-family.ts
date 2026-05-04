@@ -33,7 +33,10 @@ export const cliScaffoldPackageJsonMutation = contributionTrace(
 )
 
 function packageContribution(options: PackageManifestContribution): PackageManifestContribution {
-  return options
+  return {
+    ...options,
+    targetScope: options.targetScope ?? 'package',
+  }
 }
 
 export function getScaffoldFamilyPackageContributions(config: ProjectConfig): PackageManifestContribution[] {

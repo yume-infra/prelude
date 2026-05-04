@@ -47,6 +47,7 @@ export function getReactStateManagementPackageContributions(config: ReactProject
   if (config.stateManagement === 'zustand') {
     return [{
       ownership: stateManagementPackageJsonMutation,
+      targetScope: 'package',
       sections: {
         dependencies: { zustand: '^5.0.12' },
       },
@@ -56,6 +57,7 @@ export function getReactStateManagementPackageContributions(config: ReactProject
   if (config.stateManagement === 'jotai') {
     return [{
       ownership: stateManagementPackageJsonMutation,
+      targetScope: 'package',
       sections: {
         dependencies: { jotai: '^2.19.1' },
       },
@@ -69,6 +71,7 @@ export function getVueStateManagementPackageContributions(config: VueProjectConf
   return hasVueStateManagement(config)
     ? [{
         ownership: stateManagementPackageJsonMutation,
+        targetScope: 'package',
         sections: {
           dependencies: { pinia: '^3.0.4' },
         },

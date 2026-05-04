@@ -141,6 +141,7 @@ export function getWorkspaceBootstrapPackageContributions(
   if (config.linting === 'antfu-eslint') {
     contributions.push({
       ownership: workspaceBootstrapPackageJsonMutation,
+      targetScope: 'root',
       sections: {
         devDependencies: workspaceBootstrapLintDevDependencies,
         scripts: workspaceBootstrapLintScripts,
@@ -161,6 +162,7 @@ function getWorkspaceBootstrapCodeQualityPackageContributions(
   if (config.codeQuality.length > 0) {
     contributions.push({
       ownership: workspaceBootstrapPackageJsonMutation,
+      targetScope: 'root',
       sections: {
         devDependencies: { husky: '^9.1.7' },
       },
@@ -170,6 +172,7 @@ function getWorkspaceBootstrapCodeQualityPackageContributions(
   if (config.codeQuality.includes('lint-staged')) {
     contributions.push({
       ownership: workspaceBootstrapPackageJsonMutation,
+      targetScope: 'root',
       sections: {
         devDependencies: { 'lint-staged': '^16.4.0' },
       },
@@ -179,6 +182,7 @@ function getWorkspaceBootstrapCodeQualityPackageContributions(
   if (config.codeQuality.includes('commitlint')) {
     contributions.push({
       ownership: workspaceBootstrapPackageJsonMutation,
+      targetScope: 'root',
       sections: {
         devDependencies: {
           '@commitlint/cli': '^20.5.0',
@@ -197,6 +201,7 @@ export function getWorkspaceRootPackageContributions(
   return [
     {
       ownership: workspaceBootstrapPackageJsonMutation,
+      targetScope: 'root',
       fields: {
         private: true,
         packageManager: getPackageManagerField(),

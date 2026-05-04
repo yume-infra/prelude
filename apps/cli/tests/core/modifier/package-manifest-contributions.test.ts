@@ -1,12 +1,26 @@
+import type { PackageManifestContribution } from '../../../src/core/modifier/package-manifest-contributions'
 import { describe, expect, it } from 'vitest'
 import {
   collectPackageManifestContributions,
+  collectPackageManifestContributionsByTarget,
   PackageManifestContributionConflictError,
+  packageManifestTargetPath,
+  rootPackageManifestTargetPath,
 } from '../../../src/core/modifier/package-manifest-contributions'
 import { getReactRouterPackageContributions } from '../../../src/core/owners/router'
 import { getScaffoldFamilyPackageContributions } from '../../../src/core/owners/scaffold-family'
 import { getReactStateManagementPackageContributions } from '../../../src/core/owners/state-management'
-import { contributionTrace, ContributionUnitKind, defineOwner, OwnershipLayer } from '../../../src/core/ownership/model'
+import {
+  CliPackageOwner,
+  contributionTrace,
+  ContributionUnitKind,
+  defineOwner,
+  FrontendPackageOwner,
+  LibraryPackageOwner,
+  NodePackageOwner,
+  OwnershipLayer,
+  WorkspaceBootstrapOwner,
+} from '../../../src/core/ownership/model'
 import { getWorkspaceBootstrapPackageContributions } from '../../../src/core/workspace-bootstrap'
 import { cliMinimalPresetProjectConfig, reactPresetProjectConfig } from '../../support/fixtures'
 
@@ -24,6 +38,11 @@ const betaOwner = defineOwner({
 
 const alphaTrace = contributionTrace(alphaOwner, ContributionUnitKind.JsonTextMutation)
 const betaTrace = contributionTrace(betaOwner, ContributionUnitKind.JsonTextMutation)
+const workspaceRootTrace = contributionTrace(WorkspaceBootstrapOwner, ContributionUnitKind.JsonTextMutation)
+const frontendPackageTrace = contributionTrace(FrontendPackageOwner, ContributionUnitKind.JsonTextMutation)
+const nodePackageTrace = contributionTrace(NodePackageOwner, ContributionUnitKind.JsonTextMutation)
+const cliPackageTrace = contributionTrace(CliPackageOwner, ContributionUnitKind.JsonTextMutation)
+const libraryPackageTrace = contributionTrace(LibraryPackageOwner, ContributionUnitKind.JsonTextMutation)
 
 describe('collectPackageManifestContributions', () => {
   it('applies package-aware top-level and section ordering', () => {
@@ -372,5 +391,246 @@ describe('collectPackageManifestContributions', () => {
         },
       ],
     })).toThrow(/package\.json name/)
+  })
+
+  it('filters root and package manifest contributions by target scope', () => {
+    const packageTargetPath = packageManifestTargetPath('apps/web')
+    const contributions = [
+      {
+        ownership: workspaceRootTrace,
+        targetScope: 'root',
+        sections: {
+          devDependencies: {
+            eslint: '^10.2.1',
+          },
+        },
+      },
+      {
+        ownership: frontendPackageTrace,
+        targetScope: 'package',
+        sections: {
+          dependencies: {
+            react: '^19.2.5',
+          },
+        },
+      },
+    ] satisfies readonly PackageManifestContribution[]
+
+    const rootCollection = collectPackageManifestContributions({
+      targetPath: rootPackageManifestTargetPath,
+      targetScope: 'root',
+      contributions,
+    })
+    const packageCollection = collectPackageManifestContributions({
+      targetPath: packageTargetPath,
+      targetScope: 'package',
+      base: { name: '@demo/web' },
+      contributions,
+    })
+
+    expect(rootCollection.manifest).toEqual({
+      devDependencies: {
+        eslint: '^10.2.1',
+      },
+    })
+    expect(packageCollection.manifest).toEqual({
+      name: '@demo/web',
+      dependencies: {
+        react: '^19.2.5',
+      },
+    })
+    expect(packageCollection.provenance).toContainEqual({
+      targetPath: 'apps/web/package.json',
+      section: 'dependencies',
+      key: 'react',
+      owners: ['frontend-package'],
+      value: '^19.2.5',
+    })
+  })
+
+  it('reports nested package manifest conflicts with the nested target path', () => {
+    const targetPath = packageManifestTargetPath('apps/web')
+
+    try {
+      collectPackageManifestContributions({
+        targetPath,
+        targetScope: 'package',
+        contributions: [
+          {
+            ownership: frontendPackageTrace,
+            targetScope: 'package',
+            sections: {
+              dependencies: {
+                react: '^19.2.5',
+              },
+            },
+          },
+          {
+            ownership: betaTrace,
+            targetScope: 'package',
+            sections: {
+              dependencies: {
+                react: '^18.0.0',
+              },
+            },
+          },
+        ],
+      })
+    }
+    catch (error) {
+      expect(error).toBeInstanceOf(PackageManifestContributionConflictError)
+      if (!(error instanceof PackageManifestContributionConflictError)) {
+        throw error
+      }
+
+      expect(error.targetPath).toBe('apps/web/package.json')
+      expect(error.section).toBe('dependencies')
+      expect(error.key).toBe('react')
+      expect(error.existingOwners).toEqual(['frontend-package'])
+      expect(error.incomingOwner).toBe('beta-owner')
+      expect(error.message).toContain('apps/web/package.json dependencies.react')
+      return
+    }
+
+    throw new Error('Expected nested package manifest conflict to be thrown')
+  })
+
+  it('groups target-aware manifest collections in deterministic root-first path order', () => {
+    const collections = collectPackageManifestContributionsByTarget({
+      contributions: [
+        {
+          ownership: libraryPackageTrace,
+          targetPath: packageManifestTargetPath('libs/ui'),
+          targetScope: 'package',
+          fields: {
+            name: '@demo/ui',
+          },
+        },
+        {
+          ownership: workspaceRootTrace,
+          targetPath: rootPackageManifestTargetPath,
+          targetScope: 'root',
+          fields: {
+            name: 'demo-workspace',
+          },
+        },
+        {
+          ownership: frontendPackageTrace,
+          targetPath: packageManifestTargetPath('apps/web'),
+          targetScope: 'package',
+          fields: {
+            name: '@demo/web',
+          },
+        },
+      ],
+    })
+
+    expect(collections.map(collection => collection.targetPath)).toEqual([
+      'package.json',
+      'apps/web/package.json',
+      'libs/ui/package.json',
+    ])
+    expect(collections.map(collection => collection.manifest.name)).toEqual([
+      'demo-workspace',
+      '@demo/web',
+      '@demo/ui',
+    ])
+  })
+
+  it('preserves ownership traces across root, package, and capability boundaries', () => {
+    const collections = collectPackageManifestContributionsByTarget({
+      contributions: [
+        {
+          ownership: workspaceRootTrace,
+          targetPath: rootPackageManifestTargetPath,
+          targetScope: 'root',
+          sections: {
+            scripts: {
+              build: 'turbo run build',
+            },
+          },
+        },
+        {
+          ownership: frontendPackageTrace,
+          targetPath: packageManifestTargetPath('apps/web'),
+          targetScope: 'package',
+          sections: {
+            dependencies: {
+              react: '^19.2.5',
+            },
+          },
+        },
+        {
+          ownership: nodePackageTrace,
+          targetPath: packageManifestTargetPath('apps/api'),
+          targetScope: 'package',
+          sections: {
+            dependencies: {
+              hono: '^4.13.0',
+            },
+          },
+        },
+        {
+          ownership: cliPackageTrace,
+          targetPath: packageManifestTargetPath('apps/tool'),
+          targetScope: 'package',
+          fields: {
+            bin: {
+              tool: './dist/index.js',
+            },
+          },
+        },
+        {
+          ownership: libraryPackageTrace,
+          targetPath: packageManifestTargetPath('libs/shared'),
+          targetScope: 'package',
+          fields: {
+            exports: {
+              '.': './src/index.ts',
+            },
+          },
+        },
+        {
+          ownership: alphaTrace,
+          targetPath: packageManifestTargetPath('apps/web'),
+          targetScope: 'package',
+          sections: {
+            dependencies: {
+              'react-router': '^7.14.2',
+            },
+          },
+        },
+      ],
+    })
+    const provenance = collections.flatMap(collection => collection.provenance)
+
+    expect(provenance).toEqual(expect.arrayContaining([
+      expect.objectContaining({
+        targetPath: 'package.json',
+        owners: ['workspace-bootstrap'],
+      }),
+      expect.objectContaining({
+        targetPath: 'apps/web/package.json',
+        key: 'react',
+        owners: ['frontend-package'],
+      }),
+      expect.objectContaining({
+        targetPath: 'apps/api/package.json',
+        owners: ['node-package'],
+      }),
+      expect.objectContaining({
+        targetPath: 'apps/tool/package.json',
+        owners: ['cli-package'],
+      }),
+      expect.objectContaining({
+        targetPath: 'libs/shared/package.json',
+        owners: ['library-package'],
+      }),
+      expect.objectContaining({
+        targetPath: 'apps/web/package.json',
+        key: 'react-router',
+        owners: ['alpha-owner'],
+      }),
+    ]))
   })
 })

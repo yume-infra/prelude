@@ -14,6 +14,7 @@ describe('state-management package contributions', () => {
     })).toEqual([
       {
         ownership: stateManagementPackageJsonMutation,
+        targetScope: 'package',
         sections: {
           dependencies: {
             zustand: '^5.0.12',
@@ -30,6 +31,7 @@ describe('state-management package contributions', () => {
     })).toEqual([
       {
         ownership: stateManagementPackageJsonMutation,
+        targetScope: 'package',
         sections: {
           dependencies: {
             jotai: '^2.19.1',
@@ -53,6 +55,7 @@ describe('state-management package contributions', () => {
     })).toEqual([
       {
         ownership: stateManagementPackageJsonMutation,
+        targetScope: 'package',
         sections: {
           dependencies: {
             pinia: '^3.0.4',

@@ -223,7 +223,10 @@ describe('planner rollback', () => {
     }
   })
 
-  it('rejects duplicate package json tasks instead of merging them at PlanService level', async () => {
+  it.each([
+    'package.json',
+    'apps/web/package.json',
+  ] as const)('rejects duplicate %s tasks instead of merging them at PlanService level', async (targetPath) => {
     const writes: string[] = []
     const directories: string[] = []
     const removes: string[] = []
@@ -259,8 +262,8 @@ describe('planner rollback', () => {
 
     const plan: Plan = {
       tasks: [
-        { kind: 'json', path: 'package.json', reducers: [] },
-        { kind: 'json', path: 'package.json', reducers: [] },
+        { kind: 'json', path: targetPath, reducers: [] },
+        { kind: 'json', path: targetPath, reducers: [] },
       ],
     }
 
@@ -279,7 +282,7 @@ describe('planner rollback', () => {
     if (Exit.isFailure(exit) && exit.cause._tag === 'Fail') {
       expect(exit.cause.error).toBeInstanceOf(PlanConflictError)
       expect(exit.cause.error).toMatchObject({
-        path: 'package.json',
+        path: targetPath,
         taskKinds: ['json', 'json'],
       })
     }

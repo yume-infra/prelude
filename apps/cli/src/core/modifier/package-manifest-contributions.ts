@@ -1,5 +1,7 @@
 import type { ContributionTrace } from '@/core/ownership/model'
+import type { GenerationTargetScope } from '@/schema/target-scope'
 import { finalizePackageJsonOrder } from '@/core/modifier/package-json-order'
+import { matchesGenerationTargetScope } from '@/schema/target-scope'
 
 export const packageManifestSections = [
   'scripts',
@@ -20,15 +22,20 @@ export const packageManifestSections = [
 export type PackageManifestSection = typeof packageManifestSections[number]
 export type PackageManifestLocation = '<root>' | PackageManifestSection
 export type PackageManifestEntries = Record<string, unknown>
+export type PackageManifestTargetPath = 'package.json' | `${string}/package.json`
+
+export const rootPackageManifestTargetPath = 'package.json' satisfies PackageManifestTargetPath
 
 export interface PackageManifestContribution {
   readonly ownership: ContributionTrace
+  readonly targetPath?: PackageManifestTargetPath
+  readonly targetScope?: GenerationTargetScope
   readonly fields?: PackageManifestEntries
   readonly sections?: Partial<Record<PackageManifestSection, PackageManifestEntries>>
 }
 
 export interface PackageManifestProvenanceEntry {
-  readonly targetPath: 'package.json'
+  readonly targetPath: PackageManifestTargetPath
   readonly section: PackageManifestLocation
   readonly key: string
   readonly owners: readonly string[]
@@ -36,12 +43,13 @@ export interface PackageManifestProvenanceEntry {
 }
 
 export interface PackageManifestCollection {
+  readonly targetPath: PackageManifestTargetPath
   readonly manifest: Record<string, unknown>
   readonly provenance: readonly PackageManifestProvenanceEntry[]
 }
 
 export class PackageManifestContributionConflictError extends Error {
-  readonly targetPath: 'package.json'
+  readonly targetPath: PackageManifestTargetPath
   readonly section: PackageManifestLocation
   readonly key: string
   readonly existingOwners: readonly string[]
@@ -50,7 +58,7 @@ export class PackageManifestContributionConflictError extends Error {
   readonly incomingValue: unknown
 
   constructor(options: {
-    readonly targetPath: 'package.json'
+    readonly targetPath: PackageManifestTargetPath
     readonly section: PackageManifestLocation
     readonly key: string
     readonly existingOwners: readonly string[]
@@ -76,7 +84,7 @@ export class PackageManifestContributionConflictError extends Error {
 }
 
 interface MutableProvenanceEntry {
-  readonly targetPath: 'package.json'
+  readonly targetPath: PackageManifestTargetPath
   readonly section: PackageManifestLocation
   readonly key: string
   readonly owners: string[]
@@ -118,6 +126,43 @@ function slotId(section: PackageManifestLocation, key: string): string {
   return `${section}\u0000${key}`
 }
 
+export function packageManifestTargetPath(targetDirectory: string | undefined): PackageManifestTargetPath {
+  const normalizedDirectory = targetDirectory?.replace(/^\/+|\/+$/g, '') ?? ''
+  return normalizedDirectory
+    ? `${normalizedDirectory}/package.json` as PackageManifestTargetPath
+    : rootPackageManifestTargetPath
+}
+
+export function comparePackageManifestTargetPaths(
+  left: PackageManifestTargetPath,
+  right: PackageManifestTargetPath,
+): number {
+  if (left === right) {
+    return 0
+  }
+
+  if (left === rootPackageManifestTargetPath) {
+    return -1
+  }
+
+  if (right === rootPackageManifestTargetPath) {
+    return 1
+  }
+
+  return left.localeCompare(right)
+}
+
+export function shouldApplyPackageManifestContribution(
+  contribution: PackageManifestContribution,
+  options: {
+    readonly targetPath: PackageManifestTargetPath
+    readonly targetScope: GenerationTargetScope
+  },
+): boolean {
+  return matchesGenerationTargetScope(contribution.targetScope, options.targetScope)
+    && (!contribution.targetPath || contribution.targetPath === options.targetPath)
+}
+
 function mutableRecordAtSection(
   draft: Record<string, unknown>,
   section: PackageManifestSection,
@@ -135,7 +180,7 @@ function mutableRecordAtSection(
 
 function applyEntry(options: {
   readonly target: Record<string, unknown>
-  readonly targetPath: 'package.json'
+  readonly targetPath: PackageManifestTargetPath
   readonly provenance: Map<string, MutableProvenanceEntry>
   readonly section: PackageManifestLocation
   readonly key: string
@@ -181,14 +226,21 @@ function applyEntry(options: {
 }
 
 export function collectPackageManifestContributions(options: {
+  readonly targetPath?: PackageManifestTargetPath
+  readonly targetScope?: GenerationTargetScope
   readonly base?: Record<string, unknown>
   readonly contributions: readonly PackageManifestContribution[]
 }): PackageManifestCollection {
-  const targetPath = 'package.json' as const
+  const targetPath = options.targetPath ?? rootPackageManifestTargetPath
+  const targetScope = options.targetScope ?? 'both'
   const draft = options.base ? cloneRecord(options.base) : {}
   const provenance = new Map<string, MutableProvenanceEntry>()
 
   for (const contribution of options.contributions) {
+    if (!shouldApplyPackageManifestContribution(contribution, { targetPath, targetScope })) {
+      continue
+    }
+
     const owner = contribution.ownership.owner
 
     for (const [key, value] of Object.entries(contribution.fields ?? {})) {
@@ -227,6 +279,7 @@ export function collectPackageManifestContributions(options: {
   finalizePackageJsonOrder(draft)
 
   return {
+    targetPath,
     manifest: draft,
     provenance: [...provenance.values()].map(entry => ({
       targetPath: entry.targetPath,
@@ -236,4 +289,42 @@ export function collectPackageManifestContributions(options: {
       value: cloneValue(entry.value),
     })),
   }
+}
+
+export function collectPackageManifestContributionsByTarget(options: {
+  readonly targetScope?: GenerationTargetScope
+  readonly bases?: Partial<Record<PackageManifestTargetPath, Record<string, unknown>>>
+  readonly contributions: readonly PackageManifestContribution[]
+}): readonly PackageManifestCollection[] {
+  const targetScope = options.targetScope ?? 'both'
+  const targetPaths = new Set<PackageManifestTargetPath>(
+    Object.keys(options.bases ?? {}) as PackageManifestTargetPath[],
+  )
+
+  for (const contribution of options.contributions) {
+    if (!matchesGenerationTargetScope(contribution.targetScope, targetScope)) {
+      continue
+    }
+
+    targetPaths.add(contribution.targetPath ?? rootPackageManifestTargetPath)
+  }
+
+  return [...targetPaths]
+    .sort(comparePackageManifestTargetPaths)
+    .map((targetPath) => {
+      const targetContributions = options.contributions.filter(contribution =>
+        contribution.targetPath
+          ? contribution.targetPath === targetPath
+          : targetPath === rootPackageManifestTargetPath,
+      )
+
+      const base = options.bases?.[targetPath]
+
+      return collectPackageManifestContributions({
+        targetPath,
+        targetScope,
+        ...(base ? { base } : {}),
+        contributions: targetContributions,
+      })
+    })
 }

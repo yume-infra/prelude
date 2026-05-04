@@ -123,9 +123,20 @@ post-generate command 不应隐藏文件生成规则。能稳定表示为 plan t
 
 新增 dependency、script、devDependency、engine 等规则时，应由对应 owner 贡献 JSON mutation，并保持 mutation 可序列化为可解释的 `PlanSpec`。如果新增 capability 时必须直接修改中心 `package.json` 聚合函数，说明 owner contribution 边界还不够深。
 
-当前实现中，package policy 通过 package manifest contribution collector 汇合：`package-manifest-contributions.ts` 负责排序、same-value dedupe、provenance 和 owner-aware conflict diagnostics；`package-json.ts` 只收集 scaffold-family、workspace/bootstrap、router 与 state-management owner 的 contributions，并提交单个 package json task。新增 package 规则时应优先扩展 owner contribution API 与对应 owner 测试，而不是恢复中心 package policy 表或 Handlebars helper。
+当前实现中，package policy 通过 package manifest contribution collector 汇合：`package-manifest-contributions.ts` 负责排序、same-value dedupe、provenance 和 owner-aware conflict diagnostics；`package-json.ts` 收集 scaffold-family、workspace/bootstrap、router、state-management 与 workspace root owner contributions，并提交单个 package json task。新增 package 规则时应优先扩展 owner contribution API 与对应 owner 测试，而不是恢复中心 package policy 表或 Handlebars helper。
+
+`workspace-root` 的 root `package.json` 也是 root-owned package manifest，不是未来 child package manifest。Root package 负责 workspace-level scripts、package manager 字段与 orchestration devDependency；`apps/*` 或 `libs/*` 子包 manifest 必须通过 target-aware package manifest contract 单独生成，不能复用 root manifest policy 偷写 child package 依赖。
+
+当前 package manifest contribution 已支持以下 target-aware contract：
+
+- `targetPath`：默认 root `package.json`，也可以是 `apps/<name>/package.json` 或 `libs/<name>/package.json`。
+- `targetScope`：`root`、`package`、`both`。Standalone 场景可使用 `both`；workspace root 使用 `root`；未来 child package generation 使用 `package`。
+- `PackageManifestContributionConflictError` 必须保留具体 `targetPath`，包括 nested package manifest path。
+- target collection 必须 root-first、nested path 字典序稳定排序，避免 `PlanSpec` snapshot 漂移。
 
 面向 M007 preview / dry run 时，package manifest contribution 的可解释单元应至少保留 target path、section、key、owner(s) 与 value；不要通过重新解析最终 `package.json` 文本来猜测来源。
+
+Template registry entry 也支持 `scope`：root-only templates（lint config、Git ignore、Commitlint、lint-staged、workspace orchestration）必须标记为 `root`，未来 package-scoped assembly 必须通过 `buildTemplates(..., { targetScope: 'package', targetDirectory })` 过滤，而不是先注册 root templates 再手动删除。
 
 ### TypeScript 配置
 

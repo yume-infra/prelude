@@ -76,6 +76,30 @@ export const CliScaffoldOwner = defineOwner({
   label: 'CLI Scaffold Family',
 })
 
+export const FrontendPackageOwner = defineOwner({
+  id: 'frontend-package',
+  layer: OwnershipLayer.ScaffoldFamily,
+  label: 'Frontend Package',
+})
+
+export const NodePackageOwner = defineOwner({
+  id: 'node-package',
+  layer: OwnershipLayer.ScaffoldFamily,
+  label: 'Node Package',
+})
+
+export const CliPackageOwner = defineOwner({
+  id: 'cli-package',
+  layer: OwnershipLayer.ScaffoldFamily,
+  label: 'CLI Package',
+})
+
+export const LibraryPackageOwner = defineOwner({
+  id: 'library-package',
+  layer: OwnershipLayer.ScaffoldFamily,
+  label: 'Library Package',
+})
+
 export const WorkspaceBootstrapOwner = defineOwner({
   id: 'workspace-bootstrap',
   layer: OwnershipLayer.WorkspaceBootstrap,

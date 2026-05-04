@@ -128,6 +128,7 @@ describe('workspace/bootstrap contract', () => {
     expect(contributions).toEqual([
       {
         ownership: workspaceBootstrapPackageJsonMutation,
+        targetScope: 'root',
         sections: {
           devDependencies: {
             '@antfu/eslint-config': '^8.2.0',
@@ -141,6 +142,7 @@ describe('workspace/bootstrap contract', () => {
       },
       {
         ownership: workspaceBootstrapPackageJsonMutation,
+        targetScope: 'root',
         sections: {
           devDependencies: {
             husky: '^9.1.7',
@@ -149,6 +151,7 @@ describe('workspace/bootstrap contract', () => {
       },
       {
         ownership: workspaceBootstrapPackageJsonMutation,
+        targetScope: 'root',
         sections: {
           devDependencies: {
             'lint-staged': '^16.4.0',
@@ -157,6 +160,7 @@ describe('workspace/bootstrap contract', () => {
       },
       {
         ownership: workspaceBootstrapPackageJsonMutation,
+        targetScope: 'root',
         sections: {
           devDependencies: {
             '@commitlint/cli': '^20.5.0',
@@ -304,6 +308,7 @@ describe('workspace/bootstrap contract', () => {
     })).toEqual([
       {
         ownership: workspaceBootstrapPackageJsonMutation,
+        targetScope: 'root',
         fields: {
           private: true,
           packageManager: 'pnpm@10.12.4',

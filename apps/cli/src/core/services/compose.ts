@@ -4,6 +4,7 @@ import type { TargetDir } from '@/brand/target-dir'
 import type { TemplatePath } from '@/brand/template-path'
 import type { ComposeDSL, Plan, PostGenerateFileAction } from '@/core/services/planner'
 import type { ProjectConfig } from '@/schema/project-config'
+import type { GenerationTargetScope } from '@/schema/target-scope'
 import type { TemplateRegistry } from '@/schema/template-registry'
 import path from 'node:path'
 import { Command } from '@effect/platform'
@@ -11,6 +12,7 @@ import { Effect } from 'effect'
 import { makeProjectTargetDir } from '@/brand/target-dir'
 import { makeTemplatePath } from '@/brand/template-path'
 import { PlanTargetPathError } from '@/core/errors'
+import { matchesGenerationTargetScope } from '@/schema/target-scope'
 import { isCliProject, isNodeProject, isReactProject, isVueProject, isWorkspaceRootProject } from '@/utils/type-guard'
 import { FsService } from '~/fs'
 import { CliContext } from '../cli-context'
@@ -26,13 +28,43 @@ import { projectPlanSpec } from './planner'
 import { formatDryRunPreview } from './preview'
 import { collectTemplatePartialEntries } from './template-engine'
 
+interface TemplateBuildOptions {
+  readonly targetScope?: GenerationTargetScope
+  readonly targetDirectory?: string
+}
+
+function targetScopeForConfig(config: ProjectConfig): GenerationTargetScope {
+  return isWorkspaceRootProject(config) ? 'root' : 'both'
+}
+
+function targetPathWithinDirectory(targetDirectory: string | undefined, targetPath: string): string {
+  const normalizedDirectory = targetDirectory?.replace(/^\/+|\/+$/g, '') ?? ''
+  if (!normalizedDirectory) {
+    return targetPath
+  }
+
+  return `${normalizedDirectory}/${targetPath.replace(/^\/+/, '')}`
+}
+
 // 纯函数：直接把符合条件的模板注册到 DSL（不依赖环境）
-export function buildTemplates(dsl: ComposeDSL, templateRoot: TemplatePath, config: ProjectConfig) {
+export function buildTemplates(
+  dsl: ComposeDSL,
+  templateRoot: TemplatePath,
+  config: ProjectConfig,
+  options: TemplateBuildOptions = {},
+) {
+  const targetScope = options.targetScope ?? targetScopeForConfig(config)
+
   const register = <T>(registry: TemplateRegistry<T>) => {
     for (const item of Object.values(registry)) {
+      if (!matchesGenerationTargetScope(item.scope, targetScope))
+        continue
       if (!item.condition(config as T))
         continue
-      const target = typeof item.target === 'string' ? item.target : item.target(config as T)
+      const target = targetPathWithinDirectory(
+        options.targetDirectory,
+        typeof item.target === 'string' ? item.target : item.target(config as T),
+      )
       const src = makeTemplatePath(path.join(templateRoot, item.template))
       dsl.render(src, target, undefined, item.ownership)
     }
