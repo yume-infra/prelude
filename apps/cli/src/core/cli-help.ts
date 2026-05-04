@@ -4,9 +4,11 @@ export const HELP_TEXT = `Usage:
   create-yume --preset vue-minimal --name my-app [--install | --no-install] [--git | --no-git] [--dry-run]
   create-yume --preset vue-full --name my-app [--install | --no-install] [--git | --no-git] [--dry-run]
   create-yume --preset workspace-root --name my-workspace [--install | --no-install] [--git | --no-git] [--dry-run]
+  create-yume --preset node-minimal --name my-app [--install | --no-install] [--git | --no-git] [--dry-run]
+  create-yume --preset cli-minimal --name my-tool [--install | --no-install] [--git | --no-git] [--dry-run]
 
 Options:
-  --preset, --p <preset> Project preset combination: react-minimal | react-full | vue-minimal | vue-full | workspace-root
+  --preset, --p <preset> Project preset combination: react-minimal | react-full | vue-minimal | vue-full | workspace-root | node-minimal | cli-minimal
   --name <project>      Target project name (letters, numbers, hyphens, underscores)
   --install             Run pnpm install after generation
   --no-install          Skip pnpm install after generation

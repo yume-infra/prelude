@@ -54,6 +54,39 @@ describe('collectQuestions', () => {
     })
   })
 
+  it('builds a standalone cli preset config without frontend defaults', async () => {
+    const projectName = makeProjectName('non-interactive-cli')
+
+    const projectConfig = await Effect.runPromise(
+      collectQuestions.pipe(
+        Effect.provide(
+          Layer.mergeAll(
+            CliContextLive({
+              args: {
+                preset: 'cli-minimal',
+                name: projectName,
+                git: false,
+              },
+              isInteractive: false,
+            }),
+            makeFsMockLayer({
+              exists: () => Effect.succeed(false),
+            }),
+          ),
+        ),
+      ),
+    )
+
+    expect(projectConfig).toEqual({
+      name: projectName,
+      type: 'cli',
+      language: 'typescript',
+      git: false,
+      linting: 'none',
+      codeQuality: [],
+    })
+  })
+
   it('builds a workspace root preset config without frontend child package fields', async () => {
     const projectName = makeProjectName('non-interactive-workspace-root')
 

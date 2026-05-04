@@ -1,12 +1,13 @@
 import assert from 'node:assert/strict'
+import { constants } from 'node:fs'
 import { access, readFile } from 'node:fs/promises'
 import path from 'node:path'
 import process from 'node:process'
 import { execa } from 'execa'
 
-export type GeneratedPreset = 'react-minimal' | 'react-full' | 'vue-minimal' | 'vue-full'
+export type GeneratedPreset = 'react-minimal' | 'react-full' | 'vue-minimal' | 'vue-full' | 'node-minimal' | 'cli-minimal'
 
-export type GeneratedSmokePhase = 'generation' | 'install' | 'build' | 'lint' | 'link'
+export type GeneratedSmokePhase = 'generation' | 'install' | 'build' | 'lint' | 'link' | 'invoke'
 
 export interface GeneratedSmokeCase {
   readonly label: string
@@ -179,4 +180,49 @@ export async function assertGeneratedLintProject(generatedDir: string, testCase:
   }
 
   assertGeneratedPackageLintContract(packageJson, testCase, prefix)
+}
+
+export function assertGeneratedNodePackageContract(packageJson: unknown, testCase: GeneratedSmokeCase, prefix: string) {
+  assertGeneratedPackageProjectContract(packageJson, testCase, prefix)
+  assert.ok(isRecord(packageJson), `[${prefix}] ${testCase.preset} package.json must be an object`)
+  assert.equal(packageJson.type, 'module', `[${prefix}] ${testCase.preset} package.json must be ESM`)
+  assert.equal(packageJson.main, 'dist/index.js', `[${prefix}] ${testCase.preset} package.json must document dist/index.js as main`)
+  assert.equal(packageJson.types, 'dist/index.d.ts', `[${prefix}] ${testCase.preset} package.json must document dist/index.d.ts as types`)
+  assert.ok(isRecord(packageJson.scripts), `[${prefix}] ${testCase.preset} package.json must include scripts`)
+  assert.equal(packageJson.scripts.build, 'tsdown --config tsdown.config.ts', `[${prefix}] ${testCase.preset} must build with tsdown`)
+}
+
+export function assertGeneratedCliPackageContract(packageJson: unknown, testCase: GeneratedSmokeCase, prefix: string) {
+  assertGeneratedPackageProjectContract(packageJson, testCase, prefix)
+  assert.ok(isRecord(packageJson), `[${prefix}] ${testCase.preset} package.json must be an object`)
+  assert.equal(packageJson.type, 'module', `[${prefix}] ${testCase.preset} package.json must be ESM`)
+  assert.equal(packageJson.main, 'dist/index.js', `[${prefix}] ${testCase.preset} package.json must document dist/index.js as main`)
+  assert.ok(isRecord(packageJson.bin), `[${prefix}] ${testCase.preset} package.json must include npm bin metadata`)
+  assert.equal(packageJson.bin[testCase.projectName], 'dist/index.js', `[${prefix}] ${testCase.preset} bin must point at dist/index.js`)
+  assert.ok(isRecord(packageJson.scripts), `[${prefix}] ${testCase.preset} package.json must include scripts`)
+  assert.equal(
+    packageJson.scripts.build,
+    'tsdown --config tsdown.config.ts && node scripts/ensure-shebang.mjs',
+    `[${prefix}] ${testCase.preset} build must preserve a shebang after tsdown`,
+  )
+  assert.equal(packageJson.scripts['smoke:bin'], 'pnpm build && dist/index.js --help', `[${prefix}] ${testCase.preset} must include a bin smoke script`)
+}
+
+export async function assertGeneratedExecutableBin(generatedDir: string, testCase: GeneratedSmokeCase, prefix: string) {
+  const binPath = path.join(generatedDir, 'dist/index.js')
+
+  try {
+    await access(binPath, constants.X_OK)
+  }
+  catch (error) {
+    throw new Error(
+      `[${prefix}] ${testCase.preset} generated bin must be executable at ${binPath}`,
+      { cause: error },
+    )
+  }
+
+  const content = await readFile(binPath, 'utf8')
+  assert.ok(content.startsWith('#!/usr/bin/env node\n'), `[${prefix}] ${testCase.preset} generated bin must preserve a node shebang`)
+
+  return binPath
 }

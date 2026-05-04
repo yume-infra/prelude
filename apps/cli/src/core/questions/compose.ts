@@ -93,6 +93,18 @@ const askBaseCommon = Effect.gen(function* () {
   return { name, language, git, linting, codeQuality }
 })
 
+const askNodeRuntimeBaseCommon = Effect.gen(function* () {
+  const cli = yield* CliContext
+  const name = yield* askProjectNameSafe
+  const git = cli.args.git ?? (yield* ask(askGit))
+  const linting = yield* ask(askLinting)
+  let codeQuality: CodeQuality[] = []
+  if (shouldAskWorkspaceBootstrapCodeQuality({ git, linting })) {
+    codeQuality = yield* ask(askCodeQuality)
+  }
+  return { name, language: 'typescript' as const, git, linting, codeQuality }
+})
+
 const askFrontendCommon = Effect.gen(function* () {
   const buildTool = yield* ask(askBuildTool)
   const cssPreprocessor = yield* ask(askCSSPreprocessor)
@@ -116,9 +128,9 @@ function assertNever(value: never): never {
 
 export const createProject = Effect.gen(function* () {
   const projectType = yield* ask(askProjectType)
-  const base = yield* askBaseCommon
 
   if (projectType === 'vue') {
+    const base = yield* askBaseCommon
     const frontend = yield* askFrontendCommon
     const router = yield* ask(askVueRouter)
     const stateManagement = yield* ask(askVueStateManagement)
@@ -132,6 +144,7 @@ export const createProject = Effect.gen(function* () {
   }
 
   if (projectType === 'react') {
+    const base = yield* askBaseCommon
     const frontend = yield* askFrontendCommon
     const router = yield* ask(askReactRouter)
     const stateManagement = yield* ask(askReactStateManagement)
@@ -145,10 +158,27 @@ export const createProject = Effect.gen(function* () {
   }
 
   if (projectType === 'workspace-root') {
+    const base = yield* askBaseCommon
     return {
       ...base,
       type: 'workspace-root',
       packageManager: PnpmPackageManager.name,
+    }
+  }
+
+  if (projectType === 'node') {
+    const base = yield* askNodeRuntimeBaseCommon
+    return {
+      ...base,
+      type: 'node',
+    }
+  }
+
+  if (projectType === 'cli') {
+    const base = yield* askNodeRuntimeBaseCommon
+    return {
+      ...base,
+      type: 'cli',
     }
   }
 
@@ -226,6 +256,26 @@ const createPreset = Effect.gen(function* () {
         ...workspaceBootstrap,
         packageManager: PnpmPackageManager.name,
       }
+    case 'node-minimal': {
+      return {
+        name,
+        type: 'node',
+        language: 'typescript',
+        git: cli.args.git ?? false,
+        linting: 'none',
+        codeQuality: [],
+      }
+    }
+    case 'cli-minimal': {
+      return {
+        name,
+        type: 'cli',
+        language: 'typescript',
+        git: cli.args.git ?? false,
+        linting: 'none',
+        codeQuality: [],
+      }
+    }
     default:
       return assertNever(preset)
   }

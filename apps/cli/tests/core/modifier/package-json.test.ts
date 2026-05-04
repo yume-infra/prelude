@@ -330,4 +330,80 @@ describe('buildPackageJson', () => {
     expect(packageJson.scripts).not.toHaveProperty('commit')
     expect(packageJson.scripts).not.toHaveProperty('lint')
   })
+
+  it('writes TypeScript ESM and tsdown baseline for standalone node projects', () => {
+    const packageJson = renderPackageJson({
+      type: 'node',
+      name: makeProjectName('phase-node-minimal'),
+      language: 'typescript',
+      git: false,
+      linting: 'none',
+      codeQuality: [],
+    })
+
+    expect(packageJson).toMatchObject({
+      name: 'phase-node-minimal',
+      type: 'module',
+      main: 'dist/index.js',
+      types: 'dist/index.d.ts',
+      files: ['dist'],
+      scripts: {
+        build: 'tsdown --config tsdown.config.ts',
+        start: 'node dist/index.js',
+        typecheck: 'tsc --noEmit',
+      },
+      devDependencies: {
+        '@types/node': '^25.6.0',
+        tsdown: '^0.21.9',
+        typescript: '^6.0.3',
+      },
+    })
+  })
+
+  it('writes npm bin metadata and invocation smoke script for standalone cli tools', () => {
+    const packageJson = renderPackageJson({
+      type: 'cli',
+      name: makeProjectName('phase-cli-minimal'),
+      language: 'typescript',
+      git: false,
+      linting: 'none',
+      codeQuality: [],
+    })
+
+    expect(Object.keys(packageJson)).toEqual([
+      'name',
+      'type',
+      'version',
+      'description',
+      'license',
+      'main',
+      'types',
+      'bin',
+      'files',
+      'engines',
+      'scripts',
+      'dependencies',
+      'devDependencies',
+    ])
+    expect(packageJson).toMatchObject({
+      name: 'phase-cli-minimal',
+      type: 'module',
+      main: 'dist/index.js',
+      types: 'dist/index.d.ts',
+      bin: {
+        'phase-cli-minimal': 'dist/index.js',
+      },
+      files: ['dist'],
+      scripts: {
+        build: 'tsdown --config tsdown.config.ts && node scripts/ensure-shebang.mjs',
+        'smoke:bin': 'pnpm build && dist/index.js --help',
+        typecheck: 'tsc --noEmit',
+      },
+      devDependencies: {
+        '@types/node': '^25.6.0',
+        tsdown: '^0.21.9',
+        typescript: '^6.0.3',
+      },
+    })
+  })
 })

@@ -1,10 +1,13 @@
 import type { GeneratedSmokeCase } from './support/generated-smoke-gate'
-import { mkdtemp, rm, writeFile } from 'node:fs/promises'
+import { chmod, mkdir, mkdtemp, rm, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import path from 'node:path'
 import { describe, expect, it } from 'vitest'
 import {
+  assertGeneratedCliPackageContract,
+  assertGeneratedExecutableBin,
   assertGeneratedLintProject,
+  assertGeneratedNodePackageContract,
   assertGeneratedPackageLintContract,
   assertGeneratedProjectPackage,
   formatGeneratedSmokeError,
@@ -24,6 +27,18 @@ const reactMinimalCase = {
   projectName: 'smoke-react-minimal',
 } satisfies GeneratedSmokeCase
 
+const nodeMinimalCase = {
+  label: 'node minimal preset',
+  preset: 'node-minimal',
+  projectName: 'smoke-node-minimal',
+} satisfies GeneratedSmokeCase
+
+const cliMinimalCase = {
+  label: 'cli minimal preset',
+  preset: 'cli-minimal',
+  projectName: 'smoke-cli-minimal',
+} satisfies GeneratedSmokeCase
+
 async function withTempProject(run: (dir: string) => Promise<void>) {
   const dir = await mkdtemp(path.join(tmpdir(), 'create-yume-smoke-gate-spec-'))
 
@@ -41,6 +56,8 @@ describe('generated smoke gate contract', () => {
     expect(shouldRunLintForPreset('vue-full'), 'vue-full must run generated lint').toBe(true)
     expect(shouldRunLintForPreset('react-minimal'), 'react-minimal is intentionally build-only').toBe(false)
     expect(shouldRunLintForPreset('vue-minimal'), 'vue-minimal is intentionally build-only').toBe(false)
+    expect(shouldRunLintForPreset('node-minimal'), 'node-minimal is intentionally build-only').toBe(false)
+    expect(shouldRunLintForPreset('cli-minimal'), 'cli-minimal is intentionally build-only').toBe(false)
   })
 
   it('locks generated-project lint invocation to zero warnings', () => {
@@ -115,6 +132,42 @@ describe('generated smoke gate contract', () => {
         lint: 'eslint',
       },
     }, reactFullCase, 'generated-smoke')).not.toThrow()
+  })
+
+  it('accepts generated node package contracts', () => {
+    expect(() => assertGeneratedNodePackageContract({
+      name: 'smoke-node-minimal',
+      type: 'module',
+      main: 'dist/index.js',
+      types: 'dist/index.d.ts',
+      scripts: {
+        build: 'tsdown --config tsdown.config.ts',
+      },
+    }, nodeMinimalCase, 'generated-smoke')).not.toThrow()
+  })
+
+  it('accepts generated cli package contracts and executable bins', async () => {
+    expect(() => assertGeneratedCliPackageContract({
+      name: 'smoke-cli-minimal',
+      type: 'module',
+      main: 'dist/index.js',
+      bin: {
+        'smoke-cli-minimal': 'dist/index.js',
+      },
+      scripts: {
+        build: 'tsdown --config tsdown.config.ts && node scripts/ensure-shebang.mjs',
+        'smoke:bin': 'pnpm build && dist/index.js --help',
+      },
+    }, cliMinimalCase, 'generated-smoke')).not.toThrow()
+
+    await withTempProject(async (dir) => {
+      await mkdir(path.join(dir, 'dist'))
+      const binPath = path.join(dir, 'dist/index.js')
+      await writeFile(binPath, '#!/usr/bin/env node\nconsole.log("ok")\n', 'utf8')
+      await chmod(binPath, 0o755)
+
+      await expect(assertGeneratedExecutableBin(dir, cliMinimalCase, 'generated-smoke')).resolves.toBe(binPath)
+    })
   })
 
   it('rejects malformed package JSON for lint-enabled generated projects', () => {

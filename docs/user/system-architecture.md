@@ -1,12 +1,14 @@
 # 系统总架构
 
-Create Yume 是一个用于创建前端项目的 CLI。
+Create Yume 是一个用于创建本地项目脚手架的 CLI。
 
-它当前把范围收在三类脚手架上：
+它当前把范围收在几类本地脚手架上：
 
 - React
 - Vue
 - pnpm workspace root
+- Node
+- CLI tool
 
 目标不是覆盖所有模板来源和所有工程玩法，而是在有限范围内把交互配置、模板生成和实现边界组织得更稳定。
 
@@ -15,22 +17,27 @@ Create Yume 是一个用于创建前端项目的 CLI。
 - React 项目脚手架
 - Vue 项目脚手架
 - pnpm workspace root 脚手架
+- Node 项目脚手架
+- CLI tool 脚手架
 
-当前主路径是：创建一个新项目或 workspace root，并生成一套完整的初始文件。`workspace-root` preset 只生成 workspace 根目录文件，不生成 `apps/*` 或 `libs/*` 下的子包。
+当前主路径是：创建一个新项目，并生成一套完整的初始文件。
+
+pnpm workspace root 生成路径只负责根目录物化：`package.json`、`pnpm-workspace.yaml`、`turbo.json`，以及可选的 lint / Git / code quality 根级配置。它不会生成 workspace 子包。
+
+Node 与 CLI tool 生成路径固定使用 TypeScript ESM。CLI tool 会生成 `src/index.ts` executable entrypoint、`package.json` 的 `bin` metadata、tsdown build baseline、shebang 处理脚本，以及 `smoke:bin` invocation smoke script。构建输出路径是 `dist/index.js`，声明文件输出路径是 `dist/index.d.ts`。
 
 CLI 也支持 `--dry-run`：它复用正常配置收集与 PlanSpec 构建路径，打印将要生成的文件、post-generate commands，以及已结构化的 post-generate file actions（例如 Husky hook 文件），但不创建目标目录、不写文件、不执行命令。未结构化的外部命令内部副作用不会被猜测或展开预览。
 
 ## 当前不支持的范围
 
-- Node 项目脚手架
-- workspace 子包生成
+- workspace 子包 / 完整 monorepo 生成
 - 远程模板
 - 插件化模板来源
 - 对已有项目做增量式改造
 
 ## Generation Model Foundation
 
-CLI 内部已经开始把“收集到的 React / Vue 配置”和更长期的 create spec 边界分开。
+CLI 内部已经开始把“收集到的项目配置”和更长期的 create spec 边界分开。
 
 当前 React / Vue 配置可以被适配为一份结构化 create spec：
 
@@ -39,8 +46,26 @@ CLI 内部已经开始把“收集到的 React / Vue 配置”和更长期的 cr
 - `runtime: browser`
 - frontend framework 为 `react` 或 `vue`
 
-create spec 的 schema 也保留了 workspace、backend app、worker app、CLI tool 与 library package 等未来分类，并会校验 package kind 与 runtime 的组合关系。但这些分类目前只是输入模型基础，不代表 CLI 已经可以生成 Node 项目、workspace 子包，或写入 `workspace:*` 内部依赖。
-当前 CLI 已支持 `workspace-root` 配置模型和 pnpm workspace root materialization；这只覆盖 root `package.json`、`pnpm-workspace.yaml`、`turbo.json` 与 root-level bootstrap 行为，不代表支持 workspace 子包调度或 `workspace:*` 内部依赖写入。
+当前 Node 配置会适配为：
+
+- `shape: standalone`
+- `kind: backend-app`
+- `runtime: node`
+- backend framework 为 `none`
+
+当前 CLI tool 配置会适配为：
+
+- `shape: standalone`
+- `kind: cli-tool`
+- `runtime: node`
+- CLI toolkit 为 `none`
+
+当前 workspace root 配置会适配为：
+
+- `shape: workspace`
+- `packages: []`
+
+create spec 的 schema 也保留了 workspace package、worker app 与 library package 等未来分类，并会校验 package kind 与 runtime 的组合关系。但这些分类目前只是输入模型基础，不代表 CLI 已经可以生成 workspace 子包、worker app、library package，或写入 `workspace:*` 内部依赖。
 
 ## 当前系统由什么组成
 
@@ -85,7 +110,6 @@ create spec 的 schema 也保留了 workspace、backend app、worker app、CLI t
 - 决定哪些模板应被渲染
 - 组织文件写入、复制和组合型内容生成
 - 在启用 `antfu-eslint` 时生成 ESLint 配置及编辑器项目配置，目前覆盖 VSCode 与 Zed。
-- 在 `workspace-root` preset 下生成 pnpm workspace root 文件：`package.json`、`pnpm-workspace.yaml` 与 `turbo.json`。
 
 ### 4. 生成后的后置命令与文件动作层
 
@@ -98,5 +122,4 @@ create spec 的 schema 也保留了 workspace、backend app、worker app、CLI t
 ## 相关入口
 
 - 用户文档路线图：[./roadmap.md](./roadmap.md)
-- 脚手架生成链路架构说明：[./architecture-review/scaffold-pipeline-chains.md](./architecture-review/scaffold-pipeline-chains.md)
 - 执行文档路线图：[../agent/roadmap.md](../agent/roadmap.md)

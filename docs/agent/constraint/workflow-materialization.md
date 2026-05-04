@@ -123,9 +123,7 @@ post-generate command 不应隐藏文件生成规则。能稳定表示为 plan t
 
 新增 dependency、script、devDependency、engine 等规则时，应由对应 owner 贡献 JSON mutation，并保持 mutation 可序列化为可解释的 `PlanSpec`。如果新增 capability 时必须直接修改中心 `package.json` 聚合函数，说明 owner contribution 边界还不够深。
 
-当前实现中，package policy 通过 package manifest contribution collector 汇合：`package-manifest-contributions.ts` 负责排序、same-value dedupe、provenance 和 owner-aware conflict diagnostics；`package-json.ts` 收集 scaffold-family、workspace/bootstrap、router、state-management 与 workspace root owner contributions，并提交单个 package json task。新增 package 规则时应优先扩展 owner contribution API 与对应 owner 测试，而不是恢复中心 package policy 表或 Handlebars helper。
-
-`workspace-root` 的 root `package.json` 也是 root-owned package manifest，不是未来 child package manifest。Root package 负责 workspace-level scripts、package manager 字段与 orchestration devDependency；后续 `apps/*` 或 `libs/*` 子包 manifest 需要单独设计 owner 与 target path，不得复用 root manifest policy 偷写 child package 依赖。
+当前实现中，package policy 通过 package manifest contribution collector 汇合：`package-manifest-contributions.ts` 负责排序、same-value dedupe、provenance 和 owner-aware conflict diagnostics；`package-json.ts` 只收集 scaffold-family、workspace/bootstrap、router 与 state-management owner 的 contributions，并提交单个 package json task。新增 package 规则时应优先扩展 owner contribution API 与对应 owner 测试，而不是恢复中心 package policy 表或 Handlebars helper。
 
 面向 M007 preview / dry run 时，package manifest contribution 的可解释单元应至少保留 target path、section、key、owner(s) 与 value；不要通过重新解析最终 `package.json` 文本来猜测来源。
 
@@ -154,7 +152,7 @@ post-generate command 不应隐藏文件生成规则。能稳定表示为 plan t
 
 在引入 token、认证、远程模板、私有 registry、插件来源、authenticated external services 或 secret-bearing command env 前，必须先定义 command output 的 redaction 或降级策略。失败诊断应继续保留 command、args、cwd、exit code（如可用）、owner、unit 和 phase，但不得持久化未处理的敏感 stdout / stderr。
 
-远程模板、插件化模板来源、Node 项目脚手架、workspace 子包生成和已有项目增量更新仍不在当前产品范围内。若未来要进入实现，必须先更新用户侧系统架构、执行约束、验证矩阵，并重新评估 preserved core、路径边界和 command output 安全边界。
+远程模板、插件化模板来源、workspace 子包 / 完整 monorepo 生成、worker app / library package 生成和已有项目增量更新仍不在当前产品范围内。若未来要进入实现，必须先更新用户侧系统架构、执行约束、验证矩阵，并重新评估 preserved core、路径边界和 command output 安全边界。
 
 ## Plan Preview 与 Dry Run
 
@@ -180,7 +178,7 @@ plan preview 和 dry run 是用户可见能力，不是新的 workflow。
 - 修改 fragment、template helper 或 registry 时，检查模板渲染和 planner snapshot。
 - 修改 JSON / text mutation 或热点文件时，检查 `PlanSpec` 是否能解释 owner contribution。
 - 修改 rollback、path boundary 或 plan apply 行为时，覆盖失败路径。
-- 修改依赖版本、package manifest、Vite、TypeScript、React 或 Vue 主模板时，考虑运行 generated project smoke。
+- 修改依赖版本、package manifest、Vite、TypeScript、React、Vue、workspace root、Node 或 CLI 主模板时，考虑运行 generated project smoke。
 - 修改 command phase 时，验证命令顺序、失败诊断和敏感输出边界。
 - 修改 post-generate file action 时，验证命令先于 file action、路径越界拒绝、写入失败 rollback、以及真实生成项目中的最终文件内容。
 

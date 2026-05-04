@@ -1,0 +1,76 @@
+#!/usr/bin/env node
+
+import { realpathSync } from 'node:fs'
+import { fileURLToPath } from 'node:url'
+
+interface CliOptions {
+  readonly help: boolean
+  readonly name: string
+}
+
+const usage = `Usage:
+  {{@config.name}} [--name <name>]
+
+Options:
+  --name <name>  Name to greet
+  --help, -h     Show help`
+
+function parseArgs(args: readonly string[]): CliOptions {
+  let name = 'world'
+
+  for (let index = 0; index < args.length; index += 1) {
+    const arg = args[index]
+
+    if (arg === '--help' || arg === '-h') {
+      return { help: true, name }
+    }
+
+    if (arg === '--name') {
+      const value = args[index + 1]
+      if (value) {
+        name = value
+        index += 1
+      }
+      continue
+    }
+
+    if (arg?.startsWith('--name=')) {
+      name = arg.slice('--name='.length)
+    }
+  }
+
+  return { help: false, name }
+}
+
+export function renderGreeting(name: string): string {
+  return `Hello, ${name}!`
+}
+
+export function run(args: readonly string[] = process.argv.slice(2)): number {
+  const options = parseArgs(args)
+
+  if (options.help) {
+    console.log(usage)
+    return 0
+  }
+
+  console.log(renderGreeting(options.name))
+  return 0
+}
+
+function isDirectRun(metaUrl: string, argvEntry: string | undefined): boolean {
+  if (!argvEntry) {
+    return false
+  }
+
+  try {
+    return realpathSync(fileURLToPath(metaUrl)) === realpathSync(argvEntry)
+  }
+  catch {
+    return false
+  }
+}
+
+if (isDirectRun(import.meta.url, process.argv[1])) {
+  process.exitCode = run()
+}

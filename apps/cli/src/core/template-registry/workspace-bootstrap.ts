@@ -1,11 +1,11 @@
-import type { SharedFrontendAppConfig, WorkspaceRootConfig } from '@/schema/project-config'
+import type { BaseProjectConfig, WorkspaceRootConfig } from '@/schema/project-config'
 import type { TemplateRegistry } from '@/schema/template-registry'
 import { makeTemplatePath } from '@/brand/template-path'
 import { contributionTrace, ContributionUnitKind, WorkspaceBootstrapOwner } from '@/core/ownership/model'
 
 const workspaceFragmentRender = contributionTrace(WorkspaceBootstrapOwner, ContributionUnitKind.FragmentRender)
 
-export const workspaceBootstrapTemplates: TemplateRegistry<SharedFrontendAppConfig> = {
+export const workspaceBootstrapTemplates: TemplateRegistry<BaseProjectConfig> = {
   'eslint.config.mjs': {
     template: makeTemplatePath('fragments/common/linter/eslint.config.mjs.hbs'),
     target: 'eslint.config.mjs',

@@ -1,7 +1,7 @@
 import { Effect, Exit } from 'effect'
 import { describe, expect, it } from 'vitest'
 import { decodeProjectConfig, decodeSharedFrontendAppConfig, decodeWorkspaceRootConfig } from '../src/schema/project-config'
-import { reactProjectConfig, vueProjectConfig, workspaceRootProjectConfig } from './support/fixtures'
+import { cliProjectConfig, nodeProjectConfig, reactProjectConfig, vueProjectConfig, workspaceRootProjectConfig } from './support/fixtures'
 
 describe('project config schema contract', () => {
   it('decodes a react fixture', async () => {
@@ -14,6 +14,11 @@ describe('project config schema contract', () => {
     const decoded = await Effect.runPromise(decodeProjectConfig(vueProjectConfig))
 
     expect(decoded).toEqual(vueProjectConfig)
+  })
+
+  it('decodes node and cli fixtures', async () => {
+    await expect(Effect.runPromise(decodeProjectConfig(nodeProjectConfig))).resolves.toEqual(nodeProjectConfig)
+    await expect(Effect.runPromise(decodeProjectConfig(cliProjectConfig))).resolves.toEqual(cliProjectConfig)
   })
 
   it('decodes a workspace root fixture without child packages', async () => {
@@ -34,11 +39,29 @@ describe('project config schema contract', () => {
     const exit = await Effect.runPromiseExit(
       decodeProjectConfig({
         ...reactProjectConfig,
-        type: 'node',
+        type: 'solid',
       }),
     )
 
     expect(Exit.isFailure(exit)).toBe(true)
+  })
+
+  it('keeps standalone node and cli project configs TypeScript-only', async () => {
+    const nodeExit = await Effect.runPromiseExit(
+      decodeProjectConfig({
+        ...nodeProjectConfig,
+        language: 'javascript',
+      }),
+    )
+    const cliExit = await Effect.runPromiseExit(
+      decodeProjectConfig({
+        ...cliProjectConfig,
+        language: 'javascript',
+      }),
+    )
+
+    expect(Exit.isFailure(nodeExit)).toBe(true)
+    expect(Exit.isFailure(cliExit)).toBe(true)
   })
 
   it('keeps framework-specific router and state fields out of shared frontend config', async () => {

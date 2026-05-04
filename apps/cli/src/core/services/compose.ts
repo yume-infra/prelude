@@ -11,10 +11,11 @@ import { Effect } from 'effect'
 import { makeProjectTargetDir } from '@/brand/target-dir'
 import { makeTemplatePath } from '@/brand/template-path'
 import { PlanTargetPathError } from '@/core/errors'
-import { isReactProject, isVueProject, isWorkspaceRootProject } from '@/utils/type-guard'
+import { isCliProject, isNodeProject, isReactProject, isVueProject, isWorkspaceRootProject } from '@/utils/type-guard'
 import { FsService } from '~/fs'
 import { CliContext } from '../cli-context'
 import { buildCommands, buildPostGenerateFileActions } from '../commands'
+import { CliTemplates, NodeTemplates } from '../template-registry/node-runtime'
 import { ReactTemplates } from '../template-registry/react'
 import { VueTemplates } from '../template-registry/vue'
 import { workspaceBootstrapRootTemplates } from '../template-registry/workspace-bootstrap'
@@ -42,6 +43,10 @@ export function buildTemplates(dsl: ComposeDSL, templateRoot: TemplatePath, conf
     register(ReactTemplates)
   if (isWorkspaceRootProject(config))
     register(workspaceBootstrapRootTemplates)
+  if (isNodeProject(config))
+    register(NodeTemplates)
+  if (isCliProject(config))
+    register(CliTemplates)
 }
 
 // 兼容别名：partial 选择逻辑由 TemplateEngine 拥有，新代码应直接依赖 TemplateEngine.prepare。

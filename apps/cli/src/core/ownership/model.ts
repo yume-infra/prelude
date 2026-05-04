@@ -64,6 +64,18 @@ export const FrontendScaffoldOwner = defineOwner({
   label: 'Shared Frontend Scaffold Family',
 })
 
+export const NodeScaffoldOwner = defineOwner({
+  id: 'node-scaffold',
+  layer: OwnershipLayer.ScaffoldFamily,
+  label: 'Node Scaffold Family',
+})
+
+export const CliScaffoldOwner = defineOwner({
+  id: 'cli-scaffold',
+  layer: OwnershipLayer.ScaffoldFamily,
+  label: 'CLI Scaffold Family',
+})
+
 export const WorkspaceBootstrapOwner = defineOwner({
   id: 'workspace-bootstrap',
   layer: OwnershipLayer.WorkspaceBootstrap,

@@ -76,6 +76,8 @@ describe('parseRawCliArgs', () => {
 describe('hELP_TEXT', () => {
   it('documents the dry-run flag and safety promise', () => {
     expect(HELP_TEXT).toContain('--dry-run')
+    expect(HELP_TEXT).toContain('node-minimal')
+    expect(HELP_TEXT).toContain('cli-minimal')
     expect(HELP_TEXT).toContain('without writing files or running commands')
     expect(HELP_TEXT).toContain('workspace-root')
   })

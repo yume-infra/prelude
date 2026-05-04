@@ -11,19 +11,19 @@
 - M000-M009 已完成。
 - 当前没有执行 blocker。
 - 工作区在本轮提交后应保持干净。
-- 当前产品范围仍然只支持 React 与 Vue 项目脚手架。
+- 当前产品范围支持 React、Vue、pnpm workspace root、Node 与 CLI tool 项目脚手架。
 
 ## 仍然 active 的长期约束
 
-### R001：React / Vue 生成能力必须持续成立
+### R001：当前支持项目生成能力必须持续成立
 
 R001 是产品主路径，不应因为一个 milestone 完成就关闭。
 
 维护要求：
 
-1. 任何改动生成流程、模板、package policy、CLI 参数、post-generate 行为时，都必须重新证明 React / Vue 支持没有回退。
+1. 任何改动生成流程、模板、package policy、CLI 参数、post-generate 行为时，都必须重新证明 React / Vue / pnpm workspace root / Node / CLI tool 支持没有回退。
 2. 最低证明应从验证矩阵选择；涉及生成行为时优先运行 generated smoke。
-3. 不要把 Node scaffold、远程模板、插件系统或已有项目增量更新混入 R001，它们仍是 out of scope。
+3. 不要把 workspace 子包 / 完整 monorepo 生成、worker / library package、远程模板、插件系统或已有项目增量更新混入 R001，它们仍是 out of scope。
 
 建议处理方式：
 
@@ -39,7 +39,7 @@ R005 是执行治理约束，也不应因为一轮文档同步完成就关闭。
 1. 修改用户可见行为时，同步检查用户文档。
 2. 修改执行边界、验证方式、模板能力或约束规则时，同步检查执行文档。
 3. 每次规划新 milestone 时，显式选择验证命令，不要默认跑最大集合或跳过关键 smoke。
-4. 文档仍应保持 React / Vue only 的范围事实。
+4. 文档仍应保持 React / Vue / pnpm workspace root / Node / CLI tool 的范围事实。
 
 建议处理方式：
 
@@ -91,7 +91,10 @@ M009 已把可结构化的 Husky hook 文件写入纳入 post-generate file acti
 
 以下内容仍然不要作为 Phase 5 默认任务启动：
 
-- Node 项目脚手架。
+- workspace 子包 / 完整 monorepo 生成。
+- worker app 或 library package 生成。
+- Node backend framework 选择。
+- CLI framework / toolkit 选择。
 - 远程模板来源。
 - 插件系统或可插拔模板来源。
 - 对已有项目做增量式更新。

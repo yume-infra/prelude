@@ -4,6 +4,9 @@ import { tmpdir } from 'node:os'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
 import {
+  assertGeneratedCliPackageContract,
+  assertGeneratedExecutableBin,
+  assertGeneratedNodePackageContract,
   assertGeneratedLintProject,
   assertGeneratedProjectPackage,
   assertNonInteractiveGeneration,
@@ -37,6 +40,16 @@ const smokeCases: readonly GeneratedSmokeCase[] = [
     preset: 'vue-full',
     projectName: 'smoke-vue-full',
   },
+  {
+    label: 'node minimal preset',
+    preset: 'node-minimal',
+    projectName: 'smoke-node-minimal',
+  },
+  {
+    label: 'cli minimal preset',
+    preset: 'cli-minimal',
+    projectName: 'smoke-cli-minimal',
+  },
 ]
 
 async function runSmokeCase(rootDir: string, testCase: GeneratedSmokeCase) {
@@ -61,7 +74,7 @@ async function runSmokeCase(rootDir: string, testCase: GeneratedSmokeCase) {
   })
 
   assertNonInteractiveGeneration(`${generation.stdout}\n${generation.stderr}`, testCase, smokePrefix)
-  await assertGeneratedProjectPackage(generatedDir, testCase, smokePrefix)
+  const packageJson = await assertGeneratedProjectPackage(generatedDir, testCase, smokePrefix)
 
   await runGeneratedSmokePhase({
     prefix: smokePrefix,
@@ -80,6 +93,39 @@ async function runSmokeCase(rootDir: string, testCase: GeneratedSmokeCase) {
     command: 'pnpm',
     args: ['build'],
   })
+
+  if (testCase.preset === 'node-minimal') {
+    assertGeneratedNodePackageContract(packageJson, testCase, smokePrefix)
+    const invocation = await runGeneratedSmokePhase({
+      prefix: smokePrefix,
+      testCase,
+      phase: 'invoke',
+      cwd: generatedDir,
+      command: 'node',
+      args: ['dist/index.js', 'create-yume'],
+      stdio: 'pipe',
+    })
+    if (!(invocation.stdout ?? '').includes('Hello, create-yume!')) {
+      throw new Error(`[${smokePrefix}] ${testCase.preset} node invocation did not print the expected greeting`)
+    }
+  }
+
+  if (testCase.preset === 'cli-minimal') {
+    assertGeneratedCliPackageContract(packageJson, testCase, smokePrefix)
+    const binPath = await assertGeneratedExecutableBin(generatedDir, testCase, smokePrefix)
+    const invocation = await runGeneratedSmokePhase({
+      prefix: smokePrefix,
+      testCase,
+      phase: 'invoke',
+      cwd: generatedDir,
+      command: binPath,
+      args: ['--help'],
+      stdio: 'pipe',
+    })
+    if (!(invocation.stdout ?? '').includes(`Usage:\n  ${testCase.projectName} [--name <name>]`)) {
+      throw new Error(`[${smokePrefix}] ${testCase.preset} bin invocation did not print usage`)
+    }
+  }
 
   if (shouldRunLintForPreset(testCase.preset)) {
     await assertGeneratedLintProject(generatedDir, testCase, smokePrefix)

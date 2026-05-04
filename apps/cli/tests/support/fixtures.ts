@@ -1,4 +1,6 @@
 import type {
+  CliProjectConfig,
+  NodeProjectConfig,
   ProjectConfig,
   ReactProjectConfig,
   VueProjectConfig,
@@ -110,8 +112,29 @@ export const workspaceRootMinimalProjectConfig = {
   packageManager: 'pnpm',
 } satisfies WorkspaceRootConfig
 
+export const nodeMinimalPresetProjectConfig = {
+  name: makeProjectName('node-minimal-fixture'),
+  type: 'node',
+  language: 'typescript',
+  git: false,
+  linting: 'none',
+  codeQuality: [],
+} satisfies NodeProjectConfig
+
+export const cliMinimalPresetProjectConfig = {
+  name: makeProjectName('cli-minimal-fixture'),
+  type: 'cli',
+  language: 'typescript',
+  git: false,
+  linting: 'none',
+  codeQuality: [],
+} satisfies CliProjectConfig
+
 export const reactProjectConfig = reactPresetProjectConfig
 export const vueProjectConfig = vuePresetProjectConfig
+export const workspaceProjectConfig = workspaceRootProjectConfig
+export const nodeProjectConfig = nodeMinimalPresetProjectConfig
+export const cliProjectConfig = cliMinimalPresetProjectConfig
 
 export const projectConfigs: readonly ProjectConfig[] = [
   reactPresetProjectConfig,
@@ -122,4 +145,6 @@ export const projectConfigs: readonly ProjectConfig[] = [
   vueCustomProjectConfig,
   workspaceRootProjectConfig,
   workspaceRootMinimalProjectConfig,
+  nodeMinimalPresetProjectConfig,
+  cliMinimalPresetProjectConfig,
 ]

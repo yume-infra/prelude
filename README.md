@@ -1,14 +1,16 @@
 # Create Yume
 
-> 一个专注于 React / Vue 项目与 pnpm workspace root 的现代脚手架，用 Effect 驱动交互、模板编排与生成流程。
+> 一个支持 React、Vue、pnpm workspace root、Node 与 CLI tool 的现代本地脚手架，用 Effect 驱动交互、模板编排与生成流程。
 
 Create Yume 用来把“新建项目”这件事做得更稳一点。
 
-它当前不追求覆盖所有框架、所有模板来源、所有工程玩法，而是把范围收紧在三件事上：
+它当前不追求覆盖所有框架、所有模板来源、所有工程玩法，而是把范围收紧在几类本地项目上：
 
 - 生成 React 项目
 - 生成 Vue 项目
-- 生成 pnpm workspace root
+- 生成 pnpm workspace 根目录
+- 生成 TypeScript ESM Node 项目
+- 生成 TypeScript ESM CLI tool
 
 在这个范围内，它更关心三个问题：
 
@@ -33,11 +35,12 @@ Create Yume 用来把“新建项目”这件事做得更稳一点。
 - React 项目脚手架
 - Vue 项目脚手架
 - pnpm workspace root 脚手架
+- Node 项目脚手架
+- CLI tool 脚手架
 
 ## 当前不支持的范围
 
-- Node 项目脚手架
-- workspace 子包生成
+- workspace 子包 / 完整 monorepo 生成
 - 远程模板
 - 插件化模板来源
 - 对已有项目做增量式改造
@@ -61,12 +64,14 @@ node apps/cli/dist/index.js
 
 # 非交互 preset 模式
 node apps/cli/dist/index.js --preset react-full --name my-app --install
-
-# 生成 pnpm workspace root，不生成子包
-node apps/cli/dist/index.js --preset workspace-root --name my-workspace --install
+node apps/cli/dist/index.js --preset workspace-root --name my-workspace
+node apps/cli/dist/index.js --preset node-minimal --name my-node-app
+node apps/cli/dist/index.js --preset cli-minimal --name my-tool
 
 # 预览生成计划，不创建目录、不写文件、不执行命令
 node apps/cli/dist/index.js --preset react-full --name my-app --dry-run
+node apps/cli/dist/index.js --preset workspace-root --name my-workspace --dry-run
+node apps/cli/dist/index.js --preset cli-minimal --name my-tool --dry-run
 
 # 失败时保留现场，方便排错
 node apps/cli/dist/index.js --p vue-full --name my-app --no-rollback

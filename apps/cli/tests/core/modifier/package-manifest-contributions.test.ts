@@ -8,7 +8,7 @@ import { getScaffoldFamilyPackageContributions } from '../../../src/core/owners/
 import { getReactStateManagementPackageContributions } from '../../../src/core/owners/state-management'
 import { contributionTrace, ContributionUnitKind, defineOwner, OwnershipLayer } from '../../../src/core/ownership/model'
 import { getWorkspaceBootstrapPackageContributions } from '../../../src/core/workspace-bootstrap'
-import { reactPresetProjectConfig } from '../../support/fixtures'
+import { cliMinimalPresetProjectConfig, reactPresetProjectConfig } from '../../support/fixtures'
 
 const alphaOwner = defineOwner({
   id: 'alpha-owner',
@@ -202,6 +202,38 @@ describe('collectPackageManifestContributions', () => {
       'tailwindcss',
       'vite',
     ])
+  })
+
+  it('records standalone cli package manifest provenance with cli scaffold ownership', () => {
+    const collection = collectPackageManifestContributions({
+      contributions: getScaffoldFamilyPackageContributions(cliMinimalPresetProjectConfig),
+    })
+
+    expect(collection.provenance).toEqual(expect.arrayContaining([
+      {
+        targetPath: 'package.json',
+        section: '<root>',
+        key: 'bin',
+        owners: ['cli-scaffold'],
+        value: {
+          'cli-minimal-fixture': 'dist/index.js',
+        },
+      },
+      {
+        targetPath: 'package.json',
+        section: 'scripts',
+        key: 'build',
+        owners: ['cli-scaffold'],
+        value: 'tsdown --config tsdown.config.ts && node scripts/ensure-shebang.mjs',
+      },
+      {
+        targetPath: 'package.json',
+        section: 'devDependencies',
+        key: 'tsdown',
+        owners: ['cli-scaffold'],
+        value: '^0.21.9',
+      },
+    ]))
   })
 
   it('fails fast on same-key different-value contributions with owner-aware diagnostics', () => {

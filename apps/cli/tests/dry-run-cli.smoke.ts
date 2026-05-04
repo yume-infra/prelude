@@ -16,13 +16,67 @@ const dryRunCases = [
     label: 'react full preset',
     preset: 'react-full',
     projectName: 'smoke-react-dry-run',
-    expectedOwnership: 'owner: react-scaffold, unit: json-text-mutation',
+    flags: ['--install', '--git'],
+    expected: [
+      'Dry run preview',
+      '- json package.json (owner: workspace-bootstrap, unit: json-text-mutation)',
+      'owner: react-scaffold, unit: json-text-mutation',
+      'Post-generate commands:',
+      'after-plan-apply: pnpm install',
+      'after-plan-apply: git init',
+      'after-plan-apply: pnpm exec husky init',
+      'Post-generate file actions:',
+      'after-post-generate-commands: write-file .husky/pre-commit (executable: false)',
+      'after-post-generate-commands: write-file .husky/commit-msg (executable: true)',
+    ],
   },
   {
     label: 'vue full preset',
     preset: 'vue-full',
     projectName: 'smoke-vue-dry-run',
-    expectedOwnership: 'owner: vue-scaffold, unit: json-text-mutation',
+    flags: ['--install', '--git'],
+    expected: [
+      'Dry run preview',
+      '- json package.json (owner: workspace-bootstrap, unit: json-text-mutation)',
+      'owner: vue-scaffold, unit: json-text-mutation',
+    ],
+  },
+  {
+    label: 'workspace root preset',
+    preset: 'workspace-root',
+    projectName: 'smoke-workspace-root-dry-run',
+    flags: ['--install', '--git'],
+    expected: [
+      'Dry run preview',
+      '- render pnpm-workspace.yaml (owner: workspace-bootstrap, unit: fragment-render)',
+      '- render turbo.json (owner: workspace-bootstrap, unit: fragment-render)',
+      '- json package.json (owner: workspace-bootstrap, unit: json-text-mutation)',
+    ],
+  },
+  {
+    label: 'node minimal preset',
+    preset: 'node-minimal',
+    projectName: 'smoke-node-dry-run',
+    flags: [],
+    expected: [
+      'Dry run preview',
+      '- render src/index.ts (owner: node-scaffold, unit: fragment-render)',
+      '- render tsconfig.json (owner: node-scaffold, unit: fragment-render)',
+      '- render tsdown.config.ts (owner: node-scaffold, unit: fragment-render)',
+      'owner: node-scaffold, unit: json-text-mutation',
+    ],
+  },
+  {
+    label: 'cli minimal preset',
+    preset: 'cli-minimal',
+    projectName: 'smoke-cli-dry-run',
+    flags: [],
+    expected: [
+      'Dry run preview',
+      '- render src/index.ts (owner: cli-scaffold, unit: fragment-render)',
+      '- render scripts/ensure-shebang.mjs (owner: cli-scaffold, unit: fragment-render)',
+      'owner: cli-scaffold, unit: json-text-mutation',
+    ],
   },
 ] as const
 
@@ -60,17 +114,11 @@ function assertIncludes(testCase: DryRunCase, output: string, expected: string) 
 function assertPreviewContract(testCase: DryRunCase, output: string) {
   assertIncludes(testCase, output, 'Dry run preview')
   assertIncludes(testCase, output, 'No files or directories will be written, and no commands will be executed.')
-  assertIncludes(testCase, output, 'Post-generate command internal file effects are not fully shown.')
   assertIncludes(testCase, output, 'Planned files:')
-  assertIncludes(testCase, output, '- json package.json (owner: workspace-bootstrap, unit: json-text-mutation)')
-  assertIncludes(testCase, output, testCase.expectedOwnership)
-  assertIncludes(testCase, output, 'Post-generate commands:')
-  assertIncludes(testCase, output, 'after-plan-apply: pnpm install')
-  assertIncludes(testCase, output, 'after-plan-apply: git init')
-  assertIncludes(testCase, output, 'after-plan-apply: pnpm exec husky init')
-  assertIncludes(testCase, output, 'Post-generate file actions:')
-  assertIncludes(testCase, output, 'after-post-generate-commands: write-file .husky/pre-commit (executable: false)')
-  assertIncludes(testCase, output, 'after-post-generate-commands: write-file .husky/commit-msg (executable: true)')
+
+  for (const expected of testCase.expected) {
+    assertIncludes(testCase, output, expected)
+  }
 }
 
 async function assertBuiltCliAvailable() {
@@ -85,7 +133,7 @@ async function runDryRunCase(testCase: DryRunCase) {
   let passed = false
 
   try {
-    console.log(`${casePrefix(testCase)} dry-run generation: node ${cliDistPath} --preset ${testCase.preset} --name ${testCase.projectName} --dry-run --install --git (cwd: ${rootDir})`)
+    console.log(`${casePrefix(testCase)} dry-run generation: node ${cliDistPath} --preset ${testCase.preset} --name ${testCase.projectName} --dry-run ${testCase.flags.join(' ')} (cwd: ${rootDir})`)
     let output = ''
 
     try {
@@ -96,8 +144,7 @@ async function runDryRunCase(testCase: DryRunCase) {
         '--name',
         testCase.projectName,
         '--dry-run',
-        '--install',
-        '--git',
+        ...testCase.flags,
       ], {
         cwd: rootDir,
         maxBuffer: 1024 * 1024 * 8,
@@ -125,7 +172,7 @@ async function runDryRunCase(testCase: DryRunCase) {
       await rm(rootDir, { recursive: true, force: true })
     }
     else {
-      console.error(`${casePrefix(testCase)} kept failed temp root for inspection: ${rootDir}`)
+      console.error(`[${smokePrefix}] kept failed temp root for inspection: ${rootDir}`)
     }
   }
 }

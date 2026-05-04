@@ -10,6 +10,8 @@ import { FsLive } from '../src/core/services/fs'
 import { TemplateEngineLive, TemplateEngineService } from '../src/core/services/template-engine'
 import { makeTestConfigProvider } from './support/config-provider'
 import {
+  cliMinimalPresetProjectConfig,
+  nodeMinimalPresetProjectConfig,
   reactCustomProjectConfig,
   reactPresetProjectConfig,
   vueCustomProjectConfig,
@@ -70,6 +72,36 @@ describe('template render snapshots', () => {
       'workspace root turbo config',
       'fragments/common/workspace/turbo.json.hbs',
       workspaceRootMinimalProjectConfig,
+    ],
+    [
+      'node runtime entry',
+      'fragments/node/index.ts.hbs',
+      nodeMinimalPresetProjectConfig,
+    ],
+    [
+      'node runtime tsconfig',
+      'fragments/common/node-runtime/tsconfig.json.hbs',
+      nodeMinimalPresetProjectConfig,
+    ],
+    [
+      'node runtime tsdown config',
+      'fragments/common/node-runtime/tsdown.config.ts.hbs',
+      nodeMinimalPresetProjectConfig,
+    ],
+    [
+      'cli entry with shebang',
+      'fragments/cli/index.ts.hbs',
+      cliMinimalPresetProjectConfig,
+    ],
+    [
+      'cli shebang handler',
+      'fragments/cli/ensure-shebang.mjs.hbs',
+      cliMinimalPresetProjectConfig,
+    ],
+    [
+      'cli README with bin path',
+      'fragments/cli/README.md.hbs',
+      cliMinimalPresetProjectConfig,
     ],
     [
       'react main without router',

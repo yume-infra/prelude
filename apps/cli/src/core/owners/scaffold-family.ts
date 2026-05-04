@@ -2,12 +2,14 @@ import type { PackageManifestContribution } from '@/core/modifier/package-manife
 import type { ProjectConfig } from '@/schema/project-config'
 import {
   contributionTrace,
+  CliScaffoldOwner,
   ContributionUnitKind,
   FrontendScaffoldOwner,
+  NodeScaffoldOwner,
   ReactScaffoldOwner,
   VueScaffoldOwner,
 } from '@/core/ownership/model'
-import { isFrontendProject, isReactProject, isVueProject } from '@/utils/type-guard'
+import { isCliProject, isFrontendProject, isNodeProject, isReactProject, isVueProject } from '@/utils/type-guard'
 
 export const frontendScaffoldPackageJsonMutation = contributionTrace(
   FrontendScaffoldOwner,
@@ -21,22 +23,76 @@ export const vueScaffoldPackageJsonMutation = contributionTrace(
   VueScaffoldOwner,
   ContributionUnitKind.JsonTextMutation,
 )
+export const nodeScaffoldPackageJsonMutation = contributionTrace(
+  NodeScaffoldOwner,
+  ContributionUnitKind.JsonTextMutation,
+)
+export const cliScaffoldPackageJsonMutation = contributionTrace(
+  CliScaffoldOwner,
+  ContributionUnitKind.JsonTextMutation,
+)
 
-function packageContribution(options: {
-  readonly ownership: PackageManifestContribution['ownership']
-  readonly sections: NonNullable<PackageManifestContribution['sections']>
-}): PackageManifestContribution {
+function packageContribution(options: PackageManifestContribution): PackageManifestContribution {
   return options
 }
 
 export function getScaffoldFamilyPackageContributions(config: ProjectConfig): PackageManifestContribution[] {
   const contributions: PackageManifestContribution[] = []
 
-  if (config.language === 'typescript') {
+  if (isFrontendProject(config) && config.language === 'typescript') {
     contributions.push(packageContribution({
       ownership: frontendScaffoldPackageJsonMutation,
       sections: {
         devDependencies: { typescript: '^6.0.3' },
+      },
+    }))
+  }
+
+  if (isNodeProject(config)) {
+    contributions.push(packageContribution({
+      ownership: nodeScaffoldPackageJsonMutation,
+      fields: {
+        main: 'dist/index.js',
+        types: 'dist/index.d.ts',
+        files: ['dist'],
+      },
+      sections: {
+        scripts: {
+          build: 'tsdown --config tsdown.config.ts',
+          start: 'node dist/index.js',
+          typecheck: 'tsc --noEmit',
+        },
+        devDependencies: {
+          '@types/node': '^25.6.0',
+          'tsdown': '^0.21.9',
+          'typescript': '^6.0.3',
+        },
+      },
+    }))
+  }
+
+  if (isCliProject(config)) {
+    contributions.push(packageContribution({
+      ownership: cliScaffoldPackageJsonMutation,
+      fields: {
+        main: 'dist/index.js',
+        types: 'dist/index.d.ts',
+        bin: {
+          [config.name]: 'dist/index.js',
+        },
+        files: ['dist'],
+      },
+      sections: {
+        scripts: {
+          build: 'tsdown --config tsdown.config.ts && node scripts/ensure-shebang.mjs',
+          'smoke:bin': 'pnpm build && dist/index.js --help',
+          typecheck: 'tsc --noEmit',
+        },
+        devDependencies: {
+          '@types/node': '^25.6.0',
+          'tsdown': '^0.21.9',
+          'typescript': '^6.0.3',
+        },
       },
     }))
   }

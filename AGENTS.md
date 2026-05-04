@@ -1,6 +1,6 @@
 # Create Yume 执行约束文档
 
-当前仓库只支持 `react`、`vue` 项目脚手架，以及 pnpm `workspace-root` 脚手架。
+当前仓库支持 `react`、`vue`、`workspace-root`、`node` 与 `cli` 项目脚手架。
 
 ## 文档入口
 
@@ -22,8 +22,9 @@
 
 ## 范围事实
 
-- 当前仅支持 `react`、`vue` 项目脚手架，以及 pnpm `workspace-root` 脚手架。
-- 不支持 Node 项目脚手架流程、workspace 子包生成、远程模板、插件系统 / 可插拔模板来源，以及对已有项目做增量式更新。
+- 当前支持 `react`、`vue`、pnpm `workspace-root`、`node` 与 `cli` 项目脚手架。
+- 当前 `workspace-root` 只生成 pnpm workspace 根目录，不生成 workspace 子包。
+- 不支持 workspace 子包 / 完整 monorepo 生成流程、远程模板、插件系统 / 可插拔模板来源，以及对已有项目做增量式更新。
 - 主要允许修改区域：`apps/cli/src/`、`apps/cli/templates/`、`docs/`。
 - CLI 构建产物为 `apps/cli/dist/index.js`。
 

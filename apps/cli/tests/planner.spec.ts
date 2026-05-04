@@ -8,7 +8,10 @@ import { buildPackageJson } from '../src/core/modifier/package-json'
 import { buildTemplates } from '../src/core/services/compose'
 import { PlanService, toPlanSpec } from '../src/core/services/planner'
 import { buildRootSvg } from '../src/core/template-registry/root-svg'
+import { isFrontendProject } from '../src/utils/type-guard'
 import {
+  cliMinimalPresetProjectConfig,
+  nodeMinimalPresetProjectConfig,
   reactCustomProjectConfig,
   reactPresetProjectConfig,
   vueCustomProjectConfig,
@@ -38,7 +41,9 @@ function buildPlanSpec(config: ProjectConfig) {
   return Effect.gen(function* () {
     const planner = yield* PlanService
     const plan = yield* planner.build((dsl) => {
-      buildRootSvg(dsl, templateRoot)
+      if (isFrontendProject(config)) {
+        buildRootSvg(dsl, templateRoot)
+      }
       buildPackageJson(dsl, config)
       buildTemplates(dsl, templateRoot, config)
     })
@@ -74,10 +79,76 @@ describe('planner snapshots', () => {
     ['vue preset', vuePresetProjectConfig],
     ['react custom', reactCustomProjectConfig],
     ['vue custom', vueCustomProjectConfig],
+    ['node minimal preset', nodeMinimalPresetProjectConfig],
+    ['cli minimal preset', cliMinimalPresetProjectConfig],
   ] as const)('builds a deterministic plan for %s', async (_name, config) => {
     const planSpec = await Effect.runPromise(buildPlanSpec(config))
 
     expect(planSpec).toMatchSnapshot()
+  })
+})
+
+describe('standalone node runtime scaffold families', () => {
+  it('traces node and cli package mutations through scaffold-family ownership', async () => {
+    const nodePlan = await Effect.runPromise(buildPlanSpec(nodeMinimalPresetProjectConfig))
+    const cliPlan = await Effect.runPromise(buildPlanSpec(cliMinimalPresetProjectConfig))
+    const nodePackageJsonTask = nodePlan.tasks.find(task => task.kind === 'json' && task.path === 'package.json')
+    const cliPackageJsonTask = cliPlan.tasks.find(task => task.kind === 'json' && task.path === 'package.json')
+
+    expect(nodePackageJsonTask?.kind).toBe('json')
+    expect(cliPackageJsonTask?.kind).toBe('json')
+    if (nodePackageJsonTask?.kind !== 'json' || cliPackageJsonTask?.kind !== 'json') {
+      throw new Error('package.json task was not a json task')
+    }
+
+    expect(nodePackageJsonTask.reducers).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          ownership: {
+            owner: 'node-scaffold',
+            unit: 'json-text-mutation',
+          },
+        }),
+      ]),
+    )
+    expect(cliPackageJsonTask.reducers).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          ownership: {
+            owner: 'cli-scaffold',
+            unit: 'json-text-mutation',
+          },
+        }),
+      ]),
+    )
+  })
+
+  it('plans node and cli templates without frontend assets', async () => {
+    const nodePlan = await Effect.runPromise(buildPlanSpec(nodeMinimalPresetProjectConfig))
+    const cliPlan = await Effect.runPromise(buildPlanSpec(cliMinimalPresetProjectConfig))
+
+    expect(nodePlan.tasks).toContainEqual(expect.objectContaining({
+      kind: 'render',
+      path: 'src/index.ts',
+      ownership: {
+        owner: 'node-scaffold',
+        unit: 'fragment-render',
+      },
+    }))
+    expect(cliPlan.tasks).toContainEqual(expect.objectContaining({
+      kind: 'render',
+      path: 'scripts/ensure-shebang.mjs',
+      ownership: {
+        owner: 'cli-scaffold',
+        unit: 'fragment-render',
+      },
+    }))
+
+    for (const plan of [nodePlan, cliPlan]) {
+      expect(plan.tasks.some(task => task.path === 'public/moon-star.svg')).toBe(false)
+      expect(plan.tasks.some(task => task.path === 'index.html')).toBe(false)
+      expect(plan.tasks.some(task => task.path === 'vite.config.ts')).toBe(false)
+    }
   })
 })
 

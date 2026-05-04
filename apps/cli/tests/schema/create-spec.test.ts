@@ -8,7 +8,7 @@ import {
   projectConfigToCreateSpec,
 } from '../../src/schema/create-spec'
 import { decodeProjectConfig } from '../../src/schema/project-config'
-import { reactProjectConfig, vueProjectConfig } from '../support/fixtures'
+import { cliProjectConfig, nodeProjectConfig, reactProjectConfig, vueProjectConfig, workspaceRootProjectConfig } from '../support/fixtures'
 
 const frontendPackageInput = {
   id: 'web',
@@ -194,6 +194,54 @@ describe('create spec schema contract', () => {
           cssFramework: fixture.cssFramework,
         },
       },
+    })
+  })
+
+  it('adapts standalone node project config into a backend app create spec', async () => {
+    const decodedProjectConfig = await Effect.runPromise(decodeProjectConfig(nodeProjectConfig))
+    const createSpec = projectConfigToCreateSpec(decodedProjectConfig)
+
+    expect(createSpec).toEqual({
+      shape: 'standalone',
+      package: {
+        id: makePackageId(nodeProjectConfig.name),
+        name: makePackageName(nodeProjectConfig.name),
+        kind: 'backend-app',
+        runtime: 'node',
+        internalDependencies: [],
+        backend: {
+          framework: 'none',
+        },
+      },
+    })
+  })
+
+  it('adapts standalone cli project config into a cli tool create spec', async () => {
+    const decodedProjectConfig = await Effect.runPromise(decodeProjectConfig(cliProjectConfig))
+    const createSpec = projectConfigToCreateSpec(decodedProjectConfig)
+
+    expect(createSpec).toEqual({
+      shape: 'standalone',
+      package: {
+        id: makePackageId(cliProjectConfig.name),
+        name: makePackageName(cliProjectConfig.name),
+        kind: 'cli-tool',
+        runtime: 'node',
+        internalDependencies: [],
+        cli: {
+          toolkit: 'none',
+        },
+      },
+    })
+  })
+
+  it('adapts workspace root project config into an empty workspace create spec', async () => {
+    const decodedProjectConfig = await Effect.runPromise(decodeProjectConfig(workspaceRootProjectConfig))
+    const createSpec = projectConfigToCreateSpec(decodedProjectConfig)
+
+    expect(createSpec).toEqual({
+      shape: 'workspace',
+      packages: [],
     })
   })
 })

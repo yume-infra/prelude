@@ -1,4 +1,4 @@
-import type { ReactProjectConfig, VueProjectConfig } from './project-config'
+import type { ProjectConfig } from './project-config'
 import { ParseResult, Schema } from 'effect'
 import { makePackageName, PackageNameSchema } from '@/brand/package-name'
 import {
@@ -228,21 +228,62 @@ export const formatGenerationPackageSpecError = ParseResult.TreeFormatter.format
 
 export const makePackageId = (value: string): PackageId => Schema.decodeUnknownSync(PackageIdSchema)(value)
 
-export function projectConfigToCreateSpec(config: ReactProjectConfig | VueProjectConfig): StandaloneCreateSpec {
-  return {
-    shape: 'standalone',
-    package: {
-      id: makePackageId(config.name),
-      name: makePackageName(config.name),
-      kind: 'frontend-app',
-      runtime: 'browser',
-      internalDependencies: [],
-      frontend: {
-        framework: config.type,
-        buildTool: config.buildTool,
-        cssPreprocessor: config.cssPreprocessor,
-        cssFramework: config.cssFramework,
-      },
-    },
+export function projectConfigToCreateSpec(config: ProjectConfig): CreateSpec {
+  const base = {
+    id: makePackageId(config.name),
+    name: makePackageName(config.name),
+    internalDependencies: [],
+  }
+
+  switch (config.type) {
+    case 'react':
+    case 'vue':
+      return {
+        shape: 'standalone',
+        package: {
+          ...base,
+          kind: 'frontend-app',
+          runtime: 'browser',
+          frontend: {
+            framework: config.type,
+            buildTool: config.buildTool,
+            cssPreprocessor: config.cssPreprocessor,
+            cssFramework: config.cssFramework,
+          },
+        },
+      }
+    case 'node':
+      return {
+        shape: 'standalone',
+        package: {
+          ...base,
+          kind: 'backend-app',
+          runtime: 'node',
+          backend: {
+            framework: 'none',
+          },
+        },
+      }
+    case 'cli':
+      return {
+        shape: 'standalone',
+        package: {
+          ...base,
+          kind: 'cli-tool',
+          runtime: 'node',
+          cli: {
+            toolkit: 'none',
+          },
+        },
+      }
+    case 'workspace-root':
+      return {
+        shape: 'workspace',
+        packages: [],
+      }
+    default: {
+      const exhaustive: never = config
+      return exhaustive
+    }
   }
 }

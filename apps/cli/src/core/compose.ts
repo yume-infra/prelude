@@ -49,6 +49,21 @@ function formatConfigSummary(config: ProjectConfig) {
       `  Package Manager: ${config.packageManager}`,
     ]
   }
+  else if (config.type === 'node') {
+    return [
+      ...baseInfo,
+      '  Runtime: Node.js',
+      '  Build: tsdown',
+    ]
+  }
+  else if (config.type === 'cli') {
+    return [
+      ...baseInfo,
+      '  Runtime: Node.js',
+      `  Bin: ${config.name}`,
+      '  Build: tsdown',
+    ]
+  }
 
   return baseInfo
 }
