@@ -30,10 +30,14 @@ function extractCommandOutputDiagnostics(error: unknown): CommandOutputDiagnosti
   if (!record)
     return {}
 
+  const stdout = stringField(record, 'stdout')
+  const stderr = stringField(record, 'stderr')
+  const output = stringField(record, 'output')
+
   return {
-    ...(stringField(record, 'stdout') !== undefined ? { stdout: stringField(record, 'stdout') } : {}),
-    ...(stringField(record, 'stderr') !== undefined ? { stderr: stringField(record, 'stderr') } : {}),
-    ...(stringField(record, 'output') !== undefined ? { output: stringField(record, 'output') } : {}),
+    ...(stdout !== undefined ? { stdout } : {}),
+    ...(stderr !== undefined ? { stderr } : {}),
+    ...(output !== undefined ? { output } : {}),
   }
 }
 

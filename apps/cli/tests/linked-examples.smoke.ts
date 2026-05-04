@@ -61,7 +61,7 @@ async function linkCli() {
     args: ['bin', '--global'],
     stdio: 'pipe',
   })
-  const globalBin = globalBinResult.stdout.trim()
+  const globalBin = globalBinResult.stdout?.trim() ?? ''
 
   await runGeneratedSmokePhase({
     prefix: smokePrefix,
@@ -83,7 +83,7 @@ async function linkCli() {
     env: generatedSmokeEnv({ extraPath: globalBin }),
   })
 
-  if (linkedBin.stdout.trim().length === 0) {
+  if ((linkedBin.stdout?.trim() ?? '').length === 0) {
     throw new Error(`[${smokePrefix}] linked create-yume bin resolved but returned an empty version string`)
   }
 

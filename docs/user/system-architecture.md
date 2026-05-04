@@ -25,6 +25,19 @@ CLI 也支持 `--dry-run`：它复用正常配置收集与 PlanSpec 构建路径
 - 插件化模板来源
 - 对已有项目做增量式改造
 
+## Generation Model Foundation
+
+CLI 内部已经开始把“收集到的 React / Vue 配置”和更长期的 create spec 边界分开。
+
+当前 React / Vue 配置可以被适配为一份结构化 create spec：
+
+- `shape: standalone`
+- `kind: frontend-app`
+- `runtime: browser`
+- frontend framework 为 `react` 或 `vue`
+
+create spec 的 schema 也保留了 workspace、backend app、worker app、CLI tool 与 library package 等未来分类，并会校验 package kind 与 runtime 的组合关系。但这些分类目前只是输入模型基础，不代表 CLI 已经可以生成 Node 项目、workspace root、workspace 子包，或写入 `workspace:*` 内部依赖。
+
 ## 当前系统由什么组成
 
 从整体上看，create-yume 目前由五个部分组成：

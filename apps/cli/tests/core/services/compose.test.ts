@@ -586,11 +586,16 @@ describe('command working directory helpers', () => {
           ],
         },
       ).pipe(
-        Effect.provide(makeFsMockLayer({
-          remove: file => Effect.sync(() => {
-            removes.push(file)
-          }),
-        })),
+        Effect.provide(
+          Layer.mergeAll(
+            makeFsMockLayer({
+              remove: file => Effect.sync(() => {
+                removes.push(file)
+              }),
+            }),
+            makeCommandMockLayer(),
+          ),
+        ),
       ),
     )
 
@@ -633,16 +638,21 @@ describe('command working directory helpers', () => {
           ],
         },
       ).pipe(
-        Effect.provide(makeFsMockLayer({
-          writeFileString: file => Effect.fail(new FileIOError({
-            op: 'write',
-            path: file,
-            message: 'forced file failure',
-          })),
-          remove: file => Effect.sync(() => {
-            removes.push(file)
-          }),
-        })),
+        Effect.provide(
+          Layer.mergeAll(
+            makeFsMockLayer({
+              writeFileString: file => Effect.fail(new FileIOError({
+                op: 'write',
+                path: file,
+                message: 'forced file failure',
+              })),
+              remove: file => Effect.sync(() => {
+                removes.push(file)
+              }),
+            }),
+            makeCommandMockLayer(),
+          ),
+        ),
       ),
     )
 

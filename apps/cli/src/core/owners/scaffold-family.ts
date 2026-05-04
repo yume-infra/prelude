@@ -24,7 +24,7 @@ export const vueScaffoldPackageJsonMutation = contributionTrace(
 
 function packageContribution(options: {
   readonly ownership: PackageManifestContribution['ownership']
-  readonly sections: PackageManifestContribution['sections']
+  readonly sections: NonNullable<PackageManifestContribution['sections']>
 }): PackageManifestContribution {
   return options
 }
