@@ -1,7 +1,9 @@
 import { Effect, Exit } from 'effect'
 import { describe, expect, it } from 'vitest'
 import { makePackageName } from '../../src/brand/package-name'
+import { makeProjectName } from '../../src/brand/project-name'
 import {
+  createSpecToProjectConfig,
   decodeCreateSpec,
   decodeGenerationPackageSpec,
   makePackageId,
@@ -253,5 +255,91 @@ describe('create spec schema contract', () => {
       shape: 'workspace',
       packages: workspaceMixedProjectConfig.packages,
     })
+  })
+
+  it('adapts standalone create spec input into a project config with explicit target name', async () => {
+    const decoded = await Effect.runPromise(decodeCreateSpec({
+      shape: 'standalone',
+      package: frontendPackageInput,
+    }))
+
+    const config = createSpecToProjectConfig(decoded, {
+      name: makeProjectName('spec-react-app'),
+      git: true,
+    })
+
+    expect(config).toEqual({
+      name: makeProjectName('spec-react-app'),
+      type: 'react',
+      language: 'typescript',
+      git: true,
+      linting: 'none',
+      codeQuality: [],
+      buildTool: 'vite',
+      cssPreprocessor: 'less',
+      cssFramework: 'tailwind',
+      router: 'none',
+      stateManagement: 'none',
+    })
+  })
+
+  it('adapts workspace create spec input into a workspace project config', async () => {
+    const decoded = await Effect.runPromise(decodeCreateSpec({
+      shape: 'workspace',
+      packages: workspaceMixedProjectConfig.packages,
+    }))
+
+    const config = createSpecToProjectConfig(decoded, {
+      name: makeProjectName('spec-workspace'),
+    })
+
+    expect(config).toEqual({
+      name: makeProjectName('spec-workspace'),
+      type: 'workspace-root',
+      language: 'typescript',
+      git: false,
+      linting: 'none',
+      codeQuality: [],
+      packageManager: 'pnpm',
+      packages: workspaceMixedProjectConfig.packages,
+    })
+  })
+
+  it('keeps worker app specs as non-generatable future boundaries', async () => {
+    const decoded = await Effect.runPromise(decodeCreateSpec({
+      shape: 'workspace',
+      packages: [
+        {
+          id: 'jobs',
+          name: '@demo/jobs',
+          kind: 'worker-app',
+          worker: {
+            toolkit: 'none',
+          },
+        },
+      ],
+    }))
+
+    expect(() => createSpecToProjectConfig(decoded, {
+      name: makeProjectName('worker-workspace'),
+    })).toThrow('worker package "jobs" generation is not available yet')
+  })
+
+  it('keeps standalone library specs outside the current user-facing generation boundary', async () => {
+    const decoded = await Effect.runPromise(decodeCreateSpec({
+      shape: 'standalone',
+      package: {
+        id: 'shared',
+        name: '@demo/shared',
+        kind: 'library-package',
+        library: {
+          toolkit: 'none',
+        },
+      },
+    }))
+
+    expect(() => createSpecToProjectConfig(decoded, {
+      name: makeProjectName('shared'),
+    })).toThrow('Standalone library package generation is not available yet')
   })
 })

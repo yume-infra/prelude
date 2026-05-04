@@ -17,6 +17,7 @@
 | 修改组合型文件生成逻辑 | 生成产物中的 `package.json` 等组合文件 | `pnpm --filter create-yume build` | 必要时额外生成实际项目检查产物是否符合预期。 |
 | 修改 workspace root materialization | root `package.json`、`pnpm-workspace.yaml`、`turbo.json`、root-level commands、rollback | `pnpm --filter create-yume test -- workspace-root` | 检查 root 文件计划、dry-run preview、root package policy 和失败回滚。 |
 | 修改 workspace package generation | `apps/*` / `libs/*` 子包、child `package.json`、`workspace:*` 内部依赖、root-vs-child 渲染配置 | `pnpm --filter create-yume test -- planner && pnpm --filter create-yume typecheck` | 检查 mixed workspace 路径、package-local `@config`、只写入声明过的 `workspace:*` link，并确认 standalone 生成不回退。 |
+| 修改 CLI args / `--spec` / resolved spec export | CLI 参数 decode、非交互行为、create spec round-trip、help text、dry-run formatting | `pnpm --filter create-yume test -- cli-args create-spec compose preview && pnpm --filter create-yume typecheck` | 检查 `--spec` 与 `--preset` 互斥、`--no-input` 不触发 prompts、`--print-spec` 输出 resolved create spec，dry-run 仍来自 PlanSpec。 |
 | 修改 CLI 构建或入口配置 | 构建产物、打包元数据、入口可执行性 | `pnpm --filter create-yume build` | 确认 CLI 可被正确构建；若影响面更广，直接跑完整验证。 |
 | 修改 CLI bin、link 入口或真实生成项目基线 | 全局链接、真实命令入口、生成项目安装、构建与 lint | `pnpm --filter create-yume smoke:generated && pnpm --filter create-yume smoke:examples` | 确认本地包可被 link 后以 `create-yume` 调用；`generated` 与 linked smoke 都必须构建生成项目，并对 lint-enabled 生成项目执行 `pnpm lint --max-warnings=0`。Node / CLI scaffold 改动还必须覆盖 TypeScript ESM build；CLI tool 必须验证 `bin` metadata、shebang 和可执行入口调用。 |
 | 只改文档 | 用户入口、说明文档、规则文档 | 人工校对 | 检查事实、入口、读者对象和语言风格是否正确。 |

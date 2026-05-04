@@ -38,7 +38,7 @@ runtime 推断与校验规则如下：
 - `backend-app`、`worker-app` 与 `cli-tool` 固定为 `node`。
 - `library-package` 只允许 `neutral` 或 `node`，未声明时推断为 `neutral`。
 
-当前 React / Vue / pnpm workspace root / Node / CLI tool 交互、preset、planner 与模板链路仍消费兼容层 `ProjectConfig`。workspace package list 也挂在 `WorkspaceRootConfig.packages` 上，供内部结构化配置与后续 spec UX 使用。
+当前 React / Vue / pnpm workspace root / Node / CLI tool 交互、preset、planner 与模板链路仍消费兼容层 `ProjectConfig`。workspace package list 也挂在 `WorkspaceRootConfig.packages` 上，供内部结构化配置与 `--spec` 输入使用。
 
 当前适配关系如下：
 
@@ -55,6 +55,10 @@ workspace package 已进入结构化生成链路，但 `worker-app` 仍只是结
 当前代码允许内部 package manifest contribution 与 template registry 以 target-aware contract 表达 root/package/both scope，以及 nested package target path（例如 `apps/<name>/package.json`、`libs/<name>/package.json`）。workspace 子包生成必须复用这个 contract，不得绕开到第二条 workflow。
 
 workspace package spec 可以声明内部依赖 link，目标可按 package id 或 package name 描述。已声明的内部依赖必须写入 child `package.json` 的 `dependencies`，值固定为 `workspace:*`；未声明的本地 package 不得自动 link。
+
+`--spec <file-or-json> --name <target>` 是复杂 workspace package graph 的当前非交互入口。执行时必须先 decode create spec，再适配到 `ProjectConfig`，最后复用既有 Plan / PlanSpec workflow；不得引入绕开 planner、template registry scope filtering 或 package manifest contribution 的第二条生成链路。
+
+`--print-spec` 只能导出 resolved create spec，不应被当成 dry-run JSON API。`--dry-run` 仍是 human-readable PlanSpec preview；包含 workspace 子包时可以分组展示 root files 与 workspace package files，但数据源必须仍然是 PlanSpec。
 
 ## 修改区域
 

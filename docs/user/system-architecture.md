@@ -24,13 +24,13 @@ Create Yume 是一个用于创建本地项目脚手架的 CLI。
 
 当前主路径是：创建一个新项目，并生成一套完整的初始文件。
 
-pnpm workspace root 生成路径会物化根目录：`package.json`、`pnpm-workspace.yaml`、`turbo.json`，以及可选的 lint / Git / code quality 根级配置。当结构化配置提供 package list 时，它也可以生成 workspace 子包：runnable app/tool 放在 `apps/*`，shared library 放在 `libs/*`。当前 `--preset workspace-root` 仍是只生成根目录的简单入口；完整 package graph 的 CLI / interactive UX 会在后续任务中收敛。
+pnpm workspace root 生成路径会物化根目录：`package.json`、`pnpm-workspace.yaml`、`turbo.json`，以及可选的 lint / Git / code quality 根级配置。当结构化配置提供 package list 时，它也可以生成 workspace 子包：runnable app/tool 放在 `apps/*`，shared library 放在 `libs/*`。当前 `--preset workspace-root` 仍是只生成根目录的简单入口；复杂 package graph 通过 `--spec <file-or-json> --name <target>` 输入，完整 package graph 的 CLI flag / interactive UX 不在当前范围内。
 
 Node 与 CLI tool 生成路径固定使用 TypeScript ESM。CLI tool 会生成 `src/index.ts` executable entrypoint、`package.json` 的 `bin` metadata、tsdown build baseline、shebang 处理脚本，以及 `smoke:bin` invocation smoke script。构建输出路径是 `dist/index.js`，声明文件输出路径是 `dist/index.d.ts`。
 
-Library package 生成路径固定为 TypeScript ESM + tsdown。当前支持 `neutral` 与 `node` runtime 的结构化 package spec，toolkit 固定为 `none`。
+Workspace 内的 library package 生成路径固定为 TypeScript ESM + tsdown。当前支持 `neutral` 与 `node` runtime 的结构化 package spec，toolkit 固定为 `none`；standalone library 入口仍未开放。
 
-CLI 也支持 `--dry-run`：它复用正常配置收集与 PlanSpec 构建路径，打印将要生成的文件、post-generate commands，以及已结构化的 post-generate file actions（例如 Husky hook 文件），但不创建目标目录、不写文件、不执行命令。未结构化的外部命令内部副作用不会被猜测或展开预览。
+CLI 也支持 `--dry-run`：它复用正常配置收集与 PlanSpec 构建路径，打印将要生成的文件、post-generate commands，以及已结构化的 post-generate file actions（例如 Husky hook 文件），但不创建目标目录、不写文件、不执行命令。包含 workspace 子包时，预览会把 root files 与 workspace package files 分组。未结构化的外部命令内部副作用不会被猜测或展开预览。
 
 ## 当前不支持的范围
 
@@ -71,6 +71,13 @@ CLI 内部已经开始把“收集到的项目配置”和更长期的 create sp
 - `packages` 默认为 `[]`，也可以携带结构化 package list
 
 workspace package spec 会校验 package kind 与 runtime 的组合关系。当前生成链路会把 frontend / backend / CLI package 放到 `apps/*`，把 library package 放到 `libs/*`，并只为声明过的内部依赖写入 `workspace:*`。`worker-app` 仍只是保留的结构化边界，还没有生成模板。
+
+CLI 入口支持两类非交互输入：
+
+- 简单 preset 输入：`--preset <name> --name <target>`，适合 React / Vue / workspace root / Node / CLI tool 常用入口。
+- 结构化 spec 输入：`--spec <file-or-json> --name <target>`，适合 LLM / CI 调用复杂 workspace package graph。
+
+`--no-input` 会禁止 prompts，并要求输入完整；`--print-spec` 会输出 resolved create spec 后退出，便于把交互或 preset 结果保存为后续复用的结构化输入。
 
 ## 当前系统由什么组成
 

@@ -8,3 +8,7 @@
 {"file": "apps/cli/src/core/services/preview.ts", "reason": "Dry-run formatting"}
 {"file": "docs/user/system-architecture.md", "reason": "User-facing supported scope docs"}
 {"file": "docs/agent/constraint/docs.md", "reason": "Docs constraints for user/agent doc separation"}
+{"file": "apps/cli/src/schema/create-spec.ts", "reason": "CreateSpec decode/export/adaptation contract"}
+{"file": "apps/cli/src/index.ts", "reason": "CLI entry point for spec/no-input/export behavior"}
+{"file": "README.md", "reason": "User-facing CLI usage and spec examples"}
+{"file": "apps/cli/tests/schema/create-spec.test.ts", "reason": "CreateSpec round-trip tests"}

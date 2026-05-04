@@ -4,13 +4,17 @@
 
 当前活跃的业务重点是 CLI 应用本身，因此大部分日常开发都会围绕它展开。
 
-CLI 也可以通过 `workspace-root` preset 生成一个新的 pnpm workspace root：
+CLI 也可以通过 `workspace-root-minimal` preset 生成一个新的 pnpm workspace root：
 
 ```bash
-create-yume --preset workspace-root --name my-workspace --install
+create-yume --preset workspace-root-minimal --name my-workspace --install
 ```
 
-这个 preset 只生成根目录文件。生成链路也支持通过结构化 package list 生成 `apps/*` 与 `libs/*` 下的子包；其中 runnable app/tool 位于 `apps/*`，shared library 位于 `libs/*`。完整 CLI / interactive package graph 配置会在后续任务中收敛。
+这个 preset 只生成根目录文件，`workspace-root` 仍作为兼容 alias 保留。生成链路也支持通过结构化 package list 生成 `apps/*` 与 `libs/*` 下的子包；其中 runnable app/tool 位于 `apps/*`，shared library 位于 `libs/*`。复杂 package graph 使用 `--spec <file-or-json> --name <target>` 输入，完整 CLI flag / interactive package graph 配置仍不在当前范围内。
+
+```bash
+create-yume --spec create-yume.json --name my-workspace --dry-run --no-input
+```
 
 ## 依赖版本约定
 

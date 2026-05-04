@@ -3,7 +3,7 @@
   "name": "presets-cli-ux-documentation",
   "title": "PRD-6: Presets CLI UX and Documentation",
   "description": "Define presets, --spec UX, spec export, non-interactive behavior, dry-run formatting, and docs for the expanded product surface.",
-  "status": "planning",
+  "status": "completed",
   "dev_type": "docs",
   "scope": "presets-cli-ux-documentation",
   "package": "create-yume",
@@ -11,11 +11,11 @@
   "creator": "sayoriqwq",
   "assignee": "sayoriqwq",
   "createdAt": "2026-05-04",
-  "completedAt": null,
+  "completedAt": "2026-05-05",
   "branch": "codex/presets-cli-ux-documentation",
   "base_branch": "main",
-  "worktree_path": null,
-  "current_phase": 0,
+  "worktree_path": "/Users/sayori/Desktop/trellis-worktrees/codex/presets-cli-ux-documentation",
+  "current_phase": 6,
   "next_action": [
     {
       "phase": 1,

@@ -11,6 +11,7 @@ import { CliContext, CliContextLive } from '@/core/cli-context'
 import { HELP_TEXT } from '@/core/cli-help'
 import { OrchestratorLive } from '@/core/services/orchestrator'
 import { TracingLive } from '@/core/services/tracing'
+import { encodeCreateSpecJson, projectConfigToCreateSpec } from '@/schema/create-spec'
 import { FsLive } from '~/fs'
 import { TemplateEngineLive } from '~/template-engine'
 import { showConfigSummary, showWelcome } from './core/compose'
@@ -85,9 +86,13 @@ if (Either.isLeft(decodedCliArgs)) {
   process.exit(2)
 }
 
+const cliArgs = decodedCliArgs.right
+const hasCompletePresetInput = cliArgs.preset !== undefined && cliArgs.name !== undefined
+const canPrompt = process.stdin.isTTY === true && !cliArgs.noInput && cliArgs.spec === undefined
+
 const CliContextLayer = CliContextLive({
-  args: decodedCliArgs.right,
-  isInteractive: decodedCliArgs.right.preset === undefined || decodedCliArgs.right.name === undefined,
+  args: cliArgs,
+  isInteractive: canPrompt && !hasCompletePresetInput,
 })
 
 const main = Effect.gen(function* () {
@@ -98,6 +103,14 @@ const main = Effect.gen(function* () {
   }
 
   const projectConfig = yield* collectQuestions
+
+  if (cli.args.printSpec) {
+    const resolvedSpec = projectConfigToCreateSpec(projectConfig)
+    const resolvedSpecJson = yield* encodeCreateSpecJson(resolvedSpec)
+    yield* Effect.sync(() => console.log(resolvedSpecJson))
+    return
+  }
+
   yield* showConfigSummary(projectConfig)
 
   if (cli.args.dryRun) {

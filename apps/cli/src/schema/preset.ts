@@ -1,6 +1,13 @@
 import { ParseResult, Schema } from 'effect'
 
 export const PresetSchema = Schema.Literal(
+  'standalone-react-minimal',
+  'standalone-react-full',
+  'standalone-vue-minimal',
+  'standalone-vue-full',
+  'workspace-root-minimal',
+  'standalone-backend-minimal',
+  'standalone-cli-minimal',
   'react-minimal',
   'react-full',
   'vue-minimal',

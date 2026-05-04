@@ -5,6 +5,7 @@ import { PresetSchema } from './preset'
 export const CliArgsSchema = Schema.Struct({
   _: Schema.optionalWith(Schema.Array(Schema.String), { exact: true }),
   preset: Schema.optionalWith(PresetSchema, { exact: true }),
+  spec: Schema.optionalWith(Schema.String, { exact: true }),
   name: Schema.optionalWith(ProjectNameSchema, { exact: true }),
   install: Schema.optionalWith(Schema.Boolean, { exact: true }),
   git: Schema.optionalWith(Schema.Boolean, { exact: true }),
@@ -12,6 +13,8 @@ export const CliArgsSchema = Schema.Struct({
   version: Schema.optionalWith(Schema.Boolean, { exact: true }),
   rollback: Schema.optionalWith(Schema.Boolean, { exact: true }),
   dryRun: Schema.optionalWith(Schema.Boolean, { exact: true }),
+  noInput: Schema.optionalWith(Schema.Boolean, { exact: true }),
+  printSpec: Schema.optionalWith(Schema.Boolean, { exact: true }),
 }).annotations({
   identifier: 'CliArgs',
   title: 'CliArgs',

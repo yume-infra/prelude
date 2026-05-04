@@ -66,28 +66,92 @@ pnpm build
 node apps/cli/dist/index.js
 
 # 非交互 preset 模式
-node apps/cli/dist/index.js --preset react-full --name my-app --install
-node apps/cli/dist/index.js --preset workspace-root --name my-workspace
-node apps/cli/dist/index.js --preset node-minimal --name my-node-app
-node apps/cli/dist/index.js --preset cli-minimal --name my-tool
+node apps/cli/dist/index.js --preset standalone-react-full --name my-app --install
+node apps/cli/dist/index.js --preset workspace-root-minimal --name my-workspace
+node apps/cli/dist/index.js --preset standalone-backend-minimal --name my-node-app
+node apps/cli/dist/index.js --preset standalone-cli-minimal --name my-tool
+
+# 明确禁止 prompts，适合 CI 或模型调用
+node apps/cli/dist/index.js --preset standalone-cli-minimal --name my-tool --no-input
 
 # 预览生成计划，不创建目录、不写文件、不执行命令
-node apps/cli/dist/index.js --preset react-full --name my-app --dry-run
-node apps/cli/dist/index.js --preset workspace-root --name my-workspace --dry-run
-node apps/cli/dist/index.js --preset cli-minimal --name my-tool --dry-run
+node apps/cli/dist/index.js --preset standalone-react-full --name my-app --dry-run
+node apps/cli/dist/index.js --preset workspace-root-minimal --name my-workspace --dry-run
+node apps/cli/dist/index.js --preset standalone-cli-minimal --name my-tool --dry-run
+
+# 导出 preset / flags 解析后的 create spec
+node apps/cli/dist/index.js --preset standalone-react-full --name my-app --print-spec
 
 # 失败时保留现场，方便排错
 node apps/cli/dist/index.js --p vue-full --name my-app --no-rollback
 ```
 
+短名 preset 仍作为兼容 alias 保留：`react-minimal`、`react-full`、`vue-minimal`、`vue-full`、`workspace-root`、`node-minimal`、`cli-minimal`。新文档优先使用包含 shape / package kind 的 canonical preset 名称。
+
+### 结构化 `--spec` 输入
+
+复杂 workspace package graph 使用结构化 create spec，而不是把子包列表塞进一长串 CLI flags。`--spec` 可以接收 JSON 文件路径，也可以接收 inline JSON；`--name` 仍然负责目标目录名。
+
+```bash
+node apps/cli/dist/index.js --spec create-yume.json --name my-workspace --dry-run --no-input
+node apps/cli/dist/index.js --spec '{"shape":"workspace","packages":[]}' --name empty-workspace --print-spec --no-input
+```
+
+`create-yume.json` 示例：
+
+```json
+{
+  "shape": "workspace",
+  "packages": [
+    {
+      "id": "web",
+      "name": "@demo/web",
+      "kind": "frontend-app",
+      "frontend": {
+        "framework": "react",
+        "buildTool": "vite",
+        "cssPreprocessor": "less",
+        "cssFramework": "none"
+      }
+    },
+    {
+      "id": "tool",
+      "name": "@demo/tool",
+      "kind": "cli-tool",
+      "cli": {
+        "toolkit": "none"
+      },
+      "internalDependencies": [
+        {
+          "target": {
+            "by": "id",
+            "id": "shared"
+          }
+        }
+      ]
+    },
+    {
+      "id": "shared",
+      "name": "@demo/shared",
+      "kind": "library-package",
+      "library": {
+        "toolkit": "none"
+      }
+    }
+  ]
+}
+```
+
+当前 `--spec` 走同一条生成链路：先 schema decode，再适配到内部 `ProjectConfig`，最后进入 Plan / PlanSpec。`worker-app` 仍只是保留的 schema 边界，还没有可生成模板。
+
 ### Dry run 预览
 
 `--dry-run` 会复用正常的配置收集与计划构建路径，并打印 human-readable 预览：计划生成的文件、组合型任务的 owner/unit trace、将要执行的 post-generate commands，以及已结构化的 post-generate file actions（例如 Husky hook 文件）。
 
-Dry run 不会创建目标目录、不会写入生成文件、不会执行 `pnpm install`、`git init`、Husky 初始化或任何其他后置命令。它只展示已经进入 PlanSpec 的文件任务和 file actions；未结构化的外部命令内部副作用不会被猜测或展开预览。
+Dry run 不会创建目标目录、不会写入生成文件、不会执行 `pnpm install`、`git init`、Husky 初始化或任何其他后置命令。它只展示已经进入 PlanSpec 的文件任务和 file actions；未结构化的外部命令内部副作用不会被猜测或展开预览。包含 workspace 子包时，预览会把 root files 与 workspace package files 分组，方便审计根目录和 `apps/*` / `libs/*` 产物。
 
 ```bash
-node apps/cli/dist/index.js --preset react-full --name my-app --dry-run --install --git
+node apps/cli/dist/index.js --preset standalone-react-full --name my-app --dry-run --install --git
 ```
 
 ### 可选：建立全局链接

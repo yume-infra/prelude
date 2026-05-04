@@ -54,4 +54,24 @@ describe('cliArgsSchema', () => {
       expect(result.right.preset).toBe('workspace-root')
     }
   })
+
+  it('decodes structured spec and no-input flags', async () => {
+    const result = await Effect.runPromise(
+      Effect.either(
+        decodeCliArgs({
+          spec: 'create-yume.json',
+          name: 'demo-workspace',
+          noInput: true,
+          printSpec: true,
+        }),
+      ),
+    )
+
+    expect(Either.isRight(result)).toBe(true)
+    if (Either.isRight(result)) {
+      expect(result.right.spec).toBe('create-yume.json')
+      expect(result.right.noInput).toBe(true)
+      expect(result.right.printSpec).toBe(true)
+    }
+  })
 })

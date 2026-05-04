@@ -1,4 +1,5 @@
-import type { ProjectConfig } from './project-config'
+import type { CodeQuality, Linting, ProjectConfig } from './project-config'
+import type { ProjectName } from '@/brand/project-name'
 import { ParseResult, Schema } from 'effect'
 import { makePackageName } from '@/brand/package-name'
 import {
@@ -76,8 +77,94 @@ export type WorkspaceCreateSpec = Schema.Schema.Type<typeof WorkspaceCreateSpecS
 export type CreateSpec = Schema.Schema.Type<typeof CreateSpecSchema>
 
 export const decodeCreateSpec = Schema.decodeUnknown(CreateSpecSchema, { errors: 'all' })
+export const encodeCreateSpecJson = Schema.encode(Schema.parseJson(CreateSpecSchema))
 
 export const formatCreateSpecError = ParseResult.TreeFormatter.formatErrorSync
+
+export interface CreateSpecProjectConfigOptions {
+  readonly name: ProjectName
+  readonly git?: boolean
+  readonly linting?: Linting
+  readonly codeQuality?: readonly CodeQuality[]
+}
+
+function baseSpecProjectConfig(options: CreateSpecProjectConfigOptions) {
+  return {
+    name: options.name,
+    git: options.git ?? false,
+    linting: options.linting ?? 'none',
+    codeQuality: [...(options.codeQuality ?? [])],
+  }
+}
+
+export function createSpecToProjectConfig(
+  spec: CreateSpec,
+  options: CreateSpecProjectConfigOptions,
+): ProjectConfig {
+  const base = baseSpecProjectConfig(options)
+
+  if (spec.shape === 'workspace') {
+    const workerPackage = spec.packages.find(packageSpec => packageSpec.kind === 'worker-app')
+    if (workerPackage) {
+      throw new Error(`Create spec worker package "${workerPackage.id}" generation is not available yet.`)
+    }
+
+    return {
+      ...base,
+      type: 'workspace-root',
+      language: 'typescript',
+      packageManager: 'pnpm',
+      packages: spec.packages,
+    }
+  }
+
+  switch (spec.package.kind) {
+    case 'frontend-app':
+      if (spec.package.frontend.framework === 'react') {
+        return {
+          ...base,
+          type: 'react',
+          language: 'typescript',
+          buildTool: spec.package.frontend.buildTool,
+          cssPreprocessor: spec.package.frontend.cssPreprocessor,
+          cssFramework: spec.package.frontend.cssFramework,
+          router: 'none',
+          stateManagement: 'none',
+        }
+      }
+
+      return {
+        ...base,
+        type: 'vue',
+        language: 'typescript',
+        buildTool: spec.package.frontend.buildTool,
+        cssPreprocessor: spec.package.frontend.cssPreprocessor,
+        cssFramework: spec.package.frontend.cssFramework,
+        router: false,
+        stateManagement: false,
+      }
+    case 'backend-app':
+      return {
+        ...base,
+        type: 'node',
+        language: 'typescript',
+      }
+    case 'cli-tool':
+      return {
+        ...base,
+        type: 'cli',
+        language: 'typescript',
+      }
+    case 'library-package':
+      throw new Error('Standalone library package generation is not available yet; use shape "workspace" with a library package under libs/*.')
+    case 'worker-app':
+      throw new Error('Create spec worker app generation is not available yet.')
+    default: {
+      const exhaustive: never = spec.package
+      return exhaustive
+    }
+  }
+}
 
 export function projectConfigToCreateSpec(config: ProjectConfig): CreateSpec {
   const base = {

@@ -2,6 +2,7 @@ import type { CodeQuality } from '@/schema/project-config'
 import { Effect, ParseResult } from 'effect'
 import { decodeProjectName, formatProjectNameError } from '@/brand/project-name'
 import { makeProjectTargetDir } from '@/brand/target-dir'
+import { loadProjectConfigFromCreateSpecInput } from '@/core/create-spec-input'
 import { SchemaContractError } from '@/core/errors'
 import { PnpmPackageManager } from '@/core/package-manager'
 import {
@@ -193,6 +194,7 @@ const createPreset = Effect.gen(function* () {
   const workspaceBootstrap = getWorkspaceBootstrapPresetDefaults(git)
 
   switch (preset) {
+    case 'standalone-react-minimal':
     case 'react-minimal': {
       const frontend = getSharedFrontendPresetDefaults('react-minimal')
       return {
@@ -207,6 +209,7 @@ const createPreset = Effect.gen(function* () {
         stateManagement: 'none',
       }
     }
+    case 'standalone-react-full':
     case 'react-full': {
       const frontend = getSharedFrontendPresetDefaults('react-full')
       return {
@@ -220,6 +223,7 @@ const createPreset = Effect.gen(function* () {
         stateManagement: 'jotai',
       }
     }
+    case 'standalone-vue-minimal':
     case 'vue-minimal': {
       const frontend = getSharedFrontendPresetDefaults('vue-minimal')
       return {
@@ -234,6 +238,7 @@ const createPreset = Effect.gen(function* () {
         stateManagement: false,
       }
     }
+    case 'standalone-vue-full':
     case 'vue-full': {
       const frontend = getSharedFrontendPresetDefaults('vue-full')
       return {
@@ -247,6 +252,7 @@ const createPreset = Effect.gen(function* () {
         stateManagement: true,
       }
     }
+    case 'workspace-root-minimal':
     case 'workspace-root':
       return {
         name,
@@ -256,6 +262,7 @@ const createPreset = Effect.gen(function* () {
         ...workspaceBootstrap,
         packageManager: PnpmPackageManager.name,
       }
+    case 'standalone-backend-minimal':
     case 'node-minimal': {
       return {
         name,
@@ -266,6 +273,7 @@ const createPreset = Effect.gen(function* () {
         codeQuality: [],
       }
     }
+    case 'standalone-cli-minimal':
     case 'cli-minimal': {
       return {
         name,
@@ -284,7 +292,30 @@ const createPreset = Effect.gen(function* () {
 export const collectQuestions = Effect.gen(function* () {
   const cli = yield* CliContext
 
+  if (cli.args.spec !== undefined) {
+    if (cli.args.name === undefined) {
+      return yield* new SchemaContractError({
+        schema: 'CliArgs',
+        message: 'CliArgs: --spec requires --name so the target directory is explicit.',
+        issueCount: 1,
+      })
+    }
+
+    return yield* loadProjectConfigFromCreateSpecInput(cli.args.spec, {
+      name: cli.args.name,
+      git: cli.args.git ?? false,
+    })
+  }
+
   if (!cli.isInteractive) {
+    if (cli.args.preset === undefined || cli.args.name === undefined) {
+      return yield* new SchemaContractError({
+        schema: 'CliArgs',
+        message: 'CliArgs: non-interactive mode requires --preset and --name, or --spec and --name.',
+        issueCount: 1,
+      })
+    }
+
     return yield* createPreset.pipe(Effect.flatMap(decodeCollectedProjectConfig))
   }
 

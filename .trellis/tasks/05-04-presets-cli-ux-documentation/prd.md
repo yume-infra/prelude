@@ -14,9 +14,11 @@ Make the expanded product surface usable through presets, simple flags, structur
 * Define preset taxonomy for shape + package kind + framework/toolkit + engineering infrastructure capabilities.
 * Preserve necessary flags for simple standalone/common usage.
 * Add structured `--spec` usage docs and CLI help.
+* Support `--spec <file-or-json>` as the canonical non-interactive input for complex workspace package graphs.
+* Require `--name` with `--spec` so the target directory stays explicit while the create spec stays focused on package graph shape.
 * Ensure non-interactive execution does not hang on prompts when required inputs are missing.
-* Consider a `--no-input`-style behavior for model/CI invocation.
-* Add or defer resolved spec export explicitly:
+* Add `--no-input` as an explicit model/CI mode that fails clearly unless `--preset --name` or `--spec --name` is complete.
+* Add resolved spec export:
   * interactive flow to resolved create spec,
   * preset/flags to resolved create spec,
   * spec input round-trip examples.
@@ -38,6 +40,30 @@ Make the expanded product surface usable through presets, simple flags, structur
 * `pnpm --filter create-yume test -- dry-run`
 * `pnpm --filter create-yume test -- phase-documentation-alignment`
 * `pnpm --filter create-yume typecheck`
+
+## Definition of Done
+
+* CLI args, help text, create spec decoding, resolved spec export, dry-run preview, tests, and docs are aligned.
+* Non-interactive execution has deterministic failure behavior for incomplete input.
+* User docs describe shipped Node / CLI / workspace package capabilities without implying unsupported CLI flag graph UX.
+* Agent constraints describe `--spec`, export, and dry-run boundaries.
+
+## Technical Approach
+
+* Keep `ProjectConfig` as the compatibility input consumed by the existing planner and template workflow.
+* Decode `CreateSpec` at the CLI boundary, then adapt it into `ProjectConfig`; do not introduce a second generation workflow.
+* Treat `--spec` values starting with `{` as inline JSON and all other values as file paths.
+* Add `--print-spec` to emit the resolved create spec to stdout and exit before generation.
+* Preserve simple preset flags for standalone/common flows; avoid adding nested workspace package flags.
+* Dry-run remains human-readable and PlanSpec-backed, but groups root files and nested package files separately for auditability.
+
+## Decision (ADR-lite)
+
+**Context**: Complex workspace package graphs are too nested for CLI flags, but the planner still consumes `ProjectConfig`.
+
+**Decision**: Ship `--spec <file-or-json> --name <target>` for structured non-interactive input, `--no-input` for explicit no-prompt execution, and `--print-spec` for resolved create spec export. The decoded spec is adapted into `ProjectConfig` before entering the existing Plan / PlanSpec workflow.
+
+**Consequences**: The create spec remains the stable model-facing contract while target directory naming stays explicit. Full interactive package graph editing remains out of scope; future richer spec formats can extend the schema without changing the execution core.
 
 ## Likely Files
 

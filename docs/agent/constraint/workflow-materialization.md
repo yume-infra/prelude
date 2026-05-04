@@ -15,6 +15,8 @@
 
 Handlebars fragment render、JSON / text mutation、static asset copy、post-generate command 和 post-generate file action 都只是这条 workflow 下的 materialization strategy，不是多套 workflow。
 
+`--spec <file-or-json>` 也必须进入这条 workflow：先 decode create spec，再适配为 `ProjectConfig`，然后继续走 owner contribution、Plan / PlanSpec、apply 与 post-generate actions。不要让 spec 输入直接写文件、直接注册模板或绕开 package manifest contribution。
+
 ## 读者与行动
 
 本文档面向修改 CLI workflow、模板注册、组合型文件生成或 capability owner 的执行者。
@@ -163,13 +165,15 @@ Template registry entry 也支持 `scope`：root-only templates（lint config、
 
 在引入 token、认证、远程模板、私有 registry、插件来源、authenticated external services 或 secret-bearing command env 前，必须先定义 command output 的 redaction 或降级策略。失败诊断应继续保留 command、args、cwd、exit code（如可用）、owner、unit 和 phase，但不得持久化未处理的敏感 stdout / stderr。
 
-远程模板、插件化模板来源、worker app 生成、通过 CLI / interactive 完整配置任意 workspace package graph，以及已有项目增量更新仍不在当前产品范围内。结构化 workspace package 生成已经进入当前生成链路，必须继续复用 Plan / PlanSpec、target-aware template registry、package manifest contribution 和 root/package scope filtering；不得引入第二条 workflow。若未来要进入远程、插件、worker 或增量更新能力，必须先更新用户侧系统架构、执行约束、验证矩阵，并重新评估 preserved core、路径边界和 command output 安全边界。
+远程模板、插件化模板来源、worker app 生成、通过 CLI flag / interactive 完整配置任意 workspace package graph，以及已有项目增量更新仍不在当前产品范围内。结构化 workspace package 生成已经进入当前生成链路，当前外部入口是 `--spec <file-or-json> --name <target>`；必须继续复用 Plan / PlanSpec、target-aware template registry、package manifest contribution 和 root/package scope filtering；不得引入第二条 workflow。若未来要进入远程、插件、worker 或增量更新能力，必须先更新用户侧系统架构、执行约束、验证矩阵，并重新评估 preserved core、路径边界和 command output 安全边界。
 
 ## Plan Preview 与 Dry Run
 
 plan preview 和 dry run 是用户可见能力，不是新的 workflow。
 
 当前实现只提供 `--dry-run`，不提供单独 `--preview` flag，也不提供 `--json` 或其他稳定机器可读 contract。输出是 human-readable preview，数据源仍必须是 `PlanSpec`。如果未来要增加 JSON 输出，应作为新的 contract 重新规划和测试，而不是把当前文本输出当作隐式 API。
+
+`--print-spec` 是 resolved create spec export，不是 dry-run JSON。它可以用于保存交互或 preset / flags 的结构化输入，但不能替代 PlanSpec preview，也不能承诺展示文件任务、owner trace 或 post-generate actions。
 
 如果引入或修改这些能力，应满足以下约束：
 

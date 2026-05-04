@@ -106,4 +106,30 @@ describe('formatDryRunPreview', () => {
       ],
     })).toContain('- after-post-generate-commands: write-file .husky/commit-msg (executable: false)')
   })
+
+  it('separates root files from workspace package files when nested package paths exist', () => {
+    const preview = formatDryRunPreview({
+      tasks: [
+        {
+          kind: 'render',
+          path: 'pnpm-workspace.yaml',
+          src: makeTemplatePath('/virtual/templates/pnpm-workspace.yaml.hbs'),
+        },
+        {
+          kind: 'render',
+          path: 'apps/web/src/main.tsx',
+          src: makeTemplatePath('/virtual/templates/main.tsx.hbs'),
+        },
+        {
+          kind: 'json',
+          path: 'libs/shared/package.json',
+          reducers: [],
+        },
+      ],
+    })
+
+    expect(preview).toContain('Root files:\n- render pnpm-workspace.yaml')
+    expect(preview).toContain('Workspace package files:\n- render apps/web/src/main.tsx')
+    expect(preview).toContain('- json libs/shared/package.json')
+  })
 })

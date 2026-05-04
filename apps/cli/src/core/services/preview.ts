@@ -43,6 +43,43 @@ function formatTask(task: PlanTaskSpec) {
   return lines
 }
 
+function isWorkspacePackageFile(task: PlanTaskSpec) {
+  return task.path.startsWith('apps/') || task.path.startsWith('libs/')
+}
+
+function pushTaskGroup(lines: string[], label: string, tasks: readonly PlanTaskSpec[]) {
+  lines.push(`${label}:`)
+
+  if (tasks.length === 0) {
+    lines.push('- (none)')
+    return
+  }
+
+  for (const task of tasks) {
+    lines.push(...formatTask(task))
+  }
+}
+
+function formatPlannedFiles(tasks: readonly PlanTaskSpec[]) {
+  if (tasks.length === 0) {
+    return ['- (none)']
+  }
+
+  if (!tasks.some(isWorkspacePackageFile)) {
+    return tasks.flatMap(formatTask)
+  }
+
+  const rootTasks = tasks.filter(task => !isWorkspacePackageFile(task))
+  const packageTasks = tasks.filter(isWorkspacePackageFile)
+  const lines: string[] = []
+
+  pushTaskGroup(lines, 'Root files', rootTasks)
+  lines.push('')
+  pushTaskGroup(lines, 'Workspace package files', packageTasks)
+
+  return lines
+}
+
 function formatCommand(command: PostGenerateCommandSpec) {
   return `- ${command.phase}: ${command.command}${formatArgs(command.args)}${formatOwnership(command.ownership)}`
 }
@@ -61,14 +98,7 @@ export function formatDryRunPreview(planSpec: PlanSpec) {
     'Planned files:',
   ]
 
-  if (planSpec.tasks.length === 0) {
-    lines.push('- (none)')
-  }
-  else {
-    for (const task of planSpec.tasks) {
-      lines.push(...formatTask(task))
-    }
-  }
+  lines.push(...formatPlannedFiles(planSpec.tasks))
 
   lines.push('', 'Post-generate commands:')
 
