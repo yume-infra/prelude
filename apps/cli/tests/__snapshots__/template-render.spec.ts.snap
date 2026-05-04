@@ -484,3 +484,38 @@ h2 { font-size: 18px; margin-bottom: 8px; }
 </style>
 "
 `;
+
+exports[`template render snapshots > renders workspace root pnpm workspace 1`] = `
+"packages:
+  - apps/*
+  - libs/*
+"
+`;
+
+exports[`template render snapshots > renders workspace root turbo config 1`] = `
+"{
+  "$schema": "https://turborepo.com/schema.json",
+  "tasks": {
+    "build": {
+      "dependsOn": ["^build"],
+      "outputs": ["dist/**"]
+    },
+    "test": {
+      "dependsOn": ["^build"],
+      "outputs": ["coverage/**"]
+    },
+    "lint": {},
+    "typecheck": {
+      "dependsOn": ["^typecheck"]
+    },
+    "dev": {
+      "cache": false,
+      "persistent": true
+    },
+    "clean": {
+      "cache": false
+    }
+  }
+}
+"
+`;

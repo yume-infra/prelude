@@ -6,10 +6,12 @@
 
 - React
 - Vue
+- pnpm workspace root
 
 明确不在范围内的内容：
 
 - Node 项目脚手架流程
+- workspace 子包生成
 - 远程模板
 - 插件系统 / 可插拔模板来源
 - 对已有项目做增量式更新
@@ -32,7 +34,7 @@ runtime 推断与校验规则如下：
 
 当前 React / Vue 交互、preset、planner 与模板链路仍消费兼容层 `ProjectConfig`，并可适配为 `shape: standalone`、`kind: frontend-app`、`runtime: browser` 的 create spec。不要为了新 taxonomy 修改现有 React / Vue 生成产物。
 
-`workspace` 与非前端 package kind 目前只是结构化 create spec 的未来输入边界。它们不得被解释为已经支持 workspace root 生成、Node 项目脚手架、workspace 子包调度或 `workspace:*` 依赖写入。
+`workspace-root` 是当前唯一支持的 workspace materialization 能力：它只生成 root-owned `package.json`、`pnpm-workspace.yaml`、`turbo.json` 与 root-level bootstrap 行为。它不得被解释为已经支持 Node 项目脚手架、workspace 子包调度或 `workspace:*` 依赖写入。
 
 workspace package spec 可以声明内部依赖 link，目标可按 package id 或 package name 描述。当前只保留 link schema，用于后续 `workspace:*` emission 设计；本阶段不得实现依赖写入。
 

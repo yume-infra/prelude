@@ -8,7 +8,7 @@ import * as path from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { Effect } from 'effect'
 import { makeTemplatePath } from '@/brand/template-path'
-import { isFrontendProject } from '@/utils/type-guard'
+import { isFrontendProject, isWorkspaceRootProject } from '@/utils/type-guard'
 import { PlanService } from '~/planner'
 import { TemplateEngineService } from '~/template-engine'
 import { buildPackageJson } from '../modifier/package-json'
@@ -40,11 +40,12 @@ export class OrchestratorService extends Effect.Service<OrchestratorService>()(
       const partialRoot = makeTemplatePath(path.join(templateRoot, 'partials'))
 
       const buildProgram = (config: ProjectConfig) => (dsl: ComposeDSL) => {
-        if (!isFrontendProject(config))
+        if (!isFrontendProject(config) && !isWorkspaceRootProject(config))
           return
 
-        // root.svg + package.json
-        buildRootSvg(dsl, templateRoot)
+        if (isFrontendProject(config)) {
+          buildRootSvg(dsl, templateRoot)
+        }
         buildPackageJson(dsl, config)
 
         // 注册模板（纯函数）

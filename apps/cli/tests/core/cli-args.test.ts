@@ -55,12 +55,29 @@ describe('parseRawCliArgs', () => {
       dryRun: false,
     })
   })
+
+  it('normalizes the workspace root preset flow', () => {
+    expect(parseRawCliArgs([
+      '--preset',
+      'workspace-root',
+      '--name',
+      'demo-workspace',
+      '--dry-run',
+    ])).toEqual({
+      _: [],
+      preset: 'workspace-root',
+      name: 'demo-workspace',
+      rollback: true,
+      dryRun: true,
+    })
+  })
 })
 
 describe('hELP_TEXT', () => {
   it('documents the dry-run flag and safety promise', () => {
     expect(HELP_TEXT).toContain('--dry-run')
     expect(HELP_TEXT).toContain('without writing files or running commands')
+    expect(HELP_TEXT).toContain('workspace-root')
   })
 })
 

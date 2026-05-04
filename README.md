@@ -1,13 +1,14 @@
 # Create Yume
 
-> 一个专注于 React 与 Vue 的现代前端脚手架，用 Effect 驱动交互、模板编排与生成流程。
+> 一个专注于 React / Vue 项目与 pnpm workspace root 的现代脚手架，用 Effect 驱动交互、模板编排与生成流程。
 
 Create Yume 用来把“新建项目”这件事做得更稳一点。
 
-它当前不追求覆盖所有框架、所有模板来源、所有工程玩法，而是把范围收紧在两件事上：
+它当前不追求覆盖所有框架、所有模板来源、所有工程玩法，而是把范围收紧在三件事上：
 
 - 生成 React 项目
 - 生成 Vue 项目
+- 生成 pnpm workspace root
 
 在这个范围内，它更关心三个问题：
 
@@ -31,10 +32,12 @@ Create Yume 用来把“新建项目”这件事做得更稳一点。
 
 - React 项目脚手架
 - Vue 项目脚手架
+- pnpm workspace root 脚手架
 
 ## 当前不支持的范围
 
 - Node 项目脚手架
+- workspace 子包生成
 - 远程模板
 - 插件化模板来源
 - 对已有项目做增量式改造
@@ -58,6 +61,9 @@ node apps/cli/dist/index.js
 
 # 非交互 preset 模式
 node apps/cli/dist/index.js --preset react-full --name my-app --install
+
+# 生成 pnpm workspace root，不生成子包
+node apps/cli/dist/index.js --preset workspace-root --name my-workspace --install
 
 # 预览生成计划，不创建目录、不写文件、不执行命令
 node apps/cli/dist/index.js --preset react-full --name my-app --dry-run

@@ -15,6 +15,7 @@ import {
   vueCustomProjectConfig,
   vueMinimalPresetProjectConfig,
   vuePresetProjectConfig,
+  workspaceRootMinimalProjectConfig,
 } from './support/fixtures'
 
 const testsDir = path.dirname(fileURLToPath(import.meta.url))
@@ -60,6 +61,16 @@ function renderTemplate(templateRelativePath: string, config: ProjectConfig) {
 
 describe('template render snapshots', () => {
   it.each([
+    [
+      'workspace root pnpm workspace',
+      'fragments/common/workspace/pnpm-workspace.yaml.hbs',
+      workspaceRootMinimalProjectConfig,
+    ],
+    [
+      'workspace root turbo config',
+      'fragments/common/workspace/turbo.json.hbs',
+      workspaceRootMinimalProjectConfig,
+    ],
     [
       'react main without router',
       'fragments/react/main.tsx.hbs',

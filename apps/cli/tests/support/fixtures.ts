@@ -1,4 +1,9 @@
-import type { ProjectConfig, ReactProjectConfig, VueProjectConfig } from '../../src/schema/project-config'
+import type {
+  ProjectConfig,
+  ReactProjectConfig,
+  VueProjectConfig,
+  WorkspaceRootConfig,
+} from '../../src/schema/project-config'
 import { makeProjectName } from '../../src/brand/project-name'
 
 export const reactPresetProjectConfig = {
@@ -85,6 +90,26 @@ export const vueCustomProjectConfig = {
   cssFramework: 'none',
 } satisfies VueProjectConfig
 
+export const workspaceRootProjectConfig = {
+  name: makeProjectName('workspace-root-fixture'),
+  type: 'workspace-root',
+  language: 'typescript',
+  git: true,
+  linting: 'antfu-eslint',
+  codeQuality: ['lint-staged', 'commitlint'],
+  packageManager: 'pnpm',
+} satisfies WorkspaceRootConfig
+
+export const workspaceRootMinimalProjectConfig = {
+  name: makeProjectName('workspace-root-minimal-fixture'),
+  type: 'workspace-root',
+  language: 'typescript',
+  git: false,
+  linting: 'none',
+  codeQuality: [],
+  packageManager: 'pnpm',
+} satisfies WorkspaceRootConfig
+
 export const reactProjectConfig = reactPresetProjectConfig
 export const vueProjectConfig = vuePresetProjectConfig
 
@@ -95,4 +120,6 @@ export const projectConfigs: readonly ProjectConfig[] = [
   vueMinimalPresetProjectConfig,
   reactCustomProjectConfig,
   vueCustomProjectConfig,
+  workspaceRootProjectConfig,
+  workspaceRootMinimalProjectConfig,
 ]

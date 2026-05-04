@@ -18,10 +18,13 @@ import {
   ContributionUnitKind,
   WorkspaceBootstrapOwner,
 } from '@/core/ownership/model'
-import { getWorkspaceBootstrapPackageContributions } from '@/core/workspace-bootstrap'
-import { isReactProject, isVueProject } from '@/utils/type-guard'
+import {
+  getWorkspaceBootstrapPackageContributions,
+  getWorkspaceRootPackageContributions,
+} from '@/core/workspace-bootstrap'
+import { isReactProject, isVueProject, isWorkspaceRootProject } from '@/utils/type-guard'
 
-function basePackageJson(config: ProjectConfig) {
+function baseFrontendPackageJson(config: ProjectConfig) {
   return {
     name: makePackageName(config.name),
     type: 'module',
@@ -37,7 +40,28 @@ function basePackageJson(config: ProjectConfig) {
   }
 }
 
+function baseWorkspaceRootPackageJson(config: ProjectConfig) {
+  return {
+    name: makePackageName(config.name),
+    type: 'module',
+    version: '0.0.0',
+    license: 'MIT',
+    scripts: {},
+    devDependencies: {},
+  }
+}
+
+function basePackageJson(config: ProjectConfig) {
+  return isWorkspaceRootProject(config)
+    ? baseWorkspaceRootPackageJson(config)
+    : baseFrontendPackageJson(config)
+}
+
 export function getPackageManifestContributions(config: ProjectConfig): PackageManifestContribution[] {
+  if (isWorkspaceRootProject(config)) {
+    return getWorkspaceRootPackageContributions(config)
+  }
+
   return [
     ...getScaffoldFamilyPackageContributions(config),
     ...getWorkspaceBootstrapPackageContributions(config),

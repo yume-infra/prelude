@@ -10,7 +10,7 @@
 
 1. 按真实生成链路理解代码，不按目录孤立理解。
 2. 优先删除重复真相和隐式语义，而不是追求表面少几行代码。
-3. 保留当前 React / Vue 本地脚手架范围，不引入 Node scaffold、远程模板、插件系统、私有 registry、auth 或已有项目增量更新。
+3. 保留当前 React / Vue 与 pnpm workspace root 本地脚手架范围，不引入 Node scaffold、workspace 子包生成、远程模板、插件系统、私有 registry、auth 或已有项目增量更新。
 4. 没有新证据时，不重议已接受的稳定执行核心。
 5. 修改后必须用与变更类型匹配的验证命令证明。
 
@@ -126,7 +126,7 @@ Husky 初始化仍是 post-generate command。hook 文件仍是 post-generate fi
 开始修改前，确认：
 
 - [ ] 我修改的是哪一条链路。
-- [ ] 有没有触碰 React / Vue 之外的范围。
+- [ ] 有没有触碰 React / Vue / workspace root 之外的范围。
 - [ ] 有没有改变 dry run、preview、command diagnostics 或 Husky 顺序。
 - [ ] 是否需要同步用户文档和执行文档。
 - [ ] 验证命令是否能证明这次改动，而不是只证明项目能编译。

@@ -3,6 +3,7 @@ import { Effect, ParseResult } from 'effect'
 import { decodeProjectName, formatProjectNameError } from '@/brand/project-name'
 import { makeProjectTargetDir } from '@/brand/target-dir'
 import { SchemaContractError } from '@/core/errors'
+import { PnpmPackageManager } from '@/core/package-manager'
 import {
   getSharedFrontendPresetDefaults,
 } from '@/core/template-registry/frontend-app'
@@ -143,6 +144,14 @@ export const createProject = Effect.gen(function* () {
     }
   }
 
+  if (projectType === 'workspace-root') {
+    return {
+      ...base,
+      type: 'workspace-root',
+      packageManager: PnpmPackageManager.name,
+    }
+  }
+
   return assertNever(projectType)
 })
 
@@ -208,6 +217,15 @@ const createPreset = Effect.gen(function* () {
         stateManagement: true,
       }
     }
+    case 'workspace-root':
+      return {
+        name,
+        type: 'workspace-root',
+        language: 'typescript',
+        git,
+        ...workspaceBootstrap,
+        packageManager: PnpmPackageManager.name,
+      }
     default:
       return assertNever(preset)
   }
