@@ -17,6 +17,8 @@
 
 M010 是链路级 Effect-native architecture review。结论是：当前 React/Vue 本地 scaffold pipeline 没有证据支持的 Immediate fix。
 
+PRD-3 之后，当前产品范围扩展为 React / Vue 项目脚手架与 pnpm workspace root 脚手架。workspace 子包生成、Node scaffold、远程模板、插件系统、私有 registry、auth 和已有项目增量更新仍然不是当前范围。
+
 M011 已完成 M010 中最高优先级的后续项：typed Plan-to-PlanSpec projection boundary。
 
 因此，当前维护基线是：
@@ -78,7 +80,7 @@ Preview 不能声称完整展示 command-internal file effects。
 
 ### R021 — full local command diagnostics
 
-当前本地 React/Vue scope 下，CommandError 应保留完整可用 command context 与 stdout / stderr / output。
+当前本地 React/Vue/workspace-root scope 下，CommandError 应保留完整可用 command context 与 stdout / stderr / output。
 
 不要把 redaction 当作普通 cleanup。只有进入 private registry、auth、remote template、plugin、secret-bearing command env 或外部服务时，才重新设计。
 
@@ -164,7 +166,7 @@ test -s .gsd/REQUIREMENTS.md && rg "R032|validated|PlanSpecProjectionError|dry-r
 - PlanSpec inspection 语义。
 - post-generate command / file action 行为。
 - command diagnostics 或 redaction 策略。
-- 产品范围：React/Vue、Node、remote template、plugin、incremental update。
+- 产品范围：React/Vue、workspace root、Node、workspace 子包、remote template、plugin、incremental update。
 - verification matrix 或执行约束。
 
 `.gsd` 记录执行证据；`docs/` 记录当前稳定事实。不要只把长期架构信息留在 `.gsd`。
@@ -177,7 +179,7 @@ test -s .gsd/REQUIREMENTS.md && rg "R032|validated|PlanSpecProjectionError|dry-r
 2. 是否会影响 R016/R017/R018/R020/R021/R022？
 3. 是否会绕过 M011 typed PlanSpec projection boundary？
 4. 是否会把 owner policy 放回中心 composer？
-5. 是否改变了本地 React/Vue 产品范围？
+5. 是否改变了本地 React/Vue/workspace-root 产品范围？
 6. 最低验证命令是什么？
 7. 是否需要同步用户文档？
 

@@ -43,6 +43,12 @@ function formatConfigSummary(config: ProjectConfig) {
       `  CSS Framework: ${config.cssFramework}`,
     ]
   }
+  else if (config.type === 'workspace-root') {
+    return [
+      ...baseInfo,
+      `  Package Manager: ${config.packageManager}`,
+    ]
+  }
 
   return baseInfo
 }

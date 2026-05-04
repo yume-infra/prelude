@@ -31,7 +31,7 @@ type SharedFrontendPolicy = Pick<
   SharedFrontendAppConfig,
   'buildTool' | 'cssPreprocessor' | 'cssFramework'
 >
-type FrontendPreset = Preset
+type FrontendPreset = Extract<Preset, 'react-minimal' | 'react-full' | 'vue-minimal' | 'vue-full'>
 
 const frontendFragmentRender = contributionTrace(
   FrontendScaffoldOwner,

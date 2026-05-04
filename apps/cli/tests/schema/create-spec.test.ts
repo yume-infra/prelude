@@ -173,6 +173,9 @@ describe('create spec schema contract', () => {
     ['Vue', vueProjectConfig],
   ])('adapts existing %s project config into a standalone frontend create spec', async (_label, fixture) => {
     const decodedProjectConfig = await Effect.runPromise(decodeProjectConfig(fixture))
+    if (decodedProjectConfig.type === 'workspace-root') {
+      throw new Error('workspace-root does not adapt to a standalone frontend create spec')
+    }
     const createSpec = projectConfigToCreateSpec(decodedProjectConfig)
 
     expect(decodedProjectConfig).toEqual(fixture)

@@ -1,7 +1,7 @@
 import { Effect, Exit } from 'effect'
 import { describe, expect, it } from 'vitest'
-import { decodeProjectConfig, decodeSharedFrontendAppConfig } from '../src/schema/project-config'
-import { reactProjectConfig, vueProjectConfig } from './support/fixtures'
+import { decodeProjectConfig, decodeSharedFrontendAppConfig, decodeWorkspaceRootConfig } from '../src/schema/project-config'
+import { reactProjectConfig, vueProjectConfig, workspaceRootProjectConfig } from './support/fixtures'
 
 describe('project config schema contract', () => {
   it('decodes a react fixture', async () => {
@@ -14,6 +14,20 @@ describe('project config schema contract', () => {
     const decoded = await Effect.runPromise(decodeProjectConfig(vueProjectConfig))
 
     expect(decoded).toEqual(vueProjectConfig)
+  })
+
+  it('decodes a workspace root fixture without child packages', async () => {
+    const decoded = await Effect.runPromise(decodeWorkspaceRootConfig({
+      name: workspaceRootProjectConfig.name,
+      type: 'workspace-root',
+      language: 'typescript',
+      git: true,
+      linting: 'antfu-eslint',
+      codeQuality: ['lint-staged', 'commitlint'],
+    }))
+
+    expect(decoded).toEqual(workspaceRootProjectConfig)
+    await expect(Effect.runPromise(decodeProjectConfig(decoded))).resolves.toEqual(workspaceRootProjectConfig)
   })
 
   it('rejects unsupported project types', async () => {

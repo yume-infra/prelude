@@ -14,7 +14,7 @@ import { contributionTrace, ContributionUnitKind, WorkspaceBootstrapOwner } from
 import { executeAllCommandsInDir, finishProject, previewProject, withWorkingDirectory } from '../../../src/core/services/compose'
 import { OrchestratorService } from '../../../src/core/services/orchestrator'
 import { PlanService, toPlanSpec } from '../../../src/core/services/planner'
-import { reactPresetProjectConfig } from '../../support/fixtures'
+import { reactPresetProjectConfig, workspaceRootMinimalProjectConfig } from '../../support/fixtures'
 import { makeCommandMockLayer, makeFsMockLayer, makeTemplateEngineMockLayer } from '../../support/mock-layers'
 
 function makePreviewProjectLayer({
@@ -23,12 +23,14 @@ function makePreviewProjectLayer({
   executedCommands = [],
   writtenPaths = [],
   overridePlan,
+  cliInstall = true,
 }: {
   readonly copiedPaths?: string[]
   readonly directories?: string[]
   readonly executedCommands?: string[]
   readonly writtenPaths?: string[]
   readonly overridePlan?: Plan
+  readonly cliInstall?: boolean
 } = {}) {
   const appConfigLayer = Layer.succeed(AppConfig, AppConfig.make({
     logLevel: LogLevel.Debug,
@@ -66,7 +68,7 @@ function makePreviewProjectLayer({
       _: [],
       preset: 'react-full',
       name: reactPresetProjectConfig.name,
-      install: true,
+      install: cliInstall,
       git: true,
       rollback: true,
     },
@@ -236,6 +238,35 @@ describe('command working directory helpers', () => {
     expect(preview).toContain('after-post-generate-commands: write-file .husky/pre-commit (executable: false) (owner: workspace-bootstrap, unit: post-generate-file)')
     expect(preview).toContain('after-post-generate-commands: write-file .husky/commit-msg (executable: true) (owner: workspace-bootstrap, unit: post-generate-file)')
     expect(preview).not.toContain('node -e')
+    expect(executedCommands).toEqual([])
+    expect(copiedPaths).toEqual([])
+    expect(directories).toEqual([])
+    expect(writtenPaths).toEqual([])
+  })
+
+  it('builds dry-run preview for root workspace files and root-level actions', async () => {
+    const copiedPaths: string[] = []
+    const directories: string[] = []
+    const executedCommands: string[] = []
+    const writtenPaths: string[] = []
+
+    const preview = await Effect.runPromise(
+      previewProject(workspaceRootMinimalProjectConfig).pipe(
+        Effect.provide(makePreviewProjectLayer({
+          copiedPaths,
+          directories,
+          executedCommands,
+          writtenPaths,
+        })),
+      ),
+    )
+
+    expect(preview).toContain('Dry run preview')
+    expect(preview).toContain('- json package.json (owner: workspace-bootstrap, unit: json-text-mutation)')
+    expect(preview).toContain('- render pnpm-workspace.yaml (owner: workspace-bootstrap, unit: fragment-render)')
+    expect(preview).toContain('- render turbo.json (owner: workspace-bootstrap, unit: fragment-render)')
+    expect(preview).toContain('Post-generate commands:')
+    expect(preview).toContain('after-plan-apply: pnpm install')
     expect(executedCommands).toEqual([])
     expect(copiedPaths).toEqual([])
     expect(directories).toEqual([])

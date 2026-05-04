@@ -1,4 +1,4 @@
-import type { ProjectConfig } from './project-config'
+import type { ReactProjectConfig, VueProjectConfig } from './project-config'
 import { ParseResult, Schema } from 'effect'
 import { makePackageName, PackageNameSchema } from '@/brand/package-name'
 import {
@@ -228,7 +228,7 @@ export const formatGenerationPackageSpecError = ParseResult.TreeFormatter.format
 
 export const makePackageId = (value: string): PackageId => Schema.decodeUnknownSync(PackageIdSchema)(value)
 
-export function projectConfigToCreateSpec(config: ProjectConfig): StandaloneCreateSpec {
+export function projectConfigToCreateSpec(config: ReactProjectConfig | VueProjectConfig): StandaloneCreateSpec {
   return {
     shape: 'standalone',
     package: {

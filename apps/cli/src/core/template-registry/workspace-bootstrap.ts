@@ -1,4 +1,4 @@
-import type { SharedFrontendAppConfig } from '@/schema/project-config'
+import type { SharedFrontendAppConfig, WorkspaceRootConfig } from '@/schema/project-config'
 import type { TemplateRegistry } from '@/schema/template-registry'
 import { makeTemplatePath } from '@/brand/template-path'
 import { contributionTrace, ContributionUnitKind, WorkspaceBootstrapOwner } from '@/core/ownership/model'
@@ -43,6 +43,22 @@ export const workspaceBootstrapTemplates: TemplateRegistry<SharedFrontendAppConf
     template: makeTemplatePath('fragments/common/code-quality/.lintstagedrc.json.hbs'),
     target: '.lintstagedrc.json',
     condition: config => config.codeQuality.includes('lint-staged'),
+    ownership: workspaceFragmentRender,
+  },
+}
+
+export const workspaceBootstrapRootTemplates: TemplateRegistry<WorkspaceRootConfig> = {
+  'pnpm-workspace.yaml': {
+    template: makeTemplatePath('fragments/common/workspace/pnpm-workspace.yaml.hbs'),
+    target: 'pnpm-workspace.yaml',
+    condition: () => true,
+    ownership: workspaceFragmentRender,
+  },
+
+  'turbo.json': {
+    template: makeTemplatePath('fragments/common/workspace/turbo.json.hbs'),
+    target: 'turbo.json',
+    condition: () => true,
     ownership: workspaceFragmentRender,
   },
 }

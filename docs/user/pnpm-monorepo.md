@@ -4,6 +4,14 @@
 
 当前活跃的业务重点是 CLI 应用本身，因此大部分日常开发都会围绕它展开。
 
+CLI 也可以通过 `workspace-root` preset 生成一个新的 pnpm workspace root：
+
+```bash
+create-yume --preset workspace-root --name my-workspace --install
+```
+
+这个 preset 只生成根目录文件，不生成 `apps/*` 或 `libs/*` 下的子包。生成的 `pnpm-workspace.yaml` 使用 `apps/*` 与 `libs/*` 作为初始包目录约定。
+
 ## 依赖版本约定
 
 仓库把外部依赖版本集中维护在 workspace catalog 中。

@@ -2,10 +2,11 @@
 
 Create Yume 是一个用于创建前端项目的 CLI。
 
-它当前把范围收在两类脚手架上：
+它当前把范围收在三类脚手架上：
 
 - React
 - Vue
+- pnpm workspace root
 
 目标不是覆盖所有模板来源和所有工程玩法，而是在有限范围内把交互配置、模板生成和实现边界组织得更稳定。
 
@@ -13,14 +14,16 @@ Create Yume 是一个用于创建前端项目的 CLI。
 
 - React 项目脚手架
 - Vue 项目脚手架
+- pnpm workspace root 脚手架
 
-当前主路径是：创建一个新项目，并生成一套完整的初始文件。
+当前主路径是：创建一个新项目或 workspace root，并生成一套完整的初始文件。`workspace-root` preset 只生成 workspace 根目录文件，不生成 `apps/*` 或 `libs/*` 下的子包。
 
 CLI 也支持 `--dry-run`：它复用正常配置收集与 PlanSpec 构建路径，打印将要生成的文件、post-generate commands，以及已结构化的 post-generate file actions（例如 Husky hook 文件），但不创建目标目录、不写文件、不执行命令。未结构化的外部命令内部副作用不会被猜测或展开预览。
 
 ## 当前不支持的范围
 
 - Node 项目脚手架
+- workspace 子包生成
 - 远程模板
 - 插件化模板来源
 - 对已有项目做增量式改造
@@ -36,7 +39,8 @@ CLI 内部已经开始把“收集到的 React / Vue 配置”和更长期的 cr
 - `runtime: browser`
 - frontend framework 为 `react` 或 `vue`
 
-create spec 的 schema 也保留了 workspace、backend app、worker app、CLI tool 与 library package 等未来分类，并会校验 package kind 与 runtime 的组合关系。但这些分类目前只是输入模型基础，不代表 CLI 已经可以生成 Node 项目、workspace root、workspace 子包，或写入 `workspace:*` 内部依赖。
+create spec 的 schema 也保留了 workspace、backend app、worker app、CLI tool 与 library package 等未来分类，并会校验 package kind 与 runtime 的组合关系。但这些分类目前只是输入模型基础，不代表 CLI 已经可以生成 Node 项目、workspace 子包，或写入 `workspace:*` 内部依赖。
+当前 CLI 已支持 `workspace-root` 配置模型和 pnpm workspace root materialization；这只覆盖 root `package.json`、`pnpm-workspace.yaml`、`turbo.json` 与 root-level bootstrap 行为，不代表支持 workspace 子包调度或 `workspace:*` 内部依赖写入。
 
 ## 当前系统由什么组成
 
@@ -81,6 +85,7 @@ create spec 的 schema 也保留了 workspace、backend app、worker app、CLI t
 - 决定哪些模板应被渲染
 - 组织文件写入、复制和组合型内容生成
 - 在启用 `antfu-eslint` 时生成 ESLint 配置及编辑器项目配置，目前覆盖 VSCode 与 Zed。
+- 在 `workspace-root` preset 下生成 pnpm workspace root 文件：`package.json`、`pnpm-workspace.yaml` 与 `turbo.json`。
 
 ### 4. 生成后的后置命令与文件动作层
 

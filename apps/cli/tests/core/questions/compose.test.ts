@@ -53,4 +53,41 @@ describe('collectQuestions', () => {
       stateManagement: 'jotai',
     })
   })
+
+  it('builds a workspace root preset config without frontend child package fields', async () => {
+    const projectName = makeProjectName('non-interactive-workspace-root')
+
+    const projectConfig = await Effect.runPromise(
+      collectQuestions.pipe(
+        Effect.provide(
+          Layer.mergeAll(
+            CliContextLive({
+              args: {
+                preset: 'workspace-root',
+                name: projectName,
+                git: false,
+                install: false,
+              },
+              isInteractive: false,
+            }),
+            makeFsMockLayer({
+              exists: () => Effect.succeed(false),
+            }),
+          ),
+        ),
+      ),
+    )
+
+    expect(projectConfig).toEqual({
+      name: projectName,
+      type: 'workspace-root',
+      language: 'typescript',
+      git: false,
+      linting: 'antfu-eslint',
+      codeQuality: [],
+      packageManager: 'pnpm',
+    })
+    expect(projectConfig).not.toHaveProperty('buildTool')
+    expect(projectConfig).not.toHaveProperty('router')
+  })
 })

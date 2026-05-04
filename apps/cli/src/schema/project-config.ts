@@ -1,9 +1,19 @@
 import { ParseResult, Schema } from 'effect'
 import { ProjectNameSchema } from '../brand/project-name'
 
-export const ProjectTypeSchema = Schema.Literal('vue', 'react').annotations({
+export const ProjectTypeSchema = Schema.Literal('vue', 'react', 'workspace-root').annotations({
   identifier: 'ProjectType',
   title: 'ProjectType',
+})
+
+export const WorkspaceRootTypeSchema = Schema.Literal('workspace-root').annotations({
+  identifier: 'WorkspaceRootType',
+  title: 'WorkspaceRootType',
+})
+
+export const WorkspacePackageManagerSchema = Schema.Literal('pnpm').annotations({
+  identifier: 'WorkspacePackageManager',
+  title: 'WorkspacePackageManager',
 })
 
 export const BaseFrontendAppTypeSchema = Schema.Literal('vue', 'react').annotations({
@@ -97,15 +107,30 @@ export const ReactProjectConfigSchema = Schema.Struct({
   title: 'ReactProjectConfig',
 })
 
+export const WorkspaceRootConfigSchema = Schema.Struct({
+  ...baseProjectConfigFields,
+  type: WorkspaceRootTypeSchema,
+  packageManager: Schema.optionalWith(WorkspacePackageManagerSchema, {
+    exact: true,
+    default: () => 'pnpm' as const,
+  }),
+}).annotations({
+  identifier: 'WorkspaceRootConfig',
+  title: 'WorkspaceRootConfig',
+})
+
 export const ProjectConfigSchema = Schema.Union(
   VueProjectConfigSchema,
   ReactProjectConfigSchema,
+  WorkspaceRootConfigSchema,
 ).annotations({
   identifier: 'ProjectConfig',
   title: 'ProjectConfig',
 })
 
 export type ProjectType = Schema.Schema.Type<typeof ProjectTypeSchema>
+export type WorkspaceRootType = Schema.Schema.Type<typeof WorkspaceRootTypeSchema>
+export type WorkspacePackageManager = Schema.Schema.Type<typeof WorkspacePackageManagerSchema>
 export type BaseFrontendAppType = Schema.Schema.Type<typeof BaseFrontendAppTypeSchema>
 export type BuildTool = Schema.Schema.Type<typeof BuildToolSchema>
 export type CSSPreprocessor = Schema.Schema.Type<typeof CSSPreprocessorSchema>
@@ -119,16 +144,19 @@ export type BaseProjectConfig = Schema.Schema.Type<typeof BaseProjectConfigSchem
 export type SharedFrontendAppConfig = Schema.Schema.Type<typeof SharedFrontendAppConfigSchema>
 export type VueProjectConfig = Schema.Schema.Type<typeof VueProjectConfigSchema>
 export type ReactProjectConfig = Schema.Schema.Type<typeof ReactProjectConfigSchema>
+export type WorkspaceRootConfig = Schema.Schema.Type<typeof WorkspaceRootConfigSchema>
 export type ProjectConfig = Schema.Schema.Type<typeof ProjectConfigSchema>
 
 export const decodeBaseProjectConfig = Schema.decodeUnknown(BaseProjectConfigSchema, { errors: 'all' })
 export const decodeSharedFrontendAppConfig = Schema.decodeUnknown(SharedFrontendAppConfigSchema, { errors: 'all' })
 export const decodeVueProjectConfig = Schema.decodeUnknown(VueProjectConfigSchema, { errors: 'all' })
 export const decodeReactProjectConfig = Schema.decodeUnknown(ReactProjectConfigSchema, { errors: 'all' })
+export const decodeWorkspaceRootConfig = Schema.decodeUnknown(WorkspaceRootConfigSchema, { errors: 'all' })
 export const decodeProjectConfig = Schema.decodeUnknown(ProjectConfigSchema, { errors: 'all' })
 
 export const formatBaseProjectConfigError = ParseResult.TreeFormatter.formatErrorSync
 export const formatSharedFrontendAppConfigError = ParseResult.TreeFormatter.formatErrorSync
 export const formatVueProjectConfigError = ParseResult.TreeFormatter.formatErrorSync
 export const formatReactProjectConfigError = ParseResult.TreeFormatter.formatErrorSync
+export const formatWorkspaceRootConfigError = ParseResult.TreeFormatter.formatErrorSync
 export const formatProjectConfigError = ParseResult.TreeFormatter.formatErrorSync
