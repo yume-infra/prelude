@@ -42,12 +42,12 @@
       "action": "record-session"
     }
   ],
-  "commit": null,
+  "commit": "907360c",
   "pr_url": null,
   "subtasks": [],
   "children": [],
   "parent": "05-04-monorepo-node-cli-support",
   "relatedFiles": [],
-  "notes": "",
+  "notes": "Accepted and merged locally into main as 907360c.",
   "meta": {}
 }

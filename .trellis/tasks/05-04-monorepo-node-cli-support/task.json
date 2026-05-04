@@ -3,7 +3,7 @@
   "name": "monorepo-node-cli-support",
   "title": "brainstorm: monorepo and node cli support",
   "description": "Clarify requirements and phased roadmap for expanding create-yume beyond React/Vue frontend scaffolds toward Node-layer, CLI, and monorepo support.",
-  "status": "planning",
+  "status": "in_progress",
   "dev_type": null,
   "scope": null,
   "package": "create-yume",
@@ -56,6 +56,6 @@
   ],
   "parent": null,
   "relatedFiles": [],
-  "notes": "",
+  "notes": "PRD-1 through PRD-6 are accepted and merged locally into main. PRD-7 completed on codex/final-integration-full-acceptance as 72f2b64 and is pending explicit acceptance/merge.",
   "meta": {}
 }

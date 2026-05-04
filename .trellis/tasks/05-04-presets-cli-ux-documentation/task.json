@@ -42,12 +42,12 @@
       "action": "record-session"
     }
   ],
-  "commit": null,
+  "commit": "f5e77d8",
   "pr_url": null,
   "subtasks": [],
   "children": [],
   "parent": "05-04-monorepo-node-cli-support",
   "relatedFiles": [],
-  "notes": "",
+  "notes": "Accepted and merged locally into main as f5e77d8.",
   "meta": {}
 }

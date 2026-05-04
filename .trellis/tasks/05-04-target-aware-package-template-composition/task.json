@@ -3,7 +3,7 @@
   "name": "target-aware-package-template-composition",
   "title": "PRD-4: Target-Aware Package and Template Composition",
   "description": "Make package manifests, template registries, ownership, and PlanSpec projection target-aware for root and nested workspace packages.",
-  "status": "in_progress",
+  "status": "completed",
   "dev_type": "fullstack",
   "scope": "target-aware-package-template-composition",
   "package": "create-yume",
@@ -11,7 +11,7 @@
   "creator": "sayoriqwq",
   "assignee": "sayoriqwq",
   "createdAt": "2026-05-04",
-  "completedAt": null,
+  "completedAt": "2026-05-05",
   "branch": "codex/target-aware-package-template-composition",
   "base_branch": "main",
   "worktree_path": "/Users/sayori/Desktop/trellis-worktrees/codex/target-aware-package-template-composition",
@@ -42,12 +42,12 @@
       "action": "record-session"
     }
   ],
-  "commit": null,
+  "commit": "148f67c",
   "pr_url": null,
   "subtasks": [],
   "children": [],
   "parent": "05-04-monorepo-node-cli-support",
   "relatedFiles": [],
-  "notes": "",
+  "notes": "Accepted and merged locally into main as 148f67c.",
   "meta": {}
 }
