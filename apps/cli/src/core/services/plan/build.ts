@@ -8,6 +8,7 @@ import type {
   PlanSpec,
   PostGenerateFileActionPhaseSpec,
 } from '@/schema/plan-spec'
+import type { ProjectConfig } from '@/schema/project-config'
 import { Effect } from 'effect'
 import { makeTemplatePath } from '@/brand/template-path'
 import { PlanSpecProjectionError } from '@/core/errors'
@@ -44,7 +45,13 @@ export interface ComposeDSL {
   json: (path: string, ownership?: ContributionTrace) => JsonBuilder
   text: (path: string, ownership?: ContributionTrace) => TextBuilder
   copy: (src: TemplatePath, path: string, ownership?: ContributionTrace) => void
-  render: (src: TemplatePath, path: string, data?: object, ownership?: ContributionTrace) => void
+  render: (
+    src: TemplatePath,
+    path: string,
+    data?: object,
+    ownership?: ContributionTrace,
+    config?: ProjectConfig,
+  ) => void
 }
 
 export type GenerateTask = RenderTask | CopyTask
@@ -61,6 +68,7 @@ export interface RenderTask extends ITask {
   kind: 'render'
   src: string
   data?: unknown
+  config?: ProjectConfig
 }
 
 export interface CopyTask extends ITask {
@@ -454,8 +462,15 @@ export function buildPlan(program: (dsl: ComposeDSL) => void): Plan {
     return builder
   }
 
-  const render: ComposeDSL['render'] = (src, path, data, ownership) => {
-    tasks.push({ kind: 'render', src, path, ...(data !== undefined ? { data } : {}), ...(ownership ? { ownership } : {}) })
+  const render: ComposeDSL['render'] = (src, path, data, ownership, config) => {
+    tasks.push({
+      kind: 'render',
+      src,
+      path,
+      ...(data !== undefined ? { data } : {}),
+      ...(ownership ? { ownership } : {}),
+      ...(config ? { config } : {}),
+    })
   }
 
   const copy: ComposeDSL['copy'] = (src, path, ownership) => {

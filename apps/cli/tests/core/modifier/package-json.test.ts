@@ -354,8 +354,8 @@ describe('buildPackageJson', () => {
       },
       devDependencies: {
         '@types/node': '^25.6.0',
-        tsdown: '^0.21.9',
-        typescript: '^6.0.3',
+        'tsdown': '^0.21.9',
+        'typescript': '^6.0.3',
       },
     })
   })
@@ -395,12 +395,46 @@ describe('buildPackageJson', () => {
       },
       files: ['dist'],
       scripts: {
-        build: 'tsdown --config tsdown.config.ts && node scripts/ensure-shebang.mjs',
+        'build': 'tsdown --config tsdown.config.ts && node scripts/ensure-shebang.mjs',
         'smoke:bin': 'pnpm build && dist/index.js --help',
-        typecheck: 'tsc --noEmit',
+        'typecheck': 'tsc --noEmit',
       },
       devDependencies: {
         '@types/node': '^25.6.0',
+        'tsdown': '^0.21.9',
+        'typescript': '^6.0.3',
+      },
+    })
+  })
+
+  it('writes TypeScript ESM build metadata for library packages', () => {
+    const packageJson = renderPackageJson({
+      type: 'library',
+      name: makeProjectName('phase-library-minimal'),
+      language: 'typescript',
+      git: false,
+      linting: 'none',
+      codeQuality: [],
+      runtime: 'neutral',
+    })
+
+    expect(packageJson).toMatchObject({
+      name: 'phase-library-minimal',
+      type: 'module',
+      exports: {
+        '.': {
+          types: './dist/index.d.ts',
+          import: './dist/index.js',
+        },
+      },
+      main: 'dist/index.js',
+      types: 'dist/index.d.ts',
+      files: ['dist'],
+      scripts: {
+        build: 'tsdown --config tsdown.config.ts',
+        typecheck: 'tsc --noEmit',
+      },
+      devDependencies: {
         tsdown: '^0.21.9',
         typescript: '^6.0.3',
       },

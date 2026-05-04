@@ -154,6 +154,138 @@ buildTemplates(dsl, templateRoot, config, {
 
 This filters root-only entries before render tasks enter the plan.
 
+## Scenario: Structured Workspace Package Generation
+
+### 1. Scope / Trigger
+
+Use this contract when a workspace root config includes child package specs that must materialize under `apps/*` or `libs/*`.
+
+Triggers:
+
+- `WorkspaceRootConfig.packages` is non-empty.
+- Child packages need package-scoped templates and package manifests.
+- Workspace packages declare explicit internal dependencies.
+- Mixed package kinds must render with package-local `@config` while sharing one root `Plan`.
+
+### 2. Signatures
+
+```typescript
+interface WorkspaceRootConfig {
+  readonly type: 'workspace-root'
+  readonly packageManager: 'pnpm'
+  readonly packages: readonly GenerationPackageSpec[]
+}
+
+type GenerationPackageSpec
+  = | FrontendAppSpec
+    | BackendAppSpec
+    | WorkerAppSpec
+    | CliToolSpec
+    | LibraryPackageSpec
+
+function workspacePackageTargetDirectory(spec: GenerationPackageSpec): string
+function workspacePackageProjectConfig(
+  rootConfig: WorkspaceRootConfig,
+  spec: GenerationPackageSpec,
+): ReactProjectConfig | VueProjectConfig | NodeProjectConfig | CliProjectConfig | LibraryProjectConfig
+
+function buildWorkspacePackages(
+  dsl: ComposeDSL,
+  templateRoot: TemplatePath,
+  rootConfig: WorkspaceRootConfig,
+): void
+```
+
+Render tasks may carry a package-local config override:
+
+```typescript
+interface RenderTask {
+  readonly kind: 'render'
+  readonly src: string
+  readonly path: string
+  readonly data?: unknown
+  readonly config?: ProjectConfig
+}
+```
+
+### 3. Contracts
+
+- `frontend-app`, `backend-app`, `worker-app`, and `cli-tool` target `apps/<package-id>`.
+- `library-package` targets `libs/<package-id>`.
+- Child package `package.json` base `name` uses the package spec `name`, not the filesystem `id`.
+- Package-local template rendering must pass `renderConfig` so templates using `@config` see the child package config.
+- Workspace root post-generate commands remain root-level; child packages contribute scripts but not post-generate commands.
+- Internal dependencies are emitted only from declared `internalDependencies` and always use `workspace:*`.
+- Undeclared local packages must not be linked implicitly.
+- `worker-app` may remain a schema boundary until concrete templates exist; do not silently generate it with unrelated templates.
+
+### 4. Validation & Error Matrix
+
+| Case | Expected behavior | Error boundary |
+| --- | --- | --- |
+| Frontend package with id `web` | Files target `apps/web/*`; root-only lint/Git templates are excluded | Planner/registry scope |
+| CLI package with id `tool` | Files target `apps/tool/*`; `bin` and `smoke:bin` stay package-local | Package manifest builder |
+| Library package with id `shared` | Files target `libs/shared/*`; package manifest includes ESM build metadata | Library package owner |
+| Package declares dependency by id/name | Child manifest gets dependency key from alias or target package name with value `workspace:*` | Workspace package builder |
+| Package omits dependency | No local dependency is emitted | No error |
+| Dependency target missing | Fail before plan application; do not write partial workspace output | Workspace package builder |
+| Render task lacks child config | Generated child templates read root `@config` and become invalid | Review/test failure |
+
+### 5. Good/Base/Bad Cases
+
+Good:
+
+```typescript
+buildTemplates(dsl, templateRoot, packageConfig, {
+  targetScope: 'package',
+  targetDirectory: 'apps/web',
+  renderConfig: packageConfig,
+})
+```
+
+Base:
+
+```typescript
+buildPackageJson(dsl, workspaceRootConfig)
+buildTemplates(dsl, templateRoot, workspaceRootConfig)
+buildWorkspacePackages(dsl, templateRoot, workspaceRootConfig)
+```
+
+Bad:
+
+```typescript
+// Do not let every package see every local package.
+for (const localPackage of workspace.packages) {
+  dependencies[localPackage.name] = 'workspace:*'
+}
+```
+
+### 6. Tests Required
+
+- Schema tests proving `WorkspaceRootConfig.packages` decodes package specs and preserves defaults.
+- Planner tests proving mixed workspace paths include root files, `apps/*` files, and `libs/*` files.
+- Plan/apply or orchestrator tests materializing child `package.json` files and asserting declared `workspace:*` links only.
+- Tests proving render tasks use child config for package templates, especially mixed frontend/CLI/library workspaces.
+- Existing standalone React/Vue/Node/CLI tests must remain green.
+
+### 7. Wrong vs Correct
+
+Wrong:
+
+```typescript
+dsl.render(src, 'apps/web/src/main.tsx')
+```
+
+This records the nested path but does not provide child `@config`, so the render can accidentally use the workspace root config.
+
+Correct:
+
+```typescript
+dsl.render(src, 'apps/web/src/main.tsx', undefined, ownership, packageConfig)
+```
+
+This keeps the plan in one workflow while rendering package templates against the package-local config.
+
 ## Examples
 
 - `apps/cli/src/core/owners/router.ts` centralizes router predicates, templates, and dependency contributions.
@@ -170,7 +302,8 @@ This filters root-only entries before render tasks enter the plan.
 
 ## Forbidden Patterns
 
-- Do not add remote template loading, plugin systems, Node project scaffolds, or incremental update workflows.
+- Do not add remote template loading, plugin systems, or incremental update workflows.
+- Do not expose `worker-app` generation until concrete worker templates and tests exist.
 - Do not bypass Effect services with direct filesystem or command calls in runtime logic.
 - Do not duplicate dependency version maps across unrelated files; capability owners should own their contributions.
 - Do not move tests back into `src`.

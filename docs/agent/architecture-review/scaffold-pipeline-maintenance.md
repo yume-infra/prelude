@@ -10,7 +10,7 @@
 
 1. 按真实生成链路理解代码，不按目录孤立理解。
 2. 优先删除重复真相和隐式语义，而不是追求表面少几行代码。
-3. 保留当前 React / Vue / pnpm workspace root / Node / CLI tool 本地脚手架范围，不引入 workspace 子包 / 完整 monorepo 生成、远程模板、插件系统、私有 registry、auth 或已有项目增量更新。
+3. 保留当前 React / Vue / pnpm workspace root / Node / CLI tool 与结构化 workspace package 本地脚手架范围，不引入 worker app、远程模板、插件系统、私有 registry、auth、完整 CLI package graph UX 或已有项目增量更新。
 4. 没有新证据时，不重议已接受的稳定执行核心。
 5. 修改后必须用与变更类型匹配的验证命令证明。
 

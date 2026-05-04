@@ -1,5 +1,6 @@
 import { ParseResult, Schema } from 'effect'
 import { ProjectNameSchema } from '../brand/project-name'
+import { GenerationPackageSpecSchema } from './generation-package-spec'
 
 export const ProjectTypeSchema = Schema.Literal('vue', 'react', 'workspace-root', 'node', 'cli').annotations({
   identifier: 'ProjectType',
@@ -119,6 +120,10 @@ export const WorkspaceRootConfigSchema = Schema.Struct({
     exact: true,
     default: () => 'pnpm' as const,
   }),
+  packages: Schema.optionalWith(Schema.Array(GenerationPackageSpecSchema), {
+    exact: true,
+    default: () => [],
+  }),
 }).annotations({
   identifier: 'WorkspaceRootConfig',
   title: 'WorkspaceRootConfig',
@@ -140,12 +145,25 @@ export const CliProjectConfigSchema = Schema.Struct({
   title: 'CliProjectConfig',
 })
 
+export const LibraryProjectConfigSchema = Schema.Struct({
+  ...baseTypeScriptProjectConfigFields,
+  type: Schema.Literal('library'),
+  runtime: Schema.optionalWith(Schema.Literal('neutral', 'node'), {
+    exact: true,
+    default: () => 'neutral' as const,
+  }),
+}).annotations({
+  identifier: 'LibraryProjectConfig',
+  title: 'LibraryProjectConfig',
+})
+
 export const ProjectConfigSchema = Schema.Union(
   VueProjectConfigSchema,
   ReactProjectConfigSchema,
   WorkspaceRootConfigSchema,
   NodeProjectConfigSchema,
   CliProjectConfigSchema,
+  LibraryProjectConfigSchema,
 ).annotations({
   identifier: 'ProjectConfig',
   title: 'ProjectConfig',
@@ -170,6 +188,7 @@ export type ReactProjectConfig = Schema.Schema.Type<typeof ReactProjectConfigSch
 export type WorkspaceRootConfig = Schema.Schema.Type<typeof WorkspaceRootConfigSchema>
 export type NodeProjectConfig = Schema.Schema.Type<typeof NodeProjectConfigSchema>
 export type CliProjectConfig = Schema.Schema.Type<typeof CliProjectConfigSchema>
+export type LibraryProjectConfig = Schema.Schema.Type<typeof LibraryProjectConfigSchema>
 export type ProjectConfig = Schema.Schema.Type<typeof ProjectConfigSchema>
 
 export const decodeBaseProjectConfig = Schema.decodeUnknown(BaseProjectConfigSchema, { errors: 'all' })
@@ -179,6 +198,7 @@ export const decodeReactProjectConfig = Schema.decodeUnknown(ReactProjectConfigS
 export const decodeWorkspaceRootConfig = Schema.decodeUnknown(WorkspaceRootConfigSchema, { errors: 'all' })
 export const decodeNodeProjectConfig = Schema.decodeUnknown(NodeProjectConfigSchema, { errors: 'all' })
 export const decodeCliProjectConfig = Schema.decodeUnknown(CliProjectConfigSchema, { errors: 'all' })
+export const decodeLibraryProjectConfig = Schema.decodeUnknown(LibraryProjectConfigSchema, { errors: 'all' })
 export const decodeProjectConfig = Schema.decodeUnknown(ProjectConfigSchema, { errors: 'all' })
 
 export const formatBaseProjectConfigError = ParseResult.TreeFormatter.formatErrorSync
@@ -188,4 +208,5 @@ export const formatReactProjectConfigError = ParseResult.TreeFormatter.formatErr
 export const formatWorkspaceRootConfigError = ParseResult.TreeFormatter.formatErrorSync
 export const formatNodeProjectConfigError = ParseResult.TreeFormatter.formatErrorSync
 export const formatCliProjectConfigError = ParseResult.TreeFormatter.formatErrorSync
+export const formatLibraryProjectConfigError = ParseResult.TreeFormatter.formatErrorSync
 export const formatProjectConfigError = ParseResult.TreeFormatter.formatErrorSync

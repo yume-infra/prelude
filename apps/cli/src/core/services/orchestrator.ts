@@ -13,6 +13,10 @@ import { PlanService } from '~/planner'
 import { TemplateEngineService } from '~/template-engine'
 import { buildPackageJson } from '../modifier/package-json'
 import { buildRootSvg } from '../template-registry/root-svg'
+import {
+  buildWorkspacePackages,
+  workspacePackageProjectConfigs,
+} from '../workspace-packages'
 import { buildTemplates } from './compose'
 import { withProjectAnnotations } from './observability'
 
@@ -40,6 +44,13 @@ export class OrchestratorService extends Effect.Service<OrchestratorService>()(
       const partialRoot = makeTemplatePath(path.join(templateRoot, 'partials'))
 
       const buildProgram = (config: ProjectConfig) => (dsl: ComposeDSL) => {
+        if (config.type === 'workspace-root') {
+          buildPackageJson(dsl, config)
+          buildTemplates(dsl, templateRoot, config)
+          buildWorkspacePackages(dsl, templateRoot, config)
+          return
+        }
+
         if (isFrontendProject(config)) {
           buildRootSvg(dsl, templateRoot)
         }
@@ -52,6 +63,13 @@ export class OrchestratorService extends Effect.Service<OrchestratorService>()(
         Effect.gen(function* () {
           // 1. 准备模板引擎（helpers + 框架/global partials）
           yield* templateEngine.prepare(config, partialRoot)
+          if (config.type === 'workspace-root') {
+            yield* Effect.forEach(
+              workspacePackageProjectConfigs(config),
+              packageConfig => templateEngine.prepare(packageConfig, partialRoot),
+              { concurrency: 1, discard: true },
+            )
+          }
 
           // 2. 组合 DSL（纯同步，不能产生 Effect）并生成计划
           return yield* planner.build(buildProgram(config))

@@ -1,5 +1,6 @@
 import type {
   CliProjectConfig,
+  LibraryProjectConfig,
   NodeProjectConfig,
   ProjectConfig,
   ReactProjectConfig,
@@ -25,6 +26,10 @@ export function isNodeProject(config: ProjectConfig): config is NodeProjectConfi
 
 export function isCliProject(config: ProjectConfig): config is CliProjectConfig {
   return (config as CliProjectConfig).type === 'cli'
+}
+
+export function isLibraryProject(config: ProjectConfig): config is LibraryProjectConfig {
+  return (config as LibraryProjectConfig).type === 'library'
 }
 
 export function isFrontendProject(config: ProjectConfig): config is VueProjectConfig | ReactProjectConfig {

@@ -13,11 +13,11 @@ import { makeProjectTargetDir } from '@/brand/target-dir'
 import { makeTemplatePath } from '@/brand/template-path'
 import { PlanTargetPathError } from '@/core/errors'
 import { matchesGenerationTargetScope } from '@/schema/target-scope'
-import { isCliProject, isNodeProject, isReactProject, isVueProject, isWorkspaceRootProject } from '@/utils/type-guard'
+import { isCliProject, isLibraryProject, isNodeProject, isReactProject, isVueProject, isWorkspaceRootProject } from '@/utils/type-guard'
 import { FsService } from '~/fs'
 import { CliContext } from '../cli-context'
 import { buildCommands, buildPostGenerateFileActions } from '../commands'
-import { CliTemplates, NodeTemplates } from '../template-registry/node-runtime'
+import { CliTemplates, LibraryTemplates, NodeTemplates } from '../template-registry/node-runtime'
 import { ReactTemplates } from '../template-registry/react'
 import { VueTemplates } from '../template-registry/vue'
 import { workspaceBootstrapRootTemplates } from '../template-registry/workspace-bootstrap'
@@ -31,6 +31,7 @@ import { collectTemplatePartialEntries } from './template-engine'
 interface TemplateBuildOptions {
   readonly targetScope?: GenerationTargetScope
   readonly targetDirectory?: string
+  readonly renderConfig?: ProjectConfig
 }
 
 function targetScopeForConfig(config: ProjectConfig): GenerationTargetScope {
@@ -66,7 +67,7 @@ export function buildTemplates(
         typeof item.target === 'string' ? item.target : item.target(config as T),
       )
       const src = makeTemplatePath(path.join(templateRoot, item.template))
-      dsl.render(src, target, undefined, item.ownership)
+      dsl.render(src, target, undefined, item.ownership, options.renderConfig)
     }
   }
   if (isVueProject(config))
@@ -79,6 +80,8 @@ export function buildTemplates(
     register(NodeTemplates)
   if (isCliProject(config))
     register(CliTemplates)
+  if (isLibraryProject(config))
+    register(LibraryTemplates)
 }
 
 // 兼容别名：partial 选择逻辑由 TemplateEngine 拥有，新代码应直接依赖 TemplateEngine.prepare。

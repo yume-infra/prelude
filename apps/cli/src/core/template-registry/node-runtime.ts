@@ -1,10 +1,11 @@
-import type { BaseProjectConfig, CliProjectConfig, NodeProjectConfig } from '@/schema/project-config'
+import type { BaseProjectConfig, CliProjectConfig, LibraryProjectConfig, NodeProjectConfig } from '@/schema/project-config'
 import type { TemplateRegistry } from '@/schema/template-registry'
 import { makeTemplatePath } from '@/brand/template-path'
 import {
   CliScaffoldOwner,
   contributionTrace,
   ContributionUnitKind,
+  LibraryPackageOwner,
   NodeScaffoldOwner,
 } from '@/core/ownership/model'
 import {
@@ -12,10 +13,11 @@ import {
   workspaceBootstrapLintAndGitTemplates,
 } from './workspace-bootstrap'
 
-type NodeRuntimeProjectConfig = NodeProjectConfig | CliProjectConfig
+type NodeRuntimeProjectConfig = NodeProjectConfig | CliProjectConfig | LibraryProjectConfig
 
 const nodeFragmentRender = contributionTrace(NodeScaffoldOwner, ContributionUnitKind.FragmentRender)
 const cliFragmentRender = contributionTrace(CliScaffoldOwner, ContributionUnitKind.FragmentRender)
+const libraryFragmentRender = contributionTrace(LibraryPackageOwner, ContributionUnitKind.FragmentRender)
 
 function nodeRuntimeCoreTemplates<T extends NodeRuntimeProjectConfig>(
   ownership: typeof nodeFragmentRender,
@@ -84,6 +86,21 @@ const cliFamilyTemplates: TemplateRegistry<CliProjectConfig> = {
   },
 }
 
+const libraryFamilyTemplates: TemplateRegistry<LibraryProjectConfig> = {
+  'src/index.ts': {
+    template: makeTemplatePath('fragments/library/index.ts.hbs'),
+    target: 'src/index.ts',
+    condition: () => true,
+    ownership: libraryFragmentRender,
+  },
+  'README.md': {
+    template: makeTemplatePath('fragments/library/README.md.hbs'),
+    target: 'README.md',
+    condition: () => true,
+    ownership: libraryFragmentRender,
+  },
+}
+
 export const NodeTemplates: TemplateRegistry<NodeProjectConfig> = assembleNodeRuntimeFamilyTemplates(
   nodeFragmentRender,
   nodeFamilyTemplates,
@@ -92,4 +109,9 @@ export const NodeTemplates: TemplateRegistry<NodeProjectConfig> = assembleNodeRu
 export const CliTemplates: TemplateRegistry<CliProjectConfig> = assembleNodeRuntimeFamilyTemplates(
   cliFragmentRender,
   cliFamilyTemplates,
+)
+
+export const LibraryTemplates: TemplateRegistry<LibraryProjectConfig> = assembleNodeRuntimeFamilyTemplates(
+  libraryFragmentRender,
+  libraryFamilyTemplates,
 )

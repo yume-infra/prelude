@@ -4,7 +4,7 @@ import { makeTargetDir } from '../../../src/brand/target-dir'
 import { AppConfig } from '../../../src/config/app-config'
 import { OrchestratorService } from '../../../src/core/services/orchestrator'
 import { PlanService } from '../../../src/core/services/planner'
-import { reactPresetProjectConfig } from '../../support/fixtures'
+import { reactPresetProjectConfig, workspaceMixedProjectConfig } from '../../support/fixtures'
 import { makeFsMockLayer, makeTemplateEngineMockLayer } from '../../support/mock-layers'
 
 function makeOrchestratorLayer({
@@ -106,5 +106,67 @@ describe('orchestratorService', () => {
     expect(preparedConfigs).toEqual([reactPresetProjectConfig.name])
     expect([...copiedPaths, ...writtenPaths].length).toBeGreaterThan(0)
     expect(directories.length).toBeGreaterThan(0)
+  })
+
+  it('materializes mixed workspace child package manifests with explicit workspace dependencies', async () => {
+    const writtenFiles = new Map<string, string>()
+    const preparedConfigs: string[] = []
+
+    const appConfigLayer = Layer.succeed(AppConfig, AppConfig.make({
+      logLevel: LogLevel.Debug,
+      defaultConcurrency: 1,
+      tracingEndpoint: Option.none(),
+      debug: false,
+    }))
+    const fsLayer = makeFsMockLayer({
+      writeFileString: (file, content) => Effect.sync(() => {
+        writtenFiles.set(file, content)
+      }),
+    })
+    const templateLayer = makeTemplateEngineMockLayer({
+      prepare: config => Effect.sync(() => {
+        preparedConfigs.push(config.name)
+      }),
+      render: (_templatePath, _data, config) => Effect.succeed(`rendered:${config.type}:${config.name}\n`),
+    })
+    const planLayer = PlanService.DefaultWithoutDependencies.pipe(
+      Layer.provideMerge(Layer.mergeAll(appConfigLayer, fsLayer, templateLayer)),
+    )
+    const orchestratorLayer = OrchestratorService.DefaultWithoutDependencies.pipe(
+      Layer.provideMerge(Layer.mergeAll(planLayer, templateLayer)),
+    )
+
+    await Effect.runPromise(
+      Effect.gen(function* () {
+        const orchestrator = yield* OrchestratorService
+        return yield* orchestrator.execute(
+          makeTargetDir('/tmp/create-yume-mixed-workspace'),
+          workspaceMixedProjectConfig,
+        )
+      }).pipe(Effect.provide(orchestratorLayer)),
+    )
+
+    expect(preparedConfigs).toEqual([
+      'workspace-mixed-fixture',
+      'web',
+      'tool',
+      'shared',
+    ])
+
+    const webPackageJson = JSON.parse(writtenFiles.get('/tmp/create-yume-mixed-workspace/apps/web/package.json') ?? '{}')
+    const toolPackageJson = JSON.parse(writtenFiles.get('/tmp/create-yume-mixed-workspace/apps/tool/package.json') ?? '{}')
+    const sharedPackageJson = JSON.parse(writtenFiles.get('/tmp/create-yume-mixed-workspace/libs/shared/package.json') ?? '{}')
+
+    expect(webPackageJson.dependencies).toMatchObject({
+      '@demo/shared': 'workspace:*',
+      'react': '^19.2.5',
+    })
+    expect(toolPackageJson.dependencies).toEqual({
+      '@demo/shared-runtime': 'workspace:*',
+    })
+    expect(sharedPackageJson.dependencies).toEqual({})
+    expect(writtenFiles.get('/tmp/create-yume-mixed-workspace/apps/web/index.html')).toBe('rendered:react:web\n')
+    expect(writtenFiles.get('/tmp/create-yume-mixed-workspace/apps/tool/src/index.ts')).toBe('rendered:cli:tool\n')
+    expect(writtenFiles.get('/tmp/create-yume-mixed-workspace/libs/shared/src/index.ts')).toBe('rendered:library:shared\n')
   })
 })

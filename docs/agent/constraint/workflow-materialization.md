@@ -163,7 +163,7 @@ Template registry entry 也支持 `scope`：root-only templates（lint config、
 
 在引入 token、认证、远程模板、私有 registry、插件来源、authenticated external services 或 secret-bearing command env 前，必须先定义 command output 的 redaction 或降级策略。失败诊断应继续保留 command、args、cwd、exit code（如可用）、owner、unit 和 phase，但不得持久化未处理的敏感 stdout / stderr。
 
-远程模板、插件化模板来源、workspace 子包 / 完整 monorepo 生成、worker app / library package 生成和已有项目增量更新仍不在当前产品范围内。若未来要进入实现，必须先更新用户侧系统架构、执行约束、验证矩阵，并重新评估 preserved core、路径边界和 command output 安全边界。
+远程模板、插件化模板来源、worker app 生成、通过 CLI / interactive 完整配置任意 workspace package graph，以及已有项目增量更新仍不在当前产品范围内。结构化 workspace package 生成已经进入当前生成链路，必须继续复用 Plan / PlanSpec、target-aware template registry、package manifest contribution 和 root/package scope filtering；不得引入第二条 workflow。若未来要进入远程、插件、worker 或增量更新能力，必须先更新用户侧系统架构、执行约束、验证矩阵，并重新评估 preserved core、路径边界和 command output 安全边界。
 
 ## Plan Preview 与 Dry Run
 

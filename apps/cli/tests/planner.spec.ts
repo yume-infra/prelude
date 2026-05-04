@@ -18,6 +18,7 @@ import {
 import { buildTemplates } from '../src/core/services/compose'
 import { PlanService, toPlanSpec } from '../src/core/services/planner'
 import { buildRootSvg } from '../src/core/template-registry/root-svg'
+import { buildWorkspacePackages } from '../src/core/workspace-packages'
 import { isFrontendProject } from '../src/utils/type-guard'
 import {
   cliMinimalPresetProjectConfig,
@@ -26,6 +27,7 @@ import {
   reactPresetProjectConfig,
   vueCustomProjectConfig,
   vuePresetProjectConfig,
+  workspaceMixedProjectConfig,
 } from './support/fixtures'
 import { makeFsMockLayer, makeTemplateEngineMockLayer } from './support/mock-layers'
 
@@ -57,6 +59,9 @@ function buildPlanSpec(config: ProjectConfig) {
       }
       buildPackageJson(dsl, config)
       buildTemplates(dsl, templateRoot, config)
+      if (config.type === 'workspace-root') {
+        buildWorkspacePackages(dsl, templateRoot, config)
+      }
     })
 
     return toPlanSpec(plan)
@@ -296,6 +301,59 @@ describe('workspace bootstrap ownership boundaries', () => {
         }),
       ]),
     )
+  })
+
+  it('plans mixed workspace packages under apps and libs with explicit internal dependency links', async () => {
+    const plan = await Effect.runPromise(buildPlanSpec(workspaceMixedProjectConfig))
+    const paths = plan.tasks.map(task => task.path)
+
+    expect(paths).toContain('package.json')
+    expect(paths).toContain('pnpm-workspace.yaml')
+    expect(paths).toContain('turbo.json')
+    expect(paths).toContain('apps/web/package.json')
+    expect(paths).toContain('apps/web/index.html')
+    expect(paths).toContain('apps/web/public/moon-star.svg')
+    expect(paths).toContain('apps/tool/package.json')
+    expect(paths).toContain('apps/tool/src/index.ts')
+    expect(paths).toContain('apps/tool/scripts/ensure-shebang.mjs')
+    expect(paths).toContain('libs/shared/package.json')
+    expect(paths).toContain('libs/shared/src/index.ts')
+
+    expect(paths).not.toContain('apps/web/.gitignore')
+    expect(paths).not.toContain('apps/tool/.gitignore')
+    expect(paths).not.toContain('libs/shared/.gitignore')
+
+    const webPackageJsonTask = plan.tasks.find(task => task.kind === 'json' && task.path === 'apps/web/package.json')
+    const toolPackageJsonTask = plan.tasks.find(task => task.kind === 'json' && task.path === 'apps/tool/package.json')
+    const sharedPackageJsonTask = plan.tasks.find(task => task.kind === 'json' && task.path === 'libs/shared/package.json')
+
+    expect(webPackageJsonTask).toMatchObject({
+      ownership: {
+        owner: 'frontend-package',
+        unit: 'json-text-mutation',
+      },
+      base: {
+        name: '@demo/web',
+      },
+    })
+    expect(toolPackageJsonTask).toMatchObject({
+      ownership: {
+        owner: 'cli-package',
+        unit: 'json-text-mutation',
+      },
+      base: {
+        name: '@demo/tool',
+      },
+    })
+    expect(sharedPackageJsonTask).toMatchObject({
+      ownership: {
+        owner: 'library-package',
+        unit: 'json-text-mutation',
+      },
+      base: {
+        name: '@demo/shared',
+      },
+    })
   })
 })
 

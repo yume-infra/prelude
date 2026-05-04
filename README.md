@@ -1,6 +1,6 @@
 # Create Yume
 
-> 一个支持 React、Vue、pnpm workspace root、Node 与 CLI tool 的现代本地脚手架，用 Effect 驱动交互、模板编排与生成流程。
+> 一个支持 React、Vue、pnpm workspace root、Node、CLI tool 与结构化 workspace package 生成的现代本地脚手架，用 Effect 驱动交互、模板编排与生成流程。
 
 Create Yume 用来把“新建项目”这件事做得更稳一点。
 
@@ -11,6 +11,7 @@ Create Yume 用来把“新建项目”这件事做得更稳一点。
 - 生成 pnpm workspace 根目录
 - 生成 TypeScript ESM Node 项目
 - 生成 TypeScript ESM CLI tool
+- 通过结构化 package list 生成 workspace 子包
 
 在这个范围内，它更关心三个问题：
 
@@ -37,13 +38,15 @@ Create Yume 用来把“新建项目”这件事做得更稳一点。
 - pnpm workspace root 脚手架
 - Node 项目脚手架
 - CLI tool 脚手架
+- 结构化 workspace package 生成：app/tool 位于 `apps/*`，library 位于 `libs/*`
 
 ## 当前不支持的范围
 
-- workspace 子包 / 完整 monorepo 生成
+- 对已有 workspace 做 append / update 的增量式改造
+- worker app 生成
+- 通过 CLI flag 或交互问题完整配置任意 workspace package graph
 - 远程模板
 - 插件化模板来源
-- 对已有项目做增量式改造
 
 ## 快速开始
 

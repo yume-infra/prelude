@@ -305,6 +305,7 @@ describe('workspace/bootstrap contract', () => {
       linting: 'none',
       codeQuality: [],
       packageManager: 'pnpm',
+      packages: [],
     })).toEqual([
       {
         ownership: workspaceBootstrapPackageJsonMutation,

@@ -155,7 +155,7 @@ describe('generated smoke gate contract', () => {
         'smoke-cli-minimal': 'dist/index.js',
       },
       scripts: {
-        build: 'tsdown --config tsdown.config.ts && node scripts/ensure-shebang.mjs',
+        'build': 'tsdown --config tsdown.config.ts && node scripts/ensure-shebang.mjs',
         'smoke:bin': 'pnpm build && dist/index.js --help',
       },
     }, cliMinimalCase, 'generated-smoke')).not.toThrow()

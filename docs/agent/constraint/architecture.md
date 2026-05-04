@@ -9,20 +9,22 @@
 - pnpm workspace root
 - Node
 - CLI tool
+- 结构化 workspace 子包生成：`frontend-app` / `backend-app` / `cli-tool` 进入 `apps/*`，`library-package` 进入 `libs/*`
 
 明确不在范围内的内容：
 
-- workspace 子包 / 完整 monorepo 生成流程
-- worker app 与 library package 生成流程
+- 对已有 workspace 做 append / update 的增量式更新流程
+- worker app 生成流程
 - Node backend framework 选择；当前 Node scaffold 固定为 `framework: none`
 - CLI framework / toolkit 选择；当前 CLI scaffold 固定为 `toolkit: none`
+- library toolkit 选择；当前 library package scaffold 固定为 `toolkit: none`
+- 通过 CLI flag 或交互问题完整配置任意 workspace package graph
 - 远程模板
 - 插件系统 / 可插拔模板来源
-- 对已有项目做增量式更新
 
 ## Generation Model Taxonomy
 
-当前代码可以在 schema 层描述更宽的 generation model，但这不是新的生成能力开关。
+当前代码可以在 schema 层描述 generation model，并且 workspace root config 可以携带结构化 package list 进入生成链路。
 
 稳定术语如下：
 
@@ -36,22 +38,23 @@ runtime 推断与校验规则如下：
 - `backend-app`、`worker-app` 与 `cli-tool` 固定为 `node`。
 - `library-package` 只允许 `neutral` 或 `node`，未声明时推断为 `neutral`。
 
-当前 React / Vue / pnpm workspace root / Node / CLI tool 交互、preset、planner 与模板链路仍消费兼容层 `ProjectConfig`。
+当前 React / Vue / pnpm workspace root / Node / CLI tool 交互、preset、planner 与模板链路仍消费兼容层 `ProjectConfig`。workspace package list 也挂在 `WorkspaceRootConfig.packages` 上，供内部结构化配置与后续 spec UX 使用。
 
 当前适配关系如下：
 
 - React / Vue：`shape: standalone`、`kind: frontend-app`、`runtime: browser`。
-- pnpm workspace root：`shape: workspace`、`packages: []`，只表示根目录物化，不表示已有 workspace 子包。
+- pnpm workspace root：`shape: workspace`、`packages` 默认为 `[]`；为空时只物化根目录，非空时物化 workspace 子包。
 - Node：`shape: standalone`、`kind: backend-app`、`runtime: node`、`framework: none`。
 - CLI tool：`shape: standalone`、`kind: cli-tool`、`runtime: node`、`toolkit: none`。
+- Library package：当前只作为 workspace 子包生成，`kind: library-package`、`runtime: neutral | node`、`toolkit: none`。
 
 不要为了新 taxonomy 修改现有 React / Vue 生成产物。
 
-workspace package、`worker-app` 与 `library-package` 目前只是结构化 create spec 的未来输入边界。它们不得被解释为已经支持 workspace 子包调度、worker app / library package 生成或 `workspace:*` 依赖写入。
+workspace package 已进入结构化生成链路，但 `worker-app` 仍只是结构化 create spec 的未来输入边界。不得把 `worker-app` 解释为已经有可用模板或生成能力。
 
-当前代码允许内部 package manifest contribution 与 template registry 以 target-aware contract 表达 root/package/both scope，以及 nested package target path（例如 `apps/<name>/package.json`、`libs/<name>/package.json`）。这只是 PRD-5 之前的组合边界，不是用户可见的 workspace 子包生成能力开关。
+当前代码允许内部 package manifest contribution 与 template registry 以 target-aware contract 表达 root/package/both scope，以及 nested package target path（例如 `apps/<name>/package.json`、`libs/<name>/package.json`）。workspace 子包生成必须复用这个 contract，不得绕开到第二条 workflow。
 
-workspace package spec 可以声明内部依赖 link，目标可按 package id 或 package name 描述。当前只保留 link schema，用于后续 `workspace:*` emission 设计；本阶段不得实现依赖写入。
+workspace package spec 可以声明内部依赖 link，目标可按 package id 或 package name 描述。已声明的内部依赖必须写入 child `package.json` 的 `dependencies`，值固定为 `workspace:*`；未声明的本地 package 不得自动 link。
 
 ## 修改区域
 

@@ -1,12 +1,15 @@
 import type {
   CliProjectConfig,
+  LibraryProjectConfig,
   NodeProjectConfig,
   ProjectConfig,
   ReactProjectConfig,
   VueProjectConfig,
   WorkspaceRootConfig,
 } from '../../src/schema/project-config'
+import { makePackageName } from '../../src/brand/package-name'
 import { makeProjectName } from '../../src/brand/project-name'
+import { makePackageId } from '../../src/schema/create-spec'
 
 export const reactPresetProjectConfig = {
   name: makeProjectName('react-fixture'),
@@ -100,6 +103,7 @@ export const workspaceRootProjectConfig = {
   linting: 'antfu-eslint',
   codeQuality: ['lint-staged', 'commitlint'],
   packageManager: 'pnpm',
+  packages: [],
 } satisfies WorkspaceRootConfig
 
 export const workspaceRootMinimalProjectConfig = {
@@ -110,6 +114,7 @@ export const workspaceRootMinimalProjectConfig = {
   linting: 'none',
   codeQuality: [],
   packageManager: 'pnpm',
+  packages: [],
 } satisfies WorkspaceRootConfig
 
 export const nodeMinimalPresetProjectConfig = {
@@ -130,11 +135,82 @@ export const cliMinimalPresetProjectConfig = {
   codeQuality: [],
 } satisfies CliProjectConfig
 
+export const libraryMinimalProjectConfig = {
+  name: makeProjectName('library-minimal-fixture'),
+  type: 'library',
+  language: 'typescript',
+  git: false,
+  linting: 'none',
+  codeQuality: [],
+  runtime: 'neutral',
+} satisfies LibraryProjectConfig
+
+export const workspaceMixedProjectConfig = {
+  name: makeProjectName('workspace-mixed-fixture'),
+  type: 'workspace-root',
+  language: 'typescript',
+  git: false,
+  linting: 'none',
+  codeQuality: [],
+  packageManager: 'pnpm',
+  packages: [
+    {
+      id: makePackageId('web'),
+      name: makePackageName('@demo/web'),
+      kind: 'frontend-app',
+      runtime: 'browser',
+      internalDependencies: [
+        {
+          target: {
+            by: 'id',
+            id: makePackageId('shared'),
+          },
+        },
+      ],
+      frontend: {
+        framework: 'react',
+        buildTool: 'vite',
+        cssPreprocessor: 'less',
+        cssFramework: 'none',
+      },
+    },
+    {
+      id: makePackageId('tool'),
+      name: makePackageName('@demo/tool'),
+      kind: 'cli-tool',
+      runtime: 'node',
+      internalDependencies: [
+        {
+          target: {
+            by: 'name',
+            name: makePackageName('@demo/shared'),
+          },
+          alias: makePackageName('@demo/shared-runtime'),
+        },
+      ],
+      cli: {
+        toolkit: 'none',
+      },
+    },
+    {
+      id: makePackageId('shared'),
+      name: makePackageName('@demo/shared'),
+      kind: 'library-package',
+      runtime: 'neutral',
+      internalDependencies: [],
+      library: {
+        toolkit: 'none',
+      },
+    },
+  ],
+} satisfies WorkspaceRootConfig
+
 export const reactProjectConfig = reactPresetProjectConfig
 export const vueProjectConfig = vuePresetProjectConfig
 export const workspaceProjectConfig = workspaceRootProjectConfig
 export const nodeProjectConfig = nodeMinimalPresetProjectConfig
 export const cliProjectConfig = cliMinimalPresetProjectConfig
+export const libraryProjectConfig = libraryMinimalProjectConfig
 
 export const projectConfigs: readonly ProjectConfig[] = [
   reactPresetProjectConfig,
@@ -147,4 +223,6 @@ export const projectConfigs: readonly ProjectConfig[] = [
   workspaceRootMinimalProjectConfig,
   nodeMinimalPresetProjectConfig,
   cliMinimalPresetProjectConfig,
+  libraryMinimalProjectConfig,
+  workspaceMixedProjectConfig,
 ]

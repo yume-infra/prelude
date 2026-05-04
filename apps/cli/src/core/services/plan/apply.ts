@@ -245,7 +245,7 @@ function runTask(deps: PlanApplyDependencies, target: ResolvedTaskTarget, baseDi
         return
       }
       case 'render': {
-        const content = yield* templates.render(makeTemplatePath(task.src), task.data, config)
+        const content = yield* templates.render(makeTemplatePath(task.src), task.data, task.config ?? config)
         const existed = yield* fs.exists(abs)
         yield* writeText(fs, baseDir, abs, content, createdDirs)
         if (!existed)

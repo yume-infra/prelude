@@ -119,6 +119,7 @@ describe('collectQuestions', () => {
       linting: 'antfu-eslint',
       codeQuality: [],
       packageManager: 'pnpm',
+      packages: [],
     })
     expect(projectConfig).not.toHaveProperty('buildTool')
     expect(projectConfig).not.toHaveProperty('router')

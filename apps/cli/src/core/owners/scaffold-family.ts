@@ -1,15 +1,16 @@
 import type { PackageManifestContribution } from '@/core/modifier/package-manifest-contributions'
 import type { ProjectConfig } from '@/schema/project-config'
 import {
-  contributionTrace,
   CliScaffoldOwner,
+  contributionTrace,
   ContributionUnitKind,
   FrontendScaffoldOwner,
+  LibraryPackageOwner,
   NodeScaffoldOwner,
   ReactScaffoldOwner,
   VueScaffoldOwner,
 } from '@/core/ownership/model'
-import { isCliProject, isFrontendProject, isNodeProject, isReactProject, isVueProject } from '@/utils/type-guard'
+import { isCliProject, isFrontendProject, isLibraryProject, isNodeProject, isReactProject, isVueProject } from '@/utils/type-guard'
 
 export const frontendScaffoldPackageJsonMutation = contributionTrace(
   FrontendScaffoldOwner,
@@ -29,6 +30,10 @@ export const nodeScaffoldPackageJsonMutation = contributionTrace(
 )
 export const cliScaffoldPackageJsonMutation = contributionTrace(
   CliScaffoldOwner,
+  ContributionUnitKind.JsonTextMutation,
+)
+export const libraryPackageJsonMutation = contributionTrace(
+  LibraryPackageOwner,
   ContributionUnitKind.JsonTextMutation,
 )
 
@@ -87,14 +92,42 @@ export function getScaffoldFamilyPackageContributions(config: ProjectConfig): Pa
       },
       sections: {
         scripts: {
-          build: 'tsdown --config tsdown.config.ts && node scripts/ensure-shebang.mjs',
+          'build': 'tsdown --config tsdown.config.ts && node scripts/ensure-shebang.mjs',
           'smoke:bin': 'pnpm build && dist/index.js --help',
-          typecheck: 'tsc --noEmit',
+          'typecheck': 'tsc --noEmit',
         },
         devDependencies: {
           '@types/node': '^25.6.0',
           'tsdown': '^0.21.9',
           'typescript': '^6.0.3',
+        },
+      },
+    }))
+  }
+
+  if (isLibraryProject(config)) {
+    contributions.push(packageContribution({
+      ownership: libraryPackageJsonMutation,
+      fields: {
+        exports: {
+          '.': {
+            types: './dist/index.d.ts',
+            import: './dist/index.js',
+          },
+        },
+        main: 'dist/index.js',
+        types: 'dist/index.d.ts',
+        files: ['dist'],
+      },
+      sections: {
+        scripts: {
+          build: 'tsdown --config tsdown.config.ts',
+          typecheck: 'tsc --noEmit',
+        },
+        devDependencies: {
+          ...(config.runtime === 'node' ? { '@types/node': '^25.6.0' } : {}),
+          tsdown: '^0.21.9',
+          typescript: '^6.0.3',
         },
       },
     }))

@@ -71,7 +71,7 @@ TemplateEngine 当前是可接受的深模块。不要因为审查提到了 diag
 - 后置命令先于后置文件动作执行；Husky 初始化仍然是命令，hook 文件仍然在命令之后写入。
 - 本地 CLI 失败诊断保留完整可用输出；当前不做 command output redaction。
 - Plan/apply、TemplateEngine、Fs/Command、rollback 和 PlanSpec 是稳定执行核心。
-- 当前产品边界仍然是本地 React / Vue / pnpm workspace root / Node / CLI tool 项目脚手架，不包含 workspace 子包 / 完整 monorepo 生成、远程模板、插件系统或已有项目增量更新。
+- 当前产品边界仍然是本地 React / Vue / pnpm workspace root / Node / CLI tool 与结构化 workspace package 项目脚手架，不包含 worker app、远程模板、插件系统、完整 CLI package graph UX 或已有项目增量更新。
 
 ## 后续阅读
 

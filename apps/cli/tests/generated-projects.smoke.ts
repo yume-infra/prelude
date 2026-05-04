@@ -6,8 +6,8 @@ import { fileURLToPath } from 'node:url'
 import {
   assertGeneratedCliPackageContract,
   assertGeneratedExecutableBin,
-  assertGeneratedNodePackageContract,
   assertGeneratedLintProject,
+  assertGeneratedNodePackageContract,
   assertGeneratedProjectPackage,
   assertNonInteractiveGeneration,
   generatedLintArgs,

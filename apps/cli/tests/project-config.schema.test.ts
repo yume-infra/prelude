@@ -1,7 +1,20 @@
 import { Effect, Exit } from 'effect'
 import { describe, expect, it } from 'vitest'
-import { decodeProjectConfig, decodeSharedFrontendAppConfig, decodeWorkspaceRootConfig } from '../src/schema/project-config'
-import { cliProjectConfig, nodeProjectConfig, reactProjectConfig, vueProjectConfig, workspaceRootProjectConfig } from './support/fixtures'
+import {
+  decodeLibraryProjectConfig,
+  decodeProjectConfig,
+  decodeSharedFrontendAppConfig,
+  decodeWorkspaceRootConfig,
+} from '../src/schema/project-config'
+import {
+  cliProjectConfig,
+  libraryProjectConfig,
+  nodeProjectConfig,
+  reactProjectConfig,
+  vueProjectConfig,
+  workspaceMixedProjectConfig,
+  workspaceRootProjectConfig,
+} from './support/fixtures'
 
 describe('project config schema contract', () => {
   it('decodes a react fixture', async () => {
@@ -21,6 +34,11 @@ describe('project config schema contract', () => {
     await expect(Effect.runPromise(decodeProjectConfig(cliProjectConfig))).resolves.toEqual(cliProjectConfig)
   })
 
+  it('decodes library package fixtures', async () => {
+    await expect(Effect.runPromise(decodeLibraryProjectConfig(libraryProjectConfig))).resolves.toEqual(libraryProjectConfig)
+    await expect(Effect.runPromise(decodeProjectConfig(libraryProjectConfig))).resolves.toEqual(libraryProjectConfig)
+  })
+
   it('decodes a workspace root fixture without child packages', async () => {
     const decoded = await Effect.runPromise(decodeWorkspaceRootConfig({
       name: workspaceRootProjectConfig.name,
@@ -33,6 +51,13 @@ describe('project config schema contract', () => {
 
     expect(decoded).toEqual(workspaceRootProjectConfig)
     await expect(Effect.runPromise(decodeProjectConfig(decoded))).resolves.toEqual(workspaceRootProjectConfig)
+  })
+
+  it('decodes workspace package lists from structured config', async () => {
+    const decoded = await Effect.runPromise(decodeWorkspaceRootConfig(workspaceMixedProjectConfig))
+
+    expect(decoded.packages.map(packageSpec => packageSpec.id)).toEqual(['web', 'tool', 'shared'])
+    await expect(Effect.runPromise(decodeProjectConfig(decoded))).resolves.toEqual(workspaceMixedProjectConfig)
   })
 
   it('rejects unsupported project types', async () => {

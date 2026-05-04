@@ -8,7 +8,7 @@ import {
   projectConfigToCreateSpec,
 } from '../../src/schema/create-spec'
 import { decodeProjectConfig } from '../../src/schema/project-config'
-import { cliProjectConfig, nodeProjectConfig, reactProjectConfig, vueProjectConfig, workspaceRootProjectConfig } from '../support/fixtures'
+import { cliProjectConfig, nodeProjectConfig, reactProjectConfig, vueProjectConfig, workspaceMixedProjectConfig, workspaceRootProjectConfig } from '../support/fixtures'
 
 const frontendPackageInput = {
   id: 'web',
@@ -242,6 +242,16 @@ describe('create spec schema contract', () => {
     expect(createSpec).toEqual({
       shape: 'workspace',
       packages: [],
+    })
+  })
+
+  it('adapts workspace package config into a populated workspace create spec', async () => {
+    const decodedProjectConfig = await Effect.runPromise(decodeProjectConfig(workspaceMixedProjectConfig))
+    const createSpec = projectConfigToCreateSpec(decodedProjectConfig)
+
+    expect(createSpec).toEqual({
+      shape: 'workspace',
+      packages: workspaceMixedProjectConfig.packages,
     })
   })
 })

@@ -10,7 +10,7 @@ CLI 也可以通过 `workspace-root` preset 生成一个新的 pnpm workspace ro
 create-yume --preset workspace-root --name my-workspace --install
 ```
 
-这个 preset 只生成根目录文件，不生成 `apps/*` 或 `libs/*` 下的子包。生成的 `pnpm-workspace.yaml` 使用 `apps/*` 与 `libs/*` 作为初始包目录约定。
+这个 preset 只生成根目录文件。生成链路也支持通过结构化 package list 生成 `apps/*` 与 `libs/*` 下的子包；其中 runnable app/tool 位于 `apps/*`，shared library 位于 `libs/*`。完整 CLI / interactive package graph 配置会在后续任务中收敛。
 
 ## 依赖版本约定
 
@@ -47,11 +47,13 @@ pnpm verify
 
 ## 新增工作区内部依赖
 
-如果未来工作区内的包之间需要互相引用，应保持“明确声明内部依赖”的做法，而不是把它当成普通外部包处理。
+工作区内的包之间互相引用时，应保持“明确声明内部依赖”的做法，而不是把它当成普通外部包处理。
 
 简单说：
 
 - 内部包之间的关系要清楚可见
+- 已声明的内部依赖会写入 `workspace:*`
+- 未声明的本地包不会被自动 link
 - 不要让包解析悄悄退回到外部 registry 语义
 
 ## 需要更谨慎的改动
