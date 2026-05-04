@@ -1,0 +1,53 @@
+{
+  "id": "target-aware-package-template-composition",
+  "name": "target-aware-package-template-composition",
+  "title": "PRD-4: Target-Aware Package and Template Composition",
+  "description": "Make package manifests, template registries, ownership, and PlanSpec projection target-aware for root and nested workspace packages.",
+  "status": "planning",
+  "dev_type": "fullstack",
+  "scope": "target-aware-package-template-composition",
+  "package": "create-yume",
+  "priority": "P1",
+  "creator": "sayoriqwq",
+  "assignee": "sayoriqwq",
+  "createdAt": "2026-05-04",
+  "completedAt": null,
+  "branch": "codex/target-aware-package-template-composition",
+  "base_branch": "main",
+  "worktree_path": null,
+  "current_phase": 0,
+  "next_action": [
+    {
+      "phase": 1,
+      "action": "brainstorm"
+    },
+    {
+      "phase": 2,
+      "action": "research"
+    },
+    {
+      "phase": 3,
+      "action": "implement"
+    },
+    {
+      "phase": 4,
+      "action": "check"
+    },
+    {
+      "phase": 5,
+      "action": "update-spec"
+    },
+    {
+      "phase": 6,
+      "action": "record-session"
+    }
+  ],
+  "commit": null,
+  "pr_url": null,
+  "subtasks": [],
+  "children": [],
+  "parent": "05-04-monorepo-node-cli-support",
+  "relatedFiles": [],
+  "notes": "",
+  "meta": {}
+}

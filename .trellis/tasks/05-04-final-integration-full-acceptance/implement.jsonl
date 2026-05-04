@@ -1,0 +1,10 @@
+{"file": ".trellis/workflow.md", "reason": "Project workflow and conventions"}
+{"file": ".trellis/spec/create-yume/backend/index.md", "reason": "Backend development guide"}
+{"file": ".trellis/tasks/05-04-monorepo-node-cli-support/prd.md", "reason": "Parent lead roadmap, global decisions, and dependency ordering"}
+{"file": "docs/agent/constraint/architecture.md", "reason": "Scaffold boundary and stable execution core constraints"}
+{"file": "docs/agent/verification-matrix.md", "reason": "Validation selection for generated scaffold changes"}
+{"file": "apps/cli/tests/generated-projects.smoke.ts", "reason": "Standalone and workspace canonical smoke matrix"}
+{"file": "apps/cli/tests/dry-run-cli.smoke.ts", "reason": "Spec dry-run no-write coverage"}
+{"file": "apps/cli/tests/linked-examples.smoke.ts", "reason": "Linked examples final acceptance"}
+{"file": "apps/cli/tests/generated-scaffold-audit-skill.spec.ts", "reason": "Generated scaffold audit conventions"}
+{"file": "docs/user/system-architecture.md", "reason": "Docs alignment target"}

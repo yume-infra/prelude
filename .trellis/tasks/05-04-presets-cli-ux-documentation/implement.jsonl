@@ -1,0 +1,10 @@
+{"file": ".trellis/workflow.md", "reason": "Project workflow and conventions"}
+{"file": ".trellis/tasks/05-04-monorepo-node-cli-support/prd.md", "reason": "Parent lead roadmap, global decisions, and dependency ordering"}
+{"file": "docs/agent/constraint/architecture.md", "reason": "Scaffold boundary and stable execution core constraints"}
+{"file": "docs/agent/verification-matrix.md", "reason": "Validation selection for generated scaffold changes"}
+{"file": "apps/cli/src/core/cli-args.ts", "reason": "Raw CLI arg parse behavior"}
+{"file": "apps/cli/src/core/cli-help.ts", "reason": "User-facing help text"}
+{"file": "apps/cli/src/schema/preset.ts", "reason": "Preset schema naming boundary"}
+{"file": "apps/cli/src/core/services/preview.ts", "reason": "Dry-run formatting"}
+{"file": "docs/user/system-architecture.md", "reason": "User-facing supported scope docs"}
+{"file": "docs/agent/constraint/docs.md", "reason": "Docs constraints for user/agent doc separation"}

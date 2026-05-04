@@ -1,0 +1,53 @@
+{
+  "id": "monorepo-package-generation",
+  "name": "monorepo-package-generation",
+  "title": "PRD-5: Monorepo Package Generation",
+  "description": "Generate supported package kinds inside workspaces under apps/* and libs/* with explicit workspace dependency links.",
+  "status": "planning",
+  "dev_type": "fullstack",
+  "scope": "monorepo-package-generation",
+  "package": "create-yume",
+  "priority": "P1",
+  "creator": "sayoriqwq",
+  "assignee": "sayoriqwq",
+  "createdAt": "2026-05-04",
+  "completedAt": null,
+  "branch": "codex/monorepo-package-generation",
+  "base_branch": "main",
+  "worktree_path": null,
+  "current_phase": 0,
+  "next_action": [
+    {
+      "phase": 1,
+      "action": "brainstorm"
+    },
+    {
+      "phase": 2,
+      "action": "research"
+    },
+    {
+      "phase": 3,
+      "action": "implement"
+    },
+    {
+      "phase": 4,
+      "action": "check"
+    },
+    {
+      "phase": 5,
+      "action": "update-spec"
+    },
+    {
+      "phase": 6,
+      "action": "record-session"
+    }
+  ],
+  "commit": null,
+  "pr_url": null,
+  "subtasks": [],
+  "children": [],
+  "parent": "05-04-monorepo-node-cli-support",
+  "relatedFiles": [],
+  "notes": "",
+  "meta": {}
+}

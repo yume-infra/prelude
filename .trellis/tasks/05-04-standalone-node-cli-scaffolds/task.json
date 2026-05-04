@@ -1,0 +1,53 @@
+{
+  "id": "standalone-node-cli-scaffolds",
+  "name": "standalone-node-cli-scaffolds",
+  "title": "PRD-2: Standalone Node and CLI Scaffolds",
+  "description": "Add standalone Node-oriented and CLI tool scaffold capabilities after the generation model foundation is accepted.",
+  "status": "in_progress",
+  "dev_type": "fullstack",
+  "scope": "standalone-node-cli-scaffolds",
+  "package": "create-yume",
+  "priority": "P1",
+  "creator": "sayoriqwq",
+  "assignee": "sayoriqwq",
+  "createdAt": "2026-05-04",
+  "completedAt": null,
+  "branch": "codex/standalone-node-cli-scaffolds",
+  "base_branch": "main",
+  "worktree_path": "/Users/sayori/Desktop/trellis-worktrees/codex/standalone-node-cli-scaffolds",
+  "current_phase": 0,
+  "next_action": [
+    {
+      "phase": 1,
+      "action": "brainstorm"
+    },
+    {
+      "phase": 2,
+      "action": "research"
+    },
+    {
+      "phase": 3,
+      "action": "implement"
+    },
+    {
+      "phase": 4,
+      "action": "check"
+    },
+    {
+      "phase": 5,
+      "action": "update-spec"
+    },
+    {
+      "phase": 6,
+      "action": "record-session"
+    }
+  ],
+  "commit": null,
+  "pr_url": null,
+  "subtasks": [],
+  "children": [],
+  "parent": "05-04-monorepo-node-cli-support",
+  "relatedFiles": [],
+  "notes": "",
+  "meta": {}
+}

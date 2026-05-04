@@ -93,4 +93,5 @@ create spec 的 schema 也保留了 workspace、backend app、worker app、CLI t
 ## 相关入口
 
 - 用户文档路线图：[./roadmap.md](./roadmap.md)
+- 脚手架生成链路架构说明：[./architecture-review/scaffold-pipeline-chains.md](./architecture-review/scaffold-pipeline-chains.md)
 - 执行文档路线图：[../agent/roadmap.md](../agent/roadmap.md)

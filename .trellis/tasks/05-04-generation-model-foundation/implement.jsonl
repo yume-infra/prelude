@@ -1,0 +1,13 @@
+{"file": ".trellis/workflow.md", "reason": "Project workflow and conventions"}
+{"file": ".trellis/spec/create-yume/backend/index.md", "reason": "Backend development guide"}
+{"file": ".trellis/spec/create-yume/frontend/index.md", "reason": "Frontend development guide"}
+{"file": ".trellis/tasks/05-04-monorepo-node-cli-support/prd.md", "reason": "Parent lead roadmap, global decisions, and dependency ordering"}
+{"file": "docs/agent/constraint/architecture.md", "reason": "Scaffold boundary and stable execution core constraints"}
+{"file": "docs/agent/verification-matrix.md", "reason": "Validation selection for generated scaffold changes"}
+{"file": "apps/cli/src/schema/project-config.ts", "reason": "Current ProjectConfig union and runtime model entrypoint"}
+{"file": "apps/cli/src/schema/preset.ts", "reason": "Current preset schema to preserve while adding new model boundaries"}
+{"file": "apps/cli/src/schema/cli-args.ts", "reason": "CLI args decode boundary for future structured spec input"}
+{"file": "apps/cli/src/core/questions/compose.ts", "reason": "Question composition and preset-to-config conversion boundary"}
+{"file": "apps/cli/src/utils/type-guard.ts", "reason": "Current type guard patterns for ProjectConfig unions"}
+{"file": "apps/cli/tests/core/questions/compose.test.ts", "reason": "Compatibility tests for collected config behavior"}
+{"file": "apps/cli/tests/project-config.schema.test.ts", "reason": "Schema regression coverage"}

@@ -1,0 +1,61 @@
+{
+  "id": "monorepo-node-cli-support",
+  "name": "monorepo-node-cli-support",
+  "title": "brainstorm: monorepo and node cli support",
+  "description": "Clarify requirements and phased roadmap for expanding create-yume beyond React/Vue frontend scaffolds toward Node-layer, CLI, and monorepo support.",
+  "status": "planning",
+  "dev_type": null,
+  "scope": null,
+  "package": "create-yume",
+  "priority": "P1",
+  "creator": "sayoriqwq",
+  "assignee": "sayoriqwq",
+  "createdAt": "2026-05-04",
+  "completedAt": null,
+  "branch": null,
+  "base_branch": "main",
+  "worktree_path": null,
+  "current_phase": 0,
+  "next_action": [
+    {
+      "phase": 1,
+      "action": "brainstorm"
+    },
+    {
+      "phase": 2,
+      "action": "research"
+    },
+    {
+      "phase": 3,
+      "action": "implement"
+    },
+    {
+      "phase": 4,
+      "action": "check"
+    },
+    {
+      "phase": 5,
+      "action": "update-spec"
+    },
+    {
+      "phase": 6,
+      "action": "record-session"
+    }
+  ],
+  "commit": null,
+  "pr_url": null,
+  "subtasks": [],
+  "children": [
+    "05-04-generation-model-foundation",
+    "05-04-standalone-node-cli-scaffolds",
+    "05-04-workspace-root-materialization",
+    "05-04-target-aware-package-template-composition",
+    "05-04-monorepo-package-generation",
+    "05-04-presets-cli-ux-documentation",
+    "05-04-final-integration-full-acceptance"
+  ],
+  "parent": null,
+  "relatedFiles": [],
+  "notes": "",
+  "meta": {}
+}

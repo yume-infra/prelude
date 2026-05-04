@@ -1,0 +1,11 @@
+{"file": ".agents/skills/finish-work/SKILL.md", "reason": "Finish work checklist"}
+{"file": ".agents/skills/check/SKILL.md", "reason": "Code quality check spec"}
+{"file": ".trellis/tasks/05-04-monorepo-node-cli-support/prd.md", "reason": "Parent lead roadmap, global decisions, and dependency ordering"}
+{"file": "docs/agent/constraint/architecture.md", "reason": "Scaffold boundary and stable execution core constraints"}
+{"file": "docs/agent/verification-matrix.md", "reason": "Validation selection for generated scaffold changes"}
+{"file": "apps/cli/src/core/services/compose.ts", "reason": "Template and package generation orchestration"}
+{"file": "apps/cli/src/core/questions/compose.ts", "reason": "Interactive/spec package selection flow"}
+{"file": "apps/cli/src/core/template-registry/", "type": "directory", "reason": "Existing family registries to retarget under apps/libs"}
+{"file": "apps/cli/templates/fragments/", "type": "directory", "reason": "Generated scaffold templates"}
+{"file": "apps/cli/tests/generated-projects.smoke.ts", "reason": "Generated workspace smoke expansion"}
+{"file": "apps/cli/tests/linked-examples.smoke.ts", "reason": "Linked generated examples smoke pattern"}
