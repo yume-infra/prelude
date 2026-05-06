@@ -46,6 +46,7 @@ describe('frontend scaffold-family contract', () => {
       '.gitignore',
       'commitlint.config.ts',
       '.lintstagedrc.json',
+      'knip.jsonc',
     ]))
     expect(Object.values(workspaceBootstrapTemplates).every(template => template.scope === 'root')).toBe(true)
   })
@@ -58,6 +59,7 @@ describe('frontend scaffold-family contract', () => {
 
     expect(Object.keys(workspaceBootstrapTemplates)).toContain('eslint.config.mjs')
     expect(Object.keys(workspaceBootstrapTemplates)).toContain('.gitignore')
+    expect(Object.keys(workspaceBootstrapTemplates)).toContain('knip.jsonc')
     expect(Object.keys(workspaceBootstrapTemplates)).not.toContain('vite.config.ts')
   })
 
@@ -96,6 +98,7 @@ describe('frontend scaffold-family contract', () => {
     expect(Object.keys(templates)).toEqual(expect.arrayContaining([
       'vite.config.ts',
       'eslint.config.mjs',
+      'knip.jsonc',
       'local',
     ]))
     expect(sharedFrontendQuestionContracts.buildTool.options.map(option => option.value)).toEqual(['vite', 'none'])

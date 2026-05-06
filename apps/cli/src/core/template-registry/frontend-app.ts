@@ -15,6 +15,7 @@ import {
 import {
   workspaceBootstrapCodeQualityTemplates,
   workspaceBootstrapLintAndGitTemplates,
+  workspaceBootstrapMaintenanceTemplates,
 } from './workspace-bootstrap'
 
 interface SelectOption<T> {
@@ -188,6 +189,7 @@ export function assembleFrontendFamilyTemplates<
   return {
     ...(sharedFrontendCoreTemplates as TemplateRegistry<T>),
     ...(workspaceBootstrapLintAndGitTemplates as TemplateRegistry<T>),
+    ...(workspaceBootstrapMaintenanceTemplates as TemplateRegistry<T>),
     ...(sharedFrontendFinishingTemplates as TemplateRegistry<T>),
     ...(workspaceBootstrapCodeQualityTemplates as TemplateRegistry<T>),
     ...familyLocalTemplates,

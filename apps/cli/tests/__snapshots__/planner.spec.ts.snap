@@ -69,7 +69,30 @@ exports[`planner snapshots > builds a deterministic plan for cli minimal preset 
           },
           "reducer": "modify",
         },
+        {
+          "ownership": {
+            "owner": "workspace-bootstrap",
+            "unit": "json-text-mutation",
+          },
+          "reducer": "modify",
+        },
+        {
+          "ownership": {
+            "owner": "workspace-bootstrap",
+            "unit": "json-text-mutation",
+          },
+          "reducer": "modify",
+        },
       ],
+    },
+    {
+      "kind": "render",
+      "ownership": {
+        "owner": "workspace-bootstrap",
+        "unit": "fragment-render",
+      },
+      "path": "knip.jsonc",
+      "src": "/virtual/templates/fragments/common/maintenance/knip.jsonc.hbs",
     },
     {
       "kind": "render",
@@ -182,7 +205,30 @@ exports[`planner snapshots > builds a deterministic plan for node minimal preset
           },
           "reducer": "modify",
         },
+        {
+          "ownership": {
+            "owner": "workspace-bootstrap",
+            "unit": "json-text-mutation",
+          },
+          "reducer": "modify",
+        },
+        {
+          "ownership": {
+            "owner": "workspace-bootstrap",
+            "unit": "json-text-mutation",
+          },
+          "reducer": "modify",
+        },
       ],
+    },
+    {
+      "kind": "render",
+      "ownership": {
+        "owner": "workspace-bootstrap",
+        "unit": "fragment-render",
+      },
+      "path": "knip.jsonc",
+      "src": "/virtual/templates/fragments/common/maintenance/knip.jsonc.hbs",
     },
     {
       "kind": "render",
@@ -360,6 +406,20 @@ exports[`planner snapshots > builds a deterministic plan for react custom 1`] = 
         },
         {
           "ownership": {
+            "owner": "workspace-bootstrap",
+            "unit": "json-text-mutation",
+          },
+          "reducer": "modify",
+        },
+        {
+          "ownership": {
+            "owner": "workspace-bootstrap",
+            "unit": "json-text-mutation",
+          },
+          "reducer": "modify",
+        },
+        {
+          "ownership": {
             "owner": "state-management",
             "unit": "json-text-mutation",
           },
@@ -463,6 +523,15 @@ exports[`planner snapshots > builds a deterministic plan for react custom 1`] = 
       },
       "path": ".gitignore",
       "src": "/virtual/templates/fragments/common/gitignore.hbs",
+    },
+    {
+      "kind": "render",
+      "ownership": {
+        "owner": "workspace-bootstrap",
+        "unit": "fragment-render",
+      },
+      "path": "knip.jsonc",
+      "src": "/virtual/templates/fragments/common/maintenance/knip.jsonc.hbs",
     },
     {
       "kind": "render",
@@ -703,6 +772,20 @@ exports[`planner snapshots > builds a deterministic plan for react preset 1`] = 
         },
         {
           "ownership": {
+            "owner": "workspace-bootstrap",
+            "unit": "json-text-mutation",
+          },
+          "reducer": "modify",
+        },
+        {
+          "ownership": {
+            "owner": "workspace-bootstrap",
+            "unit": "json-text-mutation",
+          },
+          "reducer": "modify",
+        },
+        {
+          "ownership": {
             "owner": "state-management",
             "unit": "json-text-mutation",
           },
@@ -806,6 +889,15 @@ exports[`planner snapshots > builds a deterministic plan for react preset 1`] = 
       },
       "path": ".gitignore",
       "src": "/virtual/templates/fragments/common/gitignore.hbs",
+    },
+    {
+      "kind": "render",
+      "ownership": {
+        "owner": "workspace-bootstrap",
+        "unit": "fragment-render",
+      },
+      "path": "knip.jsonc",
+      "src": "/virtual/templates/fragments/common/maintenance/knip.jsonc.hbs",
     },
     {
       "kind": "render",
@@ -1032,6 +1124,20 @@ exports[`planner snapshots > builds a deterministic plan for vue custom 1`] = `
         },
         {
           "ownership": {
+            "owner": "workspace-bootstrap",
+            "unit": "json-text-mutation",
+          },
+          "reducer": "modify",
+        },
+        {
+          "ownership": {
+            "owner": "workspace-bootstrap",
+            "unit": "json-text-mutation",
+          },
+          "reducer": "modify",
+        },
+        {
+          "ownership": {
             "owner": "state-management",
             "unit": "json-text-mutation",
           },
@@ -1135,6 +1241,15 @@ exports[`planner snapshots > builds a deterministic plan for vue custom 1`] = `
       },
       "path": ".gitignore",
       "src": "/virtual/templates/fragments/common/gitignore.hbs",
+    },
+    {
+      "kind": "render",
+      "ownership": {
+        "owner": "workspace-bootstrap",
+        "unit": "fragment-render",
+      },
+      "path": "knip.jsonc",
+      "src": "/virtual/templates/fragments/common/maintenance/knip.jsonc.hbs",
     },
     {
       "kind": "render",
@@ -1368,6 +1483,20 @@ exports[`planner snapshots > builds a deterministic plan for vue preset 1`] = `
         },
         {
           "ownership": {
+            "owner": "workspace-bootstrap",
+            "unit": "json-text-mutation",
+          },
+          "reducer": "modify",
+        },
+        {
+          "ownership": {
+            "owner": "workspace-bootstrap",
+            "unit": "json-text-mutation",
+          },
+          "reducer": "modify",
+        },
+        {
+          "ownership": {
             "owner": "state-management",
             "unit": "json-text-mutation",
           },
@@ -1471,6 +1600,15 @@ exports[`planner snapshots > builds a deterministic plan for vue preset 1`] = `
       },
       "path": ".gitignore",
       "src": "/virtual/templates/fragments/common/gitignore.hbs",
+    },
+    {
+      "kind": "render",
+      "ownership": {
+        "owner": "workspace-bootstrap",
+        "unit": "fragment-render",
+      },
+      "path": "knip.jsonc",
+      "src": "/virtual/templates/fragments/common/maintenance/knip.jsonc.hbs",
     },
     {
       "kind": "render",

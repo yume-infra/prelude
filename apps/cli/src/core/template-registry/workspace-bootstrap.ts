@@ -51,6 +51,14 @@ export const workspaceBootstrapTemplates: TemplateRegistry<BaseProjectConfig> = 
     condition: config => config.codeQuality.includes('lint-staged'),
     ownership: workspaceFragmentRender,
   },
+
+  'knip.jsonc': {
+    template: makeTemplatePath('fragments/common/maintenance/knip.jsonc.hbs'),
+    target: 'knip.jsonc',
+    scope: 'root',
+    condition: () => true,
+    ownership: workspaceFragmentRender,
+  },
 }
 
 export const workspaceBootstrapRootTemplates: TemplateRegistry<WorkspaceRootConfig> = {
@@ -69,6 +77,8 @@ export const workspaceBootstrapRootTemplates: TemplateRegistry<WorkspaceRootConf
     condition: () => true,
     ownership: workspaceFragmentRender,
   },
+
+  'knip.jsonc': workspaceBootstrapTemplates['knip.jsonc'] as TemplateRegistry<WorkspaceRootConfig>['knip.jsonc'],
 }
 
 function pickTemplateRegistryEntries<T>(
@@ -90,4 +100,8 @@ export const workspaceBootstrapLintAndGitTemplates = pickTemplateRegistryEntries
 export const workspaceBootstrapCodeQualityTemplates = pickTemplateRegistryEntries(workspaceBootstrapTemplates, [
   'commitlint.config.ts',
   '.lintstagedrc.json',
+])
+
+export const workspaceBootstrapMaintenanceTemplates = pickTemplateRegistryEntries(workspaceBootstrapTemplates, [
+  'knip.jsonc',
 ])

@@ -19,6 +19,7 @@ import {
   vueCustomProjectConfig,
   vueMinimalPresetProjectConfig,
   vuePresetProjectConfig,
+  workspaceMixedProjectConfig,
   workspaceRootMinimalProjectConfig,
 } from './support/fixtures'
 
@@ -74,6 +75,16 @@ describe('template render snapshots', () => {
       'workspace root turbo config',
       'fragments/common/workspace/turbo.json.hbs',
       workspaceRootMinimalProjectConfig,
+    ],
+    [
+      'standalone react Knip config',
+      'fragments/common/maintenance/knip.jsonc.hbs',
+      reactPresetProjectConfig,
+    ],
+    [
+      'workspace mixed Knip config',
+      'fragments/common/maintenance/knip.jsonc.hbs',
+      workspaceMixedProjectConfig,
     ],
     [
       'node runtime entry',

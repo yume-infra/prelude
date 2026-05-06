@@ -302,6 +302,7 @@ describe('generated lint strategy', () => {
       '@vue/tsconfig',
       'eslint',
       'husky',
+      'knip',
       'less',
       'lint-staged',
       'typescript',

@@ -23,6 +23,10 @@ function renderWorkspaceTemplate(templatePath: string) {
     return '{\n  "tasks": {}\n}\n'
   }
 
+  if (templatePath.endsWith('knip.jsonc.hbs')) {
+    return '{\n  "$schema": "https://unpkg.com/knip@6/schema-jsonc.json"\n}\n'
+  }
+
   return ''
 }
 
@@ -100,6 +104,7 @@ describe('workspace root materialization', () => {
       'package.json',
       'pnpm-workspace.yaml',
       'turbo.json',
+      'knip.jsonc',
     ])
     expect(planSpec.tasks).toContainEqual(expect.objectContaining({
       kind: 'render',
@@ -123,8 +128,12 @@ describe('workspace root materialization', () => {
       name: workspaceRootMinimalProjectConfig.name,
       private: true,
       packageManager: 'pnpm@10.12.4',
-      scripts: {},
+      scripts: {
+        knip: 'knip',
+        verify: 'pnpm knip',
+      },
       devDependencies: {
+        knip: '^6.12.0',
         turbo: '^2.9.6',
       },
     })
@@ -138,7 +147,9 @@ describe('workspace root materialization', () => {
     expect(manifest.scripts).toEqual({
       build: 'turbo run build',
       dev: 'turbo run dev',
+      knip: 'knip',
       typecheck: 'turbo run typecheck',
+      verify: 'pnpm build && pnpm typecheck && pnpm knip',
     })
   })
 
@@ -159,6 +170,7 @@ describe('workspace root materialization', () => {
     expect(writes.map(write => write.path)).toEqual([
       `${baseDir}/pnpm-workspace.yaml`,
       `${baseDir}/turbo.json`,
+      `${baseDir}/knip.jsonc`,
       `${baseDir}/package.json`,
     ])
     expect(writes.find(write => write.path.endsWith('pnpm-workspace.yaml'))?.content).toBe(
@@ -171,7 +183,12 @@ describe('workspace root materialization', () => {
     expect(packageJson).toMatchObject({
       private: true,
       packageManager: 'pnpm@10.12.4',
+      scripts: {
+        knip: 'knip',
+        verify: 'pnpm knip',
+      },
       devDependencies: {
+        knip: '^6.12.0',
         turbo: '^2.9.6',
       },
     })
@@ -199,8 +216,10 @@ describe('workspace root materialization', () => {
     expect(writes.map(write => write.path)).toEqual([
       `${baseDir}/pnpm-workspace.yaml`,
       `${baseDir}/turbo.json`,
+      `${baseDir}/knip.jsonc`,
     ])
     expect(removes).toEqual([
+      `${baseDir}/knip.jsonc`,
       `${baseDir}/turbo.json`,
       `${baseDir}/pnpm-workspace.yaml`,
       baseDir,

@@ -110,9 +110,11 @@ describe('buildPackageJson', () => {
     expect(Object.keys(packageJson.scripts as Record<string, unknown>)).toEqual([
       'build',
       'dev',
+      'knip',
       'lint',
       'lint:fix',
       'preview',
+      'verify',
     ])
     expect(Object.keys(packageJson.devDependencies as Record<string, unknown>)).toEqual([
       '@antfu/eslint-config',
@@ -125,6 +127,7 @@ describe('buildPackageJson', () => {
       'eslint-plugin-react-hooks',
       'eslint-plugin-react-refresh',
       'husky',
+      'knip',
       'lint-staged',
       'typescript',
     ])
@@ -135,6 +138,7 @@ describe('buildPackageJson', () => {
       '@commitlint/config-conventional': '^20.5.0',
       'eslint': '^10.2.1',
       'husky': '^9.1.7',
+      'knip': '^6.12.0',
       'lint-staged': '^16.4.0',
       'typescript': '^6.0.3',
     })
@@ -200,6 +204,7 @@ describe('buildPackageJson', () => {
       '@vue/tsconfig',
       'eslint',
       'husky',
+      'knip',
       'lint-staged',
       'sass',
       'typescript',
@@ -327,8 +332,13 @@ describe('buildPackageJson', () => {
     expect(packageJson.devDependencies).not.toHaveProperty('@antfu/eslint-config')
     expect(packageJson.devDependencies).not.toHaveProperty('@lobehub/commit-cli')
     expect(packageJson.devDependencies).not.toHaveProperty('husky')
+    expect(packageJson.devDependencies).toHaveProperty('knip', '^6.12.0')
     expect(packageJson.scripts).not.toHaveProperty('commit')
     expect(packageJson.scripts).not.toHaveProperty('lint')
+    expect(packageJson.scripts).toMatchObject({
+      knip: 'knip',
+      verify: 'pnpm build && pnpm knip',
+    })
   })
 
   it('writes TypeScript ESM and tsdown baseline for standalone node projects', () => {
@@ -349,11 +359,14 @@ describe('buildPackageJson', () => {
       files: ['dist'],
       scripts: {
         build: 'tsdown --config tsdown.config.ts',
+        knip: 'knip',
         start: 'node dist/index.js',
         typecheck: 'tsc --noEmit',
+        verify: 'pnpm build && pnpm typecheck && pnpm knip',
       },
       devDependencies: {
         '@types/node': '^25.6.0',
+        'knip': '^6.12.0',
         'tsdown': '^0.21.9',
         'typescript': '^6.0.3',
       },
@@ -397,11 +410,14 @@ describe('buildPackageJson', () => {
       files: ['dist'],
       scripts: {
         'build': 'tsdown --config tsdown.config.ts && node scripts/ensure-shebang.mjs',
+        'knip': 'knip',
         'smoke:bin': 'pnpm build && dist/index.js --help',
         'typecheck': 'tsc --noEmit',
+        'verify': 'pnpm build && pnpm typecheck && pnpm knip',
       },
       devDependencies: {
         '@types/node': '^25.6.0',
+        'knip': '^6.12.0',
         'tsdown': '^0.21.9',
         'typescript': '^6.0.3',
       },
@@ -464,9 +480,12 @@ describe('buildPackageJson', () => {
       files: ['dist'],
       scripts: {
         build: 'tsdown --config tsdown.config.ts',
+        knip: 'knip',
         typecheck: 'tsc --noEmit',
+        verify: 'pnpm build && pnpm typecheck && pnpm knip',
       },
       devDependencies: {
+        knip: '^6.12.0',
         tsdown: '^0.21.9',
         typescript: '^6.0.3',
       },

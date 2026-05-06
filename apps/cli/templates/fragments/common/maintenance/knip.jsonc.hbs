@@ -1,0 +1,45 @@
+{{#if (eq @config.type "cli")}}
+{
+  "$schema": "https://unpkg.com/knip@6/schema-jsonc.json",
+  "ignore": [
+    "**/dist/**"
+  ],
+  "ignoreBinaries": [
+    "dist/index.js"
+  ]
+}
+{{else if (eq @config.type "workspace-root")}}
+{{#if @config.packages}}
+{
+  "$schema": "https://unpkg.com/knip@6/schema-jsonc.json",
+  "ignore": [
+    "**/dist/**"
+  ],
+  "workspaces": {
+{{#each @config.packages}}
+{{#if (eq kind "cli-tool")}}
+    "apps/{{id}}": {
+      "ignoreBinaries": [
+        "dist/index.js"
+      ]
+    }{{#unless @last}},{{/unless}}
+{{/if}}
+{{/each}}
+  }
+}
+{{else}}
+{
+  "$schema": "https://unpkg.com/knip@6/schema-jsonc.json",
+  "ignore": [
+    "**/dist/**"
+  ]
+}
+{{/if}}
+{{else}}
+{
+  "$schema": "https://unpkg.com/knip@6/schema-jsonc.json",
+  "ignore": [
+    "**/dist/**"
+  ]
+}
+{{/if}}

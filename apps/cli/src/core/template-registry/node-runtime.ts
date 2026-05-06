@@ -11,6 +11,7 @@ import {
 import {
   workspaceBootstrapCodeQualityTemplates,
   workspaceBootstrapLintAndGitTemplates,
+  workspaceBootstrapMaintenanceTemplates,
 } from './workspace-bootstrap'
 
 type NodeRuntimeProjectConfig = NodeProjectConfig | CliProjectConfig | LibraryProjectConfig
@@ -44,6 +45,7 @@ function assembleNodeRuntimeFamilyTemplates<T extends NodeRuntimeProjectConfig>(
 ): TemplateRegistry<T> {
   return {
     ...(workspaceBootstrapLintAndGitTemplates as TemplateRegistry<BaseProjectConfig> as TemplateRegistry<T>),
+    ...(workspaceBootstrapMaintenanceTemplates as TemplateRegistry<BaseProjectConfig> as TemplateRegistry<T>),
     ...nodeRuntimeCoreTemplates<T>(ownership),
     ...familyLocalTemplates,
     ...(workspaceBootstrapCodeQualityTemplates as TemplateRegistry<BaseProjectConfig> as TemplateRegistry<T>),

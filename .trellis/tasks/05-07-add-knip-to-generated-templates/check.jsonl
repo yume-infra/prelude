@@ -1,0 +1,5 @@
+{"file": ".trellis/spec/create-yume/template-system/index.md", "reason": "Check manifest contributions, root-scoped template placement, and required template/manifest tests."}
+{"file": ".trellis/spec/create-yume/workspace-packages/index.md", "reason": "Check workspace root vs child package scope and root script aggregation behavior."}
+{"file": ".trellis/spec/create-yume/verification/index.md", "reason": "Check selected verification commands and Knip inclusion in broad quality gates."}
+{"file": ".trellis/spec/examples/generated-smoke/index.md", "reason": "Check generated smoke expectations when default generated project tooling changes."}
+{"file": ".trellis/tasks/05-07-add-knip-to-generated-templates/research/knip-cli-and-config.md", "reason": "Check implementation remains aligned with Knip CLI/config conventions."}
