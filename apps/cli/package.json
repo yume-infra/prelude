@@ -1,13 +1,16 @@
 {
   "name": "create-yume",
   "type": "module",
-  "version": "0.0.1",
-  "description": "A CLI tool for scaffolding opinionated projects",
+  "version": "0.1.0",
+  "description": "A focused local project scaffolding CLI for React, Vue, Node, CLI tools, libraries, and pnpm workspaces",
   "author": "sayoriqwq",
   "license": "ISC",
   "keywords": [
+    "create",
     "cli",
-    "tool"
+    "scaffold",
+    "generator",
+    "pnpm"
   ],
   "main": "dist/index.js",
   "bin": {
@@ -32,19 +35,14 @@
   },
   "dependencies": {
     "@clack/prompts": "catalog:",
-    "@effect/cluster": "catalog:",
     "@effect/experimental": "catalog:",
     "@effect/opentelemetry": "catalog:",
     "@effect/platform": "catalog:",
     "@effect/platform-node": "catalog:",
-    "@effect/rpc": "catalog:",
-    "@effect/sql": "catalog:",
-    "@effect/workflow": "catalog:",
     "@opentelemetry/exporter-trace-otlp-http": "catalog:",
     "@opentelemetry/sdk-trace-base": "catalog:",
     "@opentelemetry/sdk-trace-node": "catalog:",
     "effect": "catalog:",
-    "execa": "catalog:",
     "handlebars": "catalog:",
     "immer": "catalog:",
     "lodash-es": "catalog:",
@@ -54,6 +52,7 @@
     "@effect/language-service": "catalog:",
     "@types/lodash-es": "catalog:",
     "@types/node": "catalog:",
+    "execa": "catalog:",
     "tsdown": "catalog:",
     "tsx": "catalog:",
     "typescript": "catalog:",

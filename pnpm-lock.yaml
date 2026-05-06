@@ -24,9 +24,6 @@ catalogs:
     '@commitlint/config-conventional':
       specifier: ^20.5.0
       version: 20.5.0
-    '@effect/cluster':
-      specifier: ^0.58.1
-      version: 0.58.1
     '@effect/experimental':
       specifier: ^0.60.0
       version: 0.60.0
@@ -42,15 +39,6 @@ catalogs:
     '@effect/platform-node':
       specifier: ^0.106.0
       version: 0.106.0
-    '@effect/rpc':
-      specifier: ^0.75.0
-      version: 0.75.0
-    '@effect/sql':
-      specifier: ^0.51.0
-      version: 0.51.0
-    '@effect/workflow':
-      specifier: ^0.18.0
-      version: 0.18.0
     '@opentelemetry/exporter-trace-otlp-http':
       specifier: ^0.204.0
       version: 0.204.0
@@ -146,9 +134,6 @@ importers:
       '@clack/prompts':
         specifier: 'catalog:'
         version: 1.2.0
-      '@effect/cluster':
-        specifier: 'catalog:'
-        version: 0.58.1(@effect/platform@0.96.0(effect@3.21.1))(@effect/rpc@0.75.0(@effect/platform@0.96.0(effect@3.21.1))(effect@3.21.1))(@effect/sql@0.51.0(@effect/experimental@0.60.0(@effect/platform@0.96.0(effect@3.21.1))(effect@3.21.1))(@effect/platform@0.96.0(effect@3.21.1))(effect@3.21.1))(@effect/workflow@0.18.0(@effect/experimental@0.60.0(@effect/platform@0.96.0(effect@3.21.1))(effect@3.21.1))(@effect/platform@0.96.0(effect@3.21.1))(@effect/rpc@0.75.0(@effect/platform@0.96.0(effect@3.21.1))(effect@3.21.1))(effect@3.21.1))(effect@3.21.1)
       '@effect/experimental':
         specifier: 'catalog:'
         version: 0.60.0(@effect/platform@0.96.0(effect@3.21.1))(effect@3.21.1)
@@ -161,15 +146,6 @@ importers:
       '@effect/platform-node':
         specifier: 'catalog:'
         version: 0.106.0(@effect/cluster@0.58.1(@effect/platform@0.96.0(effect@3.21.1))(@effect/rpc@0.75.0(@effect/platform@0.96.0(effect@3.21.1))(effect@3.21.1))(@effect/sql@0.51.0(@effect/experimental@0.60.0(@effect/platform@0.96.0(effect@3.21.1))(effect@3.21.1))(@effect/platform@0.96.0(effect@3.21.1))(effect@3.21.1))(@effect/workflow@0.18.0(@effect/experimental@0.60.0(@effect/platform@0.96.0(effect@3.21.1))(effect@3.21.1))(@effect/platform@0.96.0(effect@3.21.1))(@effect/rpc@0.75.0(@effect/platform@0.96.0(effect@3.21.1))(effect@3.21.1))(effect@3.21.1))(effect@3.21.1))(@effect/platform@0.96.0(effect@3.21.1))(@effect/rpc@0.75.0(@effect/platform@0.96.0(effect@3.21.1))(effect@3.21.1))(@effect/sql@0.51.0(@effect/experimental@0.60.0(@effect/platform@0.96.0(effect@3.21.1))(effect@3.21.1))(@effect/platform@0.96.0(effect@3.21.1))(effect@3.21.1))(effect@3.21.1)
-      '@effect/rpc':
-        specifier: 'catalog:'
-        version: 0.75.0(@effect/platform@0.96.0(effect@3.21.1))(effect@3.21.1)
-      '@effect/sql':
-        specifier: 'catalog:'
-        version: 0.51.0(@effect/experimental@0.60.0(@effect/platform@0.96.0(effect@3.21.1))(effect@3.21.1))(@effect/platform@0.96.0(effect@3.21.1))(effect@3.21.1)
-      '@effect/workflow':
-        specifier: 'catalog:'
-        version: 0.18.0(@effect/experimental@0.60.0(@effect/platform@0.96.0(effect@3.21.1))(effect@3.21.1))(@effect/platform@0.96.0(effect@3.21.1))(@effect/rpc@0.75.0(@effect/platform@0.96.0(effect@3.21.1))(effect@3.21.1))(effect@3.21.1)
       '@opentelemetry/exporter-trace-otlp-http':
         specifier: 'catalog:'
         version: 0.204.0(@opentelemetry/api@1.9.1)
@@ -182,9 +158,6 @@ importers:
       effect:
         specifier: 'catalog:'
         version: 3.21.1
-      execa:
-        specifier: 'catalog:'
-        version: 9.6.1
       handlebars:
         specifier: 'catalog:'
         version: 4.7.9
@@ -207,6 +180,9 @@ importers:
       '@types/node':
         specifier: 'catalog:'
         version: 25.6.0
+      execa:
+        specifier: 'catalog:'
+        version: 9.6.1
       tsdown:
         specifier: 'catalog:'
         version: 0.21.9(synckit@0.11.12)(typescript@5.9.3)

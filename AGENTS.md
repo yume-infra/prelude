@@ -28,3 +28,7 @@ If you're using Codex or another agent-capable tool, additional project-scoped h
 Managed by Trellis. Edits outside this block are preserved; edits inside may be overwritten by a future `trellis update`.
 
 <!-- TRELLIS:END -->
+
+## Project Notes
+
+- Generated React/Vue full presets can emit Tailwind CSS / Lightning CSS unknown at-rule warnings during Vite production builds. Treat those warnings as expected and non-blocking when the build completes and generated lint checks pass.

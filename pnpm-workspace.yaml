@@ -25,15 +25,11 @@ catalog:
   '@clack/prompts': ^1.2.0
   '@commitlint/cli': ^20.5.0
   '@commitlint/config-conventional': ^20.5.0
-  '@effect/cluster': ^0.58.1
   '@effect/experimental': ^0.60.0
   '@effect/language-service': ^0.85.1
   '@effect/opentelemetry': ^0.56.6
   '@effect/platform': ^0.96.0
   '@effect/platform-node': ^0.106.0
-  '@effect/rpc': ^0.75.0
-  '@effect/sql': ^0.51.0
-  '@effect/workflow': ^0.18.0
   '@opentelemetry/exporter-trace-otlp-http': ^0.204.0
   '@opentelemetry/sdk-trace-base': ^2.1.0
   '@opentelemetry/sdk-trace-node': ^2.1.0
