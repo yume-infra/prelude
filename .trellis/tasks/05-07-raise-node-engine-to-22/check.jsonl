@@ -1,0 +1,2 @@
+{"file": ".trellis/spec/create-yume/repository/index.md", "reason": "Check repository-level config change against verification and commit rules."}
+{"file": ".trellis/spec/guides/index.md", "reason": "Confirm config value search was performed before modification."}
