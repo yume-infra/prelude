@@ -38,3 +38,37 @@ Merged the A/B/C expansion worktrees into main: hardened workspace root script d
 ### Next Steps
 
 - None - task complete
+
+
+## Session 2: Migrate final acceptance smoke gates
+
+**Date**: 2026-05-06
+**Task**: Migrate final acceptance smoke gates
+**Package**: create-yume
+**Branch**: `main`
+
+### Summary
+
+Manually migrated final acceptance smoke coverage onto main: dry-run spec no-write checks, workspace generated smoke cases, spec-aware diagnostics, smoke:dry-run scripts, and verification/user command docs.
+
+### Main Changes
+
+(Add details)
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `a5b8b55` | (see git log) |
+
+### Testing
+
+- [OK] (Add test results)
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- None - task complete
