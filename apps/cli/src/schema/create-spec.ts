@@ -8,47 +8,11 @@ import {
 } from './generation-package-spec'
 
 export {
-  BackendAppFrameworkSchema,
-  BackendAppSpecSchema,
-  CliToolkitSchema,
-  CliToolSpecSchema,
   decodeGenerationPackageSpec,
-  formatGenerationPackageSpecError,
-  FrontendAppSpecSchema,
-  GenerationPackageSpecSchema,
-  InternalDependencyLinkSchema,
-  InternalDependencyTargetSchema,
-  LibraryPackageSpecSchema,
-  LibraryToolkitSchema,
   makePackageId,
-  PackageIdSchema,
-  PackageKindSchema,
-  RuntimeKindSchema,
-  WorkerAppSpecSchema,
-  WorkerToolkitSchema,
 } from './generation-package-spec'
 
-export type {
-  BackendAppSpec,
-  CliToolkit,
-  CliToolSpec,
-  FrontendAppSpec,
-  GenerationPackageSpec,
-  InternalDependencyLink,
-  InternalDependencyTarget,
-  LibraryPackageSpec,
-  PackageId,
-  PackageKind,
-  RuntimeKind,
-  WorkerAppSpec,
-} from './generation-package-spec'
-
-export const GenerationShapeSchema = Schema.Literal('standalone', 'workspace').annotations({
-  identifier: 'GenerationShape',
-  title: 'GenerationShape',
-})
-
-export const StandaloneCreateSpecSchema = Schema.Struct({
+const StandaloneCreateSpecSchema = Schema.Struct({
   shape: Schema.Literal('standalone'),
   package: GenerationPackageSpecSchema,
 }).annotations({
@@ -56,7 +20,7 @@ export const StandaloneCreateSpecSchema = Schema.Struct({
   title: 'StandaloneCreateSpec',
 })
 
-export const WorkspaceCreateSpecSchema = Schema.Struct({
+const WorkspaceCreateSpecSchema = Schema.Struct({
   shape: Schema.Literal('workspace'),
   packages: Schema.Array(GenerationPackageSpecSchema),
 }).annotations({
@@ -64,7 +28,7 @@ export const WorkspaceCreateSpecSchema = Schema.Struct({
   title: 'WorkspaceCreateSpec',
 })
 
-export const CreateSpecSchema = Schema.Union(
+const CreateSpecSchema = Schema.Union(
   StandaloneCreateSpecSchema,
   WorkspaceCreateSpecSchema,
 ).annotations({
@@ -72,9 +36,6 @@ export const CreateSpecSchema = Schema.Union(
   title: 'CreateSpec',
 })
 
-export type GenerationShape = Schema.Schema.Type<typeof GenerationShapeSchema>
-export type StandaloneCreateSpec = Schema.Schema.Type<typeof StandaloneCreateSpecSchema>
-export type WorkspaceCreateSpec = Schema.Schema.Type<typeof WorkspaceCreateSpecSchema>
 export type CreateSpec = Schema.Schema.Type<typeof CreateSpecSchema>
 
 export const decodeCreateSpec = Schema.decodeUnknown(CreateSpecSchema, { errors: 'all' })

@@ -1,6 +1,6 @@
 import { ParseResult, Schema } from 'effect'
 
-export const ProjectNamePattern = /^[\w-]+$/
+const ProjectNamePattern = /^[\w-]+$/
 
 export const ProjectNameSchema = Schema.String.pipe(
   Schema.pattern(ProjectNamePattern),

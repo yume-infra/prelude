@@ -6,7 +6,7 @@ import { makeTemplatePath } from '../src/brand/template-path'
 import { AppConfig } from '../src/config/app-config'
 import { FileIOError, PlanConflictError, PlanTargetPathError } from '../src/core/errors'
 import { PlanService } from '../src/core/services/planner'
-import { reactProjectConfig } from './support/fixtures'
+import { reactPresetProjectConfig } from './support/fixtures'
 import { makeFsMockLayer, makeTemplateEngineMockLayer } from './support/mock-layers'
 
 describe('planner rollback', () => {
@@ -73,7 +73,7 @@ describe('planner rollback', () => {
     const exit = await Effect.runPromiseExit(
       Effect.gen(function* () {
         const planner = yield* PlanService
-        yield* planner.apply(plan, baseDir, reactProjectConfig)
+        yield* planner.apply(plan, baseDir, reactPresetProjectConfig)
       }).pipe(Effect.provide(layer)),
     )
 
@@ -146,7 +146,7 @@ describe('planner rollback', () => {
     const exit = await Effect.runPromiseExit(
       Effect.gen(function* () {
         const planner = yield* PlanService
-        yield* planner.apply(plan, baseDir, reactProjectConfig, { rollbackOnFailure: false })
+        yield* planner.apply(plan, baseDir, reactPresetProjectConfig, { rollbackOnFailure: false })
       }).pipe(Effect.provide(layer)),
     )
 
@@ -205,7 +205,7 @@ describe('planner rollback', () => {
     const exit = await Effect.runPromiseExit(
       Effect.gen(function* () {
         const planner = yield* PlanService
-        yield* planner.apply(plan, baseDir, reactProjectConfig)
+        yield* planner.apply(plan, baseDir, reactPresetProjectConfig)
       }).pipe(Effect.provide(layer)),
     )
 
@@ -270,7 +270,7 @@ describe('planner rollback', () => {
     const exit = await Effect.runPromiseExit(
       Effect.gen(function* () {
         const planner = yield* PlanService
-        yield* planner.apply(plan, baseDir, reactProjectConfig)
+        yield* planner.apply(plan, baseDir, reactPresetProjectConfig)
       }).pipe(Effect.provide(layer)),
     )
 
@@ -334,7 +334,7 @@ describe('planner rollback', () => {
     const exit = await Effect.runPromiseExit(
       Effect.gen(function* () {
         const planner = yield* PlanService
-        yield* planner.apply(plan, baseDir, reactProjectConfig)
+        yield* planner.apply(plan, baseDir, reactPresetProjectConfig)
       }).pipe(Effect.provide(layer)),
     )
 
@@ -397,7 +397,7 @@ describe('planner rollback', () => {
     const exit = await Effect.runPromiseExit(
       Effect.gen(function* () {
         const planner = yield* PlanService
-        yield* planner.apply(plan, baseDir, reactProjectConfig)
+        yield* planner.apply(plan, baseDir, reactPresetProjectConfig)
       }).pipe(Effect.provide(layer)),
     )
 

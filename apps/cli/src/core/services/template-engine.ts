@@ -20,7 +20,7 @@ import { FsService } from '~/fs'
 import { withProjectAnnotations } from './observability'
 import { registerTemplateHelpers } from './template-helpers'
 
-export interface TemplatePartialEntry {
+interface TemplatePartialEntry {
   readonly dir: TemplatePath
   readonly namespace: string
   readonly ownership: ContributionTrace

@@ -2,7 +2,7 @@ import { ParseResult, Schema } from 'effect'
 import { ProjectNameSchema } from '../brand/project-name'
 import { PresetSchema } from './preset'
 
-export const CliArgsSchema = Schema.Struct({
+const CliArgsSchema = Schema.Struct({
   _: Schema.optionalWith(Schema.Array(Schema.String), { exact: true }),
   preset: Schema.optionalWith(PresetSchema, { exact: true }),
   spec: Schema.optionalWith(Schema.String, { exact: true }),

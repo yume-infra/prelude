@@ -1,7 +1,7 @@
 import type { ProjectConfig } from '@/schema/project-config'
 import { Effect } from 'effect'
 
-export function projectAnnotations(
+function projectAnnotations(
   config: ProjectConfig,
   taskKind: string,
   targetPath?: string,

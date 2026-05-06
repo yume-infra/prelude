@@ -216,13 +216,6 @@ export const workspaceMixedProjectConfig = {
   ],
 } satisfies WorkspaceRootConfig
 
-export const reactProjectConfig = reactPresetProjectConfig
-export const vueProjectConfig = vuePresetProjectConfig
-export const workspaceProjectConfig = workspaceRootProjectConfig
-export const nodeProjectConfig = nodeMinimalPresetProjectConfig
-export const cliProjectConfig = cliMinimalPresetProjectConfig
-export const libraryProjectConfig = libraryMinimalProjectConfig
-
 export const projectConfigs: readonly ProjectConfig[] = [
   reactPresetProjectConfig,
   reactMinimalPresetProjectConfig,

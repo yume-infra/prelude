@@ -1,5 +1,3 @@
-// 引入了 platform，针对未处理的冒泡情况，还是包含比较好
-import type { PlatformError } from '@effect/platform/Error'
 import { Data } from 'effect'
 
 export class TemplateError extends Data.TaggedError('TemplateCompileError')<{
@@ -59,21 +57,3 @@ export class SchemaContractError extends Data.TaggedError('SchemaContractError')
   message: string
   issueCount?: number
 }> {}
-
-export class UnknownError extends Data.TaggedError('UnknownError') {
-  constructor() {
-    super()
-    this.message = '未知错误'
-  }
-}
-
-export type CLIError
-  = | PlatformError
-    | SchemaContractError
-    | TemplateError
-    | FileIOError
-    | CommandError
-    | PlanConflictError
-    | PlanTargetPathError
-    | PlanSpecProjectionError
-    | UnknownError

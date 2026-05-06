@@ -1,8 +1,8 @@
 import type { PropertyPath } from 'lodash-es'
-import { get as _get, has as _has, merge as _merge, set as _set, unset as _unset } from 'lodash-es'
+import { get as _get, merge as _merge, set as _set } from 'lodash-es'
 
 export type JsonDraft = Record<string, unknown>
-export type Path = string | Array<string | number>
+type Path = string | Array<string | number>
 
 export function when(cond: boolean, mod: (draft: JsonDraft) => void) {
   return (draft: JsonDraft) => {
@@ -11,18 +11,8 @@ export function when(cond: boolean, mod: (draft: JsonDraft) => void) {
   }
 }
 
-// setAt: 设置路径上的值（默认覆盖）
-export function setAt(path: Path, value: unknown, opts?: { overwrite?: boolean }) {
-  return (draft: JsonDraft) => {
-    const p = path as PropertyPath
-    if (opts?.overwrite === false && _has(draft, p))
-      return
-    _set(draft, p, value)
-  }
-}
-
 // mergeAt: 将一组键值合并到路径对应的对象下
-export function mergeAt(path: Path, values: Record<string, unknown>, opts?: { overwrite?: boolean }) {
+function mergeAt(path: Path, values: Record<string, unknown>, opts?: { overwrite?: boolean }) {
   return (draft: JsonDraft) => {
     const p = path as PropertyPath
     const current = _get(draft, p)
@@ -42,43 +32,12 @@ export function mergeAt(path: Path, values: Record<string, unknown>, opts?: { ov
   }
 }
 
-// updateAt: 用函数更新路径上的值
-export function updateAt(path: Path, updater: (cur: unknown) => unknown) {
-  return (draft: JsonDraft) => {
-    const p = path as PropertyPath
-    const cur = _get(draft, p)
-    _set(draft, p, updater(cur))
-  }
-}
-
-// removeAt: 删除路径上的键
-export function removeAt(path: Path) {
-  return (draft: JsonDraft) => {
-    const p = path as PropertyPath
-    _unset(draft, p)
-  }
-}
-
 export function scripts(entries: Record<string, string>, opts?: { overwrite?: boolean }) {
   return mergeAt('scripts', entries, opts)
 }
 
-export function deps(entries: Record<string, string>, opts?: { overwrite?: boolean }) {
-  return mergeAt('dependencies', entries, opts)
-}
-
 export function devDeps(entries: Record<string, string>, opts?: { overwrite?: boolean }) {
   return mergeAt('devDependencies', entries, opts)
-}
-
-export function appendLineOnce(line: string) {
-  return (s: string) =>
-    s.split(/\r?\n/).includes(line) ? s : `${(s.endsWith('\n') ? s : `${s}\n`) + line}\n`
-}
-
-export function ensureHeader(header: string) {
-  return (s: string) =>
-    s.startsWith(header) ? s : `${header}${header.endsWith('\n') ? '' : '\n'}${s}`
 }
 
 function isPlainObject(v: unknown): v is Record<string, unknown> {

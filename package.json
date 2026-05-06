@@ -29,7 +29,6 @@
   },
   "devDependencies": {
     "@antfu/eslint-config": "catalog:",
-    "@biomejs/biome": "catalog:",
     "@changesets/cli": "catalog:",
     "@commitlint/cli": "catalog:",
     "@commitlint/config-conventional": "catalog:",

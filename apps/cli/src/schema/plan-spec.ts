@@ -1,7 +1,7 @@
-import { ParseResult, Schema } from 'effect'
+import { Schema } from 'effect'
 import { TemplatePathSchema } from '../brand/template-path'
 
-export const ContributionUnitKindSchema = Schema.Literal(
+const ContributionUnitKindSchema = Schema.Literal(
   'fragment-render',
   'partial-namespace',
   'json-text-mutation',
@@ -13,7 +13,7 @@ export const ContributionUnitKindSchema = Schema.Literal(
   title: 'ContributionUnitKind',
 })
 
-export const ContributionTraceSchema = Schema.Struct({
+const ContributionTraceSchema = Schema.Struct({
   owner: Schema.String,
   unit: ContributionUnitKindSchema,
 }).annotations({
@@ -29,7 +29,7 @@ export type JsonLiteral
     | readonly JsonLiteral[]
     | { readonly [key: string]: JsonLiteral }
 
-export const JsonLiteralSchema: Schema.Schema<JsonLiteral> = Schema.suspend((): Schema.Schema<JsonLiteral> =>
+const JsonLiteralSchema: Schema.Schema<JsonLiteral> = Schema.suspend((): Schema.Schema<JsonLiteral> =>
   Schema.Union(
     Schema.String,
     Schema.Number,
@@ -43,7 +43,7 @@ export const JsonLiteralSchema: Schema.Schema<JsonLiteral> = Schema.suspend((): 
   title: 'JsonLiteral',
 })
 
-export const PlanOperationSpecSchema = Schema.Struct({
+const PlanOperationSpecSchema = Schema.Struct({
   reducer: Schema.String,
   ownership: Schema.optionalWith(ContributionTraceSchema, { exact: true }),
   input: Schema.optionalWith(JsonLiteralSchema, { exact: true }),
@@ -52,7 +52,7 @@ export const PlanOperationSpecSchema = Schema.Struct({
   title: 'PlanOperationSpec',
 })
 
-export const RenderTaskSpecSchema = Schema.Struct({
+const RenderTaskSpecSchema = Schema.Struct({
   kind: Schema.Literal('render'),
   path: Schema.String,
   src: TemplatePathSchema,
@@ -63,7 +63,7 @@ export const RenderTaskSpecSchema = Schema.Struct({
   title: 'RenderTaskSpec',
 })
 
-export const CopyTaskSpecSchema = Schema.Struct({
+const CopyTaskSpecSchema = Schema.Struct({
   kind: Schema.Literal('copy'),
   path: Schema.String,
   src: TemplatePathSchema,
@@ -73,7 +73,7 @@ export const CopyTaskSpecSchema = Schema.Struct({
   title: 'CopyTaskSpec',
 })
 
-export const JsonTaskSpecSchema = Schema.Struct({
+const JsonTaskSpecSchema = Schema.Struct({
   kind: Schema.Literal('json'),
   path: Schema.String,
   ownership: Schema.optionalWith(ContributionTraceSchema, { exact: true }),
@@ -87,7 +87,7 @@ export const JsonTaskSpecSchema = Schema.Struct({
   title: 'JsonTaskSpec',
 })
 
-export const TextTaskSpecSchema = Schema.Struct({
+const TextTaskSpecSchema = Schema.Struct({
   kind: Schema.Literal('text'),
   path: Schema.String,
   ownership: Schema.optionalWith(ContributionTraceSchema, { exact: true }),
@@ -99,12 +99,12 @@ export const TextTaskSpecSchema = Schema.Struct({
   title: 'TextTaskSpec',
 })
 
-export const PostGenerateCommandPhaseSchema = Schema.Literal('after-plan-apply').annotations({
+const PostGenerateCommandPhaseSchema = Schema.Literal('after-plan-apply').annotations({
   identifier: 'PostGenerateCommandPhase',
   title: 'PostGenerateCommandPhase',
 })
 
-export const PostGenerateCommandSpecSchema = Schema.Struct({
+const PostGenerateCommandSpecSchema = Schema.Struct({
   command: Schema.String,
   args: Schema.Array(Schema.String),
   phase: PostGenerateCommandPhaseSchema,
@@ -114,12 +114,12 @@ export const PostGenerateCommandSpecSchema = Schema.Struct({
   title: 'PostGenerateCommandSpec',
 })
 
-export const PostGenerateFileActionPhaseSchema = Schema.Literal('after-post-generate-commands').annotations({
+const PostGenerateFileActionPhaseSchema = Schema.Literal('after-post-generate-commands').annotations({
   identifier: 'PostGenerateFileActionPhase',
   title: 'PostGenerateFileActionPhase',
 })
 
-export const PostGenerateFileActionSpecSchema = Schema.Struct({
+const PostGenerateFileActionSpecSchema = Schema.Struct({
   kind: Schema.Literal('write-file'),
   path: Schema.String,
   content: Schema.String,
@@ -131,7 +131,7 @@ export const PostGenerateFileActionSpecSchema = Schema.Struct({
   title: 'PostGenerateFileActionSpec',
 })
 
-export const PlanTaskSpecSchema = Schema.Union(
+const PlanTaskSpecSchema = Schema.Union(
   RenderTaskSpecSchema,
   CopyTaskSpecSchema,
   JsonTaskSpecSchema,
@@ -141,7 +141,7 @@ export const PlanTaskSpecSchema = Schema.Union(
   title: 'PlanTaskSpec',
 })
 
-export const PlanSpecSchema = Schema.Struct({
+const PlanSpecSchema = Schema.Struct({
   tasks: Schema.Array(PlanTaskSpecSchema),
   postGenerateCommands: Schema.optionalWith(Schema.Array(PostGenerateCommandSpecSchema), { exact: true }),
   postGenerateFileActions: Schema.optionalWith(Schema.Array(PostGenerateFileActionSpecSchema), { exact: true }),
@@ -151,12 +151,7 @@ export const PlanSpecSchema = Schema.Struct({
 })
 
 export type PlanOperationSpec = Schema.Schema.Type<typeof PlanOperationSpecSchema>
-export type ContributionUnitKindSpec = Schema.Schema.Type<typeof ContributionUnitKindSchema>
 export type ContributionTraceSpec = Schema.Schema.Type<typeof ContributionTraceSchema>
-export type RenderTaskSpec = Schema.Schema.Type<typeof RenderTaskSpecSchema>
-export type CopyTaskSpec = Schema.Schema.Type<typeof CopyTaskSpecSchema>
-export type JsonTaskSpec = Schema.Schema.Type<typeof JsonTaskSpecSchema>
-export type TextTaskSpec = Schema.Schema.Type<typeof TextTaskSpecSchema>
 export type PostGenerateCommandPhaseSpec = Schema.Schema.Type<typeof PostGenerateCommandPhaseSchema>
 export type PostGenerateCommandSpec = Schema.Schema.Type<typeof PostGenerateCommandSpecSchema>
 export type PostGenerateFileActionPhaseSpec = Schema.Schema.Type<typeof PostGenerateFileActionPhaseSchema>
@@ -165,5 +160,3 @@ export type PlanTaskSpec = Schema.Schema.Type<typeof PlanTaskSpecSchema>
 export type PlanSpec = Schema.Schema.Type<typeof PlanSpecSchema>
 
 export const decodePlanSpec = Schema.decodeUnknown(PlanSpecSchema, { errors: 'all' })
-
-export const formatPlanSpecError = ParseResult.TreeFormatter.formatErrorSync

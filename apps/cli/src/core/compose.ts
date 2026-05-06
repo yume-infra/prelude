@@ -1,16 +1,10 @@
 import type { ProjectConfig } from '../schema/project-config'
-import { intro, outro } from '@clack/prompts'
+import { intro } from '@clack/prompts'
 import { Effect, pipe } from 'effect'
 
 export const showWelcome = Effect.sync(() => {
   intro('welcome to create-yume')
 })
-
-export function showCompletionMessage(projectConfig: ProjectConfig) {
-  return Effect.sync(() => {
-    outro(`项目 ${projectConfig.name} 创建成功！🎉`)
-  })
-}
 
 // for debugging
 function formatConfigSummary(config: ProjectConfig) {

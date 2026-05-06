@@ -7,36 +7,36 @@ import {
   decodeWorkspaceRootConfig,
 } from '../src/schema/project-config'
 import {
-  cliProjectConfig,
-  libraryProjectConfig,
-  nodeProjectConfig,
-  reactProjectConfig,
-  vueProjectConfig,
+  cliMinimalPresetProjectConfig,
+  libraryMinimalProjectConfig,
+  nodeMinimalPresetProjectConfig,
+  reactPresetProjectConfig,
+  vuePresetProjectConfig,
   workspaceMixedProjectConfig,
   workspaceRootProjectConfig,
 } from './support/fixtures'
 
 describe('project config schema contract', () => {
   it('decodes a react fixture', async () => {
-    const decoded = await Effect.runPromise(decodeProjectConfig(reactProjectConfig))
+    const decoded = await Effect.runPromise(decodeProjectConfig(reactPresetProjectConfig))
 
-    expect(decoded).toEqual(reactProjectConfig)
+    expect(decoded).toEqual(reactPresetProjectConfig)
   })
 
   it('decodes a vue fixture', async () => {
-    const decoded = await Effect.runPromise(decodeProjectConfig(vueProjectConfig))
+    const decoded = await Effect.runPromise(decodeProjectConfig(vuePresetProjectConfig))
 
-    expect(decoded).toEqual(vueProjectConfig)
+    expect(decoded).toEqual(vuePresetProjectConfig)
   })
 
   it('decodes node and cli fixtures', async () => {
-    await expect(Effect.runPromise(decodeProjectConfig(nodeProjectConfig))).resolves.toEqual(nodeProjectConfig)
-    await expect(Effect.runPromise(decodeProjectConfig(cliProjectConfig))).resolves.toEqual(cliProjectConfig)
+    await expect(Effect.runPromise(decodeProjectConfig(nodeMinimalPresetProjectConfig))).resolves.toEqual(nodeMinimalPresetProjectConfig)
+    await expect(Effect.runPromise(decodeProjectConfig(cliMinimalPresetProjectConfig))).resolves.toEqual(cliMinimalPresetProjectConfig)
   })
 
   it('decodes library package fixtures', async () => {
-    await expect(Effect.runPromise(decodeLibraryProjectConfig(libraryProjectConfig))).resolves.toEqual(libraryProjectConfig)
-    await expect(Effect.runPromise(decodeProjectConfig(libraryProjectConfig))).resolves.toEqual(libraryProjectConfig)
+    await expect(Effect.runPromise(decodeLibraryProjectConfig(libraryMinimalProjectConfig))).resolves.toEqual(libraryMinimalProjectConfig)
+    await expect(Effect.runPromise(decodeProjectConfig(libraryMinimalProjectConfig))).resolves.toEqual(libraryMinimalProjectConfig)
   })
 
   it('decodes a workspace root fixture without child packages', async () => {
@@ -63,7 +63,7 @@ describe('project config schema contract', () => {
   it('rejects unsupported project types', async () => {
     const exit = await Effect.runPromiseExit(
       decodeProjectConfig({
-        ...reactProjectConfig,
+        ...reactPresetProjectConfig,
         type: 'solid',
       }),
     )
@@ -74,13 +74,13 @@ describe('project config schema contract', () => {
   it('keeps standalone node and cli project configs TypeScript-only', async () => {
     const nodeExit = await Effect.runPromiseExit(
       decodeProjectConfig({
-        ...nodeProjectConfig,
+        ...nodeMinimalPresetProjectConfig,
         language: 'javascript',
       }),
     )
     const cliExit = await Effect.runPromiseExit(
       decodeProjectConfig({
-        ...cliProjectConfig,
+        ...cliMinimalPresetProjectConfig,
         language: 'javascript',
       }),
     )
@@ -91,31 +91,31 @@ describe('project config schema contract', () => {
 
   it('keeps framework-specific router and state fields out of shared frontend config', async () => {
     const sharedConfig = await Effect.runPromise(decodeSharedFrontendAppConfig({
-      name: reactProjectConfig.name,
-      type: reactProjectConfig.type,
-      language: reactProjectConfig.language,
-      git: reactProjectConfig.git,
-      linting: reactProjectConfig.linting,
-      codeQuality: reactProjectConfig.codeQuality,
-      buildTool: reactProjectConfig.buildTool,
-      cssPreprocessor: reactProjectConfig.cssPreprocessor,
-      cssFramework: reactProjectConfig.cssFramework,
+      name: reactPresetProjectConfig.name,
+      type: reactPresetProjectConfig.type,
+      language: reactPresetProjectConfig.language,
+      git: reactPresetProjectConfig.git,
+      linting: reactPresetProjectConfig.linting,
+      codeQuality: reactPresetProjectConfig.codeQuality,
+      buildTool: reactPresetProjectConfig.buildTool,
+      cssPreprocessor: reactPresetProjectConfig.cssPreprocessor,
+      cssFramework: reactPresetProjectConfig.cssFramework,
     }))
 
     expect(sharedConfig).toEqual({
-      name: reactProjectConfig.name,
-      type: reactProjectConfig.type,
-      language: reactProjectConfig.language,
-      git: reactProjectConfig.git,
-      linting: reactProjectConfig.linting,
-      codeQuality: reactProjectConfig.codeQuality,
-      buildTool: reactProjectConfig.buildTool,
-      cssPreprocessor: reactProjectConfig.cssPreprocessor,
-      cssFramework: reactProjectConfig.cssFramework,
+      name: reactPresetProjectConfig.name,
+      type: reactPresetProjectConfig.type,
+      language: reactPresetProjectConfig.language,
+      git: reactPresetProjectConfig.git,
+      linting: reactPresetProjectConfig.linting,
+      codeQuality: reactPresetProjectConfig.codeQuality,
+      buildTool: reactPresetProjectConfig.buildTool,
+      cssPreprocessor: reactPresetProjectConfig.cssPreprocessor,
+      cssFramework: reactPresetProjectConfig.cssFramework,
     })
 
     const projected = await Effect.runPromise(
-      decodeSharedFrontendAppConfig(reactProjectConfig),
+      decodeSharedFrontendAppConfig(reactPresetProjectConfig),
     )
 
     expect(projected).toEqual(sharedConfig)
@@ -124,14 +124,14 @@ describe('project config schema contract', () => {
   it('rejects cross-framework router and state semantics', async () => {
     const reactExit = await Effect.runPromiseExit(
       decodeProjectConfig({
-        ...reactProjectConfig,
+        ...reactPresetProjectConfig,
         router: true,
         stateManagement: true,
       }),
     )
     const vueExit = await Effect.runPromiseExit(
       decodeProjectConfig({
-        ...vueProjectConfig,
+        ...vuePresetProjectConfig,
         router: 'react-router',
         stateManagement: 'jotai',
       }),

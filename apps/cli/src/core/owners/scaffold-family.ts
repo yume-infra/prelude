@@ -12,27 +12,27 @@ import {
 } from '@/core/ownership/model'
 import { isCliProject, isFrontendProject, isLibraryProject, isNodeProject, isReactProject, isVueProject } from '@/utils/type-guard'
 
-export const frontendScaffoldPackageJsonMutation = contributionTrace(
+const frontendScaffoldPackageJsonMutation = contributionTrace(
   FrontendScaffoldOwner,
   ContributionUnitKind.JsonTextMutation,
 )
-export const reactScaffoldPackageJsonMutation = contributionTrace(
+const reactScaffoldPackageJsonMutation = contributionTrace(
   ReactScaffoldOwner,
   ContributionUnitKind.JsonTextMutation,
 )
-export const vueScaffoldPackageJsonMutation = contributionTrace(
+const vueScaffoldPackageJsonMutation = contributionTrace(
   VueScaffoldOwner,
   ContributionUnitKind.JsonTextMutation,
 )
-export const nodeScaffoldPackageJsonMutation = contributionTrace(
+const nodeScaffoldPackageJsonMutation = contributionTrace(
   NodeScaffoldOwner,
   ContributionUnitKind.JsonTextMutation,
 )
-export const cliScaffoldPackageJsonMutation = contributionTrace(
+const cliScaffoldPackageJsonMutation = contributionTrace(
   CliScaffoldOwner,
   ContributionUnitKind.JsonTextMutation,
 )
-export const libraryPackageJsonMutation = contributionTrace(
+const libraryPackageJsonMutation = contributionTrace(
   LibraryPackageOwner,
   ContributionUnitKind.JsonTextMutation,
 )

@@ -43,7 +43,7 @@ function assertNever(value: never): never {
   throw new Error(`Unreachable case: ${String(value)}`)
 }
 
-export function workspacePackageTargetDirectory(spec: GenerationPackageSpec): string {
+function workspacePackageTargetDirectory(spec: GenerationPackageSpec): string {
   switch (spec.kind) {
     case 'frontend-app':
     case 'backend-app':
@@ -73,7 +73,7 @@ function workspacePackageJsonOwner(spec: GenerationPackageSpec) {
   }
 }
 
-export function workspacePackageProjectConfig(
+function workspacePackageProjectConfig(
   rootConfig: WorkspaceRootConfig,
   spec: GenerationPackageSpec,
 ): WorkspacePackageProjectConfig {

@@ -10,7 +10,7 @@ import {
   projectConfigToCreateSpec,
 } from '../../src/schema/create-spec'
 import { decodeProjectConfig } from '../../src/schema/project-config'
-import { cliEffectPresetProjectConfig, cliProjectConfig, libraryProjectConfig, nodeProjectConfig, reactProjectConfig, vueProjectConfig, workspaceMixedProjectConfig, workspaceRootProjectConfig } from '../support/fixtures'
+import { cliEffectPresetProjectConfig, cliMinimalPresetProjectConfig, libraryMinimalProjectConfig, nodeMinimalPresetProjectConfig, reactPresetProjectConfig, vuePresetProjectConfig, workspaceMixedProjectConfig, workspaceRootProjectConfig } from '../support/fixtures'
 
 const frontendPackageInput = {
   id: 'web',
@@ -190,8 +190,8 @@ describe('create spec schema contract', () => {
   })
 
   it.each([
-    ['React', reactProjectConfig],
-    ['Vue', vueProjectConfig],
+    ['React', reactPresetProjectConfig],
+    ['Vue', vuePresetProjectConfig],
   ])('adapts existing %s project config into a standalone frontend create spec', async (_label, fixture) => {
     const decodedProjectConfig = await Effect.runPromise(decodeProjectConfig(fixture))
     if (decodedProjectConfig.type === 'workspace-root') {
@@ -219,14 +219,14 @@ describe('create spec schema contract', () => {
   })
 
   it('adapts standalone node project config into a backend app create spec', async () => {
-    const decodedProjectConfig = await Effect.runPromise(decodeProjectConfig(nodeProjectConfig))
+    const decodedProjectConfig = await Effect.runPromise(decodeProjectConfig(nodeMinimalPresetProjectConfig))
     const createSpec = projectConfigToCreateSpec(decodedProjectConfig)
 
     expect(createSpec).toEqual({
       shape: 'standalone',
       package: {
-        id: makePackageId(nodeProjectConfig.name),
-        name: makePackageName(nodeProjectConfig.name),
+        id: makePackageId(nodeMinimalPresetProjectConfig.name),
+        name: makePackageName(nodeMinimalPresetProjectConfig.name),
         kind: 'backend-app',
         runtime: 'node',
         internalDependencies: [],
@@ -238,14 +238,14 @@ describe('create spec schema contract', () => {
   })
 
   it('adapts standalone cli project config into a cli tool create spec', async () => {
-    const decodedProjectConfig = await Effect.runPromise(decodeProjectConfig(cliProjectConfig))
+    const decodedProjectConfig = await Effect.runPromise(decodeProjectConfig(cliMinimalPresetProjectConfig))
     const createSpec = projectConfigToCreateSpec(decodedProjectConfig)
 
     expect(createSpec).toEqual({
       shape: 'standalone',
       package: {
-        id: makePackageId(cliProjectConfig.name),
-        name: makePackageName(cliProjectConfig.name),
+        id: makePackageId(cliMinimalPresetProjectConfig.name),
+        name: makePackageName(cliMinimalPresetProjectConfig.name),
         kind: 'cli-tool',
         runtime: 'node',
         internalDependencies: [],
@@ -276,14 +276,14 @@ describe('create spec schema contract', () => {
   })
 
   it('adapts standalone library project config into a library package create spec', async () => {
-    const decodedProjectConfig = await Effect.runPromise(decodeProjectConfig(libraryProjectConfig))
+    const decodedProjectConfig = await Effect.runPromise(decodeProjectConfig(libraryMinimalProjectConfig))
     const createSpec = projectConfigToCreateSpec(decodedProjectConfig)
 
     expect(createSpec).toEqual({
       shape: 'standalone',
       package: {
-        id: makePackageId(libraryProjectConfig.name),
-        name: makePackageName(libraryProjectConfig.name),
+        id: makePackageId(libraryMinimalProjectConfig.name),
+        name: makePackageName(libraryMinimalProjectConfig.name),
         kind: 'library-package',
         runtime: 'neutral',
         internalDependencies: [],

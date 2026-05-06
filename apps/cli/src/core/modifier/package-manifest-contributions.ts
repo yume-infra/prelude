@@ -3,7 +3,7 @@ import type { GenerationTargetScope } from '@/schema/target-scope'
 import { finalizePackageJsonOrder } from '@/core/modifier/package-json-order'
 import { matchesGenerationTargetScope } from '@/schema/target-scope'
 
-export const packageManifestSections = [
+const packageManifestSections = [
   'scripts',
   'peerDependencies',
   'peerDependenciesMeta',
@@ -20,8 +20,8 @@ export const packageManifestSections = [
 ] as const
 
 export type PackageManifestSection = typeof packageManifestSections[number]
-export type PackageManifestLocation = '<root>' | PackageManifestSection
-export type PackageManifestEntries = Record<string, unknown>
+type PackageManifestLocation = '<root>' | PackageManifestSection
+type PackageManifestEntries = Record<string, unknown>
 export type PackageManifestTargetPath = 'package.json' | `${string}/package.json`
 
 export const rootPackageManifestTargetPath = 'package.json' satisfies PackageManifestTargetPath
@@ -34,7 +34,7 @@ export interface PackageManifestContribution {
   readonly sections?: Partial<Record<PackageManifestSection, PackageManifestEntries>>
 }
 
-export interface PackageManifestProvenanceEntry {
+interface PackageManifestProvenanceEntry {
   readonly targetPath: PackageManifestTargetPath
   readonly section: PackageManifestLocation
   readonly key: string
@@ -133,7 +133,7 @@ export function packageManifestTargetPath(targetDirectory: string | undefined): 
     : rootPackageManifestTargetPath
 }
 
-export function comparePackageManifestTargetPaths(
+function comparePackageManifestTargetPaths(
   left: PackageManifestTargetPath,
   right: PackageManifestTargetPath,
 ): number {

@@ -1,13 +1,6 @@
-import { Schema } from 'effect'
+export type GenerationTargetScope = 'root' | 'package' | 'both'
 
-export const GenerationTargetScopeSchema = Schema.Literal('root', 'package', 'both').annotations({
-  identifier: 'GenerationTargetScope',
-  title: 'GenerationTargetScope',
-})
-
-export type GenerationTargetScope = Schema.Schema.Type<typeof GenerationTargetScopeSchema>
-
-export function resolveGenerationTargetScope(scope: GenerationTargetScope | undefined): GenerationTargetScope {
+function resolveGenerationTargetScope(scope: GenerationTargetScope | undefined): GenerationTargetScope {
   return scope ?? 'both'
 }
 

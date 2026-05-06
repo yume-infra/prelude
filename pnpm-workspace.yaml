@@ -20,7 +20,6 @@ packages:
 
 catalog:
   '@antfu/eslint-config': 8.2.0
-  '@biomejs/biome': ^2.4.12
   '@changesets/cli': ^2.31.0
   '@clack/prompts': ^1.2.0
   '@commitlint/cli': ^20.5.0

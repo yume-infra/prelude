@@ -61,8 +61,6 @@ const alphabetizedPackageMapKeys = new Set([
   'lint-staged',
 ])
 
-export const packageJsonTopLevelKeyOrder = [...packageJsonTopLevelOrder]
-
 function isPlainObject(value: unknown): value is Record<string, unknown> {
   return Object.prototype.toString.call(value) === '[object Object]'
 }

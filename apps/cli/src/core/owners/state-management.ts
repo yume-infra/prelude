@@ -1,18 +1,16 @@
 import type { PackageManifestContribution } from '@/core/modifier/package-manifest-contributions'
-import type { JsonBuilder } from '@/core/services/planner'
 import type { ReactProjectConfig, ReactStateManagement, VueProjectConfig } from '@/schema/project-config'
 import type { TemplateRegistryEntry } from '@/schema/template-registry'
 import { makeTemplatePath } from '@/brand/template-path'
 import { contributionTrace, ContributionUnitKind, defineOwner, OwnershipLayer } from '@/core/ownership/model'
-import { deps } from '@/utils/file-helper'
 
-export const StateManagementOwner = defineOwner({
+const StateManagementOwner = defineOwner({
   id: 'state-management',
   layer: OwnershipLayer.Capability,
   label: 'State Management Capability',
 })
 
-export const stateManagementFragmentRender = contributionTrace(StateManagementOwner, ContributionUnitKind.FragmentRender)
+const stateManagementFragmentRender = contributionTrace(StateManagementOwner, ContributionUnitKind.FragmentRender)
 export const stateManagementPackageJsonMutation = contributionTrace(StateManagementOwner, ContributionUnitKind.JsonTextMutation)
 
 export const reactStateManagementOptions: Array<{ value: ReactStateManagement, label: string }> = [
@@ -21,11 +19,11 @@ export const reactStateManagementOptions: Array<{ value: ReactStateManagement, l
   { value: 'none', label: 'No State Management' },
 ]
 
-export function hasReactStateManagement(config: ReactProjectConfig): boolean {
+function hasReactStateManagement(config: ReactProjectConfig): boolean {
   return config.stateManagement !== 'none'
 }
 
-export function hasVueStateManagement(config: VueProjectConfig): boolean {
+function hasVueStateManagement(config: VueProjectConfig): boolean {
   return config.stateManagement === true
 }
 
@@ -77,20 +75,4 @@ export function getVueStateManagementPackageContributions(config: VueProjectConf
         },
       }]
     : []
-}
-
-export function applyReactStateManagementPackageJson(entry: JsonBuilder, config: ReactProjectConfig): JsonBuilder {
-  if (config.stateManagement === 'zustand') {
-    return entry.modify(deps({ zustand: '^5.0.12' }), stateManagementPackageJsonMutation)
-  }
-  if (config.stateManagement === 'jotai') {
-    return entry.modify(deps({ jotai: '^2.19.1' }), stateManagementPackageJsonMutation)
-  }
-  return entry
-}
-
-export function applyVueStateManagementPackageJson(entry: JsonBuilder, config: VueProjectConfig): JsonBuilder {
-  return hasVueStateManagement(config)
-    ? entry.modify(deps({ pinia: '^3.0.4' }), stateManagementPackageJsonMutation)
-    : entry
 }

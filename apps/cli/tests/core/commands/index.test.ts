@@ -3,7 +3,7 @@ import { describe, expect, it } from 'vitest'
 import { makeProjectName } from '@/brand/project-name'
 import { CliContextLive } from '../../../src/core/cli-context'
 import { buildCommands, buildPostGenerateFileActions, toPostGenerateCommandSpec } from '../../../src/core/commands/index'
-import { reactProjectConfig } from '../../support/fixtures'
+import { reactPresetProjectConfig } from '../../support/fixtures'
 import { makeCommandMockLayer } from '../../support/mock-layers'
 
 function formatCommand(command: Awaited<ReturnType<typeof collectCommands>>[number]) {
@@ -12,7 +12,7 @@ function formatCommand(command: Awaited<ReturnType<typeof collectCommands>>[numb
 
 async function collectCommands(install: boolean) {
   return Effect.runPromise(
-    buildCommands(reactProjectConfig).pipe(
+    buildCommands(reactPresetProjectConfig).pipe(
       Effect.provide(
         Layer.mergeAll(
           CliContextLive({
@@ -31,7 +31,7 @@ async function collectCommands(install: boolean) {
 }
 
 async function collectFileActions() {
-  return Effect.runPromise(buildPostGenerateFileActions(reactProjectConfig))
+  return Effect.runPromise(buildPostGenerateFileActions(reactPresetProjectConfig))
 }
 
 describe('buildCommands', () => {

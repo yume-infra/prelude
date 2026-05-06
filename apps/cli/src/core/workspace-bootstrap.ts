@@ -82,7 +82,7 @@ export const workspaceBootstrapPackageJsonMutation = contributionTrace(
   ContributionUnitKind.JsonTextMutation,
 )
 
-export const workspaceBootstrapPostGenerateFileAction = contributionTrace(
+const workspaceBootstrapPostGenerateFileAction = contributionTrace(
   WorkspaceBootstrapOwner,
   ContributionUnitKind.PostGenerateFile,
 )

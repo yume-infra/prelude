@@ -4,7 +4,7 @@ export const PnpmPackageManager = {
   packageManager: 'pnpm@10.12.4',
 } as const
 
-export type PackageManagerName = typeof PnpmPackageManager.name
+type PackageManagerName = typeof PnpmPackageManager.name
 
 export interface PackageManagerCommandSpec {
   readonly command: PackageManagerName

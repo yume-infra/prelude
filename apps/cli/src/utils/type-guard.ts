@@ -35,7 +35,3 @@ export function isLibraryProject(config: ProjectConfig): config is LibraryProjec
 export function isFrontendProject(config: ProjectConfig): config is VueProjectConfig | ReactProjectConfig {
   return isVueProject(config) || isReactProject(config)
 }
-
-export function isNodeRuntimeProject(config: ProjectConfig): config is NodeProjectConfig | CliProjectConfig {
-  return isNodeProject(config) || isCliProject(config)
-}

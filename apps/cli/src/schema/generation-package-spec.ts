@@ -1,25 +1,9 @@
-import { ParseResult, Schema } from 'effect'
+import { Schema } from 'effect'
 import { PackageNameSchema } from '@/brand/package-name'
 
-export const PackageKindSchema = Schema.Literal(
-  'frontend-app',
-  'backend-app',
-  'worker-app',
-  'cli-tool',
-  'library-package',
-).annotations({
-  identifier: 'PackageKind',
-  title: 'PackageKind',
-})
+const PackageIdPattern = /^[\w-]+$/
 
-export const RuntimeKindSchema = Schema.Literal('browser', 'node', 'neutral').annotations({
-  identifier: 'RuntimeKind',
-  title: 'RuntimeKind',
-})
-
-export const PackageIdPattern = /^[\w-]+$/
-
-export const PackageIdSchema = Schema.String.pipe(
+const PackageIdSchema = Schema.String.pipe(
   Schema.pattern(PackageIdPattern),
   Schema.brand('PackageId'),
   Schema.annotations({
@@ -28,7 +12,7 @@ export const PackageIdSchema = Schema.String.pipe(
   }),
 )
 
-export const InternalDependencyTargetSchema = Schema.Union(
+const InternalDependencyTargetSchema = Schema.Union(
   Schema.Struct({
     by: Schema.Literal('id'),
     id: PackageIdSchema,
@@ -42,7 +26,7 @@ export const InternalDependencyTargetSchema = Schema.Union(
   title: 'InternalDependencyTarget',
 })
 
-export const InternalDependencyLinkSchema = Schema.Struct({
+const InternalDependencyLinkSchema = Schema.Struct({
   target: InternalDependencyTargetSchema,
   alias: Schema.optionalWith(PackageNameSchema, { exact: true }),
 }).annotations({
@@ -59,7 +43,7 @@ const packageSpecBaseFields = {
   }),
 }
 
-export const FrontendAppSpecSchema = Schema.Struct({
+const FrontendAppSpecSchema = Schema.Struct({
   ...packageSpecBaseFields,
   kind: Schema.Literal('frontend-app'),
   runtime: Schema.optionalWith(Schema.Literal('browser'), {
@@ -77,12 +61,12 @@ export const FrontendAppSpecSchema = Schema.Struct({
   title: 'FrontendAppSpec',
 })
 
-export const BackendAppFrameworkSchema = Schema.Literal('none').annotations({
+const BackendAppFrameworkSchema = Schema.Literal('none').annotations({
   identifier: 'BackendAppFramework',
   title: 'BackendAppFramework',
 })
 
-export const BackendAppSpecSchema = Schema.Struct({
+const BackendAppSpecSchema = Schema.Struct({
   ...packageSpecBaseFields,
   kind: Schema.Literal('backend-app'),
   runtime: Schema.optionalWith(Schema.Literal('node'), {
@@ -97,12 +81,12 @@ export const BackendAppSpecSchema = Schema.Struct({
   title: 'BackendAppSpec',
 })
 
-export const WorkerToolkitSchema = Schema.Literal('none').annotations({
+const WorkerToolkitSchema = Schema.Literal('none').annotations({
   identifier: 'WorkerToolkit',
   title: 'WorkerToolkit',
 })
 
-export const WorkerAppSpecSchema = Schema.Struct({
+const WorkerAppSpecSchema = Schema.Struct({
   ...packageSpecBaseFields,
   kind: Schema.Literal('worker-app'),
   runtime: Schema.optionalWith(Schema.Literal('node'), {
@@ -122,7 +106,7 @@ export const CliToolkitSchema = Schema.Literal('none', 'effect').annotations({
   title: 'CliToolkit',
 })
 
-export const CliToolSpecSchema = Schema.Struct({
+const CliToolSpecSchema = Schema.Struct({
   ...packageSpecBaseFields,
   kind: Schema.Literal('cli-tool'),
   runtime: Schema.optionalWith(Schema.Literal('node'), {
@@ -137,12 +121,12 @@ export const CliToolSpecSchema = Schema.Struct({
   title: 'CliToolSpec',
 })
 
-export const LibraryToolkitSchema = Schema.Literal('none').annotations({
+const LibraryToolkitSchema = Schema.Literal('none').annotations({
   identifier: 'LibraryToolkit',
   title: 'LibraryToolkit',
 })
 
-export const LibraryPackageSpecSchema = Schema.Struct({
+const LibraryPackageSpecSchema = Schema.Struct({
   ...packageSpecBaseFields,
   kind: Schema.Literal('library-package'),
   runtime: Schema.optionalWith(Schema.Literal('neutral', 'node'), {
@@ -168,21 +152,10 @@ export const GenerationPackageSpecSchema = Schema.Union(
   title: 'GenerationPackageSpec',
 })
 
-export type PackageKind = Schema.Schema.Type<typeof PackageKindSchema>
-export type RuntimeKind = Schema.Schema.Type<typeof RuntimeKindSchema>
 export type PackageId = Schema.Schema.Type<typeof PackageIdSchema>
-export type InternalDependencyTarget = Schema.Schema.Type<typeof InternalDependencyTargetSchema>
 export type InternalDependencyLink = Schema.Schema.Type<typeof InternalDependencyLinkSchema>
-export type FrontendAppSpec = Schema.Schema.Type<typeof FrontendAppSpecSchema>
-export type BackendAppSpec = Schema.Schema.Type<typeof BackendAppSpecSchema>
-export type WorkerAppSpec = Schema.Schema.Type<typeof WorkerAppSpecSchema>
-export type CliToolkit = Schema.Schema.Type<typeof CliToolkitSchema>
-export type CliToolSpec = Schema.Schema.Type<typeof CliToolSpecSchema>
-export type LibraryPackageSpec = Schema.Schema.Type<typeof LibraryPackageSpecSchema>
 export type GenerationPackageSpec = Schema.Schema.Type<typeof GenerationPackageSpecSchema>
 
 export const decodeGenerationPackageSpec = Schema.decodeUnknown(GenerationPackageSpecSchema, { errors: 'all' })
-
-export const formatGenerationPackageSpecError = ParseResult.TreeFormatter.formatErrorSync
 
 export const makePackageId = (value: string): PackageId => Schema.decodeUnknownSync(PackageIdSchema)(value)

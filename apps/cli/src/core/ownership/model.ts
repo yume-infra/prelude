@@ -5,7 +5,7 @@ export const OwnershipLayer = {
   Capability: 'capability',
 } as const
 
-export type OwnershipLayerId = typeof OwnershipLayer[keyof typeof OwnershipLayer]
+type OwnershipLayerId = typeof OwnershipLayer[keyof typeof OwnershipLayer]
 
 export const ContributionUnitKind = {
   FragmentRender: 'fragment-render',
@@ -39,12 +39,6 @@ export function contributionTrace(owner: OwnerDefinition, unit: ContributionUnit
     unit,
   }
 }
-
-export const PreservedCoreOwner = defineOwner({
-  id: 'preserved-core',
-  layer: OwnershipLayer.PreservedCore,
-  label: 'Preserved Core',
-})
 
 export const ReactScaffoldOwner = defineOwner({
   id: 'react-scaffold',
