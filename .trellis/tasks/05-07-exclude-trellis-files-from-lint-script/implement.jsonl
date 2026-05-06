@@ -1,0 +1,2 @@
+{"file": ".trellis/spec/create-yume/repository/index.md", "reason": "Repository docs explain Trellis file roles and source-of-truth boundaries."}
+{"file": ".trellis/spec/create-yume/verification/index.md", "reason": "Lint behavior is part of the verification workflow."}
