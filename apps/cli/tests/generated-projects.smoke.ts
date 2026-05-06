@@ -1,7 +1,7 @@
 import type { GeneratedSmokeCase, GeneratedSpecSmokeCase } from './support/generated-smoke-gate'
 import assert from 'node:assert/strict'
 import { constants } from 'node:fs'
-import { access, mkdir, readFile, rm } from 'node:fs/promises'
+import { access, mkdir, readFile, rm, writeFile } from 'node:fs/promises'
 import path from 'node:path'
 import process from 'node:process'
 import { fileURLToPath } from 'node:url'
@@ -23,6 +23,8 @@ const testsDir = path.dirname(fileURLToPath(import.meta.url))
 const cliDistPath = path.resolve(testsDir, '../dist/index.js')
 const repoRoot = path.resolve(testsDir, '../../..')
 const examplesGeneratedRoot = path.join(repoRoot, 'apps/examples/.generated')
+const examplesGeneratedWorkspaceFile = path.join(examplesGeneratedRoot, 'pnpm-workspace.yaml')
+const examplesGeneratedNpmrcFile = path.join(examplesGeneratedRoot, '.npmrc')
 const smokeSelectionEnvName = 'CREATE_YUME_SMOKE_CASES'
 
 type WorkspacePackageKind = 'frontend-app' | 'backend-app' | 'cli-tool' | 'library-package' | 'worker-app'
@@ -768,6 +770,8 @@ async function assertBuiltCliAvailable() {
 async function prepareExamplesGeneratedRoot() {
   await rm(examplesGeneratedRoot, { recursive: true, force: true })
   await mkdir(examplesGeneratedRoot, { recursive: true })
+  await writeFile(examplesGeneratedWorkspaceFile, 'packages:\n  - "*"\n', 'utf8')
+  await writeFile(examplesGeneratedNpmrcFile, 'frozen-lockfile=false\n', 'utf8')
 }
 
 async function main() {

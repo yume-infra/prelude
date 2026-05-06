@@ -61,6 +61,7 @@ Unify generated scaffold smoke verification around one visible, persistent examp
 
 * `smoke:generated` and `smoke:examples` now run the same generated scaffold matrix.
 * `apps/cli/tests/generated-projects.smoke.ts` writes into `apps/examples/.generated/` and keeps successful output.
+* `.generated/` now writes its own `pnpm-workspace.yaml` and `.npmrc` before smoke generation so `pnpm install` resolves generated project dependencies inside the smoke workspace instead of falling through to the repository root workspace.
 * `CREATE_YUME_SMOKE_CASES` supports targeted selectors such as `react`, `vue`, `frontend`, `node`, `backend`, `cli`, `library`, `workspace`, preset names, and project names.
 * The old linked-only smoke script was removed from the active command set.
 * Full generated smoke was intentionally not run during this change because no generated template content changed; use targeted smoke when changing a specific scaffold surface.

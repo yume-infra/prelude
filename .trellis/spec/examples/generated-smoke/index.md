@@ -12,6 +12,7 @@
 
 - Fix generated output defects in `apps/cli/templates/` or CLI runtime, not in `.generated/`.
 - Generated smoke output must be produced by the built local CLI and kept inspectable after success.
+- The `.generated/` root must define its own pnpm workspace boundary so package installs resolve generated project dependencies instead of falling through to the repository root workspace.
 - Slow smoke should be selected with `CREATE_YUME_SMOKE_CASES` when a change only affects a subset of templates or generation paths.
 - Generated output is disposable and should not become the source of hand-written examples.
 
