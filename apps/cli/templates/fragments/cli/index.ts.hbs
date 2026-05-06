@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 
 import { realpathSync } from 'node:fs'
+import process from 'node:process'
 import { fileURLToPath } from 'node:url'
 
 interface CliOptions {
@@ -50,11 +51,11 @@ export function run(args: readonly string[] = process.argv.slice(2)): number {
   const options = parseArgs(args)
 
   if (options.help) {
-    console.log(usage)
+    process.stdout.write(`${usage}\n`)
     return 0
   }
 
-  console.log(renderGreeting(options.name))
+  process.stdout.write(`${renderGreeting(options.name)}\n`)
   return 0
 }
 

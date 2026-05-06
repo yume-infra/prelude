@@ -3,22 +3,23 @@
   "compilerOptions": {
     "target": "ES2023",
     "lib": ["ES2023"],
+    "moduleDetection": "force",
+    "rootDir": "src",
     "module": "NodeNext",
     "moduleResolution": "NodeNext",
-    "moduleDetection": "force",
-    "strict": true,
-    "declaration": true,
-    "outDir": "dist",
-    "rootDir": "src",
 {{#if hasNodeTypes}}
     "types": ["node"],
 {{/if}}
+    "strict": true,
+    "noFallthroughCasesInSwitch": true,
+    "noUncheckedIndexedAccess": true,
+    "noUnusedLocals": true,
+    "noUnusedParameters": true,
+    "declaration": true,
+    "outDir": "dist",
     "verbatimModuleSyntax": true,
     "skipLibCheck": true,
-    "noFallthroughCasesInSwitch": true,
-    "noUncheckedSideEffectImports": true,
-    "noUnusedLocals": true,
-    "noUnusedParameters": true
+    "noUncheckedSideEffectImports": true
   },
   "include": ["src"]
 }

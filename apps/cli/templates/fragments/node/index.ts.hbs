@@ -1,4 +1,5 @@
 import { realpathSync } from 'node:fs'
+import process from 'node:process'
 import { fileURLToPath } from 'node:url'
 
 export function renderMessage(name = 'world'): string {
@@ -7,7 +8,7 @@ export function renderMessage(name = 'world'): string {
 
 export function main(args: readonly string[] = process.argv.slice(2)): void {
   const [name] = args
-  console.log(renderMessage(name))
+  process.stdout.write(`${renderMessage(name)}\n`)
 }
 
 function isDirectRun(metaUrl: string, argvEntry: string | undefined): boolean {
