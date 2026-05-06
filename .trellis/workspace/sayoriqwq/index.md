@@ -8,7 +8,7 @@
 
 <!-- @@@auto:current-status -->
 - **Active File**: `journal-1.md`
-- **Total Sessions**: 4
+- **Total Sessions**: 5
 - **Last Active**: 2026-05-07
 <!-- @@@/auto:current-status -->
 
@@ -19,7 +19,7 @@
 <!-- @@@auto:active-documents -->
 | File | Lines | Status |
 |------|-------|--------|
-| `journal-1.md` | ~144 | Active |
+| `journal-1.md` | ~185 | Active |
 <!-- @@@/auto:active-documents -->
 
 ---
@@ -29,6 +29,7 @@
 <!-- @@@auto:session-history -->
 | # | Date | Title | Commits | Branch |
 |---|------|-------|---------|--------|
+| 5 | 2026-05-07 | Integrate Knip into verify workflow | `487ff4c` | `dev` |
 | 4 | 2026-05-07 | Add and clean Knip verification | `781c92c`, `294bf5b` | `dev` |
 | 3 | 2026-05-06 | Expand preset recommendations | `37dbdad`, `e0ae667` | `main` |
 | 2 | 2026-05-06 | Migrate final acceptance smoke gates | `a5b8b55` | `main` |

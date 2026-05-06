@@ -149,3 +149,37 @@ Added root Knip workspace check, aligned the dependency with the pnpm catalog, t
 ### Next Steps
 
 - None - task complete
+
+
+## Session 5: Integrate Knip into verify workflow
+
+**Date**: 2026-05-07
+**Task**: Integrate Knip into verify workflow
+**Package**: create-yume
+**Branch**: `dev`
+
+### Summary
+
+Added Knip to the root verify and verify:code workflows, then updated agent-facing verification guidance and the human-facing contributing notes so default maintenance checks include dead-code analysis.
+
+### Main Changes
+
+(Add details)
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `487ff4c` | (see git log) |
+
+### Testing
+
+- [OK] (Add test results)
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- None - task complete
