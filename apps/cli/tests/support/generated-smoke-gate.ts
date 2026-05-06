@@ -55,6 +55,7 @@ export interface RunGeneratedSmokePhaseOptions {
 }
 
 export const generatedSmokePhaseTimeoutMs = 300_000
+export const defaultGeneratedSmokeConcurrency = 2
 export const generatedLintArgs = ['lint', '--max-warnings=0'] as const
 
 export function generatedSmokeEnv(options: GeneratedSmokeEnvOptions = {}) {
@@ -75,6 +76,26 @@ export function shouldRunLintForPreset(preset: GeneratedPreset) {
     || preset === 'workspace-cli-library'
     || preset === 'workspace-fullstack-react'
     || preset === 'workspace-fullstack-vue'
+}
+
+export function parseGeneratedSmokeConcurrency(rawValue: string | undefined, envName: string) {
+  if (rawValue === undefined || rawValue.trim().length === 0) {
+    return defaultGeneratedSmokeConcurrency
+  }
+
+  const normalizedValue = rawValue.trim()
+
+  if (!/^\d+$/.test(normalizedValue)) {
+    throw new Error(`[generated-smoke] ${envName} must be a positive integer; received ${JSON.stringify(rawValue)}`)
+  }
+
+  const concurrency = Number.parseInt(normalizedValue, 10)
+
+  if (!Number.isSafeInteger(concurrency) || concurrency < 1) {
+    throw new Error(`[generated-smoke] ${envName} must be a positive integer; received ${JSON.stringify(rawValue)}`)
+  }
+
+  return concurrency
 }
 
 export function formatGeneratedCommand(command: string, args: readonly string[]) {

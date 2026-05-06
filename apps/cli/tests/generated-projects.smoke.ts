@@ -14,6 +14,7 @@ import {
   assertGeneratedProjectPackage,
   assertNonInteractiveGeneration,
   generatedLintArgs,
+  parseGeneratedSmokeConcurrency,
   runGeneratedSmokePhase,
   shouldRunLintForPreset,
 } from './support/generated-smoke-gate'
@@ -26,6 +27,7 @@ const examplesGeneratedRoot = path.join(repoRoot, 'apps/examples/.generated')
 const examplesGeneratedWorkspaceFile = path.join(examplesGeneratedRoot, 'pnpm-workspace.yaml')
 const examplesGeneratedNpmrcFile = path.join(examplesGeneratedRoot, '.npmrc')
 const smokeSelectionEnvName = 'CREATE_YUME_SMOKE_CASES'
+const smokeConcurrencyEnvName = 'CREATE_YUME_SMOKE_CONCURRENCY'
 
 type WorkspacePackageKind = 'frontend-app' | 'backend-app' | 'cli-tool' | 'library-package' | 'worker-app'
 
@@ -60,6 +62,30 @@ interface WorkspaceSmokeSpec {
 interface GeneratedWorkspaceSmokeCase extends GeneratedSpecSmokeCase {
   readonly spec: WorkspaceSmokeSpec
 }
+
+type SmokeCasePlan
+  = | {
+    readonly kind: 'preset'
+    readonly testCase: GeneratedSmokeCase
+  }
+  | {
+    readonly kind: 'workspace'
+    readonly testCase: GeneratedWorkspaceSmokeCase
+  }
+
+type SmokeCaseRun
+  = | {
+    readonly kind: 'preset'
+    readonly testCase: GeneratedSmokeCase
+    readonly generatedDir: string
+    readonly packageJson: unknown
+  }
+  | {
+    readonly kind: 'workspace'
+    readonly testCase: GeneratedWorkspaceSmokeCase
+    readonly generatedDir: string
+    readonly rootPackageJson: unknown
+  }
 
 const smokeCases: readonly GeneratedSmokeCase[] = [
   {
@@ -401,6 +427,52 @@ function selectedSmokeCases() {
   }
 }
 
+async function runWithConcurrency<T, R>(
+  label: string,
+  items: readonly T[],
+  concurrency: number,
+  runItem: (item: T, index: number) => Promise<R>,
+) {
+  if (items.length === 0) {
+    return []
+  }
+
+  const results: R[] = []
+  let nextIndex = 0
+  let firstError: unknown
+  const workerCount = Math.min(concurrency, items.length)
+
+  const workers = Array.from({ length: workerCount }, async () => {
+    while (firstError === undefined) {
+      const itemIndex = nextIndex
+      nextIndex += 1
+
+      if (itemIndex >= items.length) {
+        return
+      }
+
+      try {
+        const item = items[itemIndex]
+        assert.ok(item !== undefined, `[${smokePrefix}] ${label} worker selected a missing smoke item`)
+        results[itemIndex] = await runItem(item, itemIndex)
+      }
+      catch (error) {
+        firstError = error
+      }
+    }
+  })
+
+  await Promise.all(workers)
+
+  if (firstError !== undefined) {
+    throw firstError
+  }
+
+  console.log(`[${smokePrefix}] ${label} completed for ${items.length} case(s) with concurrency ${workerCount}`)
+
+  return results
+}
+
 function isRecord(value: unknown): value is Record<string, unknown> {
   return value !== null && typeof value === 'object' && !Array.isArray(value)
 }
@@ -605,7 +677,7 @@ async function assertWorkspaceRootMaterialization(
   assert.ok(workspaceFile.includes('libs/*'), `[${smokePrefix}] ${testCase.label} pnpm-workspace.yaml must include libs/*`)
 }
 
-async function runSmokeCase(rootDir: string, testCase: GeneratedSmokeCase) {
+async function generateSmokeCase(rootDir: string, testCase: GeneratedSmokeCase): Promise<SmokeCaseRun> {
   const generatedDir = path.join(rootDir, testCase.projectName)
 
   const generation = await runGeneratedSmokePhase({
@@ -629,15 +701,16 @@ async function runSmokeCase(rootDir: string, testCase: GeneratedSmokeCase) {
   assertNonInteractiveGeneration(`${generation.stdout}\n${generation.stderr}`, testCase, smokePrefix)
   const packageJson = await assertGeneratedProjectPackage(generatedDir, testCase, smokePrefix)
 
-  await runGeneratedSmokePhase({
-    prefix: smokePrefix,
+  return {
+    kind: 'preset',
     testCase,
-    phase: 'install',
-    cwd: generatedDir,
-    command: 'pnpm',
-    args: ['install', '--ignore-scripts'],
-  })
+    generatedDir,
+    packageJson,
+  }
+}
 
+async function verifySmokeCase(smokeRun: Extract<SmokeCaseRun, { readonly kind: 'preset' }>) {
+  const { generatedDir, packageJson, testCase } = smokeRun
   await runGeneratedSmokePhase({
     prefix: smokePrefix,
     testCase,
@@ -706,7 +779,7 @@ async function runSmokeCase(rootDir: string, testCase: GeneratedSmokeCase) {
   )
 }
 
-async function runWorkspaceSmokeCase(rootDir: string, testCase: GeneratedWorkspaceSmokeCase) {
+async function generateWorkspaceSmokeCase(rootDir: string, testCase: GeneratedWorkspaceSmokeCase): Promise<SmokeCaseRun> {
   const generatedDir = path.join(rootDir, testCase.projectName)
 
   const generation = await runGeneratedSmokePhase({
@@ -735,15 +808,16 @@ async function runWorkspaceSmokeCase(rootDir: string, testCase: GeneratedWorkspa
   assert.equal(rootPackageJson.private, true, `[${smokePrefix}] ${testCase.label} root package.json must be private`)
   await assertWorkspaceRootMaterialization(generatedDir, testCase)
 
-  await runGeneratedSmokePhase({
-    prefix: smokePrefix,
+  return {
+    kind: 'workspace',
     testCase,
-    phase: 'install',
-    cwd: generatedDir,
-    command: 'pnpm',
-    args: ['install', '--ignore-scripts'],
-  })
+    generatedDir,
+    rootPackageJson,
+  }
+}
 
+async function verifyWorkspaceSmokeCase(smokeRun: Extract<SmokeCaseRun, { readonly kind: 'workspace' }>) {
+  const { generatedDir, testCase } = smokeRun
   await runGeneratedSmokePhase({
     prefix: smokePrefix,
     testCase,
@@ -756,6 +830,34 @@ async function runWorkspaceSmokeCase(rootDir: string, testCase: GeneratedWorkspa
   for (const packageSpec of testCase.spec.packages) {
     await assertWorkspacePackage(generatedDir, testCase, packageSpec)
   }
+}
+
+async function generateSmokeRun(rootDir: string, plan: SmokeCasePlan) {
+  if (plan.kind === 'preset') {
+    return generateSmokeCase(rootDir, plan.testCase)
+  }
+
+  return generateWorkspaceSmokeCase(rootDir, plan.testCase)
+}
+
+async function installSmokeRun(smokeRun: SmokeCaseRun) {
+  await runGeneratedSmokePhase({
+    prefix: smokePrefix,
+    testCase: smokeRun.testCase,
+    phase: 'install',
+    cwd: smokeRun.generatedDir,
+    command: 'pnpm',
+    args: ['install', '--ignore-scripts'],
+  })
+}
+
+async function verifySmokeRun(smokeRun: SmokeCaseRun) {
+  if (smokeRun.kind === 'preset') {
+    await verifySmokeCase(smokeRun)
+    return
+  }
+
+  await verifyWorkspaceSmokeCase(smokeRun)
 }
 
 async function assertBuiltCliAvailable() {
@@ -778,19 +880,34 @@ async function main() {
   await assertBuiltCliAvailable()
 
   const { selectedGeneratedCases, selectedWorkspaceCases } = selectedSmokeCases()
+  const smokeConcurrency = parseGeneratedSmokeConcurrency(process.env[smokeConcurrencyEnvName], smokeConcurrencyEnvName)
+  const smokePlans: readonly SmokeCasePlan[] = [
+    ...selectedGeneratedCases.map(testCase => ({ kind: 'preset' as const, testCase })),
+    ...selectedWorkspaceCases.map(testCase => ({ kind: 'workspace' as const, testCase })),
+  ]
   const rootDir = examplesGeneratedRoot
   let passed = false
 
   try {
     await prepareExamplesGeneratedRoot()
 
-    for (const testCase of selectedGeneratedCases) {
-      await runSmokeCase(rootDir, testCase)
+    console.log(
+      `[${smokePrefix}] ${smokeConcurrencyEnvName}=${smokeConcurrency}; generation and post-install checks are bounded, installs stay serial to avoid pnpm workspace lockfile races`,
+    )
+
+    const smokeRuns = await runWithConcurrency(
+      'generation',
+      smokePlans,
+      smokeConcurrency,
+      plan => generateSmokeRun(rootDir, plan),
+    )
+
+    for (const smokeRun of smokeRuns) {
+      await installSmokeRun(smokeRun)
     }
 
-    for (const testCase of selectedWorkspaceCases) {
-      await runWorkspaceSmokeCase(rootDir, testCase)
-    }
+    await runWithConcurrency('post-install checks', smokeRuns, smokeConcurrency, verifySmokeRun)
+
     passed = true
     console.log(`[${smokePrefix}] all generated project checks passed in ${rootDir}`)
   }

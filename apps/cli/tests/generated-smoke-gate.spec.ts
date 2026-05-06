@@ -11,8 +11,10 @@ import {
   assertGeneratedNodePackageContract,
   assertGeneratedPackageLintContract,
   assertGeneratedProjectPackage,
+  defaultGeneratedSmokeConcurrency,
   formatGeneratedSmokeError,
   generatedLintArgs,
+  parseGeneratedSmokeConcurrency,
   shouldRunLintForPreset,
 } from './support/generated-smoke-gate'
 
@@ -83,6 +85,19 @@ describe('generated smoke gate contract', () => {
 
   it('locks generated-project lint invocation to zero warnings', () => {
     expect(generatedLintArgs).toEqual(['lint', '--max-warnings=0'])
+  })
+
+  it('parses generated smoke concurrency from an optional positive integer env var', () => {
+    expect(parseGeneratedSmokeConcurrency(undefined, 'CREATE_YUME_SMOKE_CONCURRENCY')).toBe(defaultGeneratedSmokeConcurrency)
+    expect(parseGeneratedSmokeConcurrency('', 'CREATE_YUME_SMOKE_CONCURRENCY')).toBe(defaultGeneratedSmokeConcurrency)
+    expect(parseGeneratedSmokeConcurrency(' 3 ', 'CREATE_YUME_SMOKE_CONCURRENCY')).toBe(3)
+  })
+
+  it('rejects malformed generated smoke concurrency values', () => {
+    expect(() => parseGeneratedSmokeConcurrency('0', 'CREATE_YUME_SMOKE_CONCURRENCY')).toThrow('positive integer')
+    expect(() => parseGeneratedSmokeConcurrency('-1', 'CREATE_YUME_SMOKE_CONCURRENCY')).toThrow('positive integer')
+    expect(() => parseGeneratedSmokeConcurrency('1.5', 'CREATE_YUME_SMOKE_CONCURRENCY')).toThrow('positive integer')
+    expect(() => parseGeneratedSmokeConcurrency('fast', 'CREATE_YUME_SMOKE_CONCURRENCY')).toThrow('positive integer')
   })
 
   it('formats phase errors with local command diagnostics and no environment dump', () => {

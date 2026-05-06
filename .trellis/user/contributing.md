@@ -20,6 +20,8 @@ CREATE_YUME_SMOKE_CASES=cli,library pnpm smoke:examples
 CREATE_YUME_SMOKE_CASES=workspace pnpm smoke:examples
 ```
 
+generated smoke 默认 `CREATE_YUME_SMOKE_CONCURRENCY=2`：生成阶段和安装后的 build/lint/bin 检查会限流并发，`pnpm install` 会串行执行，避免 `apps/examples/.generated/` workspace 的共享 lockfile 竞争。排查不稳定问题时可用 `CREATE_YUME_SMOKE_CONCURRENCY=1` 完全串行。
+
 ## 验证怎么选
 
 只改 `.trellis/user/` 或 `.trellis/spec/` 时，重点做人工冷读和相关文档 contract 测试。

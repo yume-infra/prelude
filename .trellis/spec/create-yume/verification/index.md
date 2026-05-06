@@ -38,6 +38,7 @@ Root `pnpm verify` and `pnpm verify:code` must include `pnpm knip` so broad main
 - Effect CLI smoke must install peer-compatible Effect packages, build the generated project, and invoke the generated bin.
 - Workspace generated smoke must cover real install/build for mixed `apps/*` and `libs/*` packages, explicit `workspace:*` links, root workspace files, and package-local CLI bin invocation.
 - Use `CREATE_YUME_SMOKE_CASES` to run only affected generated surfaces when unrelated templates or generation paths were not changed. Supported selectors include preset names, project names, and broad tags such as `react`, `vue`, `frontend`, `node`, `backend`, `cli`, `library`, and `workspace`.
+- Generated smoke uses `CREATE_YUME_SMOKE_CONCURRENCY` for bounded parallel generation and post-install build/lint/bin checks; default is `2`. Keep per-project `pnpm install` serial under `apps/examples/.generated/` to avoid shared pnpm workspace lockfile races.
 
 ## Related Contracts
 
