@@ -4,7 +4,7 @@
   "title": "PRD-2: Standalone Node and CLI Scaffolds",
   "description": "Add standalone Node-oriented and CLI tool scaffold capabilities after the generation model foundation is accepted.",
   "status": "completed",
-  "dev_type": "fullstack",
+  "dev_type": "template-system",
   "scope": "standalone-node-cli-scaffolds",
   "package": "create-yume",
   "priority": "P1",

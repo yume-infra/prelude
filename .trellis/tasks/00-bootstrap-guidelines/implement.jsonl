@@ -1,42 +1,8 @@
-{"file": ".trellis/workflow.md", "reason": "Project workflow and conventions"}
-{"file": "AGENTS.md", "reason": "Repository-level execution constraints for this bootstrap task"}
-{"file": "roadmap.md", "reason": "Root documentation entrypoint and roadmap naming convention"}
-{"file": "docs/agent/constraint/roadmap.md", "reason": "Constraint entrypoint required before applying implementation or validation rules"}
-{"file": "docs/agent/constraint/docs.md", "reason": "Documentation naming, language, audience, and sync constraints"}
-{"file": "docs/agent/constraint/architecture.md", "reason": "Product boundaries and stable scaffold architecture constraints"}
-{"file": "docs/agent/constraint/git.md", "reason": "Commit and pre-submit conventions to preserve in guidelines"}
-{"file": "docs/agent/constraint/workflow-materialization.md", "reason": "Generated workflow materialization boundaries for templates and plan units"}
-{"file": "docs/agent/verification-matrix.md", "reason": "Minimum verification matrix for future task guidance"}
-{"file": "docs/agent/testing.md", "reason": "CLI test organization and generated smoke gate conventions"}
-{"file": "docs/agent/handlebars-helpers.md", "reason": "Current Handlebars helper boundary for template guidelines"}
-{"file": "docs/agent/effect/code-style/", "type": "directory", "reason": "Effect code-style baseline source material"}
-{"file": "docs/user/system-architecture.md", "reason": "User-facing architecture facts to align with execution guidelines"}
-{"file": "docs/user/contributing.md", "reason": "Contributor-facing workflow facts to reflect in guidelines"}
-{"file": ".trellis/tasks/00-bootstrap-guidelines/prd.md", "reason": "Bootstrap guideline task requirements and completion checklist"}
-{"file": ".trellis/spec/create-yume/backend/", "type": "directory", "reason": "Target create-yume backend guideline files to fill"}
-{"file": ".trellis/spec/create-yume/frontend/", "type": "directory", "reason": "Target create-yume frontend guideline files to fill"}
-{"file": ".trellis/spec/examples/backend/", "type": "directory", "reason": "Target examples backend guideline files to fill"}
-{"file": ".trellis/spec/examples/frontend/", "type": "directory", "reason": "Target examples frontend guideline files to fill"}
-{"file": ".trellis/spec/guides/", "type": "directory", "reason": "Thinking guides and pre-modification rules for future agents"}
-{"file": "package.json", "reason": "Workspace scripts and verification entrypoints"}
-{"file": "apps/cli/package.json", "reason": "CLI package scripts, build output, and dependency surface"}
-{"file": "apps/cli/src/core/services/command.ts", "reason": "Effect service and command error mapping pattern"}
-{"file": "apps/cli/src/core/services/fs.ts", "reason": "Filesystem service boundary and error handling pattern"}
-{"file": "apps/cli/src/core/services/template-engine.ts", "reason": "Template runtime service and helper registration pattern"}
-{"file": "apps/cli/src/core/services/plan/build.ts", "reason": "Plan/DSL composition and projection boundary pattern"}
-{"file": "apps/cli/src/core/services/plan/apply.ts", "reason": "Plan application and rollback semantics pattern"}
-{"file": "apps/cli/src/core/errors.ts", "reason": "Domain error classes and diagnostics shape"}
-{"file": "apps/cli/src/schema/project-config.ts", "reason": "Effect Schema project config contract pattern"}
-{"file": "apps/cli/src/schema/plan-spec.ts", "reason": "PlanSpec serialization boundary pattern"}
-{"file": "apps/cli/src/core/template-registry/frontend-app.ts", "reason": "Shared frontend registry composition pattern"}
-{"file": "apps/cli/src/core/template-registry/react.ts", "reason": "React scaffold registry and ownership pattern"}
-{"file": "apps/cli/src/core/template-registry/vue.ts", "reason": "Vue scaffold registry and ownership pattern"}
-{"file": "apps/cli/src/core/owners/router.ts", "reason": "Router capability owner pattern"}
-{"file": "apps/cli/src/core/owners/state-management.ts", "reason": "State-management capability owner pattern"}
-{"file": "apps/cli/templates/fragments/react/App.tsx.hbs", "reason": "Generated React component/template style example"}
-{"file": "apps/cli/templates/fragments/vue/App.vue.hbs", "reason": "Generated Vue component/template style example"}
-{"file": "apps/cli/tests/template-render.spec.ts", "reason": "Template render snapshot coverage pattern"}
-{"file": "apps/cli/tests/generated-smoke-gate.spec.ts", "reason": "Generated-project smoke gate contract pattern"}
-{"file": "apps/cli/tests/core/services/command.test.ts", "reason": "Effect service unit test and mock layer pattern"}
-{"file": "apps/cli/tests/support/generated-smoke-gate.ts", "reason": "Generated smoke test helper pattern"}
-{"file": "apps/examples/README.md", "reason": "Examples package scope and generated output convention"}
+{"file": ".trellis/workflow.md", "reason": "Trellis workflow source"}
+{"file": ".trellis/spec/create-yume/index.md", "reason": "create-yume spec layer index"}
+{"file": ".trellis/spec/create-yume/repository/index.md", "reason": "Repository knowledge source policy"}
+{"file": ".trellis/spec/create-yume/verification/index.md", "reason": "Verification matrix and knowledge validation"}
+{"file": ".trellis/spec/create-yume/verification/generated-scaffold-audit.md", "reason": "Generated scaffold audit contract"}
+{"file": ".trellis/user/index.md", "reason": "Human-facing project map"}
+{"file": ".trellis/user/create-yume.md", "reason": "Human-facing CLI architecture context"}
+{"file": ".agents/skills/trellis-update-spec/SKILL.md", "reason": "Knowledge-doc update workflow"}

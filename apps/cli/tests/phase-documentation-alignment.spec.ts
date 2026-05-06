@@ -5,21 +5,18 @@ import { describe, expect, it } from 'vitest'
 
 const testsDir = path.dirname(fileURLToPath(import.meta.url))
 const repoRoot = path.resolve(testsDir, '../../..')
-const workingDocsRoot = path.join(repoRoot, 'docs/working')
+const verificationSpecRoot = path.join(repoRoot, '.trellis/spec/create-yume/verification')
 
 const docs = {
-  workingRoadmap: path.join(workingDocsRoot, 'roadmap.md'),
-  phase2Roadmap: path.join(workingDocsRoot, 'phase2/roadmap.md'),
-  phase2Quality: path.join(workingDocsRoot, 'phase2/generated-scaffold-quality.md'),
-  phase3Roadmap: path.join(workingDocsRoot, 'phase3/roadmap.md'),
-  phase4Roadmap: path.join(workingDocsRoot, 'phase4/roadmap.md'),
+  phaseRoadmap: path.join(verificationSpecRoot, 'phase-roadmap.md'),
+  generatedScaffoldAudit: path.join(verificationSpecRoot, 'generated-scaffold-audit.md'),
 } as const
 
-function readTrackedWorkingDoc(filePath: string) {
+function readTrackedVerificationSpec(filePath: string) {
   const relativePath = path.relative(repoRoot, filePath)
 
-  expect(relativePath, 'contract test must only read tracked working docs').toMatch(/^docs\/working\//)
-  expect(relativePath, 'contract test must not read ignored GSD artifacts').not.toContain('.gsd')
+  expect(relativePath, 'contract test must only read tracked Trellis verification specs').toMatch(/^\.trellis\/spec\/create-yume\/verification\//)
+  expect(relativePath, 'contract test must not read legacy docs').not.toMatch(/^docs\//)
   expect(relativePath, 'contract test must not read generated example artifacts').not.toContain('apps/examples/.generated')
   expect(existsSync(filePath), `${relativePath} must exist`).toBe(true)
 
@@ -42,24 +39,23 @@ function expectDependsOn(content: string, milestoneId: string, dependencies: rea
 }
 
 describe('phase documentation alignment', () => {
-  it('routes working-doc readers to Phase 2, Phase 3, and Phase 4 entrypoints', () => {
-    const workingRoadmap = readTrackedWorkingDoc(docs.workingRoadmap)
+  it('routes former working-doc readers to Trellis verification specs', () => {
+    const phaseRoadmap = readTrackedVerificationSpec(docs.phaseRoadmap)
+    const auditSpec = readTrackedVerificationSpec(docs.generatedScaffoldAudit)
 
-    expectPhrases('working roadmap', workingRoadmap, [
-      './phase2/roadmap.md',
-      './phase3/roadmap.md',
-      './phase4/roadmap.md',
+    expectPhrases('verification specs', `${phaseRoadmap}\n${auditSpec}`, [
+      'Phase 2',
+      'Phase 3',
+      'Phase 4',
+      'generated-scaffold-audit',
     ])
-
-    expect(readTrackedWorkingDoc(docs.phase2Roadmap), 'Phase 2 roadmap must be reachable').toContain('Phase 2')
-    expect(readTrackedWorkingDoc(docs.phase3Roadmap), 'Phase 3 roadmap must be reachable').toContain('Phase 3')
-    expect(readTrackedWorkingDoc(docs.phase4Roadmap), 'Phase 4 roadmap must be reachable').toContain('Phase 4')
   })
 
   it('keeps Phase 2 handoff connected to smoke gates and the generated scaffold audit skill', () => {
-    const phase2Roadmap = readTrackedWorkingDoc(docs.phase2Roadmap)
-    const phase2Quality = readTrackedWorkingDoc(docs.phase2Quality)
-    const phase2 = `${phase2Roadmap}\n${phase2Quality}`
+    const phase2 = [
+      readTrackedVerificationSpec(docs.phaseRoadmap),
+      readTrackedVerificationSpec(docs.generatedScaffoldAudit),
+    ].join('\n')
 
     expectPhrases('Phase 2 handoff', phase2, [
       'M005',
@@ -78,9 +74,7 @@ describe('phase documentation alignment', () => {
   })
 
   it('documents M006-M009 with durable dependency language and verification expectations', () => {
-    const phase3 = readTrackedWorkingDoc(docs.phase3Roadmap)
-    const phase4 = readTrackedWorkingDoc(docs.phase4Roadmap)
-    const corpus = `${phase3}\n${phase4}`
+    const corpus = readTrackedVerificationSpec(docs.phaseRoadmap)
 
     expectPhrases('Phase 3 and 4 corpus', corpus, [
       'M006',
@@ -104,11 +98,7 @@ describe('phase documentation alignment', () => {
   })
 
   it('states the approved /gsd parallel start scheduling contract', () => {
-    const corpus = [
-      readTrackedWorkingDoc(docs.phase2Roadmap),
-      readTrackedWorkingDoc(docs.phase3Roadmap),
-      readTrackedWorkingDoc(docs.phase4Roadmap),
-    ].join('\n')
+    const corpus = readTrackedVerificationSpec(docs.phaseRoadmap)
 
     expectPhrases('parallel scheduling guidance', corpus, [
       '/gsd parallel start',

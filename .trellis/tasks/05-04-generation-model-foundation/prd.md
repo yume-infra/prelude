@@ -49,8 +49,8 @@ Introduce the generation model foundation that lets create-yume describe standal
 * `apps/cli/src/utils/type-guard.ts`
 * `apps/cli/tests/schema/`
 * `apps/cli/tests/core/questions/`
-* `docs/agent/constraint/architecture.md`
-* `docs/user/system-architecture.md`
+* `.trellis/spec/create-yume/generation-model/index.md`
+* `.trellis/user/create-yume.md`
 
 ## Out of Scope
 

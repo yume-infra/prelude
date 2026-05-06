@@ -1,0 +1,6 @@
+{"file": ".trellis/workflow.md", "reason": "Project workflow and conventions"}
+{"file": ".trellis/spec/create-yume/generation-model/index.md", "reason": "generation-model development guide"}
+{"file": ".trellis/spec/create-yume/cli-runtime/index.md", "reason": "CLI toolkit changes must preserve CLI runtime and input contracts"}
+{"file": ".trellis/spec/create-yume/effect/index.md", "reason": "Effect CLI templates and runtime style must follow local Effect baseline"}
+{"file": ".trellis/spec/create-yume/template-system/index.md", "reason": "Effect CLI scaffold adds templates and package manifest contributions"}
+{"file": ".trellis/spec/create-yume/verification/index.md", "reason": "Select verification for CLI args/spec/template/bin changes"}

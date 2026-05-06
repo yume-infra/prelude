@@ -1,14 +1,14 @@
-{"file": ".agents/skills/finish-work/SKILL.md", "reason": "Finish work checklist"}
-{"file": ".agents/skills/check/SKILL.md", "reason": "Code quality check spec"}
+{"file": ".agents/skills/trellis-finish-work/SKILL.md", "reason": "Finish work checklist"}
+{"file": ".agents/skills/trellis-check/SKILL.md", "reason": "Code quality check spec"}
 {"file": ".trellis/tasks/05-04-monorepo-node-cli-support/prd.md", "reason": "Parent lead roadmap, global decisions, and dependency ordering"}
-{"file": "docs/agent/constraint/architecture.md", "reason": "Scaffold boundary and stable execution core constraints"}
-{"file": "docs/agent/verification-matrix.md", "reason": "Validation selection for generated scaffold changes"}
+{"file": ".trellis/spec/create-yume/generation-model/index.md", "reason": "Scaffold boundary and stable execution core constraints"}
+{"file": ".trellis/spec/create-yume/verification/index.md", "reason": "Validation selection for generated scaffold changes"}
 {"file": "apps/cli/src/core/cli-args.ts", "reason": "Raw CLI arg parse behavior"}
 {"file": "apps/cli/src/core/cli-help.ts", "reason": "User-facing help text"}
 {"file": "apps/cli/src/schema/preset.ts", "reason": "Preset schema naming boundary"}
 {"file": "apps/cli/src/core/services/preview.ts", "reason": "Dry-run formatting"}
-{"file": "docs/user/system-architecture.md", "reason": "User-facing supported scope docs"}
-{"file": "docs/agent/constraint/docs.md", "reason": "Docs constraints for user/agent doc separation"}
+{"file": ".trellis/user/create-yume.md", "reason": "User-facing supported scope docs"}
+{"file": ".trellis/spec/create-yume/repository/index.md", "reason": "Knowledge constraints for user/agent doc separation"}
 {"file": "apps/cli/src/schema/create-spec.ts", "reason": "CreateSpec decode/export/adaptation contract"}
 {"file": "apps/cli/src/index.ts", "reason": "CLI entry point for spec/no-input/export behavior"}
 {"file": "README.md", "reason": "User-facing CLI usage and spec examples"}

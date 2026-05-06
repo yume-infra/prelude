@@ -1,0 +1,45 @@
+# Repository Rules
+
+> Monorepo, documentation, dependency, and collaboration rules.
+
+---
+
+## Repository Shape
+
+```text
+apps/cli/       create-yume CLI package and templates
+apps/examples/  generated-output smoke workspace
+.trellis/spec/  agent-facing executable project specs
+.trellis/user/  human-facing project context
+```
+
+`docs/` is not a source of truth in this repository. Stable project knowledge belongs in `.trellis/spec/` or `.trellis/user/`.
+
+## Documentation Rules
+
+- `.trellis/spec/` contains executable coding contracts, boundaries, matrices, and tests.
+- `.trellis/user/` contains Simplified Chinese project context, package maps, reading order, and human-facing pitfalls.
+- Do not mirror every spec mechanically into user docs.
+- If a change affects supported scope, architecture, package roles, or reading order, update `.trellis/user/`.
+- If a change affects implementation contracts, update `.trellis/spec/`.
+
+## Dependency Rules
+
+- External dependency versions are centralized through the pnpm catalog.
+- Add new external dependencies to the catalog first, then to the package that uses them.
+- Internal workspace dependencies must be explicit.
+- Generated workspace package internal links use `workspace:*` only when declared.
+
+## Git And Commit Rules
+
+- Use conventional commits: `feat`, `fix`, `docs`, `refactor`, `test`, `chore`.
+- Keep commit scope aligned with the actual change.
+- Before commit, run the verification command that matches the changed surface.
+- For knowledge-only work, perform manual cold read and run affected documentation contract tests.
+
+## Forbidden Patterns
+
+- Do not reintroduce `docs/` as a project knowledge entrypoint.
+- Do not store active execution TODOs or phase logs as stable documentation.
+- Do not move generated smoke output into committed source.
+- Do not scatter dependency versions across package manifests.

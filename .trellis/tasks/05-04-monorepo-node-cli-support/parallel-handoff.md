@@ -43,7 +43,7 @@ Then read the PRD for the task being dispatched.
 | PRD-3 | `.trellis/tasks/05-04-workspace-root-materialization` | `codex/workspace-root-materialization` | Start after PRD-1 accepted |
 | PRD-4 | `.trellis/tasks/05-04-target-aware-package-template-composition` | `codex/target-aware-package-template-composition` | Start after PRD-3 accepted |
 | PRD-5 | `.trellis/tasks/05-04-monorepo-package-generation` | `codex/monorepo-package-generation` | Start after PRD-2 and PRD-4 accepted |
-| PRD-6 | `.trellis/tasks/05-04-presets-cli-ux-documentation` | `codex/presets-cli-ux-documentation` | Start after PRD-5 for final UX/docs |
+| PRD-6 | `.trellis/tasks/05-04-presets-cli-ux-documentation` | `codex/presets-cli-ux-documentation` | Start after PRD-5 for final UX/knowledge |
 | PRD-7 | `.trellis/tasks/05-04-final-integration-full-acceptance` | `codex/final-integration-full-acceptance` | Final serial acceptance |
 
 ## Dispatch Waves
@@ -66,30 +66,24 @@ Rules:
 * After PRD-1 is completed and accepted, PRD-2 and PRD-3 may run in parallel.
 * PRD-4 waits for PRD-3.
 * PRD-5 waits for PRD-2 and PRD-4.
-* PRD-6 final UX/docs waits for PRD-5, although doc drafting can happen earlier if explicitly requested.
+* PRD-6 final UX/knowledge waits for PRD-5, although knowledge drafting can happen earlier if explicitly requested.
 * PRD-7 is final serial acceptance.
 
-## First Dispatch Command
+## Legacy Dispatch Note
 
-Start only Wave 0:
+This handoff was written for the removed Trellis 0.4 multi-agent pipeline. In
+Trellis 0.5, `.trellis/scripts/multi_agent/` and `worktree.yaml` are removed;
+use the host platform's native worktree/subagent support instead.
 
-```bash
-python3 ./.trellis/scripts/multi_agent/start.py .trellis/tasks/05-04-generation-model-foundation --platform codex
-```
-
-Monitor:
-
-```bash
-python3 ./.trellis/scripts/multi_agent/status.py
-python3 ./.trellis/scripts/multi_agent/status.py --watch generation-model-foundation
-```
+The old dispatch and monitor commands are intentionally not preserved here,
+because copying them after the Trellis 0.5 migration would call deleted entrypoints.
 
 ## New Session Prompt
 
-Use this prompt in a fresh session:
+Use this prompt in a fresh session, updated for Trellis 0.5:
 
 ```text
-[$start](/Users/sayori/Desktop/create-yume/.agents/skills/start/SKILL.md) [$parallel](/Users/sayori/Desktop/create-yume/.codex/skills/parallel/SKILL.md)
+[$trellis-before-dev](/Users/sayori/Desktop/create-yume/.agents/skills/trellis-before-dev/SKILL.md)
 
 You are in /Users/sayori/Desktop/create-yume. Act as the parallel lead agent for the monorepo and Node/CLI roadmap.
 
@@ -99,13 +93,12 @@ Do not ask me to paste prior context. Read:
 - .trellis/workflow.md
 - .trellis/spec/guides/index.md
 
-Then inspect the Trellis task tree and validated child tasks. The child tasks have already been created and context-initialized.
+Then inspect the Trellis task tree and validated child tasks. The child tasks have already been created and their jsonl context files have been curated.
 
 Your job in this session:
 1. Confirm the dispatch wave plan from the handoff.
-2. Start only Wave 0:
-   python3 ./.trellis/scripts/multi_agent/start.py .trellis/tasks/05-04-generation-model-foundation --platform codex
-3. Report the started agent and monitoring commands.
+2. Start only Wave 0 using the host platform's native worktree/subagent support.
+3. Report the started agent or worktree and its monitoring path.
 4. Do not start PRD-2 or PRD-3 until PRD-1 is completed and accepted.
 5. Do not implement code directly in the main repository.
 6. Do not disturb unrelated uncommitted changes or the existing 00-bootstrap-guidelines current task.

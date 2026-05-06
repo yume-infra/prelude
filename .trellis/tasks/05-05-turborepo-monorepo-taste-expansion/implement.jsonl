@@ -1,0 +1,6 @@
+{"file": ".trellis/workflow.md", "reason": "Project workflow and conventions"}
+{"file": ".trellis/spec/create-yume/repository/index.md", "reason": "repository development guide"}
+{"file": ".trellis/spec/create-yume/workspace-packages/index.md", "reason": "Monorepo taste recommendations must preserve workspace package contracts"}
+{"file": ".trellis/spec/create-yume/generation-model/index.md", "reason": "Future package kinds and scaffold scope must align with generation taxonomy"}
+{"file": ".trellis/spec/create-yume/template-system/index.md", "reason": "Future shared config/package-level Turbo ideas must fit template/materialization contracts"}
+{"file": ".trellis/spec/create-yume/verification/index.md", "reason": "Future slices should include verification strategy"}

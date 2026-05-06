@@ -4,7 +4,7 @@
   "title": "PRD-1: Generation Model Foundation",
   "description": "Define and implement the generation model foundation: shape/kind/runtime taxonomy, create spec schema, runtime validation, dependency link schema, and React/Vue compatibility.",
   "status": "completed",
-  "dev_type": "fullstack",
+  "dev_type": "generation-model",
   "scope": "generation-model-foundation",
   "package": "create-yume",
   "priority": "P1",

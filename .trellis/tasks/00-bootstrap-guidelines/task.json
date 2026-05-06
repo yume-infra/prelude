@@ -1,7 +1,7 @@
 {
   "id": "00-bootstrap-guidelines",
   "name": "Bootstrap Guidelines",
-  "description": "Fill in project development guidelines for AI agents",
+  "description": "Align project knowledge around Trellis spec and user docs",
   "status": "in_progress",
   "dev_type": "docs",
   "priority": "P1",
@@ -11,26 +11,20 @@
   "completedAt": null,
   "commit": null,
   "subtasks": [
-    {
-      "name": "Fill guidelines for create-yume",
-      "status": "completed"
-    },
-    {
-      "name": "Fill guidelines for examples",
-      "status": "completed"
-    },
-    {
-      "name": "Add code examples",
-      "status": "completed"
-    }
+    "Restructure create-yume spec layers",
+    "Create Trellis user docs",
+    "Remove legacy docs references"
   ],
   "children": [],
   "parent": null,
   "relatedFiles": [
     ".trellis/spec/create-yume/",
-    ".trellis/spec/examples/"
+    ".trellis/spec/examples/",
+    ".trellis/user/",
+    "AGENTS.md",
+    "README.md"
   ],
-  "notes": "First-time setup task created by trellis init (frontend project)",
+  "notes": "Bootstrap task repurposed to migrate pre-Trellis docs into Trellis-native spec and user docs",
   "meta": {},
   "package": "create-yume"
 }

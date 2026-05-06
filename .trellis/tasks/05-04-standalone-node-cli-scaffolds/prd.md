@@ -49,7 +49,7 @@ Add standalone Node-oriented and CLI tool scaffold capabilities after the genera
 * `apps/cli/templates/fragments/`
 * `apps/cli/tests/template-render.spec.ts`
 * `apps/cli/tests/generated-projects.smoke.ts`
-* `docs/user/system-architecture.md`
+* `.trellis/user/create-yume.md`
 
 ## Out of Scope
 

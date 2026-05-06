@@ -61,8 +61,11 @@ git status && git log --oneline -10              # Git state
 # Discover available packages and spec layers
 python3 ./.trellis/scripts/get_context.py --mode packages
 
-# Read the spec index for each relevant module
+# Read the spec index for each relevant package/domain layer
 cat .trellis/spec/<package>/<layer>/index.md
+
+# Read human-facing project context when architecture or reading order matters
+cat .trellis/user/index.md
 
 # Always read shared guides
 cat .trellis/spec/guides/index.md
@@ -108,12 +111,6 @@ cat .trellis/spec/<package>/<layer>/conventions.md
 |   |   |-- paths.py         # Path utilities
 |   |   |-- developer.py     # Developer management
 |   |   +-- git_context.py   # Git context implementation
-|   |-- multi_agent/         # Multi-agent pipeline scripts
-|   |   |-- __init__.py
-|   |   |-- start.py         # Start worktree agent
-|   |   |-- status.py        # Monitor agent status
-|   |   |-- create_pr.py     # Create PR
-|   |   +-- cleanup.py       # Cleanup worktree
 |   |-- init_developer.py    # Initialize developer identity
 |   |-- get_developer.py     # Get current developer name
 |   |-- task.py              # Manage tasks
@@ -127,17 +124,15 @@ cat .trellis/spec/<package>/<layer>/conventions.md
 |-- tasks/               # Task tracking
 |   +-- {MM}-{DD}-{name}/
 |       +-- task.json
+|-- user/                # Human-facing project map and reading order
 |-- spec/                # [!] MUST READ before coding
-|   |-- frontend/        # Frontend guidelines (if applicable)
-|   |   |-- index.md               # Start here - guidelines index
-|   |   +-- *.md                   # Topic-specific docs
-|   |-- backend/         # Backend guidelines (if applicable)
-|   |   |-- index.md               # Start here - guidelines index
-|   |   +-- *.md                   # Topic-specific docs
+|   |-- {package}/       # Package-specific guidelines
+|   |   +-- {layer}/     # Domain-specific layer
+|   |       |-- index.md # Start here - guidelines index
+|   |       +-- *.md     # Topic-specific docs
 |   +-- guides/          # Thinking guides
-|       |-- index.md                      # Guides index
-|       |-- cross-layer-thinking-guide.md # Pre-implementation checklist
-|       +-- *.md                          # Other guides
+|       |-- index.md
+|       +-- *.md
 +-- workflow.md             # This document
 ```
 
@@ -291,12 +286,10 @@ workspace/
 **Structure** (Multi-doc format):
 ```
 spec/
-|-- frontend/           # Frontend docs (if applicable)
-|   |-- index.md        # Start here
-|   +-- *.md            # Topic-specific docs
-|-- backend/            # Backend docs (if applicable)
-|   |-- index.md        # Start here
-|   +-- *.md            # Topic-specific docs
+|-- {package}/          # Package-specific knowledge
+|   |-- {layer}/        # Domain layer, e.g. cli-runtime or template-system
+|   |   |-- index.md    # Start here
+|   |   +-- *.md        # Topic-specific docs
 +-- guides/             # Thinking guides
     |-- index.md        # Start here
     +-- *.md            # Guide-specific docs
@@ -372,8 +365,11 @@ python3 ./.trellis/scripts/task.py list-archive    # List archived tasks
 
 | Task Type | Must-read Document |
 |-----------|-------------------|
-| Frontend work | `frontend/index.md` → relevant docs |
-| Backend work | `backend/index.md` → relevant docs |
+| CLI runtime work | `create-yume/cli-runtime/index.md` → relevant docs |
+| Generation model work | `create-yume/generation-model/index.md` → relevant docs |
+| Template work | `create-yume/template-system/index.md` → relevant docs |
+| Workspace package work | `create-yume/workspace-packages/index.md` → relevant docs |
+| Verification work | `create-yume/verification/index.md` → relevant docs |
 | Cross-Layer Feature | `guides/cross-layer-thinking-guide.md` |
 
 ### Commit Convention
@@ -414,3 +410,32 @@ Following this workflow ensures:
 - [OK] Transparent team collaboration
 
 **Core Philosophy**: Read before write, follow standards, record promptly, capture learnings
+
+[workflow-state:no_task]
+No active task. **A Direct answer** — pure Q&A / explanation / lookup / chat; no file writes + one-line answer + repo reads ≤ 2 files → AI judges, no override needed.
+**B Create a task** — any implementation / code change / build / refactor work. Entry sequence: (1) `python3 ./.trellis/scripts/task.py create "<title>"` to create the task (status=planning, breadcrumb switches to [workflow-state:planning] for brainstorm + jsonl phase guidance) → (2) load `trellis-brainstorm` skill to discuss requirements with the user and iterate on prd.md → (3) once prd is done and jsonl is curated, run `task.py start <task-dir>` to enter [workflow-state:in_progress] for the implementation skeleton. For research-heavy work, dispatch `trellis-research` sub-agents — main agent must NOT do 3+ inline WebFetch / WebSearch / `gh api` calls. **"It looks small" is NOT grounds for downgrading B to A or C**.
+**C Inline change** (per-turn only, escape hatch for B) — the user's CURRENT message MUST contain one of: "skip trellis" / "no task" / "just do it" / "don't create a task" / "跳过 trellis" / "别走流程" / "小修一下" / "直接改" / "先别建任务" → briefly acknowledge ("ok, skipping trellis flow this turn"), then inline. **Without seeing one of these phrases you must NOT inline on your own**; do not invent an override the user never said.
+[/workflow-state:no_task]
+
+[workflow-state:planning]
+Load the `trellis-brainstorm` skill and iterate on prd.md with the user.
+Phase 1.3 (required, once): before `task.py start`, you MUST curate `implement.jsonl` and `check.jsonl` — list the spec / research files sub-agents need so they get the right context injected. You may skip only if the jsonl already has agent-curated entries (the seed `_example` row alone doesn't count).
+Then run `task.py start <task-dir>` to flip status to in_progress.
+Research output **must** land in `{task_dir}/research/*.md`, written by `trellis-research` sub-agents. The main agent should not inline WebFetch / WebSearch — the PRD only links to research files.
+[/workflow-state:planning]
+
+[workflow-state:in_progress]
+**Flow**: trellis-implement → trellis-check → trellis-update-spec + `.trellis/user/` sync review → commit (Phase 3.4) → `/trellis:finish-work`.
+**Default (no override)**: dispatch the `trellis-implement` / `trellis-check` sub-agents — the main agent does NOT edit code by default. Phase 3.3 knowledge docs update (required, once): after check passes, run trellis-update-spec and explicitly decide whether `.trellis/spec/` and `.trellis/user/` need updates. Phase 3.4 commit (required, once): after knowledge docs are reviewed, or whenever implementation is verifiably complete, the main agent **drives the commit** — state the commit plan in user-facing text, then run `git commit` — BEFORE suggesting `/trellis:finish-work`. `/finish-work` refuses to run on a dirty working tree (paths outside `.trellis/workspace/` and `.trellis/tasks/`).
+**Inline override** (per-turn only, escape hatch for sub-agent dispatch): the user's CURRENT message MUST explicitly contain one of: "do it inline" / "no sub-agent" / "你直接改" / "别派 sub-agent" / "main session 写就行" / "不用 sub-agent". **Without seeing one of these phrases you must NOT inline on your own**; do not invent an override the user never said.
+[/workflow-state:in_progress]
+
+[workflow-state:completed]
+Code committed via Phase 3.4; run `/trellis:finish-work` to wrap up (archive the task + record session).
+If you reach this state with uncommitted code, return to Phase 3.4 first — `/finish-work` refuses to run on a dirty working tree.
+`task.py archive` deletes any runtime session files that still point at the archived task.
+[/workflow-state:completed]
+
+[workflow-state:my-status]
+your per-turn prompt text
+[/workflow-state:my-status]

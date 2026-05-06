@@ -2,7 +2,7 @@
 
 ## Goal
 
-Prove the complete roadmap through canonical standalone and workspace verification matrices, dry-run smoke coverage, docs alignment, and final generated scaffold audit.
+Prove the complete roadmap through canonical standalone and workspace verification matrices, dry-run smoke coverage, knowledge alignment, and final generated scaffold audit.
 
 ## Dependencies
 
@@ -48,9 +48,9 @@ Prove the complete roadmap through canonical standalone and workspace verificati
 * `apps/cli/tests/dry-run-cli.smoke.ts`
 * `apps/cli/tests/linked-examples.smoke.ts`
 * `apps/cli/tests/generated-scaffold-audit-skill.spec.ts`
-* `docs/agent/verification-matrix.md`
-* `docs/user/system-architecture.md`
-* `docs/agent/constraint/architecture.md`
+* `.trellis/spec/create-yume/verification/index.md`
+* `.trellis/user/create-yume.md`
+* `.trellis/spec/create-yume/generation-model/index.md`
 
 ## Out of Scope
 
@@ -59,4 +59,4 @@ Prove the complete roadmap through canonical standalone and workspace verificati
 
 ## Parallelization Notes
 
-Standalone regression, workspace smoke, and docs alignment can run in parallel. Final `pnpm verify` is serial and should run only after all lanes are green.
+Standalone regression, workspace smoke, and knowledge alignment can run in parallel. Final `pnpm verify` is serial and should run only after all lanes are green.

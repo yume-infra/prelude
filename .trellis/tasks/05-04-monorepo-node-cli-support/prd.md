@@ -377,7 +377,7 @@ Accepted into the roadmap:
 * Model explicit internal workspace dependency links and emit `workspace:*`.
 * Define Node/CLI ESM/build/bin/shebang expectations before implementing CLI templates.
 * Add template scope filtering so root-only templates are not repeated inside child apps/libs.
-* Add structured spec export as a later UX/docs task.
+* Add structured spec export as a later UX/knowledge task.
 * Define canonical final smoke combinations.
 * Keep monorepo generation append-ready even though existing-project incremental update remains out of scope.
 * Infer and validate runtime from package kind where possible.
@@ -393,8 +393,8 @@ Rejected or deferred:
 ## Technical Notes
 
 * Task created at `.trellis/tasks/05-04-monorepo-node-cli-support`.
-* Relevant constraints read: `docs/agent/constraint/roadmap.md`, `docs/agent/constraint/architecture.md`, `docs/user/system-architecture.md`.
-* Likely impacted areas include project config schemas, project type questions, presets, template registries, PlanSpec projection, workspace bootstrap, generated package manifests, dry-run output, and docs.
+* Relevant constraints read: `.trellis/spec/create-yume/index.md`, `.trellis/spec/create-yume/generation-model/index.md`, `.trellis/user/create-yume.md`.
+* Likely impacted areas include project config schemas, project type questions, presets, template registries, PlanSpec projection, workspace bootstrap, generated package manifests, dry-run output, and Trellis knowledge docs.
 * Repo files inspected include `apps/cli/src/core/questions/compose.ts`, `apps/cli/src/core/services/compose.ts`, `apps/cli/src/core/workspace-bootstrap.ts`, `apps/cli/src/core/modifier/package-json.ts`, `apps/cli/src/core/template-registry/frontend-app.ts`, `apps/cli/src/core/template-registry/workspace-bootstrap.ts`, `apps/cli/src/schema/project-config.ts`, `apps/cli/src/schema/preset.ts`, and relevant tests.
 * Current repository already uses pnpm workspaces and Turborepo for itself: `pnpm-workspace.yaml` has `apps/*` and `packages/*`; `turbo.json` defines root tasks. Generated workspaces in this roadmap should use `apps/*` and `libs/*` by decision.
 
@@ -426,7 +426,7 @@ Rejected or deferred:
 
 **Option B: Architecture-layer phases**
 
-* Shape: config/schema model, target-path/package-manifest model, template registries, generated templates, commands/dry-run, docs/tests.
+* Shape: config/schema model, target-path/package-manifest model, template registries, generated templates, commands/dry-run, knowledge/tests.
 * Pros: good for reducing breakage in shared contracts.
 * Cons: less meaningful to users because product value appears late.
 
@@ -511,7 +511,7 @@ The lead roadmap has been expanded into concrete Trellis child tasks:
 | PRD-3 | `.trellis/tasks/05-04-workspace-root-materialization` | `codex/workspace-root-materialization` | Blocked on PRD-1 |
 | PRD-4 | `.trellis/tasks/05-04-target-aware-package-template-composition` | `codex/target-aware-package-template-composition` | Blocked on PRD-3 |
 | PRD-5 | `.trellis/tasks/05-04-monorepo-package-generation` | `codex/monorepo-package-generation` | Blocked on PRD-2 and PRD-4 |
-| PRD-6 | `.trellis/tasks/05-04-presets-cli-ux-documentation` | `codex/presets-cli-ux-documentation` | Blocked on PRD-5 for final UX/docs, can draft earlier |
+| PRD-6 | `.trellis/tasks/05-04-presets-cli-ux-documentation` | `codex/presets-cli-ux-documentation` | Blocked on PRD-5 for final UX/knowledge, can draft earlier |
 | PRD-7 | `.trellis/tasks/05-04-final-integration-full-acceptance` | `codex/final-integration-full-acceptance` | Final serial acceptance |
 
 Each child task has its own `prd.md`, initialized context files, scope, and planned branch name.
@@ -535,13 +535,13 @@ Dispatch rules:
 * Wave 1 can run PRD-2 and PRD-3 in parallel after PRD-1 is accepted.
 * PRD-4 waits for PRD-3 because it depends on root/package target contracts.
 * PRD-5 waits for PRD-2 and PRD-4 because it composes product packages inside workspace targets.
-* PRD-6 can draft docs/spec examples earlier, but final implementation should wait until PRD-5 stabilizes user-visible behavior.
+* PRD-6 can draft user/spec examples earlier, but final implementation should wait until PRD-5 stabilizes user-visible behavior.
 * PRD-7 is serial final acceptance and should not start until all product/UX phases are green.
 
 ### PRD-1: Generation Model Foundation
 
 * Purpose: split the current frontend-only `ProjectConfig` model into a broader generation model that can describe standalone projects, future workspaces, and structured create spec input.
-* Likely scope: `apps/cli/src/schema/`, question composition, preset schema, structured spec schema, runtime inference/validation, internal dependency link schema, CLI help, type guards, config tests, docs constraints.
+* Likely scope: `apps/cli/src/schema/`, question composition, preset schema, structured spec schema, runtime inference/validation, internal dependency link schema, CLI help, type guards, config tests, knowledge constraints.
 * Depends on: PRD-0.
 * Local acceptance:
   * Existing React/Vue configs still decode and generate unchanged output.
@@ -615,7 +615,7 @@ Dispatch rules:
 ### PRD-7: Final Integration And Full Acceptance
 
 * Purpose: prove the complete product capability across standalone and monorepo generation.
-* Likely scope: canonical generated output smoke matrix, linked examples, dry-run smoke, docs alignment tests, verification matrix updates, final regression audit.
+* Likely scope: canonical generated output smoke matrix, linked examples, dry-run smoke, knowledge alignment tests, verification matrix updates, final regression audit.
 * Depends on: PRD-2 through PRD-6.
 * Local acceptance:
   * React/Vue standalone compatibility remains green.
@@ -754,7 +754,7 @@ Parallelization notes:
 flowchart TD
   P2Done["Standalone Node/CLI accepted"] --> P7A["P7-A: Standalone canonical matrix"]
   P5Done["Monorepo package generation accepted"] --> P7B["P7-B: Monorepo canonical matrix"]
-  P6Done["UX/docs accepted"] --> P7C["P7-C: Docs alignment audit"]
+  P6Done["UX/knowledge accepted"] --> P7C["P7-C: Knowledge alignment audit"]
   P7A --> P7D["P7-D: Full verify and generated scaffold audit"]
   P7B --> P7D
   P7C --> P7D
@@ -763,15 +763,15 @@ flowchart TD
 
 Parallelization notes:
 
-* Standalone regression, monorepo smoke, and docs audit can run in parallel.
+* Standalone regression, monorepo smoke, and Trellis knowledge-doc audit can run in parallel.
 * Final verify is serial and should run only after all lanes are green.
 
 ## Dispatch Policy
 
 * Do not start worktree agents from this umbrella PRD directly.
 * For each PRD above, create a child task directory with its own `prd.md`.
-* Initialize context per child task using the relevant package layer, usually `create-yume` with backend/frontend specs depending on touched files.
-* Add implement/check context entries for specific files, docs, tests, and constraints before dispatch.
+* Initialize context per child task using the relevant `create-yume` domain layer, such as `generation-model`, `template-system`, `workspace-packages`, or `verification`.
+* Add implement/check context entries for specific files, specs, user docs, tests, and constraints before dispatch.
 * Use worktree agents only after a task has a narrow file ownership boundary.
-* Avoid parallel worktree tasks that both edit shared schemas, `ProjectConfig`, `PlanSpec`, package manifest collector code, or the same docs file.
+* Avoid parallel worktree tasks that both edit shared schemas, `ProjectConfig`, `PlanSpec`, package manifest collector code, or the same Trellis knowledge file.
 * Fresh-session handoff lives at `.trellis/tasks/05-04-monorepo-node-cli-support/parallel-handoff.md`; use it before dispatching any wave.

@@ -14,7 +14,7 @@ const referenceRoutes = [
   'references/create-yume-generated-quality.md',
 ] as const
 const templateRoute = 'templates/audit-report.md'
-const generatedQualityDocPath = path.join(repoRoot, 'docs/working/phase2/generated-scaffold-quality.md')
+const generatedQualitySpecPath = path.join(repoRoot, '.trellis/spec/create-yume/verification/generated-scaffold-audit.md')
 
 function readProjectFile(filePath: string) {
   expect(existsSync(filePath), `${path.relative(repoRoot, filePath)} must exist`).toBe(true)
@@ -126,9 +126,9 @@ describe('generated scaffold audit skill', () => {
   })
 
   it('documents the phase handoff to the project-local skill', () => {
-    const doc = readProjectFile(generatedQualityDocPath)
+    const doc = readProjectFile(generatedQualitySpecPath)
 
-    expect(doc, 'Phase 2 quality doc must point future agents to the reusable skill').toContain('.agents/skills/generated-scaffold-audit/SKILL.md')
-    expect(doc, 'Phase 2 quality doc must tell agents not to recreate the audit process').toContain('不应重新发明审计流程')
+    expect(doc, 'Generated scaffold audit spec must point future agents to the reusable skill').toContain('.agents/skills/generated-scaffold-audit/SKILL.md')
+    expect(doc, 'Generated scaffold audit spec must tell agents not to recreate the audit process').toContain('should not recreate the audit process')
   })
 })

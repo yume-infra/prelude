@@ -1,0 +1,5 @@
+{"file": ".agents/skills/trellis-finish-work/SKILL.md", "reason": "Finish work checklist"}
+{"file": ".agents/skills/trellis-check/SKILL.md", "reason": "Code quality check spec"}
+{"file": ".trellis/spec/create-yume/template-system/index.md", "reason": "Check template and manifest changes against owner contribution contracts"}
+{"file": ".trellis/spec/create-yume/generation-model/index.md", "reason": "Verify generation scope and taxonomy remain consistent"}
+{"file": ".trellis/spec/create-yume/verification/index.md", "reason": "Check validation commands cover changed generated output"}

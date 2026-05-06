@@ -4,7 +4,7 @@
   "title": "PRD-5: Monorepo Package Generation",
   "description": "Generate supported package kinds inside workspaces under apps/* and libs/* with explicit workspace dependency links.",
   "status": "completed",
-  "dev_type": "fullstack",
+  "dev_type": "workspace-packages",
   "scope": "monorepo-package-generation",
   "package": "create-yume",
   "priority": "P1",

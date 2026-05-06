@@ -1,0 +1,6 @@
+{"file": ".agents/skills/trellis-finish-work/SKILL.md", "reason": "Finish work checklist"}
+{"file": ".agents/skills/trellis-check/SKILL.md", "reason": "Code quality check spec"}
+{"file": ".trellis/spec/create-yume/workspace-packages/index.md", "reason": "Check recommendations against workspace package boundaries"}
+{"file": ".trellis/spec/create-yume/generation-model/index.md", "reason": "Check future proposals do not silently expand unsupported scope"}
+{"file": ".trellis/spec/create-yume/template-system/index.md", "reason": "Check future implementation slices identify template and manifest boundaries"}
+{"file": ".trellis/spec/create-yume/verification/index.md", "reason": "Check proposed verification matches changed surface"}

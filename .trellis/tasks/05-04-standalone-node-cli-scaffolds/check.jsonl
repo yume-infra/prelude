@@ -1,8 +1,8 @@
-{"file": ".agents/skills/finish-work/SKILL.md", "reason": "Finish work checklist"}
-{"file": ".agents/skills/check/SKILL.md", "reason": "Code quality check spec"}
+{"file": ".agents/skills/trellis-finish-work/SKILL.md", "reason": "Finish work checklist"}
+{"file": ".agents/skills/trellis-check/SKILL.md", "reason": "Code quality check spec"}
 {"file": ".trellis/tasks/05-04-monorepo-node-cli-support/prd.md", "reason": "Parent lead roadmap, global decisions, and dependency ordering"}
-{"file": "docs/agent/constraint/architecture.md", "reason": "Scaffold boundary and stable execution core constraints"}
-{"file": "docs/agent/verification-matrix.md", "reason": "Validation selection for generated scaffold changes"}
+{"file": ".trellis/spec/create-yume/generation-model/index.md", "reason": "Scaffold boundary and stable execution core constraints"}
+{"file": ".trellis/spec/create-yume/verification/index.md", "reason": "Validation selection for generated scaffold changes"}
 {"file": "apps/cli/src/core/ownership/model.ts", "reason": "Owner model for new Node/CLI scaffold ownership"}
 {"file": "apps/cli/src/core/modifier/package-json.ts", "reason": "Package manifest contribution composition"}
 {"file": "apps/cli/src/core/template-registry/frontend-app.ts", "reason": "Existing scaffold family assembly pattern to compare against"}

@@ -1,0 +1,53 @@
+{
+  "id": "turborepo-workspace-foundation",
+  "name": "turborepo-workspace-foundation",
+  "title": "A: Turborepo Workspace Foundation",
+  "description": "Harden generated Turborepo/pnpm workspace foundation and baseline package correctness.",
+  "status": "in_progress",
+  "dev_type": "workspace-packages",
+  "scope": "workspace-packages",
+  "package": "create-yume",
+  "priority": "P1",
+  "creator": "sayoriqwq",
+  "assignee": "sayoriqwq",
+  "createdAt": "2026-05-05",
+  "completedAt": null,
+  "branch": "codex/turborepo-workspace-foundation",
+  "base_branch": "main",
+  "worktree_path": "/Users/sayori/Desktop/trellis-worktrees/codex/turborepo-workspace-foundation",
+  "current_phase": 0,
+  "next_action": [
+    {
+      "phase": 1,
+      "action": "brainstorm"
+    },
+    {
+      "phase": 2,
+      "action": "research"
+    },
+    {
+      "phase": 3,
+      "action": "implement"
+    },
+    {
+      "phase": 4,
+      "action": "check"
+    },
+    {
+      "phase": 5,
+      "action": "update-spec"
+    },
+    {
+      "phase": 6,
+      "action": "record-session"
+    }
+  ],
+  "commit": null,
+  "pr_url": null,
+  "subtasks": [],
+  "children": [],
+  "parent": "05-05-05-05-expand-monorepo-node-cli-scaffolds",
+  "relatedFiles": [],
+  "notes": "",
+  "meta": {}
+}

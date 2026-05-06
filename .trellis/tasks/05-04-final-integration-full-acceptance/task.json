@@ -2,7 +2,7 @@
   "id": "final-integration-full-acceptance",
   "name": "final-integration-full-acceptance",
   "title": "PRD-7: Final Integration and Full Acceptance",
-  "description": "Run canonical standalone and monorepo verification matrices, docs alignment, and final generated scaffold audit.",
+  "description": "Run canonical standalone and monorepo verification matrices, knowledge alignment, and final generated scaffold audit.",
   "status": "planning",
   "dev_type": "test",
   "scope": "final-integration-full-acceptance",

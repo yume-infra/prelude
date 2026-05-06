@@ -1,9 +1,9 @@
 {"file": ".trellis/workflow.md", "reason": "Project workflow and conventions"}
-{"file": ".trellis/spec/create-yume/backend/index.md", "reason": "Backend development guide"}
-{"file": ".trellis/spec/create-yume/frontend/index.md", "reason": "Frontend development guide"}
+{"file": ".trellis/spec/create-yume/cli-runtime/index.md", "reason": "CLI runtime guide"}
+{"file": ".trellis/spec/create-yume/template-system/index.md", "reason": "Template system guide"}
 {"file": ".trellis/tasks/05-04-monorepo-node-cli-support/prd.md", "reason": "Parent lead roadmap, global decisions, and dependency ordering"}
-{"file": "docs/agent/constraint/architecture.md", "reason": "Scaffold boundary and stable execution core constraints"}
-{"file": "docs/agent/verification-matrix.md", "reason": "Validation selection for generated scaffold changes"}
+{"file": ".trellis/spec/create-yume/generation-model/index.md", "reason": "Scaffold boundary and stable execution core constraints"}
+{"file": ".trellis/spec/create-yume/verification/index.md", "reason": "Validation selection for generated scaffold changes"}
 {"file": "apps/cli/src/core/modifier/package-manifest-contributions.ts", "reason": "Owner-aware package manifest collector"}
 {"file": "apps/cli/src/core/modifier/package-json.ts", "reason": "Package manifest build path"}
 {"file": "apps/cli/src/schema/template-registry.ts", "reason": "Template registry contract to extend with scope/target behavior"}

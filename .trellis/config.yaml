@@ -48,9 +48,22 @@ max_journal_lines: 2000
 #   docs:
 #     path: docs-site
 #     type: submodule
+#   # For polyrepo / meta-repo layouts (independent .git in each subdir),
+#   # mark the package with `git: true`. The runtime treats it as an
+#   # independent repository for things like git-context display.
+#   webapp:
+#     path: ./webapp
+#     git: true
 
 # Default package used when --package is not specified.
 # default_package: frontend
+
+# Project-local config is source data for this repository. Keep it out of
+# future template refreshes; .trellis/spec/ and .trellis/user/ are protected
+# by trellis-sq itself.
+update:
+  skip:
+    - .trellis/config.yaml
 
 # Auto-detected monorepo packages
 packages:

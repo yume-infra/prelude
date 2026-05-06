@@ -4,8 +4,8 @@ Read these files before changing audit logic, templates, or generated-project ga
 - `references/classification-vocabulary.md`
 - `references/create-yume-generated-quality.md`
 - `templates/audit-report.md` when producing the final handoff
-- `docs/working/phase2/generated-scaffold-quality.md`
-- `docs/working/phase2/generated-scaffold-audit-baseline.md`
+- `.trellis/spec/create-yume/verification/generated-scaffold-audit.md`
+- `.trellis/spec/create-yume/verification/phase-roadmap.md`
 - Existing generated scaffold tests under `apps/cli/tests/` that mention generated smoke, generated lint strategy, or generated template cleanliness.
 </required_reading>
 

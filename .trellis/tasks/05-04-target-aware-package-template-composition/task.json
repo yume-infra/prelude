@@ -4,7 +4,7 @@
   "title": "PRD-4: Target-Aware Package and Template Composition",
   "description": "Make package manifests, template registries, ownership, and PlanSpec projection target-aware for root and nested workspace packages.",
   "status": "completed",
-  "dev_type": "fullstack",
+  "dev_type": "template-system",
   "scope": "target-aware-package-template-composition",
   "package": "create-yume",
   "priority": "P1",

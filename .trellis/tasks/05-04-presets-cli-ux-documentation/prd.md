@@ -73,9 +73,9 @@ Make the expanded product surface usable through presets, simple flags, structur
 * `apps/cli/src/schema/preset.ts`
 * `apps/cli/src/core/questions/compose.ts`
 * `apps/cli/src/core/services/preview.ts`
-* `docs/user/`
-* `docs/agent/`
-* `roadmap.md`
+* `.trellis/user/`
+* `.trellis/spec/create-yume/`
+* `.trellis/user/index.md`
 
 ## Out of Scope
 

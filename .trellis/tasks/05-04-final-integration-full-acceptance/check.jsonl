@@ -1,10 +1,10 @@
-{"file": ".agents/skills/finish-work/SKILL.md", "reason": "Finish work checklist"}
-{"file": ".agents/skills/check/SKILL.md", "reason": "Code quality check spec"}
+{"file": ".agents/skills/trellis-finish-work/SKILL.md", "reason": "Finish work checklist"}
+{"file": ".agents/skills/trellis-check/SKILL.md", "reason": "Code quality check spec"}
 {"file": ".trellis/tasks/05-04-monorepo-node-cli-support/prd.md", "reason": "Parent lead roadmap, global decisions, and dependency ordering"}
-{"file": "docs/agent/constraint/architecture.md", "reason": "Scaffold boundary and stable execution core constraints"}
-{"file": "docs/agent/verification-matrix.md", "reason": "Validation selection for generated scaffold changes"}
+{"file": ".trellis/spec/create-yume/generation-model/index.md", "reason": "Scaffold boundary and stable execution core constraints"}
+{"file": ".trellis/spec/create-yume/verification/index.md", "reason": "Validation selection for generated scaffold changes"}
 {"file": "apps/cli/tests/generated-projects.smoke.ts", "reason": "Standalone and workspace canonical smoke matrix"}
 {"file": "apps/cli/tests/dry-run-cli.smoke.ts", "reason": "Spec dry-run no-write coverage"}
 {"file": "apps/cli/tests/linked-examples.smoke.ts", "reason": "Linked examples final acceptance"}
 {"file": "apps/cli/tests/generated-scaffold-audit-skill.spec.ts", "reason": "Generated scaffold audit conventions"}
-{"file": "docs/user/system-architecture.md", "reason": "Docs alignment target"}
+{"file": ".trellis/user/create-yume.md", "reason": "Knowledge alignment target"}

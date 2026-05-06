@@ -4,7 +4,7 @@
   "title": "PRD-3: Workspace Root Materialization",
   "description": "Add pnpm workspace root materialization, root package manifest policy, root files, dry-run, and rollback support.",
   "status": "completed",
-  "dev_type": "backend",
+  "dev_type": "workspace-packages",
   "scope": "workspace-root-materialization",
   "package": "create-yume",
   "priority": "P1",

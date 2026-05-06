@@ -1,0 +1,45 @@
+# Verification
+
+> Validation selection for CLI runtime, templates, generated projects, and knowledge changes.
+
+---
+
+## Minimum Verification Matrix
+
+| Change type | Minimum command |
+| --- | --- |
+| Template fragment, partial, registry, helper | `pnpm --filter create-yume test` |
+| Planner behavior or `PlanSpec` projection | `pnpm --filter create-yume test` |
+| JSON/text mutation or package manifest policy | `pnpm --filter create-yume build` plus focused tests |
+| Workspace root materialization | `pnpm --filter create-yume test -- workspace-root` |
+| Workspace package generation | `pnpm --filter create-yume test -- planner && pnpm --filter create-yume typecheck` |
+| CLI args, `--spec`, resolved spec export | `pnpm --filter create-yume test -- cli-args create-spec compose preview && pnpm --filter create-yume typecheck` |
+| CLI bin/link or real generated project baseline | `pnpm --filter create-yume smoke:generated && pnpm --filter create-yume smoke:examples` |
+| Docs/spec/user-only changes | Manual cold read plus targeted tests that assert documentation contracts |
+| Unknown or broad impact | `pnpm verify` |
+
+## Test Organization
+
+- CLI tests live under `apps/cli/tests/`.
+- Runtime source under `apps/cli/src/` must not contain `*.test.ts` or `*.spec.ts`.
+- Test support belongs under `apps/cli/tests/support/`.
+- Snapshot tests keep Vitest default `__snapshots__/` placement.
+- Real linked output is generated under `apps/examples/.generated/`.
+
+## Generated Smoke Policy
+
+- Full presets must build and pass `pnpm lint --max-warnings=0`.
+- Minimal presets remain build-only unless a later spec changes that policy.
+- Node and CLI scaffold smoke must verify TypeScript ESM build output.
+- CLI tool smoke must verify `bin` metadata, shebang behavior, and executable invocation.
+
+## Related Contracts
+
+- [Generated Scaffold Audit](./generated-scaffold-audit.md)
+- [Phase Roadmap Contracts](./phase-roadmap.md)
+
+## Forbidden Patterns
+
+- Do not treat "tests ran" as sufficient if the command does not cover the changed surface.
+- Do not hand-edit generated output under `apps/examples/.generated/`; fix templates or runtime owners.
+- Do not let full-preset lint warnings accumulate.

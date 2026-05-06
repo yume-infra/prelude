@@ -1,102 +1,30 @@
-# Bootstrap: Fill Project Development Guidelines
+# Bootstrap: Trellis Source Of Truth Alignment
 
-## Purpose
+## Goal
 
-Welcome to Trellis! This is your first task.
+Replace the pre-Trellis `docs/` simulation with Trellis-native knowledge:
 
-AI agents use `.trellis/spec/` to understand YOUR project's coding conventions.
-**Starting from scratch = AI writes generic code that doesn't match your project style.**
+- `.trellis/spec/` is the executable agent-facing source of truth.
+- `.trellis/user/` is the human-facing project map.
+- `AGENTS.md` and `README.md` route readers to Trellis, not `docs/`.
 
-Filling these guidelines is a one-time setup that pays off for every future AI session.
+## Requirements
 
----
+- Do not model create-yume as a traditional web app split.
+- Restructure `create-yume` specs around CLI monorepo domains: CLI runtime, generation model, template system, workspace packages, verification, Effect, and repository rules.
+- Preserve stable contracts from old docs in the new spec/user structure.
+- Migrate generated scaffold audit and phase handoff tests away from `docs/working`.
+- Remove `docs/` after all live references are gone.
 
-## Your Task
+## Acceptance Criteria
 
-Fill in the guideline files based on your **existing codebase**.
+- [x] `.trellis/spec/create-yume/` contains domain-specific layers.
+- [x] `.trellis/spec/examples/` describes generated smoke instead of generic app layers.
+- [x] `.trellis/user/` exists and explains project map, supported scaffolds, and contribution workflow.
+- [x] `AGENTS.md` and `README.md` point to `.trellis/` source of truth.
+- [x] No active test, skill, README, or AGENTS entry depends on `docs/`.
+- [x] Documentation contract tests pass.
 
-### Package: create-yume (`spec/create-yume/`)
+## Technical Notes
 
-- Backend guidelines: `.trellis/spec/create-yume/backend/`
-
-- Frontend guidelines: `.trellis/spec/create-yume/frontend/`
-
-### Package: examples (`spec/examples/`)
-
-- Backend guidelines: `.trellis/spec/examples/backend/`
-
-- Frontend guidelines: `.trellis/spec/examples/frontend/`
-
-
-### Thinking Guides (Optional)
-
-The `.trellis/spec/guides/` directory contains thinking guides that are already
-filled with general best practices. You can customize them for your project if needed.
-
----
-
-## How to Fill Guidelines
-
-### Step 0: Import from Existing Specs (Recommended)
-
-Many projects already have coding conventions documented. **Check these first** before writing from scratch:
-
-| File / Directory | Tool |
-|------|------|
-| `CLAUDE.md` / `CLAUDE.local.md` | Claude Code |
-| `AGENTS.md` | Codex / Claude Code / agent-compatible tools |
-| `.cursorrules` | Cursor |
-| `.cursor/rules/*.mdc` | Cursor (rules directory) |
-| `.windsurfrules` | Windsurf |
-| `.clinerules` | Cline |
-| `.roomodes` | Roo Code |
-| `.github/copilot-instructions.md` | GitHub Copilot |
-| `.vscode/settings.json` → `github.copilot.chat.codeGeneration.instructions` | VS Code Copilot |
-| `CONVENTIONS.md` / `.aider.conf.yml` | aider |
-| `CONTRIBUTING.md` | General project conventions |
-| `.editorconfig` | Editor formatting rules |
-
-If any of these exist, read them first and extract the relevant coding conventions into the corresponding `.trellis/spec/` files. This saves significant effort compared to writing everything from scratch.
-
-### Step 1: Analyze the Codebase
-
-Ask AI to help discover patterns from actual code:
-
-- "Read all existing config files (CLAUDE.md, .cursorrules, etc.) and extract coding conventions into .trellis/spec/"
-- "Analyze my codebase and document the patterns you see"
-- "Find error handling / component / API patterns and document them"
-
-### Step 2: Document Reality, Not Ideals
-
-Write what your codebase **actually does**, not what you wish it did.
-AI needs to match existing patterns, not introduce new ones.
-
-- **Look at existing code** - Find 2-3 examples of each pattern
-- **Include file paths** - Reference real files as examples
-- **List anti-patterns** - What does your team avoid?
-
----
-
-## Completion Checklist
-
-- [ ] Guidelines filled for your project type
-- [ ] At least 2-3 real code examples in each guideline
-- [ ] Anti-patterns documented
-
-When done:
-
-```bash
-python3 ./.trellis/scripts/task.py finish
-python3 ./.trellis/scripts/task.py archive 00-bootstrap-guidelines
-```
-
----
-
-## Why This Matters
-
-After completing this task:
-
-1. AI will write code that matches your project style
-2. Relevant `/trellis:before-*-dev` commands will inject real context
-3. `/trellis:check-*` commands will validate against your actual standards
-4. Future developers (human or AI) will onboard faster
+The local Trellis scripts now treat context initialization as `spec-layer | all` first, with legacy aliases kept only for compatibility.

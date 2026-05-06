@@ -27,7 +27,7 @@ Create Yume 用来把“新建项目”这件事做得更稳一点。
 
 - 用 Effect 组织命令执行、配置收集和错误边界
 - 用模板注册与计划生成来描述“生成什么”
-- 用明确的文档分层来区分用户说明与实现约束
+- 用明确的 Trellis 知识分层来区分用户说明与实现约束
 
 如果你关心的不只是“怎么生成项目”，还包括“脚手架本身如何组织得更清楚”，这个仓库就是围绕这件事展开的。
 
@@ -172,20 +172,20 @@ pnpm verify
 pnpm smoke:examples
 ```
 
-## 文档入口
+## 项目知识入口
 
-- [仓库文档路线图](./roadmap.md)
-- [用户文档路线图](./docs/user/roadmap.md)
-- [系统总架构](./docs/user/system-architecture.md)
-- [执行文档路线图](./docs/agent/roadmap.md)
+- [项目上下文总览](./.trellis/user/index.md)
+- [Create Yume 项目说明](./.trellis/user/create-yume.md)
+- [生成脚手架说明](./.trellis/user/generated-scaffolds.md)
+- [执行规范索引](./.trellis/spec/create-yume/index.md)
 
 ## 仓库内有什么
 
 ```text
 apps/cli/      CLI 本体、问题流、模板注册与生成逻辑
-docs/user/     面向使用者与贡献者的说明文档
-docs/agent/    面向实现与维护工作的约束文档
-docs/agent/effect/  本地 Effect 参考与代码风格基线
+apps/examples/ linked smoke 的生成物落点
+.trellis/user/ 面向使用者与贡献者的项目上下文
+.trellis/spec/ 面向实现与维护工作的执行规范
 ```
 
 ## 提交与协作
@@ -198,8 +198,8 @@ git commit -m "docs: align project documentation"
 
 更多约定见：
 
-- [提交与协作说明](./docs/user/contributing.md)
-- [pnpm Monorepo 约定](./docs/user/pnpm-monorepo.md)
+- [协作与验证说明](./.trellis/user/contributing.md)
+- [验证规范](./.trellis/spec/create-yume/verification/index.md)
 
 ## 致谢
 
