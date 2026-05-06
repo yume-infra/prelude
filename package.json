@@ -24,7 +24,8 @@
     "release": "pnpm verify && changeset publish",
     "lint": "eslint",
     "lint:fix": "eslint --fix",
-    "prepare": "husky"
+    "prepare": "husky",
+    "knip": "knip"
   },
   "devDependencies": {
     "@antfu/eslint-config": "catalog:",
@@ -32,9 +33,12 @@
     "@changesets/cli": "catalog:",
     "@commitlint/cli": "catalog:",
     "@commitlint/config-conventional": "catalog:",
+    "@types/node": "catalog:",
     "eslint": "catalog:",
     "husky": "catalog:",
+    "knip": "catalog:",
     "lint-staged": "catalog:",
-    "turbo": "catalog:"
+    "turbo": "catalog:",
+    "typescript": "catalog:"
   }
 }

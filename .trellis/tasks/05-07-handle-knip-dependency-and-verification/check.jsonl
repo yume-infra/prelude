@@ -1,0 +1,2 @@
+{"file": ".trellis/spec/create-yume/repository/index.md", "reason": "Check dependency catalog compliance."}
+{"file": ".trellis/spec/create-yume/verification/index.md", "reason": "Check command output and verification coverage."}

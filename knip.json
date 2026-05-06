@@ -1,0 +1,23 @@
+{
+  "$schema": "https://unpkg.com/knip@6/schema.json",
+  "tags": [
+    "-lintignore"
+  ],
+  "workspaces": {
+    ".": {
+      "project": [
+        "*.{js,mjs,cjs,ts}"
+      ]
+    },
+    "apps/cli": {
+      "entry": [
+        "tests/**/*.ts"
+      ],
+      "project": [
+        "*.config.ts",
+        "src/**/*.ts",
+        "tests/**/*.ts"
+      ]
+    }
+  }
+}
