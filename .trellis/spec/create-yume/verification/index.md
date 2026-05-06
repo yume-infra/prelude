@@ -19,6 +19,8 @@
 | Docs/spec/user-only changes | Manual cold read plus targeted tests that assert documentation contracts |
 | Unknown or broad impact | `pnpm verify` |
 
+Root `pnpm verify` and `pnpm verify:code` must include `pnpm knip` so broad maintenance checks catch unused files, exports, and dependencies by default. Keep `pnpm knip` as the focused command when only dead-code analysis is needed.
+
 ## Test Organization
 
 - CLI tests live under `apps/cli/tests/`.

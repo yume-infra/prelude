@@ -24,6 +24,12 @@ pnpm smoke:examples
 pnpm verify
 ```
 
+`pnpm verify` 会跑 build、test、lint 和 Knip。需要单独检查未使用文件、导出或依赖时，可以直接跑：
+
+```bash
+pnpm knip
+```
+
 ## 提交约定
 
 仓库使用 conventional commits：
