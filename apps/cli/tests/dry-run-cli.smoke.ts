@@ -1,6 +1,6 @@
 import type { Buffer } from 'node:buffer'
 import { execFile } from 'node:child_process'
-import { access, mkdtemp, rm } from 'node:fs/promises'
+import { access, mkdtemp, readdir, rm } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
@@ -11,7 +11,65 @@ const smokePrefix = 'dry-run-smoke'
 const testsDir = path.dirname(fileURLToPath(import.meta.url))
 const cliDistPath = path.resolve(testsDir, '../dist/index.js')
 
-const dryRunCases = [
+interface DryRunCase {
+  readonly label: string
+  readonly preset?: string
+  readonly spec?: string
+  readonly projectName: string
+  readonly flags: readonly string[]
+  readonly expected: readonly string[]
+}
+
+const workspaceSpecInput = JSON.stringify({
+  shape: 'workspace',
+  packages: [
+    {
+      id: 'web',
+      name: '@smoke/web',
+      kind: 'frontend-app',
+      frontend: {
+        framework: 'react',
+        buildTool: 'vite',
+        cssPreprocessor: 'less',
+        cssFramework: 'none',
+      },
+      internalDependencies: [
+        {
+          target: {
+            by: 'id',
+            id: 'shared',
+          },
+        },
+      ],
+    },
+    {
+      id: 'tool',
+      name: '@smoke/tool',
+      kind: 'cli-tool',
+      cli: {
+        toolkit: 'none',
+      },
+      internalDependencies: [
+        {
+          target: {
+            by: 'name',
+            name: '@smoke/shared',
+          },
+        },
+      ],
+    },
+    {
+      id: 'shared',
+      name: '@smoke/shared',
+      kind: 'library-package',
+      library: {
+        toolkit: 'none',
+      },
+    },
+  ],
+})
+
+const dryRunCases: readonly DryRunCase[] = [
   {
     label: 'react full preset',
     preset: 'react-full',
@@ -90,9 +148,28 @@ const dryRunCases = [
       'owner: cli-scaffold, unit: json-text-mutation',
     ],
   },
-] as const
-
-type DryRunCase = typeof dryRunCases[number]
+  {
+    label: 'workspace spec with child packages',
+    spec: workspaceSpecInput,
+    projectName: 'smoke-workspace-spec-dry-run',
+    flags: ['--no-input'],
+    expected: [
+      'Dry run preview',
+      'Root files:',
+      '- json package.json (owner: workspace-bootstrap, unit: json-text-mutation)',
+      '- render pnpm-workspace.yaml (owner: workspace-bootstrap, unit: fragment-render)',
+      'Workspace package files:',
+      '- json apps/web/package.json (owner: frontend-package, unit: json-text-mutation)',
+      '- render apps/web/index.html (owner: frontend-scaffold, unit: fragment-render)',
+      '- json apps/tool/package.json (owner: cli-package, unit: json-text-mutation)',
+      '- render apps/tool/src/index.ts (owner: cli-scaffold, unit: fragment-render)',
+      '- json libs/shared/package.json (owner: library-package, unit: json-text-mutation)',
+      '- render libs/shared/src/index.ts (owner: library-package, unit: fragment-render)',
+      'owner: cli-scaffold, unit: json-text-mutation',
+      'owner: library-package, unit: json-text-mutation',
+    ],
+  },
+]
 
 type ExecFailure = Error & {
   readonly stdout?: string | Buffer
@@ -133,6 +210,30 @@ function assertPreviewContract(testCase: DryRunCase, output: string) {
   }
 }
 
+function dryRunInputArgs(testCase: DryRunCase) {
+  if (testCase.spec !== undefined) {
+    return ['--spec', testCase.spec]
+  }
+
+  if (testCase.preset === undefined) {
+    throw new Error(`${casePrefix(testCase)} must define either preset or spec input`)
+  }
+
+  return ['--preset', testCase.preset]
+}
+
+async function assertDryRunWroteNothing(testCase: DryRunCase, rootDir: string, targetDir: string, output: string) {
+  if (await pathExists(targetDir)) {
+    throw new Error(`${casePrefix(testCase)} dry-run created target directory: ${targetDir}\nOutput:\n${output}`)
+  }
+
+  const rootEntries = await readdir(rootDir)
+
+  if (rootEntries.length > 0) {
+    throw new Error(`${casePrefix(testCase)} dry-run wrote unexpected entries in ${rootDir}: ${rootEntries.join(', ')}\nOutput:\n${output}`)
+  }
+}
+
 async function assertBuiltCliAvailable() {
   if (!(await pathExists(cliDistPath))) {
     throw new Error(`[${smokePrefix}] Built CLI not found at ${cliDistPath}. Run pnpm --filter create-yume build before this smoke.`)
@@ -145,14 +246,14 @@ async function runDryRunCase(testCase: DryRunCase) {
   let passed = false
 
   try {
-    console.log(`${casePrefix(testCase)} dry-run generation: node ${cliDistPath} --preset ${testCase.preset} --name ${testCase.projectName} --dry-run ${testCase.flags.join(' ')} (cwd: ${rootDir})`)
+    const inputArgs = dryRunInputArgs(testCase)
+    console.log(`${casePrefix(testCase)} dry-run generation: node ${cliDistPath} ${inputArgs.join(' ')} --name ${testCase.projectName} --dry-run ${testCase.flags.join(' ')} (cwd: ${rootDir})`)
     let output = ''
 
     try {
       const result = await execFileAsync('node', [
         cliDistPath,
-        '--preset',
-        testCase.preset,
+        ...inputArgs,
         '--name',
         testCase.projectName,
         '--dry-run',
@@ -172,9 +273,7 @@ async function runDryRunCase(testCase: DryRunCase) {
 
     assertPreviewContract(testCase, output)
 
-    if (await pathExists(targetDir)) {
-      throw new Error(`${casePrefix(testCase)} dry-run created target directory: ${targetDir}\nOutput:\n${output}`)
-    }
+    await assertDryRunWroteNothing(testCase, rootDir, targetDir, output)
 
     passed = true
     console.log(`${casePrefix(testCase)} dry-run preview produced no target directory in ${rootDir}`)

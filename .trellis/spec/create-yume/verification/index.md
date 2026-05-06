@@ -13,7 +13,7 @@
 | JSON/text mutation or package manifest policy | `pnpm --filter create-yume build` plus focused tests |
 | Workspace root materialization | `pnpm --filter create-yume test -- workspace-root` |
 | Workspace package generation | `pnpm --filter create-yume test -- planner && pnpm --filter create-yume typecheck` |
-| CLI args, `--spec`, resolved spec export | `pnpm --filter create-yume test -- cli-args create-spec compose preview && pnpm --filter create-yume typecheck` |
+| CLI args, `--spec`, resolved spec export | `pnpm --filter create-yume test -- cli-args create-spec compose preview && pnpm --filter create-yume typecheck`; add `pnpm --filter create-yume smoke:dry-run` when the change touches dry-run no-write behavior or root/package preview grouping |
 | CLI toolkit track, generated CLI dependencies, or bin behavior | `pnpm --filter create-yume test -- cli-args create-spec planner package-json template-render generated-smoke-gate && pnpm --filter create-yume smoke:generated` |
 | CLI bin/link or real generated project baseline | `pnpm --filter create-yume smoke:generated && pnpm --filter create-yume smoke:examples` |
 | Docs/spec/user-only changes | Manual cold read plus targeted tests that assert documentation contracts |
@@ -34,6 +34,7 @@
 - Node and CLI scaffold smoke must verify TypeScript ESM build output.
 - CLI tool smoke must verify `bin` metadata, shebang behavior, and executable invocation.
 - Effect CLI smoke must install peer-compatible Effect packages, build the generated project, and invoke the generated bin.
+- Workspace generated smoke must cover real install/build for mixed `apps/*` and `libs/*` packages, explicit `workspace:*` links, root workspace files, and package-local CLI bin invocation.
 
 ## Related Contracts
 

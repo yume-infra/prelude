@@ -16,11 +16,20 @@ export type GeneratedPreset
 
 export type GeneratedSmokePhase = 'generation' | 'install' | 'build' | 'lint' | 'link' | 'invoke'
 
-export interface GeneratedSmokeCase {
+export interface GeneratedSmokeCaseBase {
   readonly label: string
-  readonly preset: GeneratedPreset
   readonly projectName: string
 }
+
+export interface GeneratedSmokeCase extends GeneratedSmokeCaseBase {
+  readonly preset: GeneratedPreset
+}
+
+export interface GeneratedSpecSmokeCase extends GeneratedSmokeCaseBase {
+  readonly specLabel: string
+}
+
+export type GeneratedSmokeLogCase = GeneratedSmokeCase | GeneratedSpecSmokeCase
 
 export interface GeneratedSmokeEnvOptions {
   readonly extraPath?: string
@@ -28,7 +37,7 @@ export interface GeneratedSmokeEnvOptions {
 
 export interface RunGeneratedSmokePhaseOptions {
   readonly prefix: string
-  readonly testCase: GeneratedSmokeCase
+  readonly testCase: GeneratedSmokeLogCase
   readonly phase: GeneratedSmokePhase
   readonly cwd: string
   readonly command: string
@@ -59,6 +68,10 @@ export function formatGeneratedCommand(command: string, args: readonly string[])
   return [command, ...args].join(' ')
 }
 
+export function generatedSmokeInputName(testCase: GeneratedSmokeLogCase) {
+  return 'preset' in testCase ? testCase.preset : testCase.specLabel
+}
+
 function isRecord(value: unknown): value is Record<string, unknown> {
   return value !== null && typeof value === 'object' && !Array.isArray(value)
 }
@@ -74,7 +87,7 @@ function readErrorField(error: unknown, field: string) {
 
 export function formatGeneratedSmokeError(options: {
   readonly prefix: string
-  readonly testCase: GeneratedSmokeCase
+  readonly testCase: GeneratedSmokeLogCase
   readonly phase: GeneratedSmokePhase
   readonly cwd: string
   readonly command: string
@@ -83,9 +96,10 @@ export function formatGeneratedSmokeError(options: {
 }) {
   const exitCode = readErrorField(options.error, 'exitCode') ?? 'unknown'
   const timedOut = readErrorField(options.error, 'timedOut') ?? 'false'
+  const inputName = generatedSmokeInputName(options.testCase)
 
   return new Error([
-    `[${options.prefix}] ${options.testCase.preset} ${options.phase} failed`,
+    `[${options.prefix}] ${inputName} ${options.phase} failed`,
     `label: ${options.testCase.label}`,
     `project: ${options.testCase.projectName}`,
     `cwd: ${options.cwd}`,
@@ -96,8 +110,10 @@ export function formatGeneratedSmokeError(options: {
 }
 
 export async function runGeneratedSmokePhase(options: RunGeneratedSmokePhaseOptions) {
+  const inputName = generatedSmokeInputName(options.testCase)
+
   console.log(
-    `[${options.prefix}] ${options.testCase.preset} ${options.phase}: ${formatGeneratedCommand(options.command, options.args)} (cwd: ${options.cwd})`,
+    `[${options.prefix}] ${inputName} ${options.phase}: ${formatGeneratedCommand(options.command, options.args)} (cwd: ${options.cwd})`,
   )
 
   try {
@@ -121,23 +137,27 @@ export async function runGeneratedSmokePhase(options: RunGeneratedSmokePhaseOpti
   }
 }
 
-export function assertNonInteractiveGeneration(output: string, testCase: GeneratedSmokeCase, prefix: string) {
+export function assertNonInteractiveGeneration(output: string, testCase: GeneratedSmokeLogCase, prefix: string) {
+  const inputName = generatedSmokeInputName(testCase)
+
   assert.ok(
     !output.includes('?'),
-    `[${prefix}] ${testCase.preset} generation must stay non-interactive and not print prompt questions`,
+    `[${prefix}] ${inputName} generation must stay non-interactive and not print prompt questions`,
   )
   assert.ok(
     !output.toLowerCase().includes('choose a'),
-    `[${prefix}] ${testCase.preset} generation must not ask selection prompts`,
+    `[${prefix}] ${inputName} generation must not ask selection prompts`,
   )
 }
 
-export function assertGeneratedPackageProjectContract(packageJson: unknown, testCase: GeneratedSmokeCase, prefix: string) {
-  assert.ok(isRecord(packageJson), `[${prefix}] ${testCase.preset} package.json must be an object`)
+export function assertGeneratedPackageProjectContract(packageJson: unknown, testCase: GeneratedSmokeLogCase, prefix: string) {
+  const inputName = generatedSmokeInputName(testCase)
+
+  assert.ok(isRecord(packageJson), `[${prefix}] ${inputName} package.json must be an object`)
   assert.equal(
     packageJson.name,
     testCase.projectName,
-    `[${prefix}] ${testCase.preset} package.json must use the generated project name`,
+    `[${prefix}] ${inputName} package.json must use the generated project name`,
   )
 }
 
@@ -151,8 +171,9 @@ export function assertGeneratedPackageLintContract(packageJson: unknown, testCas
   )
 }
 
-export async function assertGeneratedProjectPackage(generatedDir: string, testCase: GeneratedSmokeCase, prefix: string) {
+export async function assertGeneratedProjectPackage(generatedDir: string, testCase: GeneratedSmokeLogCase, prefix: string) {
   const packageJsonPath = path.join(generatedDir, 'package.json')
+  const inputName = generatedSmokeInputName(testCase)
 
   try {
     await access(generatedDir)
@@ -160,7 +181,7 @@ export async function assertGeneratedProjectPackage(generatedDir: string, testCa
   }
   catch (error) {
     throw new Error(
-      `[${prefix}] ${testCase.preset} generated project must include package.json at ${packageJsonPath}`,
+      `[${prefix}] ${inputName} generated project must include package.json at ${packageJsonPath}`,
       { cause: error },
     )
   }

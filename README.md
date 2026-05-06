@@ -173,6 +173,7 @@ pnpm outdated
 pnpm deps
 pnpm deps:latest
 pnpm verify
+pnpm smoke:dry-run
 pnpm smoke:examples
 ```
 

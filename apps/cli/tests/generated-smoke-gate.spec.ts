@@ -1,4 +1,4 @@
-import type { GeneratedSmokeCase } from './support/generated-smoke-gate'
+import type { GeneratedSmokeCase, GeneratedSpecSmokeCase } from './support/generated-smoke-gate'
 import { chmod, mkdir, mkdtemp, rm, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import path from 'node:path'
@@ -45,6 +45,12 @@ const cliEffectCase = {
   preset: 'cli-effect',
   projectName: 'smoke-cli-effect',
 } satisfies GeneratedSmokeCase
+
+const workspaceSpecCase = {
+  label: 'workspace spec',
+  specLabel: 'workspace spec',
+  projectName: 'smoke-workspace-spec',
+} satisfies GeneratedSpecSmokeCase
 
 async function withTempProject(run: (dir: string) => Promise<void>) {
   const dir = await mkdtemp(path.join(tmpdir(), 'create-yume-smoke-gate-spec-'))
@@ -108,6 +114,22 @@ describe('generated smoke gate contract', () => {
     expect(error.message).toContain('[linked-smoke] react-full build failed')
     expect(error.message).toContain('exitCode: unknown')
     expect(error.message).toContain('timedOut: false')
+  })
+
+  it('formats spec-driven smoke diagnostics without modeling specs as presets', () => {
+    const error = formatGeneratedSmokeError({
+      prefix: 'generated-smoke',
+      testCase: workspaceSpecCase,
+      phase: 'generation',
+      cwd: '/tmp/generated/workspace',
+      command: 'node',
+      args: ['dist/index.js', '--spec', '{"shape":"workspace"}'],
+      error: { exitCode: 1 },
+    })
+
+    expect(error.message).toContain('[generated-smoke] workspace spec generation failed')
+    expect(error.message).toContain('label: workspace spec')
+    expect(error.message).toContain('project: smoke-workspace-spec')
   })
 
   it('accepts generated minimal package manifests without requiring lint assets', async () => {

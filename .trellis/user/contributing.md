@@ -8,6 +8,7 @@ pnpm --filter create-yume build
 pnpm --filter create-yume test
 pnpm --filter create-yume typecheck
 pnpm verify
+pnpm smoke:dry-run
 pnpm smoke:examples
 ```
 

@@ -11,6 +11,7 @@
     "clean": "turbo run clean && rm -rf node_modules",
     "verify": "pnpm --filter create-yume build && pnpm --filter create-yume test && pnpm lint",
     "verify:code": "pnpm --filter create-yume build && pnpm --filter create-yume test && pnpm lint",
+    "smoke:dry-run": "pnpm --filter create-yume smoke:dry-run",
     "smoke:examples": "pnpm --filter create-yume smoke:examples",
     "outdated": "pnpm outdated -r",
     "deps": "pnpm update -r",
