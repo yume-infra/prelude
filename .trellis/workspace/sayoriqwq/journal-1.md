@@ -217,3 +217,37 @@ Updated the root ESLint ignore list so normal lint, lint:fix, and lint-staged do
 ### Next Steps
 
 - None - task complete
+
+
+## Session 7: Raise Node engine floor
+
+**Date**: 2026-05-07
+**Task**: Raise Node engine floor
+**Package**: create-yume
+**Branch**: `dev`
+
+### Summary
+
+Raised the root workspace Node engine requirement from >=18 to >=22 while keeping pnpm pinned to 10.12.4; verified with pnpm install --lockfile-only and pnpm verify.
+
+### Main Changes
+
+(Add details)
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `fb7d965` | (see git log) |
+
+### Testing
+
+- [OK] (Add test results)
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- None - task complete

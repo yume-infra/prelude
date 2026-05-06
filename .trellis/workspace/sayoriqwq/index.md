@@ -8,7 +8,7 @@
 
 <!-- @@@auto:current-status -->
 - **Active File**: `journal-1.md`
-- **Total Sessions**: 6
+- **Total Sessions**: 7
 - **Last Active**: 2026-05-07
 <!-- @@@/auto:current-status -->
 
@@ -19,7 +19,7 @@
 <!-- @@@auto:active-documents -->
 | File | Lines | Status |
 |------|-------|--------|
-| `journal-1.md` | ~219 | Active |
+| `journal-1.md` | ~253 | Active |
 <!-- @@@/auto:active-documents -->
 
 ---
@@ -29,6 +29,7 @@
 <!-- @@@auto:session-history -->
 | # | Date | Title | Commits | Branch |
 |---|------|-------|---------|--------|
+| 7 | 2026-05-07 | Raise Node engine floor | `fb7d965` | `dev` |
 | 6 | 2026-05-07 | Exclude Trellis metadata from lint | `bbf8419` | `dev` |
 | 5 | 2026-05-07 | Integrate Knip into verify workflow | `487ff4c` | `dev` |
 | 4 | 2026-05-07 | Add and clean Knip verification | `781c92c`, `294bf5b` | `dev` |
