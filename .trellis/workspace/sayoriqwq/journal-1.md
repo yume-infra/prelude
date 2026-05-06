@@ -183,3 +183,37 @@ Added Knip to the root verify and verify:code workflows, then updated agent-faci
 ### Next Steps
 
 - None - task complete
+
+
+## Session 6: Exclude Trellis metadata from lint
+
+**Date**: 2026-05-07
+**Task**: Exclude Trellis metadata from lint
+**Package**: create-yume
+**Branch**: `dev`
+
+### Summary
+
+Updated the root ESLint ignore list so normal lint, lint:fix, and lint-staged do not lint Trellis task, spec, or journal metadata under .trellis/. Verified lint, focused ignored-file behavior, and the full verify workflow.
+
+### Main Changes
+
+(Add details)
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `bbf8419` | (see git log) |
+
+### Testing
+
+- [OK] (Add test results)
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- None - task complete
