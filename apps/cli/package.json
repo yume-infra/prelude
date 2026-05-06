@@ -1,5 +1,5 @@
 {
-  "name": "create-yume",
+  "name": "@sayoriqwq/create-yume",
   "type": "module",
   "version": "0.1.0",
   "description": "A focused local project scaffolding CLI for React, Vue, Node, CLI tools, libraries, and pnpm workspaces",
