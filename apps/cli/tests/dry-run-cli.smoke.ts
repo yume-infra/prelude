@@ -78,6 +78,18 @@ const dryRunCases = [
       'owner: cli-scaffold, unit: json-text-mutation',
     ],
   },
+  {
+    label: 'cli effect preset',
+    preset: 'cli-effect',
+    projectName: 'smoke-cli-effect-dry-run',
+    flags: [],
+    expected: [
+      'Dry run preview',
+      '- render src/index.ts (owner: cli-scaffold, unit: fragment-render)',
+      '- render scripts/ensure-shebang.mjs (owner: cli-scaffold, unit: fragment-render)',
+      'owner: cli-scaffold, unit: json-text-mutation',
+    ],
+  },
 ] as const
 
 type DryRunCase = typeof dryRunCases[number]

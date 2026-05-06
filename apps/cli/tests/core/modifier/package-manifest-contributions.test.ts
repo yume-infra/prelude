@@ -22,7 +22,7 @@ import {
   WorkspaceBootstrapOwner,
 } from '../../../src/core/ownership/model'
 import { getWorkspaceBootstrapPackageContributions } from '../../../src/core/workspace-bootstrap'
-import { cliMinimalPresetProjectConfig, reactPresetProjectConfig } from '../../support/fixtures'
+import { cliEffectPresetProjectConfig, cliMinimalPresetProjectConfig, reactPresetProjectConfig } from '../../support/fixtures'
 
 const alphaOwner = defineOwner({
   id: 'alpha-owner',
@@ -251,6 +251,36 @@ describe('collectPackageManifestContributions', () => {
         key: 'tsdown',
         owners: ['cli-scaffold'],
         value: '^0.21.9',
+      },
+    ]))
+  })
+
+  it('records effect cli runtime dependency provenance with cli scaffold ownership', () => {
+    const collection = collectPackageManifestContributions({
+      contributions: getScaffoldFamilyPackageContributions(cliEffectPresetProjectConfig),
+    })
+
+    expect(collection.provenance).toEqual(expect.arrayContaining([
+      {
+        targetPath: 'package.json',
+        section: 'dependencies',
+        key: '@effect/cli',
+        owners: ['cli-scaffold'],
+        value: '^0.75.1',
+      },
+      {
+        targetPath: 'package.json',
+        section: 'dependencies',
+        key: '@effect/platform-node',
+        owners: ['cli-scaffold'],
+        value: '^0.106.0',
+      },
+      {
+        targetPath: 'package.json',
+        section: 'dependencies',
+        key: 'effect',
+        owners: ['cli-scaffold'],
+        value: '^3.21.1',
       },
     ]))
   })

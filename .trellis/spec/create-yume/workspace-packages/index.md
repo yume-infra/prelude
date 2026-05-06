@@ -42,6 +42,23 @@ buildPackageManifestJson(dsl, { targetPath, targetScope, base, contributions, ow
 - Internal dependencies are emitted only when declared and always use `workspace:*`.
 - Missing internal dependency targets fail before plan application.
 - Root post-generate commands remain root-level.
+- Workspace root scripts are derived from package scripts that generated child packages actually emit.
+- Empty package lists must not advertise child orchestration scripts such as `test`, `lint`, or `clean`.
+- Root scripts such as `test`, `lint`, and `clean` must only appear when at least one emitted child package has the corresponding package-local script.
+
+## Future Monorepo Taste Guardrails
+
+Use these contracts when adding richer monorepo features:
+
+- pnpm catalogs affect external dependency version values only.
+- Internal package links remain explicit `workspace:*` dependencies, never catalog entries.
+- Generated catalog entries must be derived from emitted package dependencies.
+- Prefer the default `catalog` table first; named catalogs need their own contract.
+- Standalone projects keep direct dependency ranges.
+- Shared config packages are generated as package-scoped workspace packages, not copied root templates inside every child package.
+- Package-local `turbo.json` is opt-in only and must extend the root with `extends: ["//"]`.
+- Workspace packages stay internal/private by default until a publishable-package contract exists.
+- Changesets belongs to an explicit release-workflow feature, not the default workspace baseline.
 
 ## Validation & Error Matrix
 
@@ -88,4 +105,6 @@ for (const localPackage of workspace.packages) {
 - Planner tests for mixed root, `apps/*`, and `libs/*` output.
 - Package manifest tests for explicit `workspace:*` links only.
 - Render tests proving package templates use child config.
+- Workspace root manifest tests proving root scripts only orchestrate emitted child scripts.
 - Standalone React/Vue/Node/CLI tests must remain green.
+- Future pnpm catalog tests must cover root catalog materialization, child dependency references, and standalone non-catalog output.

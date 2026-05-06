@@ -117,7 +117,7 @@ export const WorkerAppSpecSchema = Schema.Struct({
   title: 'WorkerAppSpec',
 })
 
-export const CliToolkitSchema = Schema.Literal('none').annotations({
+export const CliToolkitSchema = Schema.Literal('none', 'effect').annotations({
   identifier: 'CliToolkit',
   title: 'CliToolkit',
 })
@@ -176,6 +176,7 @@ export type InternalDependencyLink = Schema.Schema.Type<typeof InternalDependenc
 export type FrontendAppSpec = Schema.Schema.Type<typeof FrontendAppSpecSchema>
 export type BackendAppSpec = Schema.Schema.Type<typeof BackendAppSpecSchema>
 export type WorkerAppSpec = Schema.Schema.Type<typeof WorkerAppSpecSchema>
+export type CliToolkit = Schema.Schema.Type<typeof CliToolkitSchema>
 export type CliToolSpec = Schema.Schema.Type<typeof CliToolSpecSchema>
 export type LibraryPackageSpec = Schema.Schema.Type<typeof LibraryPackageSpecSchema>
 export type GenerationPackageSpec = Schema.Schema.Type<typeof GenerationPackageSpecSchema>

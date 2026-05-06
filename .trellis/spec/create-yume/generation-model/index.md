@@ -16,7 +16,7 @@ Current generated scaffold capabilities:
 - Vue standalone app.
 - pnpm workspace root.
 - Node standalone app with `framework: none`.
-- CLI tool with `toolkit: none`.
+- CLI tool with `toolkit: none` or `toolkit: effect`; default is `none`.
 - Structured workspace child package generation:
   - `frontend-app`, `backend-app`, and `cli-tool` under `apps/*`.
   - `library-package` under `libs/*`.
@@ -31,7 +31,7 @@ Out of scope:
 
 ## Core Taxonomy
 
-```typescript
+```text
 type GenerationShape = 'standalone' | 'workspace'
 type GenerationPackageKind =
   | 'frontend-app'
@@ -40,6 +40,13 @@ type GenerationPackageKind =
   | 'cli-tool'
   | 'library-package'
 type GenerationRuntime = 'browser' | 'node' | 'neutral'
+type CliToolkit = 'none' | 'effect'
+
+interface CliProjectConfig {
+  readonly type: 'cli'
+  readonly language: 'typescript'
+  readonly toolkit?: CliToolkit
+}
 ```
 
 Runtime rules:
@@ -58,11 +65,23 @@ Runtime rules:
 | `--print-spec` | Prints resolved create spec and exits; it is not a dry-run JSON API. |
 | `--dry-run` | Builds normal `PlanSpec` preview and does not write files, create target dirs, or execute commands. |
 
+## CLI Toolkit Tracks
+
+`CliProjectConfig.toolkit` selects the generated CLI runtime style:
+
+- `toolkit: "none"` is the dependency-light default.
+- `toolkit: "effect"` is an explicit opt-in Effect CLI track.
+- Omitted toolkit values decode to `none` for backward compatibility.
+- Presets `standalone-cli-minimal` and `cli-minimal` resolve to `toolkit: "none"`.
+- Presets `standalone-cli-effect` and `cli-effect` resolve to `toolkit: "effect"`.
+- `projectConfigToCreateSpec` and `createSpecToProjectConfig` must preserve the toolkit value.
+- Workspace CLI packages carry `spec.cli.toolkit` into the package-local `CliProjectConfig`.
+
 ## Good/Base/Bad Cases
 
 Good:
 
-```typescript
+```text
 // Structured workspace input enters the same workflow.
 decodeCreateSpec(input)
   -> createSpecToProjectConfig(spec, targetName)
@@ -73,6 +92,12 @@ Base:
 
 ```typescript
 composeProjectConfigFromPreset({ preset: 'standalone-cli-minimal', name })
+```
+
+Effect CLI:
+
+```typescript
+composeProjectConfigFromPreset({ preset: 'standalone-cli-effect', name })
 ```
 
 Bad:
@@ -88,6 +113,7 @@ writeWorkspaceFilesDirectly(decodedSpec)
 - CLI args tests for input combinations and error messages.
 - Create spec round-trip/export tests for `--print-spec`.
 - Planner/preview tests proving generated behavior remains routed through `PlanSpec`.
+- Preset and structured spec tests for every CLI toolkit track.
 
 ## Forbidden Patterns
 

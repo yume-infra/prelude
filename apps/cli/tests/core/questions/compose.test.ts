@@ -84,6 +84,41 @@ describe('collectQuestions', () => {
       git: false,
       linting: 'none',
       codeQuality: [],
+      toolkit: 'none',
+    })
+  })
+
+  it('builds a standalone effect cli preset config without frontend defaults', async () => {
+    const projectName = makeProjectName('non-interactive-effect-cli')
+
+    const projectConfig = await Effect.runPromise(
+      collectQuestions.pipe(
+        Effect.provide(
+          Layer.mergeAll(
+            CliContextLive({
+              args: {
+                preset: 'standalone-cli-effect',
+                name: projectName,
+                git: false,
+              },
+              isInteractive: false,
+            }),
+            makeFsMockLayer({
+              exists: () => Effect.succeed(false),
+            }),
+          ),
+        ),
+      ),
+    )
+
+    expect(projectConfig).toEqual({
+      name: projectName,
+      type: 'cli',
+      language: 'typescript',
+      git: false,
+      linting: 'none',
+      codeQuality: [],
+      toolkit: 'effect',
     })
   })
 

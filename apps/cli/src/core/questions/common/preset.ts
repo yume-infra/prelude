@@ -12,6 +12,7 @@ export async function askPreset() {
       { value: 'workspace-root-minimal', label: 'Workspace Root Minimal - pnpm workspace root' },
       { value: 'standalone-backend-minimal', label: 'Standalone Backend Minimal - TypeScript, ESM, tsdown' },
       { value: 'standalone-cli-minimal', label: 'Standalone CLI Minimal - TypeScript, ESM, tsdown, bin' },
+      { value: 'standalone-cli-effect', label: 'Standalone CLI Effect - TypeScript, ESM, tsdown, @effect/cli' },
     ],
   })
 }

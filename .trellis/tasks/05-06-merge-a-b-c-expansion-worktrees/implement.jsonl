@@ -1,0 +1,8 @@
+{"file": ".trellis/workflow.md", "reason": "Trellis integration workflow and task lifecycle"}
+{"file": ".trellis/spec/create-yume/repository/index.md", "reason": "Repository-level merge and orchestration constraints"}
+{"file": ".trellis/spec/create-yume/workspace-packages/index.md", "reason": "Workspace root and package generation contracts for A"}
+{"file": ".trellis/spec/create-yume/cli-runtime/index.md", "reason": "CLI runtime and preset behavior for B"}
+{"file": ".trellis/spec/create-yume/effect/index.md", "reason": "Effect usage and generated Effect CLI guidance for B"}
+{"file": ".trellis/spec/create-yume/template-system/index.md", "reason": "Template registry and manifest contribution contracts"}
+{"file": ".trellis/spec/create-yume/verification/index.md", "reason": "Validation command selection after integration"}
+{"file": ".trellis/spec/guides/index.md", "reason": "Cross-layer and reuse thinking guides for multi-surface merge"}

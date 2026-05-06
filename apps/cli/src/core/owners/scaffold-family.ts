@@ -103,6 +103,22 @@ export function getScaffoldFamilyPackageContributions(config: ProjectConfig): Pa
         },
       },
     }))
+
+    if (config.toolkit === 'effect') {
+      contributions.push(packageContribution({
+        ownership: cliScaffoldPackageJsonMutation,
+        sections: {
+          dependencies: {
+            '@effect/cli': '^0.75.1',
+            '@effect/platform': '^0.96.0',
+            '@effect/platform-node': '^0.106.0',
+            '@effect/printer': '^0.49.0',
+            '@effect/printer-ansi': '^0.49.0',
+            'effect': '^3.21.1',
+          },
+        },
+      }))
+    }
   }
 
   if (isLibraryProject(config)) {

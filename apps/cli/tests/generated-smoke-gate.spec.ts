@@ -5,6 +5,7 @@ import path from 'node:path'
 import { describe, expect, it } from 'vitest'
 import {
   assertGeneratedCliPackageContract,
+  assertGeneratedEffectCliPackageContract,
   assertGeneratedExecutableBin,
   assertGeneratedLintProject,
   assertGeneratedNodePackageContract,
@@ -39,6 +40,12 @@ const cliMinimalCase = {
   projectName: 'smoke-cli-minimal',
 } satisfies GeneratedSmokeCase
 
+const cliEffectCase = {
+  label: 'cli effect preset',
+  preset: 'cli-effect',
+  projectName: 'smoke-cli-effect',
+} satisfies GeneratedSmokeCase
+
 async function withTempProject(run: (dir: string) => Promise<void>) {
   const dir = await mkdtemp(path.join(tmpdir(), 'create-yume-smoke-gate-spec-'))
 
@@ -58,6 +65,7 @@ describe('generated smoke gate contract', () => {
     expect(shouldRunLintForPreset('vue-minimal'), 'vue-minimal is intentionally build-only').toBe(false)
     expect(shouldRunLintForPreset('node-minimal'), 'node-minimal is intentionally build-only').toBe(false)
     expect(shouldRunLintForPreset('cli-minimal'), 'cli-minimal is intentionally build-only').toBe(false)
+    expect(shouldRunLintForPreset('cli-effect'), 'cli-effect is intentionally build-only').toBe(false)
   })
 
   it('locks generated-project lint invocation to zero warnings', () => {
@@ -168,6 +176,29 @@ describe('generated smoke gate contract', () => {
 
       await expect(assertGeneratedExecutableBin(dir, cliMinimalCase, 'generated-smoke')).resolves.toBe(binPath)
     })
+  })
+
+  it('accepts generated effect cli package contracts', () => {
+    expect(() => assertGeneratedEffectCliPackageContract({
+      name: 'smoke-cli-effect',
+      type: 'module',
+      main: 'dist/index.js',
+      bin: {
+        'smoke-cli-effect': 'dist/index.js',
+      },
+      scripts: {
+        'build': 'tsdown --config tsdown.config.ts && node scripts/ensure-shebang.mjs',
+        'smoke:bin': 'pnpm build && dist/index.js --help',
+      },
+      dependencies: {
+        '@effect/cli': '^0.75.1',
+        '@effect/platform': '^0.96.0',
+        '@effect/platform-node': '^0.106.0',
+        '@effect/printer': '^0.49.0',
+        '@effect/printer-ansi': '^0.49.0',
+        'effect': '^3.21.1',
+      },
+    }, cliEffectCase, 'generated-smoke')).not.toThrow()
   })
 
   it('rejects malformed package JSON for lint-enabled generated projects', () => {

@@ -1,3 +1,4 @@
+{{#withHash hasNodeTypes=(or (eq @config.type "node") (eq @config.type "cli") (eq @config.runtime "node"))}}
 {
   "compilerOptions": {
     "target": "ES2023",
@@ -9,7 +10,9 @@
     "declaration": true,
     "outDir": "dist",
     "rootDir": "src",
+{{#if hasNodeTypes}}
     "types": ["node"],
+{{/if}}
     "verbatimModuleSyntax": true,
     "skipLibCheck": true,
     "noFallthroughCasesInSwitch": true,
@@ -19,3 +22,4 @@
   },
   "include": ["src"]
 }
+{{/withHash}}

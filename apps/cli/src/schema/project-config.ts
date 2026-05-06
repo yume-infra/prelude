@@ -1,6 +1,6 @@
 import { ParseResult, Schema } from 'effect'
 import { ProjectNameSchema } from '../brand/project-name'
-import { GenerationPackageSpecSchema } from './generation-package-spec'
+import { CliToolkitSchema, GenerationPackageSpecSchema } from './generation-package-spec'
 
 export const ProjectTypeSchema = Schema.Literal('vue', 'react', 'workspace-root', 'node', 'cli').annotations({
   identifier: 'ProjectType',
@@ -140,6 +140,10 @@ export const NodeProjectConfigSchema = Schema.Struct({
 export const CliProjectConfigSchema = Schema.Struct({
   ...baseTypeScriptProjectConfigFields,
   type: Schema.Literal('cli'),
+  toolkit: Schema.optionalWith(CliToolkitSchema, {
+    exact: true,
+    default: () => 'none' as const,
+  }),
 }).annotations({
   identifier: 'CliProjectConfig',
   title: 'CliProjectConfig',
@@ -181,6 +185,7 @@ export type ReactRouter = Schema.Schema.Type<typeof ReactRouterSchema>
 export type Language = Schema.Schema.Type<typeof LanguageSchema>
 export type Linting = Schema.Schema.Type<typeof LintingSchema>
 export type CodeQuality = Schema.Schema.Type<typeof CodeQualitySchema>
+export type CliToolkit = Schema.Schema.Type<typeof CliToolkitSchema>
 export type BaseProjectConfig = Schema.Schema.Type<typeof BaseProjectConfigSchema>
 export type SharedFrontendAppConfig = Schema.Schema.Type<typeof SharedFrontendAppConfigSchema>
 export type VueProjectConfig = Schema.Schema.Type<typeof VueProjectConfigSchema>

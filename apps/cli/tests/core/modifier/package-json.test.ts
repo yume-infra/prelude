@@ -368,6 +368,7 @@ describe('buildPackageJson', () => {
       git: false,
       linting: 'none',
       codeQuality: [],
+      toolkit: 'none',
     })
 
     expect(Object.keys(packageJson)).toEqual([
@@ -404,6 +405,37 @@ describe('buildPackageJson', () => {
         'tsdown': '^0.21.9',
         'typescript': '^6.0.3',
       },
+    })
+  })
+
+  it('writes Effect runtime dependencies only for Effect CLI tools', () => {
+    const minimalPackageJson = renderPackageJson({
+      type: 'cli',
+      name: makeProjectName('phase-cli-minimal'),
+      language: 'typescript',
+      git: false,
+      linting: 'none',
+      codeQuality: [],
+      toolkit: 'none',
+    })
+    const effectPackageJson = renderPackageJson({
+      type: 'cli',
+      name: makeProjectName('phase-cli-effect'),
+      language: 'typescript',
+      git: false,
+      linting: 'none',
+      codeQuality: [],
+      toolkit: 'effect',
+    })
+
+    expect(minimalPackageJson.dependencies).not.toHaveProperty('@effect/cli')
+    expect(effectPackageJson.dependencies).toMatchObject({
+      '@effect/cli': '^0.75.1',
+      '@effect/platform': '^0.96.0',
+      '@effect/platform-node': '^0.106.0',
+      '@effect/printer': '^0.49.0',
+      '@effect/printer-ansi': '^0.49.0',
+      'effect': '^3.21.1',
     })
   })
 

@@ -55,6 +55,22 @@ describe('cliArgsSchema', () => {
     }
   })
 
+  it('decodes the effect cli preset', async () => {
+    const result = await Effect.runPromise(
+      Effect.either(
+        decodeCliArgs({
+          preset: 'cli-effect',
+          name: 'demo-tool',
+        }),
+      ),
+    )
+
+    expect(Either.isRight(result)).toBe(true)
+    if (Either.isRight(result)) {
+      expect(result.right.preset).toBe('cli-effect')
+    }
+  })
+
   it('decodes structured spec and no-input flags', async () => {
     const result = await Effect.runPromise(
       Effect.either(

@@ -21,6 +21,7 @@ import { buildRootSvg } from '../src/core/template-registry/root-svg'
 import { buildWorkspacePackages } from '../src/core/workspace-packages'
 import { isFrontendProject } from '../src/utils/type-guard'
 import {
+  cliEffectPresetProjectConfig,
   cliMinimalPresetProjectConfig,
   nodeMinimalPresetProjectConfig,
   reactCustomProjectConfig,
@@ -194,6 +195,27 @@ describe('standalone node runtime scaffold families', () => {
       expect(plan.tasks.some(task => task.path === 'index.html')).toBe(false)
       expect(plan.tasks.some(task => task.path === 'vite.config.ts')).toBe(false)
     }
+  })
+
+  it('plans effect cli templates without changing the minimal cli entry template', async () => {
+    const minimalPlan = await Effect.runPromise(buildPlanSpec(cliMinimalPresetProjectConfig))
+    const effectPlan = await Effect.runPromise(buildPlanSpec(cliEffectPresetProjectConfig))
+
+    expect(minimalPlan.tasks).toContainEqual(expect.objectContaining({
+      kind: 'render',
+      path: 'src/index.ts',
+      src: '/virtual/templates/fragments/cli/index.ts.hbs',
+    }))
+    expect(effectPlan.tasks).toContainEqual(expect.objectContaining({
+      kind: 'render',
+      path: 'src/index.ts',
+      src: '/virtual/templates/fragments/cli/effect-index.ts.hbs',
+    }))
+    expect(effectPlan.tasks).toContainEqual(expect.objectContaining({
+      kind: 'render',
+      path: 'README.md',
+      src: '/virtual/templates/fragments/cli/effect-README.md.hbs',
+    }))
   })
 })
 

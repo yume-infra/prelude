@@ -9,7 +9,7 @@ import { buildPackageJson, collectPackageManifestForConfig } from '../../src/cor
 import { buildTemplates } from '../../src/core/services/compose'
 import { PlanService, toPlanSpec } from '../../src/core/services/planner'
 import { workspaceRootPackageGlobs } from '../../src/core/workspace-bootstrap'
-import { workspaceRootMinimalProjectConfig } from '../support/fixtures'
+import { workspaceMixedProjectConfig, workspaceRootMinimalProjectConfig } from '../support/fixtures'
 import { makeFsMockLayer, makeTemplateEngineMockLayer } from '../support/mock-layers'
 
 const templateRoot = makeTemplatePath('/virtual/templates')
@@ -123,20 +123,23 @@ describe('workspace root materialization', () => {
       name: workspaceRootMinimalProjectConfig.name,
       private: true,
       packageManager: 'pnpm@10.12.4',
-      scripts: {
-        build: 'turbo run build',
-        clean: 'turbo run clean',
-        dev: 'turbo run dev',
-        lint: 'turbo run lint',
-        test: 'turbo run test',
-        typecheck: 'turbo run typecheck',
-      },
+      scripts: {},
       devDependencies: {
         turbo: '^2.9.6',
       },
     })
     expect(workspaceRootPackageGlobs).toEqual(['apps/*', 'libs/*'])
     expect(manifest).not.toHaveProperty('dependencies')
+  })
+
+  it('plans only root scripts that correspond to emitted workspace package scripts', () => {
+    const manifest = collectPackageManifestForConfig(workspaceMixedProjectConfig).manifest
+
+    expect(manifest.scripts).toEqual({
+      build: 'turbo run build',
+      dev: 'turbo run dev',
+      typecheck: 'turbo run typecheck',
+    })
   })
 
   it('applies the minimal workspace root plan as root-level files', async () => {

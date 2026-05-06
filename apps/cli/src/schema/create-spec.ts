@@ -30,6 +30,7 @@ export {
 
 export type {
   BackendAppSpec,
+  CliToolkit,
   CliToolSpec,
   FrontendAppSpec,
   GenerationPackageSpec,
@@ -154,6 +155,7 @@ export function createSpecToProjectConfig(
         ...base,
         type: 'cli',
         language: 'typescript',
+        toolkit: spec.package.cli.toolkit,
       }
     case 'library-package':
       throw new Error('Standalone library package generation is not available yet; use shape "workspace" with a library package under libs/*.')
@@ -210,7 +212,7 @@ export function projectConfigToCreateSpec(config: ProjectConfig): CreateSpec {
           kind: 'cli-tool',
           runtime: 'node',
           cli: {
-            toolkit: 'none',
+            toolkit: config.toolkit ?? 'none',
           },
         },
       }

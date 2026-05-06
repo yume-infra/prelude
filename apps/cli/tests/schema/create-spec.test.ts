@@ -10,7 +10,7 @@ import {
   projectConfigToCreateSpec,
 } from '../../src/schema/create-spec'
 import { decodeProjectConfig } from '../../src/schema/project-config'
-import { cliProjectConfig, nodeProjectConfig, reactProjectConfig, vueProjectConfig, workspaceMixedProjectConfig, workspaceRootProjectConfig } from '../support/fixtures'
+import { cliEffectPresetProjectConfig, cliProjectConfig, nodeProjectConfig, reactProjectConfig, vueProjectConfig, workspaceMixedProjectConfig, workspaceRootProjectConfig } from '../support/fixtures'
 
 const frontendPackageInput = {
   id: 'web',
@@ -83,6 +83,25 @@ describe('create spec schema contract', () => {
     expect(backend.runtime).toBe('node')
     expect(worker.runtime).toBe('node')
     expect(cli.runtime).toBe('node')
+  })
+
+  it('accepts the explicit effect toolkit for cli package specs', async () => {
+    const cli = await Effect.runPromise(decodeGenerationPackageSpec({
+      id: 'tooling',
+      name: 'tooling',
+      kind: 'cli-tool',
+      cli: {
+        toolkit: 'effect',
+      },
+    }))
+
+    expect(cli).toMatchObject({
+      kind: 'cli-tool',
+      runtime: 'node',
+      cli: {
+        toolkit: 'effect',
+      },
+    })
   })
 
   it('allows neutral or node runtime for library packages and rejects browser runtime', async () => {
@@ -237,6 +256,25 @@ describe('create spec schema contract', () => {
     })
   })
 
+  it('round-trips standalone effect cli project config into a cli tool create spec', async () => {
+    const decodedProjectConfig = await Effect.runPromise(decodeProjectConfig(cliEffectPresetProjectConfig))
+    const createSpec = projectConfigToCreateSpec(decodedProjectConfig)
+
+    expect(createSpec).toEqual({
+      shape: 'standalone',
+      package: {
+        id: makePackageId(cliEffectPresetProjectConfig.name),
+        name: makePackageName(cliEffectPresetProjectConfig.name),
+        kind: 'cli-tool',
+        runtime: 'node',
+        internalDependencies: [],
+        cli: {
+          toolkit: 'effect',
+        },
+      },
+    })
+  })
+
   it('adapts workspace root project config into an empty workspace create spec', async () => {
     const decodedProjectConfig = await Effect.runPromise(decodeProjectConfig(workspaceRootProjectConfig))
     const createSpec = projectConfigToCreateSpec(decodedProjectConfig)
@@ -280,6 +318,35 @@ describe('create spec schema contract', () => {
       cssFramework: 'tailwind',
       router: 'none',
       stateManagement: 'none',
+    })
+  })
+
+  it('adapts standalone effect cli create spec input into a project config', async () => {
+    const decoded = await Effect.runPromise(decodeCreateSpec({
+      shape: 'standalone',
+      package: {
+        id: 'tooling',
+        name: 'tooling',
+        kind: 'cli-tool',
+        cli: {
+          toolkit: 'effect',
+        },
+      },
+    }))
+
+    const config = createSpecToProjectConfig(decoded, {
+      name: makeProjectName('spec-effect-cli'),
+      git: true,
+    })
+
+    expect(config).toEqual({
+      name: makeProjectName('spec-effect-cli'),
+      type: 'cli',
+      language: 'typescript',
+      git: true,
+      linting: 'none',
+      codeQuality: [],
+      toolkit: 'effect',
     })
   })
 

@@ -18,6 +18,7 @@ import { ask } from '../adapters/prompts'
 import { CliContext } from '../cli-context'
 import { askProjectName } from '../questions/common/project-name'
 import { askRemoveExisting } from '../questions/common/remove-existing'
+import { askCliToolkit } from './cli/toolkit'
 import { askCodeQuality } from './common/code-quality'
 import { askGit } from './common/git'
 import { askLanguage } from './common/language'
@@ -177,9 +178,11 @@ export const createProject = Effect.gen(function* () {
 
   if (projectType === 'cli') {
     const base = yield* askNodeRuntimeBaseCommon
+    const toolkit = yield* ask(askCliToolkit)
     return {
       ...base,
       type: 'cli',
+      toolkit,
     }
   }
 
@@ -282,6 +285,19 @@ const createPreset = Effect.gen(function* () {
         git: cli.args.git ?? false,
         linting: 'none',
         codeQuality: [],
+        toolkit: 'none',
+      }
+    }
+    case 'standalone-cli-effect':
+    case 'cli-effect': {
+      return {
+        name,
+        type: 'cli',
+        language: 'typescript',
+        git: cli.args.git ?? false,
+        linting: 'none',
+        codeQuality: [],
+        toolkit: 'effect',
       }
     }
     default:

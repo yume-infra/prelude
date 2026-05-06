@@ -11,11 +11,18 @@ Create Yume 当前支持这些本地 scaffold：
 - CLI tool
 - 结构化 workspace package 生成
 
+CLI tool 有两个轨道：
+
+- 默认 `toolkit: "none"`，保持依赖轻量。
+- 显式 `toolkit: "effect"`，生成基于 `@effect/cli` 和 `NodeRuntime.runMain` 的 CLI 入口。
+
 workspace child package 当前规则：
 
 - `frontend-app`、`backend-app`、`cli-tool` 进入 `apps/*`。
 - `library-package` 进入 `libs/*`。
 - 内部依赖必须显式声明，生成时写入 `workspace:*`。
+- workspace root 的 `test`、`lint`、`clean` 等聚合脚本只在 child package 实际生成对应脚本时出现。
+- 空 workspace 只生成 root 基建，不放占位的 child orchestration script。
 
 ## 当前不支持范围
 
@@ -43,6 +50,12 @@ dry run：
 
 ```bash
 node apps/cli/dist/index.js --preset standalone-cli-minimal --name my-tool --dry-run
+```
+
+Effect CLI：
+
+```bash
+node apps/cli/dist/index.js --preset standalone-cli-effect --name my-effect-tool
 ```
 
 `--dry-run` 展示 `PlanSpec` 中的文件、post-generate commands 和 file actions，但不会创建目标目录、写文件或执行命令。

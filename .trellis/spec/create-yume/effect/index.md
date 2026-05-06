@@ -36,6 +36,16 @@ Use this layer before changing Effect services, schema decoding, config, scoped 
 | Testing | Test services through explicit layers, boundary assertions, and deterministic clocks. |
 | Observability | Log inside the Effect that executes; keep smoke diagnostics concise and actionable. |
 
+## Generated Effect CLI Track
+
+Generated Effect CLI projects use Effect at the generated app boundary:
+
+- Keep `NodeRuntime.runMain` in the generated CLI entrypoint.
+- Use `@effect/cli` for command/options wiring.
+- Use `Console` from Effect for generated command output.
+- Keep runtime dependencies in the generated package manifest, not root-only dev dependencies.
+- Preserve the minimal non-Effect CLI track as the default for users who do not opt in.
+
 ## Required Reading By Change
 
 - Services or command/fs/template runtime: read `cli-runtime/index.md` too.
@@ -47,3 +57,4 @@ Use this layer before changing Effect services, schema decoding, config, scoped 
 - Do not let unvalidated external data flow into deeper planning logic.
 - Do not add service abstractions without a reusable dependency boundary.
 - Do not convert expected domain failures into generic thrown `Error` values.
+- Do not let generated Effect CLI templates drift from the package manifest dependency contract.

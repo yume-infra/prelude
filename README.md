@@ -70,6 +70,7 @@ node apps/cli/dist/index.js --preset standalone-react-full --name my-app --insta
 node apps/cli/dist/index.js --preset workspace-root-minimal --name my-workspace
 node apps/cli/dist/index.js --preset standalone-backend-minimal --name my-node-app
 node apps/cli/dist/index.js --preset standalone-cli-minimal --name my-tool
+node apps/cli/dist/index.js --preset standalone-cli-effect --name my-effect-tool
 
 # 明确禁止 prompts，适合 CI 或模型调用
 node apps/cli/dist/index.js --preset standalone-cli-minimal --name my-tool --no-input
@@ -78,6 +79,7 @@ node apps/cli/dist/index.js --preset standalone-cli-minimal --name my-tool --no-
 node apps/cli/dist/index.js --preset standalone-react-full --name my-app --dry-run
 node apps/cli/dist/index.js --preset workspace-root-minimal --name my-workspace --dry-run
 node apps/cli/dist/index.js --preset standalone-cli-minimal --name my-tool --dry-run
+node apps/cli/dist/index.js --preset standalone-cli-effect --name my-effect-tool --dry-run
 
 # 导出 preset / flags 解析后的 create spec
 node apps/cli/dist/index.js --preset standalone-react-full --name my-app --print-spec
@@ -86,7 +88,9 @@ node apps/cli/dist/index.js --preset standalone-react-full --name my-app --print
 node apps/cli/dist/index.js --p vue-full --name my-app --no-rollback
 ```
 
-短名 preset 仍作为兼容 alias 保留：`react-minimal`、`react-full`、`vue-minimal`、`vue-full`、`workspace-root`、`node-minimal`、`cli-minimal`。新文档优先使用包含 shape / package kind 的 canonical preset 名称。
+短名 preset 仍作为兼容 alias 保留：`react-minimal`、`react-full`、`vue-minimal`、`vue-full`、`workspace-root`、`node-minimal`、`cli-minimal`、`cli-effect`。新文档优先使用包含 shape / package kind 的 canonical preset 名称。
+
+`standalone-cli-minimal` 继续生成 dependency-light 的 `toolkit: "none"` CLI。需要 Effect runtime 的 CLI 时，使用 `standalone-cli-effect`，或在结构化 create spec 的 `cli.toolkit` 中声明 `"effect"`。
 
 ### 结构化 `--spec` 输入
 
@@ -119,7 +123,7 @@ node apps/cli/dist/index.js --spec '{"shape":"workspace","packages":[]}' --name 
       "name": "@demo/tool",
       "kind": "cli-tool",
       "cli": {
-        "toolkit": "none"
+        "toolkit": "effect"
       },
       "internalDependencies": [
         {

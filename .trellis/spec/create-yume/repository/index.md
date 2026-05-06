@@ -30,6 +30,15 @@ apps/examples/  generated-output smoke workspace
 - Internal workspace dependencies must be explicit.
 - Generated workspace package internal links use `workspace:*` only when declared.
 
+## Monorepo Taste Expansion Rules
+
+Future generated monorepo sophistication should be explicit and package-owned:
+
+- pnpm catalogs are for external versions; internal links stay `workspace:*`.
+- Shared TypeScript, ESLint, or tooling config packages should be real workspace packages with package-owned manifests.
+- Package-local Turbo config should be opt-in and extend the root pipeline instead of replacing it.
+- Publishable packages and Changesets require an explicit release workflow before they appear in default output.
+
 ## Git And Commit Rules
 
 - Use conventional commits: `feat`, `fix`, `docs`, `refactor`, `test`, `chore`.

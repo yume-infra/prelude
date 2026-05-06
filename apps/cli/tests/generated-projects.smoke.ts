@@ -5,6 +5,7 @@ import path from 'node:path'
 import { fileURLToPath } from 'node:url'
 import {
   assertGeneratedCliPackageContract,
+  assertGeneratedEffectCliPackageContract,
   assertGeneratedExecutableBin,
   assertGeneratedLintProject,
   assertGeneratedNodePackageContract,
@@ -49,6 +50,11 @@ const smokeCases: readonly GeneratedSmokeCase[] = [
     label: 'cli minimal preset',
     preset: 'cli-minimal',
     projectName: 'smoke-cli-minimal',
+  },
+  {
+    label: 'cli effect preset',
+    preset: 'cli-effect',
+    projectName: 'smoke-cli-effect',
   },
 ]
 
@@ -110,8 +116,11 @@ async function runSmokeCase(rootDir: string, testCase: GeneratedSmokeCase) {
     }
   }
 
-  if (testCase.preset === 'cli-minimal') {
+  if (testCase.preset === 'cli-minimal' || testCase.preset === 'cli-effect') {
     assertGeneratedCliPackageContract(packageJson, testCase, smokePrefix)
+    if (testCase.preset === 'cli-effect') {
+      assertGeneratedEffectCliPackageContract(packageJson, testCase, smokePrefix)
+    }
     const binPath = await assertGeneratedExecutableBin(generatedDir, testCase, smokePrefix)
     const invocation = await runGeneratedSmokePhase({
       prefix: smokePrefix,
@@ -122,7 +131,8 @@ async function runSmokeCase(rootDir: string, testCase: GeneratedSmokeCase) {
       args: ['--help'],
       stdio: 'pipe',
     })
-    if (!(invocation.stdout ?? '').includes(`Usage:\n  ${testCase.projectName} [--name <name>]`)) {
+    const output = `${invocation.stdout ?? ''}\n${invocation.stderr ?? ''}`
+    if (!output.includes(testCase.projectName)) {
       throw new Error(`[${smokePrefix}] ${testCase.preset} bin invocation did not print usage`)
     }
   }

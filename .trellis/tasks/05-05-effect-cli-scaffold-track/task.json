@@ -3,7 +3,7 @@
   "name": "effect-cli-scaffold-track",
   "title": "B: Effect CLI Scaffold Track",
   "description": "Add an explicit Effect-powered CLI scaffold track without changing the minimal CLI default.",
-  "status": "in_progress",
+  "status": "completed",
   "dev_type": "generation-model",
   "scope": "cli-runtime",
   "package": "create-yume",
@@ -11,11 +11,11 @@
   "creator": "sayoriqwq",
   "assignee": "sayoriqwq",
   "createdAt": "2026-05-05",
-  "completedAt": null,
+  "completedAt": "2026-05-06",
   "branch": "codex/effect-cli-scaffold-track",
   "base_branch": "main",
   "worktree_path": "/Users/sayori/Desktop/trellis-worktrees/codex/effect-cli-scaffold-track",
-  "current_phase": 0,
+  "current_phase": 6,
   "next_action": [
     {
       "phase": 1,
@@ -48,6 +48,6 @@
   "children": [],
   "parent": "05-05-05-05-expand-monorepo-node-cli-scaffolds",
   "relatedFiles": [],
-  "notes": "",
+  "notes": "Accepted by lead and merged locally into main working tree on 2026-05-06. Effect CLI generated smoke passed with peer-compatible Effect dependencies.",
   "meta": {}
 }

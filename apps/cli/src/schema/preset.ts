@@ -8,6 +8,7 @@ export const PresetSchema = Schema.Literal(
   'workspace-root-minimal',
   'standalone-backend-minimal',
   'standalone-cli-minimal',
+  'standalone-cli-effect',
   'react-minimal',
   'react-full',
   'vue-minimal',
@@ -15,6 +16,7 @@ export const PresetSchema = Schema.Literal(
   'workspace-root',
   'node-minimal',
   'cli-minimal',
+  'cli-effect',
 ).annotations({
   identifier: 'Preset',
   title: 'Preset',

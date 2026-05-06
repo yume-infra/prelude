@@ -66,10 +66,16 @@ const nodeFamilyTemplates: TemplateRegistry<NodeProjectConfig> = {
 }
 
 const cliFamilyTemplates: TemplateRegistry<CliProjectConfig> = {
-  'src/index.ts': {
+  'src/index.ts:minimal': {
     template: makeTemplatePath('fragments/cli/index.ts.hbs'),
     target: 'src/index.ts',
-    condition: () => true,
+    condition: config => config.toolkit !== 'effect',
+    ownership: cliFragmentRender,
+  },
+  'src/index.ts:effect': {
+    template: makeTemplatePath('fragments/cli/effect-index.ts.hbs'),
+    target: 'src/index.ts',
+    condition: config => config.toolkit === 'effect',
     ownership: cliFragmentRender,
   },
   'scripts/ensure-shebang.mjs': {
@@ -78,10 +84,16 @@ const cliFamilyTemplates: TemplateRegistry<CliProjectConfig> = {
     condition: () => true,
     ownership: cliFragmentRender,
   },
-  'README.md': {
+  'README.md:minimal': {
     template: makeTemplatePath('fragments/cli/README.md.hbs'),
     target: 'README.md',
-    condition: () => true,
+    condition: config => config.toolkit !== 'effect',
+    ownership: cliFragmentRender,
+  },
+  'README.md:effect': {
+    template: makeTemplatePath('fragments/cli/effect-README.md.hbs'),
+    target: 'README.md',
+    condition: config => config.toolkit === 'effect',
     ownership: cliFragmentRender,
   },
 }

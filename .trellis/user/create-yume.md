@@ -40,10 +40,15 @@ Create Yume 的主链路是一条稳定 workflow：
 
 `--spec <file-or-json>` 也必须进入这条链路；它不是直接写文件的旁路。
 
+CLI tool 现在有两条 toolkit 轨道：默认的 minimal CLI 不引入 Effect runtime；显式选择 Effect CLI 时，生成项目会带 `@effect/cli`、Effect platform 依赖和基于 `NodeRuntime.runMain` 的入口。
+
+workspace root 的脚本不是固定模板清单，而是从实际生成的 child package script 汇总出来。空 workspace 不应该出现无目标的 `test`、`lint`、`clean` 聚合脚本。
+
 ## 最容易踩的点
 
 - 不要把 `package.json` 当 Handlebars 模板，它是 owner contribution 汇合点。
 - 不要让 child workspace package 复用 root package manifest policy。
 - 不要用 root config 渲染 package-local templates。
 - 不要把 `--print-spec` 当 dry-run JSON API。
+- 不要把 Effect CLI 的依赖塞进 minimal CLI 轨道。
 - 不要在生成项目里手改 smoke 输出；要回到模板或 CLI runtime。

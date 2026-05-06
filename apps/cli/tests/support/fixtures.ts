@@ -133,6 +133,17 @@ export const cliMinimalPresetProjectConfig = {
   git: false,
   linting: 'none',
   codeQuality: [],
+  toolkit: 'none',
+} satisfies CliProjectConfig
+
+export const cliEffectPresetProjectConfig = {
+  name: makeProjectName('cli-effect-fixture'),
+  type: 'cli',
+  language: 'typescript',
+  git: false,
+  linting: 'none',
+  codeQuality: [],
+  toolkit: 'effect',
 } satisfies CliProjectConfig
 
 export const libraryMinimalProjectConfig = {
@@ -189,7 +200,7 @@ export const workspaceMixedProjectConfig = {
         },
       ],
       cli: {
-        toolkit: 'none',
+        toolkit: 'effect',
       },
     },
     {
@@ -223,6 +234,7 @@ export const projectConfigs: readonly ProjectConfig[] = [
   workspaceRootMinimalProjectConfig,
   nodeMinimalPresetProjectConfig,
   cliMinimalPresetProjectConfig,
+  cliEffectPresetProjectConfig,
   libraryMinimalProjectConfig,
   workspaceMixedProjectConfig,
 ]

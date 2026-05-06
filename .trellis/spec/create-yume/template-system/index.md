@@ -45,12 +45,21 @@ Templates must not use helper names from the third-party `handlebars-helpers` pa
 
 `package.json` is a structured decision point, not a Handlebars template. Add dependency/script/engine/package-manager rules through package manifest contributions, with ownership traces and conflict diagnostics.
 
+## CLI Toolkit Template Contract
+
+- The minimal CLI track renders `fragments/cli/index.ts.hbs` and must not gain Effect runtime dependencies.
+- The Effect CLI track renders a separate Effect entry template; do not add heavy toolkit branching to the minimal CLI template.
+- Effect CLI package manifests put `effect`, `@effect/cli`, `@effect/platform`, `@effect/platform-node`, `@effect/printer`, and `@effect/printer-ansi` in dependencies.
+- Keep generated Effect dependency ranges peer-compatible when bumping the catalog.
+- Both CLI tracks preserve `type: "module"`, `bin`, `scripts.build`, `scripts.smoke:bin`, tsdown build output, shebang behavior, and `dist/index.js` as the executable entry.
+
 ## Tests Required
 
 - Template render snapshots for fragment/partial behavior.
 - Manifest contribution tests for JSON/text mutation behavior.
 - Planner/PlanSpec tests when task shape, owner trace, or preview output changes.
 - Generated smoke when generated install/build/lint/runtime behavior changes.
+- CLI toolkit template tests for entrypoint selection, README rendering, package manifest contributions, and bin invocation.
 
 ## Forbidden Patterns
 

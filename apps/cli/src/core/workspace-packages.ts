@@ -120,6 +120,7 @@ export function workspacePackageProjectConfig(
         ...base,
         type: 'cli',
         language: 'typescript',
+        toolkit: spec.cli.toolkit,
       }
     case 'library-package':
       return {
