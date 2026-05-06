@@ -40,6 +40,19 @@ pnpm verify
 pnpm knip
 ```
 
+依赖新鲜度检查不属于 `pnpm verify`，避免 registry 新版本让常规验证突然失败。需要看依赖是否落后时运行：
+
+```bash
+pnpm deps:check
+pnpm deps:check:all
+```
+
+需要按 minor 范围更新依赖并应用 7 天成熟期时运行：
+
+```bash
+pnpm deps:fresh
+```
+
 ## 提交约定
 
 仓库使用 conventional commits：

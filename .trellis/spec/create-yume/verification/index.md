@@ -21,6 +21,8 @@
 
 Root `pnpm verify` and `pnpm verify:code` must include `pnpm knip` so broad maintenance checks catch unused files, exports, and dependencies by default. Keep `pnpm knip` as the focused command when only dead-code analysis is needed.
 
+Dependency freshness checks are intentionally separate from verification. Use `pnpm deps:check` or generated `deps:check` scripts to inspect stale dependencies; do not fail build/test/lint verification just because the registry has a newer release.
+
 ## Test Organization
 
 - CLI tests live under `apps/cli/tests/`.

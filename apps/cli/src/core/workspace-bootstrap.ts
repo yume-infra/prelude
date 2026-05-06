@@ -62,6 +62,7 @@ const workspaceBootstrapLintDevDependencies = {
 
 const workspaceBootstrapMaintenanceDevDependencies = {
   knip: '^6.12.0',
+  taze: '^19.11.0',
 } as const
 
 const workspaceBootstrapLintScripts = {
@@ -70,7 +71,17 @@ const workspaceBootstrapLintScripts = {
 } as const
 
 const workspaceBootstrapMaintenanceScripts = {
-  knip: 'knip',
+  'deps:check': 'taze',
+  'deps:check:all': 'taze --all',
+  'deps:fresh': 'taze minor -w -i --maturity-period 7',
+  'knip': 'knip',
+} as const
+
+const workspaceRootMaintenanceScripts = {
+  'deps:check': 'taze -r',
+  'deps:check:all': 'taze -r --all',
+  'deps:fresh': 'taze minor -r -w -i --maturity-period 7',
+  'knip': 'knip',
 } as const
 
 type WorkspacePackageScriptName = 'build' | 'dev' | 'preview' | 'smoke:bin' | 'start' | 'typecheck'
@@ -306,7 +317,7 @@ export function getWorkspaceRootPackageContributions(
       sections: {
         scripts: {
           ...getWorkspaceRootScripts(config),
-          ...workspaceBootstrapMaintenanceScripts,
+          ...workspaceRootMaintenanceScripts,
           verify: getWorkspaceRootVerifyScript(config),
         },
         devDependencies: {

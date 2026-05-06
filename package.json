@@ -13,6 +13,9 @@
     "verify:code": "pnpm --filter create-yume build && pnpm --filter create-yume test && pnpm lint && pnpm knip",
     "smoke:dry-run": "pnpm --filter create-yume smoke:dry-run",
     "smoke:examples": "pnpm --filter create-yume smoke:examples",
+    "deps:check": "taze -r",
+    "deps:check:all": "taze -r --all",
+    "deps:fresh": "taze minor -r -w -i --maturity-period 7",
     "outdated": "pnpm outdated -r",
     "deps": "pnpm update -r",
     "deps:latest": "pnpm update -r --latest",
@@ -37,6 +40,7 @@
     "husky": "catalog:",
     "knip": "catalog:",
     "lint-staged": "catalog:",
+    "taze": "catalog:",
     "turbo": "catalog:",
     "typescript": "catalog:"
   }

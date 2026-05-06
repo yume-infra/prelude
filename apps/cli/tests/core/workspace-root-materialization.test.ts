@@ -129,11 +129,15 @@ describe('workspace root materialization', () => {
       private: true,
       packageManager: 'pnpm@10.12.4',
       scripts: {
-        knip: 'knip',
-        verify: 'pnpm knip',
+        'deps:check': 'taze -r',
+        'deps:check:all': 'taze -r --all',
+        'deps:fresh': 'taze minor -r -w -i --maturity-period 7',
+        'knip': 'knip',
+        'verify': 'pnpm knip',
       },
       devDependencies: {
         knip: '^6.12.0',
+        taze: '^19.11.0',
         turbo: '^2.9.6',
       },
     })
@@ -145,11 +149,14 @@ describe('workspace root materialization', () => {
     const manifest = collectPackageManifestForConfig(workspaceMixedProjectConfig).manifest
 
     expect(manifest.scripts).toEqual({
-      build: 'turbo run build',
-      dev: 'turbo run dev',
-      knip: 'knip',
-      typecheck: 'turbo run typecheck',
-      verify: 'pnpm build && pnpm typecheck && pnpm knip',
+      'build': 'turbo run build',
+      'deps:check': 'taze -r',
+      'deps:check:all': 'taze -r --all',
+      'deps:fresh': 'taze minor -r -w -i --maturity-period 7',
+      'dev': 'turbo run dev',
+      'knip': 'knip',
+      'typecheck': 'turbo run typecheck',
+      'verify': 'pnpm build && pnpm typecheck && pnpm knip',
     })
   })
 
@@ -184,11 +191,15 @@ describe('workspace root materialization', () => {
       private: true,
       packageManager: 'pnpm@10.12.4',
       scripts: {
-        knip: 'knip',
-        verify: 'pnpm knip',
+        'deps:check': 'taze -r',
+        'deps:check:all': 'taze -r --all',
+        'deps:fresh': 'taze minor -r -w -i --maturity-period 7',
+        'knip': 'knip',
+        'verify': 'pnpm knip',
       },
       devDependencies: {
         knip: '^6.12.0',
+        taze: '^19.11.0',
         turbo: '^2.9.6',
       },
     })

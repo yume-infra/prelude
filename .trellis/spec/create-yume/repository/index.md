@@ -29,6 +29,8 @@ apps/examples/  generated-output smoke workspace
 - Add new external dependencies to the catalog first, then to the package that uses them.
 - Internal workspace dependencies must be explicit.
 - Generated workspace package internal links use `workspace:*` only when declared.
+- Dependency freshness tooling uses `taze` as an installed dev dependency, not `pnpm dlx`, so checks and updates are lockfile-reproducible.
+- Keep taze freshness checks out of `verify` / `verify:code`; use explicit `deps:*` scripts for human-triggered dependency maintenance.
 
 ## Monorepo Taste Expansion Rules
 

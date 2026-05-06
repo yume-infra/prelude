@@ -24,7 +24,8 @@ workspace child package 当前规则：
 - 内部依赖必须显式声明，生成时写入 `workspace:*`。
 - workspace root 的 `test`、`lint`、`clean` 等聚合脚本只在 child package 实际生成对应脚本时出现。
 - 空 workspace 只生成 root 基建，不放占位的 child orchestration script。
-- 生成项目默认带 Knip：root `package.json` 会包含 `knip` / `verify` 脚本和 Knip devDependency，并生成 root-scoped `knip.jsonc`。
+- 生成项目默认带维护工具：root `package.json` 会包含 `knip`、`deps:check`、`deps:check:all`、`deps:fresh` 和 `verify` 脚本，并包含 Knip / Taze devDependency；Knip 额外生成 root-scoped `knip.jsonc`。
+- standalone 项目的 Taze 脚本只检查当前 package；workspace root 的 Taze 脚本使用 `-r` 递归检查 workspace。
 
 常用 workspace preset：
 

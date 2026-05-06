@@ -109,6 +109,9 @@ describe('buildPackageJson', () => {
     expect(Object.keys(packageJson)).toEqual(expectedFullPackageTopLevelOrder)
     expect(Object.keys(packageJson.scripts as Record<string, unknown>)).toEqual([
       'build',
+      'deps:check',
+      'deps:check:all',
+      'deps:fresh',
       'dev',
       'knip',
       'lint',
@@ -129,6 +132,7 @@ describe('buildPackageJson', () => {
       'husky',
       'knip',
       'lint-staged',
+      'taze',
       'typescript',
     ])
 
@@ -140,6 +144,7 @@ describe('buildPackageJson', () => {
       'husky': '^9.1.7',
       'knip': '^6.12.0',
       'lint-staged': '^16.4.0',
+      'taze': '^19.11.0',
       'typescript': '^6.0.3',
     })
     expect(packageJson.devDependencies).not.toHaveProperty('@lobehub/commit-cli')
@@ -207,6 +212,7 @@ describe('buildPackageJson', () => {
       'knip',
       'lint-staged',
       'sass',
+      'taze',
       'typescript',
     ])
 
@@ -358,15 +364,19 @@ describe('buildPackageJson', () => {
       types: 'dist/index.d.ts',
       files: ['dist'],
       scripts: {
-        build: 'tsdown --config tsdown.config.ts',
-        knip: 'knip',
-        start: 'node dist/index.js',
-        typecheck: 'tsc --noEmit',
-        verify: 'pnpm build && pnpm typecheck && pnpm knip',
+        'build': 'tsdown --config tsdown.config.ts',
+        'deps:check': 'taze',
+        'deps:check:all': 'taze --all',
+        'deps:fresh': 'taze minor -w -i --maturity-period 7',
+        'knip': 'knip',
+        'start': 'node dist/index.js',
+        'typecheck': 'tsc --noEmit',
+        'verify': 'pnpm build && pnpm typecheck && pnpm knip',
       },
       devDependencies: {
         '@types/node': '^25.6.0',
         'knip': '^6.12.0',
+        'taze': '^19.11.0',
         'tsdown': '^0.21.9',
         'typescript': '^6.0.3',
       },
@@ -410,6 +420,9 @@ describe('buildPackageJson', () => {
       files: ['dist'],
       scripts: {
         'build': 'tsdown --config tsdown.config.ts && node scripts/ensure-shebang.mjs',
+        'deps:check': 'taze',
+        'deps:check:all': 'taze --all',
+        'deps:fresh': 'taze minor -w -i --maturity-period 7',
         'knip': 'knip',
         'smoke:bin': 'pnpm build && dist/index.js --help',
         'typecheck': 'tsc --noEmit',
@@ -418,6 +431,7 @@ describe('buildPackageJson', () => {
       devDependencies: {
         '@types/node': '^25.6.0',
         'knip': '^6.12.0',
+        'taze': '^19.11.0',
         'tsdown': '^0.21.9',
         'typescript': '^6.0.3',
       },
@@ -479,13 +493,17 @@ describe('buildPackageJson', () => {
       types: 'dist/index.d.ts',
       files: ['dist'],
       scripts: {
-        build: 'tsdown --config tsdown.config.ts',
-        knip: 'knip',
-        typecheck: 'tsc --noEmit',
-        verify: 'pnpm build && pnpm typecheck && pnpm knip',
+        'build': 'tsdown --config tsdown.config.ts',
+        'deps:check': 'taze',
+        'deps:check:all': 'taze --all',
+        'deps:fresh': 'taze minor -w -i --maturity-period 7',
+        'knip': 'knip',
+        'typecheck': 'tsc --noEmit',
+        'verify': 'pnpm build && pnpm typecheck && pnpm knip',
       },
       devDependencies: {
         knip: '^6.12.0',
+        taze: '^19.11.0',
         tsdown: '^0.21.9',
         typescript: '^6.0.3',
       },

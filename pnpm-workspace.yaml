@@ -44,6 +44,7 @@ catalog:
   lint-staged: ^16.4.0
   lodash-es: ^4.18.1
   mri: ^1.2.0
+  taze: ^19.11.0
   tsdown: ^0.21.9
   tsx: ^4.21.0
   turbo: ^2.9.6

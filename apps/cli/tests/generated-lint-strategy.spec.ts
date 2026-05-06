@@ -305,6 +305,7 @@ describe('generated lint strategy', () => {
       'knip',
       'less',
       'lint-staged',
+      'taze',
       'typescript',
     ])
   })

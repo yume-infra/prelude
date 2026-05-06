@@ -152,10 +152,14 @@ describe('workspace/bootstrap contract', () => {
         sections: {
           devDependencies: {
             knip: '^6.12.0',
+            taze: '^19.11.0',
           },
           scripts: {
-            knip: 'knip',
-            verify: 'pnpm build && pnpm lint && pnpm knip',
+            'deps:check': 'taze',
+            'deps:check:all': 'taze --all',
+            'deps:fresh': 'taze minor -w -i --maturity-period 7',
+            'knip': 'knip',
+            'verify': 'pnpm build && pnpm lint && pnpm knip',
           },
         },
       },
@@ -198,10 +202,14 @@ describe('workspace/bootstrap contract', () => {
         sections: {
           devDependencies: {
             knip: '^6.12.0',
+            taze: '^19.11.0',
           },
           scripts: {
-            knip: 'knip',
-            verify: 'pnpm build && pnpm knip',
+            'deps:check': 'taze',
+            'deps:check:all': 'taze --all',
+            'deps:fresh': 'taze minor -w -i --maturity-period 7',
+            'knip': 'knip',
+            'verify': 'pnpm build && pnpm knip',
           },
         },
       },
@@ -219,8 +227,12 @@ describe('workspace/bootstrap contract', () => {
       'husky': '^9.1.7',
       'knip': '^6.12.0',
       'lint-staged': '^16.4.0',
+      'taze': '^19.11.0',
     })
     expect(draft.scripts).toMatchObject({
+      'deps:check': 'taze',
+      'deps:check:all': 'taze --all',
+      'deps:fresh': 'taze minor -w -i --maturity-period 7',
       'knip': 'knip',
       'lint': 'eslint',
       'lint:fix': 'eslint --fix',
@@ -239,10 +251,14 @@ describe('workspace/bootstrap contract', () => {
 
     expect(draft.devDependencies).toEqual({
       knip: '^6.12.0',
+      taze: '^19.11.0',
     })
     expect(draft.scripts).toEqual({
-      knip: 'knip',
-      verify: 'pnpm build && pnpm knip',
+      'deps:check': 'taze',
+      'deps:check:all': 'taze --all',
+      'deps:fresh': 'taze minor -w -i --maturity-period 7',
+      'knip': 'knip',
+      'verify': 'pnpm build && pnpm knip',
     })
     expect(reducers).toHaveLength(7)
     expect(reducers.map(reducer => reducer.ownership)).toEqual(
@@ -350,11 +366,15 @@ describe('workspace/bootstrap contract', () => {
         },
         sections: {
           scripts: {
-            knip: 'knip',
-            verify: 'pnpm knip',
+            'deps:check': 'taze -r',
+            'deps:check:all': 'taze -r --all',
+            'deps:fresh': 'taze minor -r -w -i --maturity-period 7',
+            'knip': 'knip',
+            'verify': 'pnpm knip',
           },
           devDependencies: {
             knip: '^6.12.0',
+            taze: '^19.11.0',
             turbo: '^2.9.6',
           },
           engines: {
@@ -380,11 +400,14 @@ describe('workspace/bootstrap contract', () => {
     )
 
     expect(scripts).toEqual({
-      build: 'turbo run build',
-      dev: 'turbo run dev',
-      knip: 'knip',
-      typecheck: 'turbo run typecheck',
-      verify: 'pnpm build && pnpm typecheck && pnpm knip',
+      'build': 'turbo run build',
+      'deps:check': 'taze -r',
+      'deps:check:all': 'taze -r --all',
+      'deps:fresh': 'taze minor -r -w -i --maturity-period 7',
+      'dev': 'turbo run dev',
+      'knip': 'knip',
+      'typecheck': 'turbo run typecheck',
+      'verify': 'pnpm build && pnpm typecheck && pnpm knip',
     })
     expect(scripts).not.toHaveProperty('clean')
     expect(scripts).not.toHaveProperty('lint')
@@ -408,6 +431,7 @@ describe('workspace/bootstrap contract', () => {
       'husky',
       'knip',
       'lint-staged',
+      'taze',
       '@commitlint/cli',
       '@commitlint/config-conventional',
     ]))
