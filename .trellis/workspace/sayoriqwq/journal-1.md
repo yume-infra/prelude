@@ -72,3 +72,38 @@ Manually migrated final acceptance smoke coverage onto main: dry-run spec no-wri
 ### Next Steps
 
 - None - task complete
+
+
+## Session 3: Expand preset recommendations
+
+**Date**: 2026-05-06
+**Task**: Expand preset recommendations
+**Package**: create-yume
+**Branch**: `main`
+
+### Summary
+
+Added workspace and standalone preset families, synced docs/specs, and verified generated projects including lint-clean Node/CLI templates.
+
+### Main Changes
+
+(Add details)
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `37dbdad` | (see git log) |
+| `e0ae667` | (see git log) |
+
+### Testing
+
+- [OK] (Add test results)
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- None - task complete
