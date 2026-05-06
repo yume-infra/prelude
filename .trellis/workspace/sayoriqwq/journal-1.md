@@ -251,3 +251,37 @@ Raised the root workspace Node engine requirement from >=18 to >=22 while keepin
 ### Next Steps
 
 - None - task complete
+
+
+## Session 8: Introduce Taze dependency maintenance
+
+**Date**: 2026-05-07
+**Task**: Introduce Taze dependency maintenance
+**Package**: create-yume
+**Branch**: `dev`
+
+### Summary
+
+Installed taze through the pnpm catalog, added reproducible deps:check/deps:fresh scripts, emitted taze maintenance scripts in generated standalone and workspace projects, and documented that dependency freshness stays outside verify.
+
+### Main Changes
+
+(Add details)
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `967f750` | (see git log) |
+
+### Testing
+
+- [OK] (Add test results)
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- None - task complete
