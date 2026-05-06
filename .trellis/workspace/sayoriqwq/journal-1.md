@@ -19,7 +19,9 @@ Merged the A/B/C expansion worktrees into main: hardened workspace root script d
 
 ### Main Changes
 
-(Add details)
+- Added a root `pnpm knip` script and `knip.json` workspace configuration.
+- Moved the Knip dependency to the pnpm catalog and kept the lockfile aligned.
+- Cleaned all Knip findings by deleting unused files, removing unused exports/exported types, removing duplicate fixture aliases, and dropping the unused Biome dependency.
 
 ### Git Commits
 
@@ -29,7 +31,12 @@ Merged the A/B/C expansion worktrees into main: hardened workspace root script d
 
 ### Testing
 
-- [OK] (Add test results)
+- [OK] `pnpm knip`
+- [OK] `pnpm lint`
+- [OK] `pnpm --filter create-yume typecheck`
+- [OK] `pnpm --filter create-yume build`
+- [OK] `pnpm --filter create-yume test` (33 files, 296 tests)
+- [OK] `git diff --check`
 
 ### Status
 
@@ -95,6 +102,41 @@ Added workspace and standalone preset families, synced docs/specs, and verified 
 |------|---------|
 | `37dbdad` | (see git log) |
 | `e0ae667` | (see git log) |
+
+### Testing
+
+- [OK] (Add test results)
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- None - task complete
+
+
+## Session 4: Add and clean Knip verification
+
+**Date**: 2026-05-07
+**Task**: Add and clean Knip verification
+**Package**: create-yume
+**Branch**: `dev`
+
+### Summary
+
+Added root Knip workspace check, aligned the dependency with the pnpm catalog, then cleaned all Knip findings by deleting unused files, removing unused exports and fixture aliases, and dropping unused Biome dependency.
+
+### Main Changes
+
+(Add details)
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `781c92c` | (see git log) |
+| `294bf5b` | (see git log) |
 
 ### Testing
 
