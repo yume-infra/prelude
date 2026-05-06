@@ -1,5 +1,6 @@
 import type { CodeQuality } from '@/schema/project-config'
 import { Effect, ParseResult } from 'effect'
+import { makePackageName } from '@/brand/package-name'
 import { decodeProjectName, formatProjectNameError } from '@/brand/project-name'
 import { makeProjectTargetDir } from '@/brand/target-dir'
 import { loadProjectConfigFromCreateSpecInput } from '@/core/create-spec-input'
@@ -12,6 +13,7 @@ import {
   getWorkspaceBootstrapPresetDefaults,
   shouldAskWorkspaceBootstrapCodeQuality,
 } from '@/core/workspace-bootstrap'
+import { makePackageId } from '@/schema/generation-package-spec'
 import { decodeProjectConfig, formatProjectConfigError } from '@/schema/project-config'
 import { FsService } from '~/fs'
 import { ask } from '../adapters/prompts'
@@ -126,6 +128,98 @@ function decodeCollectedProjectConfig(input: unknown) {
 
 function assertNever(value: never): never {
   throw new Error(`Unreachable case: ${String(value)}`)
+}
+
+function presetPackageName(rootName: string, packageId: string) {
+  return makePackageName(`@${rootName}/${packageId}`)
+}
+
+function workspaceCliLibraryPackages(rootName: string) {
+  const corePackageId = makePackageId('core')
+
+  return [
+    {
+      id: makePackageId('cli'),
+      name: presetPackageName(rootName, 'cli'),
+      kind: 'cli-tool',
+      runtime: 'node',
+      internalDependencies: [
+        {
+          target: {
+            by: 'id',
+            id: corePackageId,
+          },
+        },
+      ],
+      cli: {
+        toolkit: 'effect',
+      },
+    },
+    {
+      id: corePackageId,
+      name: presetPackageName(rootName, 'core'),
+      kind: 'library-package',
+      runtime: 'neutral',
+      internalDependencies: [],
+      library: {
+        toolkit: 'none',
+      },
+    },
+  ] as const
+}
+
+function workspaceFullstackPackages(rootName: string, framework: 'react' | 'vue') {
+  const sharedPackageId = makePackageId('shared')
+
+  return [
+    {
+      id: makePackageId('web'),
+      name: presetPackageName(rootName, 'web'),
+      kind: 'frontend-app',
+      runtime: 'browser',
+      internalDependencies: [
+        {
+          target: {
+            by: 'id',
+            id: sharedPackageId,
+          },
+        },
+      ],
+      frontend: {
+        framework,
+        buildTool: 'vite',
+        cssPreprocessor: 'less',
+        cssFramework: 'tailwind',
+      },
+    },
+    {
+      id: makePackageId('api'),
+      name: presetPackageName(rootName, 'api'),
+      kind: 'backend-app',
+      runtime: 'node',
+      internalDependencies: [
+        {
+          target: {
+            by: 'id',
+            id: sharedPackageId,
+          },
+        },
+      ],
+      backend: {
+        framework: 'none',
+      },
+    },
+    {
+      id: sharedPackageId,
+      name: presetPackageName(rootName, 'shared'),
+      kind: 'library-package',
+      runtime: 'neutral',
+      internalDependencies: [],
+      library: {
+        toolkit: 'none',
+      },
+    },
+  ] as const
 }
 
 export const createProject = Effect.gen(function* () {
@@ -265,6 +359,58 @@ const createPreset = Effect.gen(function* () {
         ...workspaceBootstrap,
         packageManager: PnpmPackageManager.name,
       }
+    case 'workspace-cli-library':
+      return {
+        name,
+        type: 'workspace-root',
+        language: 'typescript',
+        git,
+        ...workspaceBootstrap,
+        packageManager: PnpmPackageManager.name,
+        packages: workspaceCliLibraryPackages(String(name)),
+      }
+    case 'workspace-fullstack-react':
+      return {
+        name,
+        type: 'workspace-root',
+        language: 'typescript',
+        git,
+        ...workspaceBootstrap,
+        packageManager: PnpmPackageManager.name,
+        packages: workspaceFullstackPackages(String(name), 'react'),
+      }
+    case 'workspace-fullstack-vue':
+      return {
+        name,
+        type: 'workspace-root',
+        language: 'typescript',
+        git,
+        ...workspaceBootstrap,
+        packageManager: PnpmPackageManager.name,
+        packages: workspaceFullstackPackages(String(name), 'vue'),
+      }
+    case 'standalone-library-minimal': {
+      return {
+        name,
+        type: 'library',
+        language: 'typescript',
+        git: cli.args.git ?? false,
+        linting: 'none',
+        codeQuality: [],
+        runtime: 'neutral',
+      }
+    }
+    case 'standalone-library-node': {
+      return {
+        name,
+        type: 'library',
+        language: 'typescript',
+        git: cli.args.git ?? false,
+        linting: 'none',
+        codeQuality: [],
+        runtime: 'node',
+      }
+    }
     case 'standalone-backend-minimal':
     case 'node-minimal': {
       return {
@@ -274,6 +420,15 @@ const createPreset = Effect.gen(function* () {
         git: cli.args.git ?? false,
         linting: 'none',
         codeQuality: [],
+      }
+    }
+    case 'standalone-backend-full': {
+      return {
+        name,
+        type: 'node',
+        language: 'typescript',
+        git,
+        ...workspaceBootstrap,
       }
     }
     case 'standalone-cli-minimal':
@@ -297,6 +452,16 @@ const createPreset = Effect.gen(function* () {
         git: cli.args.git ?? false,
         linting: 'none',
         codeQuality: [],
+        toolkit: 'effect',
+      }
+    }
+    case 'standalone-cli-full': {
+      return {
+        name,
+        type: 'cli',
+        language: 'typescript',
+        git,
+        ...workspaceBootstrap,
         toolkit: 'effect',
       }
     }

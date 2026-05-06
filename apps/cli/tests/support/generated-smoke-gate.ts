@@ -11,8 +11,15 @@ export type GeneratedPreset
     | 'vue-minimal'
     | 'vue-full'
     | 'node-minimal'
+    | 'standalone-backend-full'
     | 'cli-minimal'
     | 'cli-effect'
+    | 'standalone-cli-full'
+    | 'standalone-library-minimal'
+    | 'standalone-library-node'
+    | 'workspace-cli-library'
+    | 'workspace-fullstack-react'
+    | 'workspace-fullstack-vue'
 
 export type GeneratedSmokePhase = 'generation' | 'install' | 'build' | 'lint' | 'link' | 'invoke'
 
@@ -61,7 +68,13 @@ export function generatedSmokeEnv(options: GeneratedSmokeEnvOptions = {}) {
 }
 
 export function shouldRunLintForPreset(preset: GeneratedPreset) {
-  return preset === 'react-full' || preset === 'vue-full'
+  return preset === 'react-full'
+    || preset === 'vue-full'
+    || preset === 'standalone-backend-full'
+    || preset === 'standalone-cli-full'
+    || preset === 'workspace-cli-library'
+    || preset === 'workspace-fullstack-react'
+    || preset === 'workspace-fullstack-vue'
 }
 
 export function formatGeneratedCommand(command: string, args: readonly string[]) {

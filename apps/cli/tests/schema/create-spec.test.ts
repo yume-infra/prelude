@@ -10,7 +10,7 @@ import {
   projectConfigToCreateSpec,
 } from '../../src/schema/create-spec'
 import { decodeProjectConfig } from '../../src/schema/project-config'
-import { cliEffectPresetProjectConfig, cliProjectConfig, nodeProjectConfig, reactProjectConfig, vueProjectConfig, workspaceMixedProjectConfig, workspaceRootProjectConfig } from '../support/fixtures'
+import { cliEffectPresetProjectConfig, cliProjectConfig, libraryProjectConfig, nodeProjectConfig, reactProjectConfig, vueProjectConfig, workspaceMixedProjectConfig, workspaceRootProjectConfig } from '../support/fixtures'
 
 const frontendPackageInput = {
   id: 'web',
@@ -275,6 +275,25 @@ describe('create spec schema contract', () => {
     })
   })
 
+  it('adapts standalone library project config into a library package create spec', async () => {
+    const decodedProjectConfig = await Effect.runPromise(decodeProjectConfig(libraryProjectConfig))
+    const createSpec = projectConfigToCreateSpec(decodedProjectConfig)
+
+    expect(createSpec).toEqual({
+      shape: 'standalone',
+      package: {
+        id: makePackageId(libraryProjectConfig.name),
+        name: makePackageName(libraryProjectConfig.name),
+        kind: 'library-package',
+        runtime: 'neutral',
+        internalDependencies: [],
+        library: {
+          toolkit: 'none',
+        },
+      },
+    })
+  })
+
   it('adapts workspace root project config into an empty workspace create spec', async () => {
     const decodedProjectConfig = await Effect.runPromise(decodeProjectConfig(workspaceRootProjectConfig))
     const createSpec = projectConfigToCreateSpec(decodedProjectConfig)
@@ -392,7 +411,7 @@ describe('create spec schema contract', () => {
     })).toThrow('worker package "jobs" generation is not available yet')
   })
 
-  it('keeps standalone library specs outside the current user-facing generation boundary', async () => {
+  it('adapts standalone library create spec input into a project config', async () => {
     const decoded = await Effect.runPromise(decodeCreateSpec({
       shape: 'standalone',
       package: {
@@ -405,8 +424,16 @@ describe('create spec schema contract', () => {
       },
     }))
 
-    expect(() => createSpecToProjectConfig(decoded, {
+    expect(createSpecToProjectConfig(decoded, {
       name: makeProjectName('shared'),
-    })).toThrow('Standalone library package generation is not available yet')
+    })).toEqual({
+      name: makeProjectName('shared'),
+      type: 'library',
+      language: 'typescript',
+      git: false,
+      linting: 'none',
+      codeQuality: [],
+      runtime: 'neutral',
+    })
   })
 })

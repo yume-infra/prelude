@@ -158,7 +158,12 @@ export function createSpecToProjectConfig(
         toolkit: spec.package.cli.toolkit,
       }
     case 'library-package':
-      throw new Error('Standalone library package generation is not available yet; use shape "workspace" with a library package under libs/*.')
+      return {
+        ...base,
+        type: 'library',
+        language: 'typescript',
+        runtime: spec.package.runtime,
+      }
     case 'worker-app':
       throw new Error('Create spec worker app generation is not available yet.')
     default: {

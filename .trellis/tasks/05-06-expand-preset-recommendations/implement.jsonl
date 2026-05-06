@@ -1,0 +1,5 @@
+{"file":".trellis/tasks/05-06-expand-preset-recommendations/prd.md","reason":"Accepted task requirements, priority order, preset names, package defaults, acceptance criteria, and out-of-scope boundaries."}
+{"file":".trellis/spec/create-yume/generation-model/index.md","reason":"Preset schema, ProjectConfig/create-spec contracts, CLI toolkit tracks, supported generated scope, and required tests for preset changes."}
+{"file":".trellis/spec/create-yume/workspace-packages/index.md","reason":"Workspace package graph contracts, package target paths, internal workspace dependency rules, and workspace package test expectations."}
+{"file":".trellis/spec/create-yume/template-system/index.md","reason":"Template and package manifest contribution contracts, CLI toolkit template rules, and forbidden template-system shortcuts."}
+{"file":".trellis/spec/create-yume/repository/index.md","reason":"Documentation/source-of-truth rules, dependency rules, and requirement to keep user-facing project context synchronized when supported scope changes."}

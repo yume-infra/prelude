@@ -11,6 +11,7 @@ Create Yume 用来把“新建项目”这件事做得更稳一点。
 - 生成 pnpm workspace 根目录
 - 生成 TypeScript ESM Node 项目
 - 生成 TypeScript ESM CLI tool
+- 生成 TypeScript ESM library package
 - 通过结构化 package list 生成 workspace 子包
 
 在这个范围内，它更关心三个问题：
@@ -38,6 +39,7 @@ Create Yume 用来把“新建项目”这件事做得更稳一点。
 - pnpm workspace root 脚手架
 - Node 项目脚手架
 - CLI tool 脚手架
+- Library package 脚手架
 - 结构化 workspace package 生成：app/tool 位于 `apps/*`，library 位于 `libs/*`
 
 ## 当前不支持的范围
@@ -68,9 +70,14 @@ node apps/cli/dist/index.js
 # 非交互 preset 模式
 node apps/cli/dist/index.js --preset standalone-react-full --name my-app --install
 node apps/cli/dist/index.js --preset workspace-root-minimal --name my-workspace
+node apps/cli/dist/index.js --preset workspace-cli-library --name my-tool-workspace
+node apps/cli/dist/index.js --preset workspace-fullstack-react --name my-fullstack
+node apps/cli/dist/index.js --preset standalone-library-minimal --name my-lib
 node apps/cli/dist/index.js --preset standalone-backend-minimal --name my-node-app
+node apps/cli/dist/index.js --preset standalone-backend-full --name my-node-app
 node apps/cli/dist/index.js --preset standalone-cli-minimal --name my-tool
 node apps/cli/dist/index.js --preset standalone-cli-effect --name my-effect-tool
+node apps/cli/dist/index.js --preset standalone-cli-full --name my-full-effect-tool
 
 # 明确禁止 prompts，适合 CI 或模型调用
 node apps/cli/dist/index.js --preset standalone-cli-minimal --name my-tool --no-input
@@ -78,6 +85,7 @@ node apps/cli/dist/index.js --preset standalone-cli-minimal --name my-tool --no-
 # 预览生成计划，不创建目录、不写文件、不执行命令
 node apps/cli/dist/index.js --preset standalone-react-full --name my-app --dry-run
 node apps/cli/dist/index.js --preset workspace-root-minimal --name my-workspace --dry-run
+node apps/cli/dist/index.js --preset workspace-cli-library --name my-tool-workspace --dry-run
 node apps/cli/dist/index.js --preset standalone-cli-minimal --name my-tool --dry-run
 node apps/cli/dist/index.js --preset standalone-cli-effect --name my-effect-tool --dry-run
 
@@ -91,6 +99,8 @@ node apps/cli/dist/index.js --p vue-full --name my-app --no-rollback
 短名 preset 仍作为兼容 alias 保留：`react-minimal`、`react-full`、`vue-minimal`、`vue-full`、`workspace-root`、`node-minimal`、`cli-minimal`、`cli-effect`。新文档优先使用包含 shape / package kind 的 canonical preset 名称。
 
 `standalone-cli-minimal` 继续生成 dependency-light 的 `toolkit: "none"` CLI。需要 Effect runtime 的 CLI 时，使用 `standalone-cli-effect`，或在结构化 create spec 的 `cli.toolkit` 中声明 `"effect"`。
+
+`workspace-cli-library` 是偏 CLI 的 workspace starter：默认生成 `apps/cli` 与 `libs/core`，并让 CLI package 通过显式 `workspace:*` 依赖引用 core。更自由的 package graph 仍建议使用结构化 `--spec` 输入。
 
 ### 结构化 `--spec` 输入
 

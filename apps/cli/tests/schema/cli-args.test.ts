@@ -71,6 +71,36 @@ describe('cliArgsSchema', () => {
     }
   })
 
+  it('decodes new workspace and standalone canonical presets', async () => {
+    await expect(Effect.runPromise(decodeCliArgs({
+      preset: 'workspace-cli-library',
+      name: 'demo-cli-workspace',
+    }))).resolves.toMatchObject({
+      preset: 'workspace-cli-library',
+    })
+
+    await expect(Effect.runPromise(decodeCliArgs({
+      preset: 'workspace-fullstack-react',
+      name: 'demo-react-workspace',
+    }))).resolves.toMatchObject({
+      preset: 'workspace-fullstack-react',
+    })
+
+    await expect(Effect.runPromise(decodeCliArgs({
+      preset: 'standalone-library-node',
+      name: 'demo-node-lib',
+    }))).resolves.toMatchObject({
+      preset: 'standalone-library-node',
+    })
+
+    await expect(Effect.runPromise(decodeCliArgs({
+      preset: 'standalone-cli-full',
+      name: 'demo-cli-full',
+    }))).resolves.toMatchObject({
+      preset: 'standalone-cli-full',
+    })
+  })
+
   it('decodes structured spec and no-input flags', async () => {
     const result = await Effect.runPromise(
       Effect.either(

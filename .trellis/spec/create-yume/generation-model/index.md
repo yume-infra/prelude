@@ -17,6 +17,7 @@ Current generated scaffold capabilities:
 - pnpm workspace root.
 - Node standalone app with `framework: none`.
 - CLI tool with `toolkit: none` or `toolkit: effect`; default is `none`.
+- Standalone library package with `runtime: neutral` or `runtime: node`; default is `neutral`.
 - Structured workspace child package generation:
   - `frontend-app`, `backend-app`, and `cli-tool` under `apps/*`.
   - `library-package` under `libs/*`.
@@ -74,8 +75,20 @@ Runtime rules:
 - Omitted toolkit values decode to `none` for backward compatibility.
 - Presets `standalone-cli-minimal` and `cli-minimal` resolve to `toolkit: "none"`.
 - Presets `standalone-cli-effect` and `cli-effect` resolve to `toolkit: "effect"`.
+- Preset `standalone-cli-full` resolves to `toolkit: "effect"` with full code-quality defaults.
+- Preset `workspace-cli-library` generates an Effect CLI package at `apps/cli` and a neutral library at `libs/core`, with an explicit `workspace:*` link from CLI to core.
 - `projectConfigToCreateSpec` and `createSpecToProjectConfig` must preserve the toolkit value.
 - Workspace CLI packages carry `spec.cli.toolkit` into the package-local `CliProjectConfig`.
+
+## Preset Package Graphs
+
+- `workspace-cli-library` resolves to package ids `cli` and `core`, materializing `apps/cli` and `libs/core`.
+- `workspace-fullstack-react` and `workspace-fullstack-vue` resolve to package ids `web`, `api`, and `shared`, materializing `apps/web`, `apps/api`, and `libs/shared`.
+- Workspace preset internal dependencies are explicit package spec links and must emit `workspace:*`; do not infer links from every package in the graph.
+- `standalone-library-minimal` resolves to a neutral standalone library package.
+- `standalone-library-node` resolves to a Node-runtime standalone library package.
+- `standalone-backend-full` and `standalone-cli-full` use the same full code-quality policy as other full presets.
+- No worker preset may be exposed until worker templates and generated smoke coverage exist.
 
 ## Good/Base/Bad Cases
 
@@ -98,6 +111,12 @@ Effect CLI:
 
 ```typescript
 composeProjectConfigFromPreset({ preset: 'standalone-cli-effect', name })
+```
+
+Workspace CLI Library:
+
+```typescript
+composeProjectConfigFromPreset({ preset: 'workspace-cli-library', name })
 ```
 
 Bad:

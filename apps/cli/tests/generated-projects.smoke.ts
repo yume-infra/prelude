@@ -83,6 +83,11 @@ const smokeCases: readonly GeneratedSmokeCase[] = [
     projectName: 'smoke-node-minimal',
   },
   {
+    label: 'standalone backend full preset',
+    preset: 'standalone-backend-full',
+    projectName: 'smoke-backend-full',
+  },
+  {
     label: 'cli minimal preset',
     preset: 'cli-minimal',
     projectName: 'smoke-cli-minimal',
@@ -91,6 +96,21 @@ const smokeCases: readonly GeneratedSmokeCase[] = [
     label: 'cli effect preset',
     preset: 'cli-effect',
     projectName: 'smoke-cli-effect',
+  },
+  {
+    label: 'standalone cli full preset',
+    preset: 'standalone-cli-full',
+    projectName: 'smoke-cli-full',
+  },
+  {
+    label: 'standalone library minimal preset',
+    preset: 'standalone-library-minimal',
+    projectName: 'smoke-library-minimal',
+  },
+  {
+    label: 'standalone library node preset',
+    preset: 'standalone-library-node',
+    projectName: 'smoke-library-node',
   },
 ]
 
@@ -475,7 +495,7 @@ async function runSmokeCase(rootDir: string, testCase: GeneratedSmokeCase) {
     args: ['build'],
   })
 
-  if (testCase.preset === 'node-minimal') {
+  if (testCase.preset === 'node-minimal' || testCase.preset === 'standalone-backend-full') {
     assertGeneratedNodePackageContract(packageJson, testCase, smokePrefix)
     const invocation = await runGeneratedSmokePhase({
       prefix: smokePrefix,
@@ -491,9 +511,9 @@ async function runSmokeCase(rootDir: string, testCase: GeneratedSmokeCase) {
     }
   }
 
-  if (testCase.preset === 'cli-minimal' || testCase.preset === 'cli-effect') {
+  if (testCase.preset === 'cli-minimal' || testCase.preset === 'cli-effect' || testCase.preset === 'standalone-cli-full') {
     assertGeneratedCliPackageContract(packageJson, testCase, smokePrefix)
-    if (testCase.preset === 'cli-effect') {
+    if (testCase.preset === 'cli-effect' || testCase.preset === 'standalone-cli-full') {
       assertGeneratedEffectCliPackageContract(packageJson, testCase, smokePrefix)
     }
     const binPath = await assertGeneratedExecutableBin(generatedDir, testCase, smokePrefix)
@@ -510,6 +530,10 @@ async function runSmokeCase(rootDir: string, testCase: GeneratedSmokeCase) {
     if (!output.includes(testCase.projectName)) {
       throw new Error(`[${smokePrefix}] ${testCase.preset} bin invocation did not print usage`)
     }
+  }
+
+  if (testCase.preset === 'standalone-library-minimal' || testCase.preset === 'standalone-library-node') {
+    assertGeneratedNodePackageContract(packageJson, testCase, smokePrefix)
   }
 
   if (shouldRunLintForPreset(testCase.preset)) {

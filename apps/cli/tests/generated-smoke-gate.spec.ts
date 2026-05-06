@@ -67,11 +67,18 @@ describe('generated smoke gate contract', () => {
   it('keeps full presets lint-enabled and minimal presets build-only', () => {
     expect(shouldRunLintForPreset('react-full'), 'react-full must run generated lint').toBe(true)
     expect(shouldRunLintForPreset('vue-full'), 'vue-full must run generated lint').toBe(true)
+    expect(shouldRunLintForPreset('standalone-backend-full'), 'standalone-backend-full must run generated lint').toBe(true)
+    expect(shouldRunLintForPreset('standalone-cli-full'), 'standalone-cli-full must run generated lint').toBe(true)
+    expect(shouldRunLintForPreset('workspace-cli-library'), 'workspace-cli-library must run generated lint at the workspace root').toBe(true)
+    expect(shouldRunLintForPreset('workspace-fullstack-react'), 'workspace-fullstack-react must run generated lint at the workspace root').toBe(true)
+    expect(shouldRunLintForPreset('workspace-fullstack-vue'), 'workspace-fullstack-vue must run generated lint at the workspace root').toBe(true)
     expect(shouldRunLintForPreset('react-minimal'), 'react-minimal is intentionally build-only').toBe(false)
     expect(shouldRunLintForPreset('vue-minimal'), 'vue-minimal is intentionally build-only').toBe(false)
     expect(shouldRunLintForPreset('node-minimal'), 'node-minimal is intentionally build-only').toBe(false)
     expect(shouldRunLintForPreset('cli-minimal'), 'cli-minimal is intentionally build-only').toBe(false)
     expect(shouldRunLintForPreset('cli-effect'), 'cli-effect is intentionally build-only').toBe(false)
+    expect(shouldRunLintForPreset('standalone-library-minimal'), 'standalone-library-minimal is intentionally build-only').toBe(false)
+    expect(shouldRunLintForPreset('standalone-library-node'), 'standalone-library-node is intentionally build-only').toBe(false)
   })
 
   it('locks generated-project lint invocation to zero warnings', () => {
