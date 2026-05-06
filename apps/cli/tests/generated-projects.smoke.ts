@@ -1,9 +1,9 @@
 import type { GeneratedSmokeCase, GeneratedSpecSmokeCase } from './support/generated-smoke-gate'
 import assert from 'node:assert/strict'
 import { constants } from 'node:fs'
-import { access, mkdtemp, readFile, rm } from 'node:fs/promises'
-import { tmpdir } from 'node:os'
+import { access, mkdir, readFile, rm } from 'node:fs/promises'
 import path from 'node:path'
+import process from 'node:process'
 import { fileURLToPath } from 'node:url'
 import {
   assertGeneratedCliPackageContract,
@@ -21,6 +21,9 @@ import {
 const smokePrefix = 'generated-smoke'
 const testsDir = path.dirname(fileURLToPath(import.meta.url))
 const cliDistPath = path.resolve(testsDir, '../dist/index.js')
+const repoRoot = path.resolve(testsDir, '../../..')
+const examplesGeneratedRoot = path.join(repoRoot, 'apps/examples/.generated')
+const smokeSelectionEnvName = 'CREATE_YUME_SMOKE_CASES'
 
 type WorkspacePackageKind = 'frontend-app' | 'backend-app' | 'cli-tool' | 'library-package' | 'worker-app'
 
@@ -248,6 +251,153 @@ const workspaceSmokeCases: readonly GeneratedWorkspaceSmokeCase[] = [
     },
   },
 ]
+
+function normalizeSmokeSelector(selector: string) {
+  return selector.trim().toLowerCase()
+}
+
+function smokeSelection() {
+  const rawSelection = process.env[smokeSelectionEnvName]
+
+  if (rawSelection === undefined || rawSelection.trim().length === 0) {
+    return undefined
+  }
+
+  const selectors = rawSelection
+    .split(',')
+    .map(normalizeSmokeSelector)
+    .filter(Boolean)
+
+  return selectors.length > 0 ? new Set(selectors) : undefined
+}
+
+function generatedCaseSelectors(testCase: GeneratedSmokeCase) {
+  const selectors = [
+    testCase.label,
+    testCase.projectName,
+    testCase.preset,
+  ]
+
+  if (testCase.preset.includes('react')) {
+    selectors.push('react', 'frontend')
+  }
+
+  if (testCase.preset.includes('vue')) {
+    selectors.push('vue', 'frontend')
+  }
+
+  if (testCase.preset.includes('node') || testCase.preset.includes('backend')) {
+    selectors.push('node', 'backend')
+  }
+
+  if (testCase.preset.includes('cli')) {
+    selectors.push('cli')
+  }
+
+  if (testCase.preset.includes('library')) {
+    selectors.push('library')
+  }
+
+  if (testCase.preset.includes('minimal')) {
+    selectors.push('minimal')
+  }
+
+  if (testCase.preset.includes('full')) {
+    selectors.push('full')
+  }
+
+  if (testCase.preset.includes('effect')) {
+    selectors.push('effect')
+  }
+
+  return selectors.map(normalizeSmokeSelector)
+}
+
+function workspaceCaseSelectors(testCase: GeneratedWorkspaceSmokeCase) {
+  const selectors = [
+    testCase.label,
+    testCase.projectName,
+    testCase.specLabel,
+    'workspace',
+  ]
+
+  for (const packageSpec of testCase.spec.packages) {
+    selectors.push(packageSpec.id, packageSpec.name, packageSpec.kind)
+
+    if (packageSpec.kind === 'frontend-app') {
+      selectors.push('frontend')
+      const frontend = isRecord(packageSpec.frontend) ? packageSpec.frontend : {}
+      if (typeof frontend.framework === 'string') {
+        selectors.push(frontend.framework)
+      }
+    }
+
+    if (packageSpec.kind === 'backend-app') {
+      selectors.push('backend', 'node')
+    }
+
+    if (packageSpec.kind === 'cli-tool') {
+      selectors.push('cli')
+    }
+
+    if (packageSpec.kind === 'library-package') {
+      selectors.push('library')
+    }
+  }
+
+  return selectors.map(normalizeSmokeSelector)
+}
+
+function isSelectedSmokeCase(selectors: ReadonlySet<string> | undefined, caseSelectors: readonly string[]) {
+  if (selectors === undefined || selectors.has('all')) {
+    return true
+  }
+
+  return caseSelectors.some(selector => selectors.has(selector))
+}
+
+function formatAvailableSmokeSelectors() {
+  const selectors = new Set<string>()
+
+  for (const testCase of smokeCases) {
+    for (const selector of generatedCaseSelectors(testCase)) {
+      selectors.add(selector)
+    }
+  }
+
+  for (const testCase of workspaceSmokeCases) {
+    for (const selector of workspaceCaseSelectors(testCase)) {
+      selectors.add(selector)
+    }
+  }
+
+  return [...selectors].sort().join(', ')
+}
+
+function selectedSmokeCases() {
+  const selectors = smokeSelection()
+  const selectedGeneratedCases = smokeCases.filter(testCase =>
+    isSelectedSmokeCase(selectors, generatedCaseSelectors(testCase)),
+  )
+  const selectedWorkspaceCases = workspaceSmokeCases.filter(testCase =>
+    isSelectedSmokeCase(selectors, workspaceCaseSelectors(testCase)),
+  )
+
+  if (selectedGeneratedCases.length === 0 && selectedWorkspaceCases.length === 0) {
+    throw new Error(
+      `[${smokePrefix}] ${smokeSelectionEnvName} matched no smoke cases. Available selectors: ${formatAvailableSmokeSelectors()}`,
+    )
+  }
+
+  if (selectors !== undefined) {
+    console.log(`[${smokePrefix}] selected cases via ${smokeSelectionEnvName}=${[...selectors].join(',')}`)
+  }
+
+  return {
+    selectedGeneratedCases,
+    selectedWorkspaceCases,
+  }
+}
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return value !== null && typeof value === 'object' && !Array.isArray(value)
@@ -615,28 +765,34 @@ async function assertBuiltCliAvailable() {
   }
 }
 
+async function prepareExamplesGeneratedRoot() {
+  await rm(examplesGeneratedRoot, { recursive: true, force: true })
+  await mkdir(examplesGeneratedRoot, { recursive: true })
+}
+
 async function main() {
   await assertBuiltCliAvailable()
 
-  const rootDir = await mkdtemp(path.join(tmpdir(), 'create-yume-smoke-'))
+  const { selectedGeneratedCases, selectedWorkspaceCases } = selectedSmokeCases()
+  const rootDir = examplesGeneratedRoot
   let passed = false
 
   try {
-    for (const testCase of smokeCases) {
+    await prepareExamplesGeneratedRoot()
+
+    for (const testCase of selectedGeneratedCases) {
       await runSmokeCase(rootDir, testCase)
     }
-    for (const testCase of workspaceSmokeCases) {
+
+    for (const testCase of selectedWorkspaceCases) {
       await runWorkspaceSmokeCase(rootDir, testCase)
     }
     passed = true
     console.log(`[${smokePrefix}] all generated project checks passed in ${rootDir}`)
   }
   finally {
-    if (passed) {
-      await rm(rootDir, { recursive: true, force: true })
-    }
-    else {
-      console.error(`[${smokePrefix}] kept failed temp root for inspection: ${rootDir}`)
+    if (!passed) {
+      console.error(`[${smokePrefix}] kept failed generated root for inspection: ${rootDir}`)
     }
   }
 }

@@ -75,3 +75,11 @@ pnpm --filter create-yume smoke:dry-run
 pnpm --filter create-yume smoke:generated
 pnpm --filter create-yume smoke:examples
 ```
+
+`smoke:generated` and `smoke:examples` use the same generated scaffold matrix and write to `apps/examples/.generated/`. Use `CREATE_YUME_SMOKE_CASES` to run only the affected surface when a change does not touch the full template set:
+
+```bash
+CREATE_YUME_SMOKE_CASES=react pnpm --filter create-yume smoke:examples
+CREATE_YUME_SMOKE_CASES=cli,library pnpm --filter create-yume smoke:examples
+CREATE_YUME_SMOKE_CASES=workspace pnpm --filter create-yume smoke:examples
+```

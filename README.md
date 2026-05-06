@@ -187,6 +187,14 @@ pnpm smoke:dry-run
 pnpm smoke:examples
 ```
 
+`pnpm smoke:examples` 会把生成物落到 `apps/examples/.generated/`，成功后也保留，方便直接检查真实 scaffold 输出。慢 smoke 不需要每次全跑；只改某类模板或生成链路时，用 `CREATE_YUME_SMOKE_CASES` 选择相关 case：
+
+```bash
+CREATE_YUME_SMOKE_CASES=react pnpm smoke:examples
+CREATE_YUME_SMOKE_CASES=cli,library pnpm smoke:examples
+CREATE_YUME_SMOKE_CASES=workspace pnpm smoke:examples
+```
+
 ## 项目知识入口
 
 - [项目上下文总览](./.trellis/user/index.md)
@@ -198,7 +206,7 @@ pnpm smoke:examples
 
 ```text
 apps/cli/      CLI 本体、问题流、模板注册与生成逻辑
-apps/examples/ linked smoke 的生成物落点
+apps/examples/ generated smoke 的可检查生成物落点
 .trellis/user/ 面向使用者与贡献者的项目上下文
 .trellis/spec/ 面向实现与维护工作的执行规范
 ```

@@ -28,7 +28,7 @@
     "smoke:generated": "pnpm build && tsx tests/generated-projects.smoke.ts",
     "smoke:dry-run": "pnpm build && tsx tests/dry-run-cli.smoke.ts",
     "smoke:lint-strategy": "pnpm build && tsx tests/generated-lint-strategy.smoke.ts",
-    "smoke:examples": "pnpm build && tsx tests/linked-examples.smoke.ts",
+    "smoke:examples": "pnpm build && tsx tests/generated-projects.smoke.ts",
     "prepare": "effect-language-service patch",
     "link:global": "pnpm link --global",
     "unlink:global": "pnpm unlink --global"

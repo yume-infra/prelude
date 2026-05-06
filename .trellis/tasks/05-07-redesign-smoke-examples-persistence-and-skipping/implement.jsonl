@@ -1,0 +1,4 @@
+{"file":".trellis/spec/create-yume/verification/index.md","reason":"Generated smoke and linked examples verification contracts."}
+{"file":".trellis/spec/examples/generated-smoke/index.md","reason":"Rules for apps/examples generated smoke output."}
+{"file":".trellis/spec/create-yume/repository/index.md","reason":"Repository documentation and generated output boundaries."}
+{"file":".trellis/spec/guides/index.md","reason":"Shared thinking triggers for reuse and cross-layer changes."}

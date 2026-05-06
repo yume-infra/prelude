@@ -109,7 +109,7 @@ describe('generated smoke gate contract', () => {
 
   it('formats malformed command errors without crashing', () => {
     const error = formatGeneratedSmokeError({
-      prefix: 'linked-smoke',
+      prefix: 'generated-smoke',
       testCase: reactFullCase,
       phase: 'build',
       cwd: '/tmp/generated/react-full',
@@ -118,7 +118,7 @@ describe('generated smoke gate contract', () => {
       error: 'unexpected failure shape',
     })
 
-    expect(error.message).toContain('[linked-smoke] react-full build failed')
+    expect(error.message).toContain('[generated-smoke] react-full build failed')
     expect(error.message).toContain('exitCode: unknown')
     expect(error.message).toContain('timedOut: false')
   })

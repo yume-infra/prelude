@@ -12,6 +12,14 @@ pnpm smoke:dry-run
 pnpm smoke:examples
 ```
 
+`pnpm smoke:examples` 会把 generated scaffold 输出保留在 `apps/examples/.generated/`。如果只改了某类模板或生成链路，不需要全量跑慢 smoke，可以按影响面选择：
+
+```bash
+CREATE_YUME_SMOKE_CASES=react pnpm smoke:examples
+CREATE_YUME_SMOKE_CASES=cli,library pnpm smoke:examples
+CREATE_YUME_SMOKE_CASES=workspace pnpm smoke:examples
+```
+
 ## 验证怎么选
 
 只改 `.trellis/user/` 或 `.trellis/spec/` 时，重点做人工冷读和相关文档 contract 测试。
