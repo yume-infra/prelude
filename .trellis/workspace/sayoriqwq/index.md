@@ -8,7 +8,7 @@
 
 <!-- @@@auto:current-status -->
 - **Active File**: `journal-1.md`
-- **Total Sessions**: 11
+- **Total Sessions**: 12
 - **Last Active**: 2026-05-07
 <!-- @@@/auto:current-status -->
 
@@ -19,7 +19,7 @@
 <!-- @@@auto:active-documents -->
 | File | Lines | Status |
 |------|-------|--------|
-| `journal-1.md` | ~387 | Active |
+| `journal-1.md` | ~419 | Active |
 <!-- @@@/auto:active-documents -->
 
 ---
@@ -29,6 +29,7 @@
 <!-- @@@auto:session-history -->
 | # | Date | Title | Commits | Branch |
 |---|------|-------|---------|--------|
+| 12 | 2026-05-07 | Archive legacy Trellis task statuses | - | `dev` |
 | 11 | 2026-05-07 | Clean up completed Trellis tasks | - | `dev` |
 | 10 | 2026-05-07 | Review release readiness and gates | `1386cf3` | `dev` |
 | 9 | 2026-05-07 | Update dependencies with taze | `f4acef0` | `dev` |

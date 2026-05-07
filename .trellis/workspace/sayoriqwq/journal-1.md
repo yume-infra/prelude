@@ -385,3 +385,35 @@ Archived completed and completion-ready Trellis task directories so the active t
 ### Next Steps
 
 - None - task complete
+
+
+## Session 12: Archive legacy Trellis task statuses
+
+**Date**: 2026-05-07
+**Task**: Archive legacy Trellis task statuses
+**Package**: create-yume
+**Branch**: `dev`
+
+### Summary
+
+Checked the remaining May 4 and May 5 tasks against git history. Final acceptance coverage is represented on dev by a5b8b55, and the Trellis 0.5.0-rc.2 migration is represented by fa5157e with .trellis/.version at 0.5.0-rc.2. Archived the stale active task records and removed empty legacy skill directories.
+
+### Main Changes
+
+(Add details)
+
+### Git Commits
+
+(No commits - planning session)
+
+### Testing
+
+- [OK] (Add test results)
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- None - task complete
