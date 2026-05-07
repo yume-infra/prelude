@@ -319,3 +319,37 @@ Ran installed taze to update the pnpm catalog, package manager version, and lock
 ### Next Steps
 
 - None - task complete
+
+
+## Session 10: Review release readiness and gates
+
+**Date**: 2026-05-07
+**Task**: Review release readiness and gates
+**Package**: create-yume
+**Branch**: `dev`
+
+### Summary
+
+Reviewed dev against main with subagents, fixed release-readiness blockers, restored generated smoke coverage, added changeset, and verified build/test/lint/knip plus dry-run and generated smoke.
+
+### Main Changes
+
+(Add details)
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `1386cf3` | (see git log) |
+
+### Testing
+
+- [OK] (Add test results)
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- None - task complete
