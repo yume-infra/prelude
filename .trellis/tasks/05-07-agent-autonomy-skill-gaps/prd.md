@@ -51,6 +51,21 @@ Identify what is missing from the project-local `.agents/skills` layer so future
 5. [`05-07-yume-existing-skill-audit`](../05-07-yume-existing-skill-audit/prd.md) — later audit and potentially rename/refactor existing non-`trellis-` skills.
 6. [`05-07-yume-skill-improver`](../05-07-yume-skill-improver/prd.md) — later implement a skill for revising underperforming skills.
 
+## Lead Execution Summary
+
+- `yume-docs-spec-sync` was already implemented before this lead execution pass.
+- Wave 1 completed and was committed as `8069de4 feat: add yume wave 1 workflow skills`.
+  - Added `yume-template-source-map-fixer`.
+  - Added `yume-preset-expansion-planning`.
+- Wave 2 completed and was committed as `64d5ed9 feat: add yume wave 2 workflow skills`.
+  - Added `yume-release-readiness`.
+  - Added `yume-skill-improver`.
+- Wave 3 completed and was committed as `7373e7c docs: audit existing project-local skills`.
+  - Audited `generated-scaffold-audit`.
+  - Audited `update-template-deps`.
+  - Recorded follow-up recommendations without renaming or editing existing skills.
+- Validation included `quick_validate.py` for every new skill and for both audited existing skills, plus `git diff --check`.
+
 ## Decision (ADR-lite)
 
 **Context**: The repository now has generic Trellis lifecycle skills and create-yume-specific skills mixed under `.agents/skills`.
