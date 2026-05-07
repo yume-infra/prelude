@@ -8,7 +8,7 @@
 
 <!-- @@@auto:current-status -->
 - **Active File**: `journal-1.md`
-- **Total Sessions**: 8
+- **Total Sessions**: 9
 - **Last Active**: 2026-05-07
 <!-- @@@/auto:current-status -->
 
@@ -19,7 +19,7 @@
 <!-- @@@auto:active-documents -->
 | File | Lines | Status |
 |------|-------|--------|
-| `journal-1.md` | ~287 | Active |
+| `journal-1.md` | ~321 | Active |
 <!-- @@@/auto:active-documents -->
 
 ---
@@ -29,6 +29,7 @@
 <!-- @@@auto:session-history -->
 | # | Date | Title | Commits | Branch |
 |---|------|-------|---------|--------|
+| 9 | 2026-05-07 | Update dependencies with taze | `f4acef0` | `dev` |
 | 8 | 2026-05-07 | Introduce Taze dependency maintenance | `967f750` | `dev` |
 | 7 | 2026-05-07 | Raise Node engine floor | `fb7d965` | `dev` |
 | 6 | 2026-05-07 | Exclude Trellis metadata from lint | `bbf8419` | `dev` |

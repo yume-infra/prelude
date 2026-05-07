@@ -285,3 +285,37 @@ Installed taze through the pnpm catalog, added reproducible deps:check/deps:fres
 ### Next Steps
 
 - None - task complete
+
+
+## Session 9: Update dependencies with taze
+
+**Date**: 2026-05-07
+**Task**: Update dependencies with taze
+**Package**: create-yume
+**Branch**: `dev`
+
+### Summary
+
+Ran installed taze to update the pnpm catalog, package manager version, and lockfile to current latest dependency versions; fixed the create-yume prepare script to patch workspace-root TypeScript under the updated pnpm layout; verified with taze freshness check and pnpm verify.
+
+### Main Changes
+
+(Add details)
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `f4acef0` | (see git log) |
+
+### Testing
+
+- [OK] (Add test results)
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- None - task complete
