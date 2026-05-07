@@ -64,6 +64,7 @@ If the release base is not `main`, replace `main` with the explicit base and nam
    - **Tests**: verify that focused tests exist for changed contracts and that test names map to the changed surface.
    - **Generated smoke**: check whether `CREATE_YUME_SMOKE_CASES=<selector> pnpm --filter create-yume smoke:examples` or broader smoke ran for changed generated behavior.
    - **Docs/spec/user knowledge**: verify `.trellis/spec/` and `.trellis/user/` decisions with `yume-docs-spec-sync`; do not point to `docs/` as a source of truth.
+   - **Project-local skills**: verify new or changed `.agents/skills/**` entries with the skill validator when available, manual cold read, trigger routing, and any bundled script checks.
    - **Dependencies**: inspect catalog, lockfile, generated manifest policy, and any dependency freshness evidence. Dependency staleness is not a verification failure by itself; missing catalog ownership or incompatible generated dependency behavior can be a blocker.
    - **Release notes risk**: identify user-visible behavior, breaking changes, new commands, changed supported scope, dependency changes, warning classifications, and migration notes that release notes must mention.
 
@@ -76,6 +77,7 @@ If the release base is not `main`, replace `main` with the explicit base and nam
    - CLI args, `--spec`, resolved spec export: `pnpm --filter create-yume test -- cli-args create-spec compose preview && pnpm --filter create-yume typecheck`; add `pnpm --filter create-yume smoke:dry-run` for dry-run no-write behavior or root/package preview grouping.
    - CLI toolkit track, generated CLI dependencies, or bin behavior: `pnpm --filter create-yume test -- cli-args create-spec planner package-json template-render generated-smoke-gate && CREATE_YUME_SMOKE_CASES=cli pnpm --filter create-yume smoke:examples`.
    - Real generated project baseline: `pnpm --filter create-yume smoke:examples`.
+   - Project-local skill changes: `python3 /Users/sayori/.codex/skills/.system/skill-creator/scripts/quick_validate.py .agents/skills/<skill-name>` for each changed skill, plus `git diff --check` and a manual cold read of trigger routing and output contracts.
    - Docs/spec/user-only changes: manual cold read plus targeted tests that assert documentation contracts.
    - Unknown or broad impact: `pnpm verify`.
 
