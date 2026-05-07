@@ -1,0 +1,7 @@
+{"file":".trellis/spec/create-yume/index.md","reason":"Top-level package spec index for changed create-yume surfaces."}
+{"file":".trellis/spec/create-yume/verification/index.md","reason":"Release-readiness verification matrix and generated smoke policy."}
+{"file":".trellis/spec/create-yume/workspace-packages/index.md","reason":"Workspace root/package generation contracts changed in this branch."}
+{"file":".trellis/spec/create-yume/template-system/index.md","reason":"Template scope and generated maintenance fragments changed in this branch."}
+{"file":".trellis/spec/create-yume/repository/index.md","reason":"Repository release, dependency, docs, and maintenance expectations changed in this branch."}
+{"file":".trellis/tasks/05-04-monorepo-node-cli-support/prd.md","reason":"Original monorepo and Node/CLI vision used as review baseline."}
+{"file":".trellis/tasks/05-04-final-integration-full-acceptance/prd.md","reason":"Final acceptance criteria for this implementation wave."}
