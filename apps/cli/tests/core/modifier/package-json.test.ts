@@ -138,12 +138,12 @@ describe('buildPackageJson', () => {
 
     expect(packageJson.devDependencies).toMatchObject({
       '@antfu/eslint-config': '^8.2.0',
-      '@commitlint/cli': '^20.5.0',
-      '@commitlint/config-conventional': '^20.5.0',
-      'eslint': '^10.2.1',
+      '@commitlint/cli': '^20.5.3',
+      '@commitlint/config-conventional': '^20.5.3',
+      'eslint': '^10.3.0',
       'husky': '^9.1.7',
       'knip': '^6.12.0',
-      'lint-staged': '^16.4.0',
+      'lint-staged': '^17.0.2',
       'taze': '^19.11.0',
       'typescript': '^6.0.3',
     })
@@ -218,10 +218,10 @@ describe('buildPackageJson', () => {
 
     expect(packageJson.dependencies).toMatchObject({
       '@vitejs/plugin-vue': '^6.0.6',
-      '@vue/compiler-sfc': '^3.5.32',
+      '@vue/compiler-sfc': '^3.5.34',
       'pinia': '^3.0.4',
       'vue': '^3.5.32',
-      'vue-router': '^5.0.4',
+      'vue-router': '^5.0.6',
     })
 
     expect(packageJson.devDependencies).toMatchObject({
@@ -246,15 +246,15 @@ describe('buildPackageJson', () => {
 
     expect(packageJson.dependencies).toMatchObject({
       '@vitejs/plugin-react': '^6.0.1',
-      'react': '^19.2.5',
-      'react-dom': '^19.2.5',
-      'react-router': '^7.14.2',
-      'react-router-dom': '^7.14.2',
+      'react': '^19.2.6',
+      'react-dom': '^19.2.6',
+      'react-router': '^7.15.0',
+      'react-router-dom': '^7.15.0',
       'zustand': '^5.0.12',
     })
 
     expect(packageJson.devDependencies).toMatchObject({
-      '@eslint-react/eslint-plugin': '^3.0.0',
+      '@eslint-react/eslint-plugin': '^5.7.4',
       '@types/react': '^19.2.14',
       '@types/react-dom': '^19.2.3',
       'eslint-plugin-react-hooks': '^7.1.1',
@@ -278,7 +278,7 @@ describe('buildPackageJson', () => {
     })
 
     expect(packageJson.dependencies).toMatchObject({
-      '@tanstack/react-router': '^1.168.23',
+      '@tanstack/react-router': '^1.169.2',
       'jotai': '^2.19.1',
     })
   })
@@ -377,7 +377,7 @@ describe('buildPackageJson', () => {
         '@types/node': '^25.6.0',
         'knip': '^6.12.0',
         'taze': '^19.11.0',
-        'tsdown': '^0.21.9',
+        'tsdown': '^0.21.10',
         'typescript': '^6.0.3',
       },
     })
@@ -432,7 +432,7 @@ describe('buildPackageJson', () => {
         '@types/node': '^25.6.0',
         'knip': '^6.12.0',
         'taze': '^19.11.0',
-        'tsdown': '^0.21.9',
+        'tsdown': '^0.21.10',
         'typescript': '^6.0.3',
       },
     })
@@ -461,11 +461,11 @@ describe('buildPackageJson', () => {
     expect(minimalPackageJson.dependencies).not.toHaveProperty('@effect/cli')
     expect(effectPackageJson.dependencies).toMatchObject({
       '@effect/cli': '^0.75.1',
-      '@effect/platform': '^0.96.0',
+      '@effect/platform': '^0.96.1',
       '@effect/platform-node': '^0.106.0',
       '@effect/printer': '^0.49.0',
       '@effect/printer-ansi': '^0.49.0',
-      'effect': '^3.21.1',
+      'effect': '^3.21.2',
     })
   })
 
@@ -504,7 +504,7 @@ describe('buildPackageJson', () => {
       devDependencies: {
         knip: '^6.12.0',
         taze: '^19.11.0',
-        tsdown: '^0.21.9',
+        tsdown: '^0.21.10',
         typescript: '^6.0.3',
       },
     })

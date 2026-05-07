@@ -52,12 +52,12 @@ type InstallPolicyResolution = boolean | 'prompt'
 export const workspaceRootPackageGlobs = ['apps/*', 'libs/*'] as const
 
 const workspaceRootDevDependencies = {
-  turbo: '^2.9.6',
+  turbo: '^2.9.9',
 } as const
 
 const workspaceBootstrapLintDevDependencies = {
   '@antfu/eslint-config': '^8.2.0',
-  'eslint': '^10.2.1',
+  'eslint': '^10.3.0',
 } as const
 
 const workspaceBootstrapMaintenanceDevDependencies = {
@@ -281,7 +281,7 @@ function getWorkspaceBootstrapCodeQualityPackageContributions(
       ownership: workspaceBootstrapPackageJsonMutation,
       targetScope: 'root',
       sections: {
-        devDependencies: { 'lint-staged': '^16.4.0' },
+        devDependencies: { 'lint-staged': '^17.0.2' },
       },
     })
   }
@@ -292,8 +292,8 @@ function getWorkspaceBootstrapCodeQualityPackageContributions(
       targetScope: 'root',
       sections: {
         devDependencies: {
-          '@commitlint/cli': '^20.5.0',
-          '@commitlint/config-conventional': '^20.5.0',
+          '@commitlint/cli': '^20.5.3',
+          '@commitlint/config-conventional': '^20.5.3',
         },
       },
     })
@@ -325,7 +325,7 @@ export function getWorkspaceRootPackageContributions(
           ...workspaceBootstrapMaintenanceDevDependencies,
         },
         engines: {
-          node: '>=18.12.0',
+          node: '>=22.22.1',
         },
       },
     },
@@ -338,13 +338,13 @@ export function applyWorkspaceBootstrapPackageJson(
   config: WorkspaceBootstrapPackagePolicy,
 ): JsonBuilder {
   return entry
-    .modify(when(config.linting === 'antfu-eslint', devDeps({ '@antfu/eslint-config': '^8.2.0', 'eslint': '^10.2.1' })), workspaceBootstrapPackageJsonMutation)
+    .modify(when(config.linting === 'antfu-eslint', devDeps({ '@antfu/eslint-config': '^8.2.0', 'eslint': '^10.3.0' })), workspaceBootstrapPackageJsonMutation)
     .modify(when(config.linting === 'antfu-eslint', scripts({ 'lint': 'eslint', 'lint:fix': 'eslint --fix' })), workspaceBootstrapPackageJsonMutation)
     .modify(devDeps(workspaceBootstrapMaintenanceDevDependencies), workspaceBootstrapPackageJsonMutation)
     .modify(scripts({ ...workspaceBootstrapMaintenanceScripts, verify: getWorkspaceBootstrapVerifyScript(config) }), workspaceBootstrapPackageJsonMutation)
     .modify(when(config.codeQuality.length > 0, devDeps({ husky: '^9.1.7' })), workspaceBootstrapPackageJsonMutation)
-    .modify(when(config.codeQuality.includes('lint-staged'), devDeps({ 'lint-staged': '^16.4.0' })), workspaceBootstrapPackageJsonMutation)
-    .modify(when(config.codeQuality.includes('commitlint'), devDeps({ '@commitlint/cli': '^20.5.0', '@commitlint/config-conventional': '^20.5.0' })), workspaceBootstrapPackageJsonMutation)
+    .modify(when(config.codeQuality.includes('lint-staged'), devDeps({ 'lint-staged': '^17.0.2' })), workspaceBootstrapPackageJsonMutation)
+    .modify(when(config.codeQuality.includes('commitlint'), devDeps({ '@commitlint/cli': '^20.5.3', '@commitlint/config-conventional': '^20.5.3' })), workspaceBootstrapPackageJsonMutation)
 }
 
 export function getWorkspaceBootstrapHookSpecs(config: WorkspaceBootstrapCommandPolicy): WorkspaceBootstrapHookSpec[] {

@@ -70,7 +70,7 @@ describe('collectPackageManifestContributions', () => {
             },
             devDependencies: {
               typescript: '^6.0.3',
-              eslint: '^10.2.1',
+              eslint: '^10.3.0',
             },
           },
         },
@@ -182,7 +182,7 @@ describe('collectPackageManifestContributions', () => {
         section: 'devDependencies',
         key: 'eslint',
         owners: ['workspace-bootstrap'],
-        value: '^10.2.1',
+        value: '^10.3.0',
       },
       {
         targetPath: 'package.json',
@@ -196,7 +196,7 @@ describe('collectPackageManifestContributions', () => {
         section: 'dependencies',
         key: 'react-router',
         owners: ['router'],
-        value: '^7.14.2',
+        value: '^7.15.0',
       },
     ]))
     expect(collection.provenance.map(entry => `${entry.section}.${entry.key}`)).toEqual(expect.arrayContaining([
@@ -250,7 +250,7 @@ describe('collectPackageManifestContributions', () => {
         section: 'devDependencies',
         key: 'tsdown',
         owners: ['cli-scaffold'],
-        value: '^0.21.9',
+        value: '^0.21.10',
       },
     ]))
   })
@@ -280,7 +280,7 @@ describe('collectPackageManifestContributions', () => {
         section: 'dependencies',
         key: 'effect',
         owners: ['cli-scaffold'],
-        value: '^3.21.1',
+        value: '^3.21.2',
       },
     ]))
   })
@@ -292,7 +292,7 @@ describe('collectPackageManifestContributions', () => {
           ownership: alphaTrace,
           sections: {
             devDependencies: {
-              eslint: '^10.2.1',
+              eslint: '^10.3.0',
             },
           },
         },
@@ -314,7 +314,7 @@ describe('collectPackageManifestContributions', () => {
             ownership: alphaTrace,
             sections: {
               devDependencies: {
-                eslint: '^10.2.1',
+                eslint: '^10.3.0',
               },
             },
           },
@@ -340,12 +340,12 @@ describe('collectPackageManifestContributions', () => {
       expect(error.key).toBe('eslint')
       expect(error.existingOwners).toEqual(['alpha-owner'])
       expect(error.incomingOwner).toBe('beta-owner')
-      expect(error.existingValue).toBe('^10.2.1')
+      expect(error.existingValue).toBe('^10.3.0')
       expect(error.incomingValue).toBe('^9.0.0')
       expect(error.message).toContain('package.json devDependencies.eslint')
       expect(error.message).toContain('alpha-owner')
       expect(error.message).toContain('beta-owner')
-      expect(error.message).toContain('^10.2.1')
+      expect(error.message).toContain('^10.3.0')
       expect(error.message).toContain('^9.0.0')
       expect(error.message).not.toContain('scripts')
       expect(error.message).not.toContain('dependencies.vite')
@@ -431,7 +431,7 @@ describe('collectPackageManifestContributions', () => {
         targetScope: 'root',
         sections: {
           devDependencies: {
-            eslint: '^10.2.1',
+            eslint: '^10.3.0',
           },
         },
       },
@@ -440,7 +440,7 @@ describe('collectPackageManifestContributions', () => {
         targetScope: 'package',
         sections: {
           dependencies: {
-            react: '^19.2.5',
+            react: '^19.2.6',
           },
         },
       },
@@ -460,13 +460,13 @@ describe('collectPackageManifestContributions', () => {
 
     expect(rootCollection.manifest).toEqual({
       devDependencies: {
-        eslint: '^10.2.1',
+        eslint: '^10.3.0',
       },
     })
     expect(packageCollection.manifest).toEqual({
       name: '@demo/web',
       dependencies: {
-        react: '^19.2.5',
+        react: '^19.2.6',
       },
     })
     expect(packageCollection.provenance).toContainEqual({
@@ -474,7 +474,7 @@ describe('collectPackageManifestContributions', () => {
       section: 'dependencies',
       key: 'react',
       owners: ['frontend-package'],
-      value: '^19.2.5',
+      value: '^19.2.6',
     })
   })
 
@@ -491,7 +491,7 @@ describe('collectPackageManifestContributions', () => {
             targetScope: 'package',
             sections: {
               dependencies: {
-                react: '^19.2.5',
+                react: '^19.2.6',
               },
             },
           },
@@ -586,7 +586,7 @@ describe('collectPackageManifestContributions', () => {
           targetScope: 'package',
           sections: {
             dependencies: {
-              react: '^19.2.5',
+              react: '^19.2.6',
             },
           },
         },
@@ -626,7 +626,7 @@ describe('collectPackageManifestContributions', () => {
           targetScope: 'package',
           sections: {
             dependencies: {
-              'react-router': '^7.14.2',
+              'react-router': '^7.15.0',
             },
           },
         },

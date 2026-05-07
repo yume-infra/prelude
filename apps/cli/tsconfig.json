@@ -2,8 +2,9 @@
   // 编辑器/类型检查配置：不产出 JS，偏向 bundler 解析与 tree-shaking
   "compilerOptions": {
     // 语言与平台能力
-    "target": "ES2022", // 输出语法级别（Node 18+ 友好）
+    "target": "ES2022", // 输出语法级别（Node 22+ 友好）
     "lib": ["ES2022"], // 引入 ES2022 内置 API 类型
+    "ignoreDeprecations": "6.0",
 
     "moduleDetection": "force", // 强制识别为模块（顶层 import/export 更稳）
 

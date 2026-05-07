@@ -167,7 +167,7 @@ function baseWorkspacePackageJson(spec: GenerationPackageSpec) {
     description: workspacePackageDescription(spec),
     license: 'MIT',
     engines: {
-      node: '>=18.12.0',
+      node: '>=22.22.1',
     },
     scripts: {},
     dependencies: {},

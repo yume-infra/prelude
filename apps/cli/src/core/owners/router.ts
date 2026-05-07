@@ -61,7 +61,7 @@ export function getReactRouterPackageContributions(config: ReactProjectConfig): 
       ownership: routerPackageJsonMutation,
       targetScope: 'package',
       sections: {
-        dependencies: { 'react-router': '^7.14.2', 'react-router-dom': '^7.14.2' },
+        dependencies: { 'react-router': '^7.15.0', 'react-router-dom': '^7.15.0' },
       },
     }]
   }
@@ -71,7 +71,7 @@ export function getReactRouterPackageContributions(config: ReactProjectConfig): 
       ownership: routerPackageJsonMutation,
       targetScope: 'package',
       sections: {
-        dependencies: { '@tanstack/react-router': '^1.168.23' },
+        dependencies: { '@tanstack/react-router': '^1.169.2' },
       },
     }]
   }
@@ -85,7 +85,7 @@ export function getVueRouterPackageContributions(config: VueProjectConfig): Pack
         ownership: routerPackageJsonMutation,
         targetScope: 'package',
         sections: {
-          dependencies: { 'vue-router': '^5.0.4' },
+          dependencies: { 'vue-router': '^5.0.6' },
         },
       }]
     : []

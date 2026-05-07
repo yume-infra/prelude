@@ -72,7 +72,7 @@ export function getScaffoldFamilyPackageContributions(config: ProjectConfig): Pa
         },
         devDependencies: {
           '@types/node': '^25.6.0',
-          'tsdown': '^0.21.9',
+          'tsdown': '^0.21.10',
           'typescript': '^6.0.3',
         },
       },
@@ -98,7 +98,7 @@ export function getScaffoldFamilyPackageContributions(config: ProjectConfig): Pa
         },
         devDependencies: {
           '@types/node': '^25.6.0',
-          'tsdown': '^0.21.9',
+          'tsdown': '^0.21.10',
           'typescript': '^6.0.3',
         },
       },
@@ -110,11 +110,11 @@ export function getScaffoldFamilyPackageContributions(config: ProjectConfig): Pa
         sections: {
           dependencies: {
             '@effect/cli': '^0.75.1',
-            '@effect/platform': '^0.96.0',
+            '@effect/platform': '^0.96.1',
             '@effect/platform-node': '^0.106.0',
             '@effect/printer': '^0.49.0',
             '@effect/printer-ansi': '^0.49.0',
-            'effect': '^3.21.1',
+            'effect': '^3.21.2',
           },
         },
       }))
@@ -142,7 +142,7 @@ export function getScaffoldFamilyPackageContributions(config: ProjectConfig): Pa
         },
         devDependencies: {
           ...(config.runtime === 'node' ? { '@types/node': '^25.6.0' } : {}),
-          tsdown: '^0.21.9',
+          tsdown: '^0.21.10',
           typescript: '^6.0.3',
         },
       },
@@ -204,7 +204,7 @@ export function getScaffoldFamilyPackageContributions(config: ProjectConfig): Pa
       contributions.push(packageContribution({
         ownership: vueScaffoldPackageJsonMutation,
         sections: {
-          dependencies: { '@vitejs/plugin-vue': '^6.0.6', '@vue/compiler-sfc': '^3.5.32' },
+          dependencies: { '@vitejs/plugin-vue': '^6.0.6', '@vue/compiler-sfc': '^3.5.34' },
         },
       }))
     }
@@ -220,7 +220,7 @@ export function getScaffoldFamilyPackageContributions(config: ProjectConfig): Pa
     contributions.push(packageContribution({
       ownership: reactScaffoldPackageJsonMutation,
       sections: {
-        dependencies: { 'react': '^19.2.5', 'react-dom': '^19.2.5' },
+        dependencies: { 'react': '^19.2.6', 'react-dom': '^19.2.6' },
       },
     }))
 
@@ -238,7 +238,7 @@ export function getScaffoldFamilyPackageContributions(config: ProjectConfig): Pa
         ownership: reactScaffoldPackageJsonMutation,
         sections: {
           devDependencies: {
-            '@eslint-react/eslint-plugin': '^3.0.0',
+            '@eslint-react/eslint-plugin': '^5.7.4',
             'eslint-plugin-react-hooks': '^7.1.1',
             'eslint-plugin-react-refresh': '^0.5.2',
           },

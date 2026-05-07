@@ -17,8 +17,8 @@ describe('router package contributions', () => {
         targetScope: 'package',
         sections: {
           dependencies: {
-            'react-router': '^7.14.2',
-            'react-router-dom': '^7.14.2',
+            'react-router': '^7.15.0',
+            'react-router-dom': '^7.15.0',
           },
         },
       },
@@ -35,7 +35,7 @@ describe('router package contributions', () => {
         targetScope: 'package',
         sections: {
           dependencies: {
-            '@tanstack/react-router': '^1.168.23',
+            '@tanstack/react-router': '^1.169.2',
           },
         },
       },
@@ -59,7 +59,7 @@ describe('router package contributions', () => {
         targetScope: 'package',
         sections: {
           dependencies: {
-            'vue-router': '^5.0.4',
+            'vue-router': '^5.0.6',
           },
         },
       },

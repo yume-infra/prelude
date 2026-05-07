@@ -45,6 +45,8 @@ Templates must not use helper names from the third-party `handlebars-helpers` pa
 
 `package.json` is a structured decision point, not a Handlebars template. Add dependency/script/engine/package-manager rules through package manifest contributions, with ownership traces and conflict diagnostics.
 
+Generated package manifests must not advertise a Node engine floor older than the emitted tooling dependencies support. When bumping generated dependency ranges, review `taze` node compatibility output and update standalone, workspace-root, and workspace-child `engines.node` together.
+
 ## CLI Toolkit Template Contract
 
 - The minimal CLI track renders `fragments/cli/index.ts.hbs` and must not gain Effect runtime dependencies.

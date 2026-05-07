@@ -1,7 +1,7 @@
 export const PnpmPackageManager = {
   name: 'pnpm',
-  version: '10.12.4',
-  packageManager: 'pnpm@10.12.4',
+  version: '10.33.4',
+  packageManager: 'pnpm@10.33.4',
 } as const
 
 type PackageManagerName = typeof PnpmPackageManager.name

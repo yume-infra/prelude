@@ -73,7 +73,7 @@ function basePackageJson(config: ProjectConfig) {
     description: projectDescription(config),
     license: 'MIT',
     engines: {
-      node: '>=18.12.0',
+      node: '>=22.22.1',
     },
     scripts: {},
     dependencies: {},

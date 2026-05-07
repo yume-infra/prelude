@@ -127,7 +127,7 @@ describe('workspace root materialization', () => {
     expect(manifest).toMatchObject({
       name: workspaceRootMinimalProjectConfig.name,
       private: true,
-      packageManager: 'pnpm@10.12.4',
+      packageManager: 'pnpm@10.33.4',
       scripts: {
         'deps:check': 'taze -r',
         'deps:check:all': 'taze -r --all',
@@ -138,7 +138,7 @@ describe('workspace root materialization', () => {
       devDependencies: {
         knip: '^6.12.0',
         taze: '^19.11.0',
-        turbo: '^2.9.6',
+        turbo: '^2.9.9',
       },
     })
     expect(workspaceRootPackageGlobs).toEqual(['apps/*', 'libs/*'])
@@ -189,7 +189,7 @@ describe('workspace root materialization', () => {
     ) as Record<string, unknown>
     expect(packageJson).toMatchObject({
       private: true,
-      packageManager: 'pnpm@10.12.4',
+      packageManager: 'pnpm@10.33.4',
       scripts: {
         'deps:check': 'taze -r',
         'deps:check:all': 'taze -r --all',
@@ -200,7 +200,7 @@ describe('workspace root materialization', () => {
       devDependencies: {
         knip: '^6.12.0',
         taze: '^19.11.0',
-        turbo: '^2.9.6',
+        turbo: '^2.9.9',
       },
     })
   })
