@@ -18,25 +18,25 @@ The project is intentionally not a general-purpose template platform yet. Existi
 After the package is published, run:
 
 ```bash
-pnpm create yume --preset standalone-react-full --name my-app
+pnpm dlx @sayoriqwq/create-yume --preset standalone-react-full --name my-app
 ```
 
 For CI or agent-driven generation, use complete non-interactive input:
 
 ```bash
-pnpm create yume --preset standalone-cli-minimal --name my-tool --no-input
+pnpm dlx @sayoriqwq/create-yume --preset standalone-cli-minimal --name my-tool --no-input
 ```
 
 Preview the generation plan without writing files:
 
 ```bash
-pnpm create yume --preset workspace-cli-library --name my-workspace --dry-run
+pnpm dlx @sayoriqwq/create-yume --preset workspace-cli-library --name my-workspace --dry-run
 ```
 
 Use structured JSON for custom workspace package graphs:
 
 ```bash
-pnpm create yume --spec create-yume.json --name my-workspace --no-input
+pnpm dlx @sayoriqwq/create-yume --spec create-yume.json --name my-workspace --no-input
 ```
 
 ## Common Presets

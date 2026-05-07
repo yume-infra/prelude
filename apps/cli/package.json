@@ -20,6 +20,9 @@
     "dist",
     "templates"
   ],
+  "engines": {
+    "node": ">=22"
+  },
   "scripts": {
     "build": "tsdown --config tsdown.config.ts",
     "dev": "tsdown --config tsdown.config.ts --watch",

@@ -72,7 +72,7 @@ Introduce Knip into generated project templates as a stable maintenance-quality 
 - Extend generated `verify` scripts to include `pnpm knip` once verify exists in generated manifests.
 - Enable it by default for generated standalone package roots and workspace roots.
 
-Pros: matches current repo policy, respects root-only tooling boundaries, works for standalone and workspace roots.  
+Pros: matches current repo policy, respects root-only tooling boundaries, works for standalone and workspace roots.
 Cons: may require clarifying generated `verify` semantics first because not every preset currently has a broad verify script.
 
 ## Decision (ADR-lite)
@@ -89,7 +89,7 @@ Cons: may require clarifying generated `verify` semantics first because not ever
 - Let users/presets opt into Knip the same way they opt into commitlint/lint-staged.
 - Add contributions from `workspace-bootstrap` based on `config.codeQuality.includes('knip')`.
 
-Pros: exposes choice cleanly in existing user-facing taxonomy.  
+Pros: exposes choice cleanly in existing user-facing taxonomy.
 Cons: `codeQuality` currently means Git hook-ish tools, so Knip may stretch the name unless the taxonomy is broadened.
 
 ### Approach C: Family-specific Knip templates
@@ -97,7 +97,7 @@ Cons: `codeQuality` currently means Git hook-ish tools, so Knip may stretch the 
 - Add Knip script/config per scaffold family (frontend/node/cli/library).
 - Use CLI flags heavily in package scripts instead of a shared config.
 
-Pros: very targeted per generated shape.  
+Pros: very targeted per generated shape.
 Cons: likely duplicates policy, fights root-only workspace rules, and makes future Knip tuning harder.
 
 ## Out of Scope (explicit)

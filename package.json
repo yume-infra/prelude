@@ -24,7 +24,7 @@
     "unlink": "pnpm --filter create-yume unlink --global",
     "changeset": "changeset",
     "version-packages": "changeset version",
-    "release": "pnpm verify && changeset publish",
+    "release": "pnpm verify && pnpm smoke:dry-run && pnpm smoke:examples && changeset publish",
     "lint": "eslint",
     "lint:fix": "eslint --fix",
     "prepare": "husky",

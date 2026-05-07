@@ -276,11 +276,11 @@ export function assertGeneratedEffectCliPackageContract(packageJson: unknown, te
   const dependencies = packageJson.dependencies
   assert.ok(isRecord(dependencies), `[${prefix}] ${testCase.preset} package.json must include runtime dependencies`)
   assert.equal(dependencies['@effect/cli'], '^0.75.1', `[${prefix}] ${testCase.preset} must depend on @effect/cli at runtime`)
-  assert.equal(dependencies['@effect/platform'], '^0.96.0', `[${prefix}] ${testCase.preset} must depend on @effect/platform at runtime`)
+  assert.equal(dependencies['@effect/platform'], '^0.96.1', `[${prefix}] ${testCase.preset} must depend on @effect/platform at runtime`)
   assert.equal(dependencies['@effect/platform-node'], '^0.106.0', `[${prefix}] ${testCase.preset} must depend on @effect/platform-node at runtime`)
   assert.equal(dependencies['@effect/printer'], '^0.49.0', `[${prefix}] ${testCase.preset} must depend on @effect/printer at runtime`)
   assert.equal(dependencies['@effect/printer-ansi'], '^0.49.0', `[${prefix}] ${testCase.preset} must depend on @effect/printer-ansi at runtime`)
-  assert.equal(dependencies.effect, '^3.21.1', `[${prefix}] ${testCase.preset} must depend on effect at runtime`)
+  assert.equal(dependencies.effect, '^3.21.2', `[${prefix}] ${testCase.preset} must depend on effect at runtime`)
 }
 
 export async function assertGeneratedExecutableBin(generatedDir: string, testCase: GeneratedSmokeCase, prefix: string) {

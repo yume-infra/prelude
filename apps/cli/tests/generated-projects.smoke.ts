@@ -841,13 +841,22 @@ async function generateSmokeRun(rootDir: string, plan: SmokeCasePlan) {
 }
 
 async function installSmokeRun(smokeRun: SmokeCaseRun) {
+  const baseInstallArgs = [
+    'install',
+    '--ignore-scripts',
+    '--trust-policy-ignore-after=10080',
+  ] as const
+  const installArgs = smokeRun.kind === 'preset'
+    ? [...baseInstallArgs, '--ignore-workspace']
+    : [...baseInstallArgs]
+
   await runGeneratedSmokePhase({
     prefix: smokePrefix,
     testCase: smokeRun.testCase,
     phase: 'install',
     cwd: smokeRun.generatedDir,
     command: 'pnpm',
-    args: ['install', '--ignore-scripts'],
+    args: installArgs,
   })
 }
 

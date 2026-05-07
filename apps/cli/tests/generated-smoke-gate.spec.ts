@@ -236,11 +236,11 @@ describe('generated smoke gate contract', () => {
       },
       dependencies: {
         '@effect/cli': '^0.75.1',
-        '@effect/platform': '^0.96.0',
+        '@effect/platform': '^0.96.1',
         '@effect/platform-node': '^0.106.0',
         '@effect/printer': '^0.49.0',
         '@effect/printer-ansi': '^0.49.0',
-        'effect': '^3.21.1',
+        'effect': '^3.21.2',
       },
     }, cliEffectCase, 'generated-smoke')).not.toThrow()
   })
