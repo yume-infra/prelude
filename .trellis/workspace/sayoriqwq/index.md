@@ -8,8 +8,8 @@
 
 <!-- @@@auto:current-status -->
 - **Active File**: `journal-1.md`
-- **Total Sessions**: 15
-- **Last Active**: 2026-05-07
+- **Total Sessions**: 16
+- **Last Active**: 2026-05-08
 <!-- @@@/auto:current-status -->
 
 ---
@@ -19,7 +19,7 @@
 <!-- @@@auto:active-documents -->
 | File | Lines | Status |
 |------|-------|--------|
-| `journal-1.md` | ~524 | Active |
+| `journal-1.md` | ~558 | Active |
 <!-- @@@/auto:active-documents -->
 
 ---
@@ -29,6 +29,7 @@
 <!-- @@@auto:session-history -->
 | # | Date | Title | Commits | Branch |
 |---|------|-------|---------|--------|
+| 16 | 2026-05-08 | Document Product Capabilities | `8e73cb3` | `main` |
 | 15 | 2026-05-07 | Prepare 0.2.1 release | `5c31557` | `dev` |
 | 14 | 2026-05-07 | Dogfood yume AI infrastructure skills | `b65177e` | `dev` |
 | 13 | 2026-05-07 | Execute yume autonomy skill waves | `8069de4`, `64d5ed9`, `7373e7c`, `3706cc0` | `dev` |

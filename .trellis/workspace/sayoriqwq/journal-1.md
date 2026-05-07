@@ -522,3 +522,37 @@ Prepared the 0.2.1 release metadata after release readiness found no new publish
 ### Next Steps
 
 - None - task complete
+
+
+## Session 16: Document Product Capabilities
+
+**Date**: 2026-05-08
+**Task**: Document Product Capabilities
+**Package**: create-yume
+**Branch**: `main`
+
+### Summary
+
+Added a human-facing product capabilities and TODO document, linked it from user docs, and recorded that no executable spec contract changed.
+
+### Main Changes
+
+(Add details)
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `8e73cb3` | (see git log) |
+
+### Testing
+
+- [OK] (Add test results)
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- None - task complete
