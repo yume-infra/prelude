@@ -1,0 +1,3 @@
+{"file": ".trellis/spec/create-yume/repository/index.md", "reason": "Repository knowledge source-of-truth and spec/user documentation rules."}
+{"file": ".trellis/spec/create-yume/verification/index.md", "reason": "Verification expectations for docs/spec/user-only changes."}
+{"file": ".trellis/spec/guides/index.md", "reason": "Shared thinking triggers required before edits."}
