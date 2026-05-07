@@ -353,3 +353,35 @@ Reviewed dev against main with subagents, fixed release-readiness blockers, rest
 ### Next Steps
 
 - None - task complete
+
+
+## Session 11: Clean up completed Trellis tasks
+
+**Date**: 2026-05-07
+**Task**: Clean up completed Trellis tasks
+**Package**: create-yume
+**Branch**: `dev`
+
+### Summary
+
+Archived completed and completion-ready Trellis task directories so the active task list only keeps the remaining monorepo final acceptance work and the v0.5.0-rc.2 migration planning task.
+
+### Main Changes
+
+(Add details)
+
+### Git Commits
+
+(No commits - planning session)
+
+### Testing
+
+- [OK] (Add test results)
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- None - task complete
