@@ -488,3 +488,37 @@ Ran the new yume skill layer on the AI infrastructure slice: used release readin
 ### Next Steps
 
 - None - task complete
+
+
+## Session 15: Prepare 0.2.1 release
+
+**Date**: 2026-05-07
+**Task**: Prepare 0.2.1 release
+**Package**: create-yume
+**Branch**: `dev`
+
+### Summary
+
+Prepared the 0.2.1 release metadata after release readiness found no new publishable version: materialized the patch version and changelog, verified metadata/build checks, and prepared dev for merge to main.
+
+### Main Changes
+
+(Add details)
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `5c31557` | (see git log) |
+
+### Testing
+
+- [OK] (Add test results)
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- None - task complete
