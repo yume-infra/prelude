@@ -27,7 +27,7 @@ Review whether the current `dev` branch is ready for the next create-yume releas
 - [x] Generated-output warnings and smoke coverage are classified.
 - [x] Dependency/release-notes risk is classified.
 - [x] Knowledge Sync Judgment is recorded.
-- [ ] Task is archived after completion if no implementation follow-up is needed.
+- [x] Task is ready to archive after the release metadata commit.
 
 ## Definition of Done
 
@@ -46,21 +46,24 @@ Review whether the current `dev` branch is ready for the next create-yume releas
 - Primary skill: `.agents/skills/yume-release-readiness/SKILL.md`
 - Knowledge sync skill: `.agents/skills/yume-docs-spec-sync/SKILL.md`
 
-## Release Readiness: Not Ready
+## Release Readiness: Ready with risks after release metadata follow-up
 
 ### Blockers
 
-- [P0] No new publishable npm version is prepared.
-  - Evidence: local package `@sayoriqwq/create-yume` is `0.2.0`; `npm view @sayoriqwq/create-yume version dist-tags --json` reports latest `0.2.0`; `git tag --sort=-creatordate` shows `@sayoriqwq/create-yume@0.2.0`; `pnpm changeset status --since main` reports no package bumps.
-  - Required fix: decide whether this release should publish a new package version. If yes, add the appropriate Changesets entry and run the versioning step before publishing.
-  - Owner surface: release metadata / Changesets.
-  - Verification to clear: rerun `pnpm changeset status --since main` and confirm a new package version is prepared; rerun release verification after the versioning change.
+- None after release metadata follow-up on 2026-05-07.
+
+### Cleared Blockers
+
+- [P0] No new publishable npm version is prepared. Cleared.
+  - Fix applied: created a patch Changeset for `@sayoriqwq/create-yume` covering the maintainer-facing AI workflow infrastructure, then ran `pnpm changeset version`.
+  - Evidence: `apps/cli/package.json` now prepares `0.2.1`; `apps/cli/CHANGELOG.md` now contains a `0.2.1` patch entry for release readiness, docs/spec sync, template source-map fixer, preset expansion planning, skill improver, skill audit, and dogfood release-validation improvements.
+  - Status command note: `pnpm changeset status --since main` now exits 1 with `Some packages have been changed but no changesets were found` because the changeset has already been consumed by `changeset version` and the version/changelog files are materialized in the working tree.
 
 ### Residual Risks
 
 - [P2] Release branch contains project-local AI infrastructure and Trellis archive/journal changes, not runtime package code.
-  - Evidence: `git diff --name-status main...HEAD` changed `.agents/skills/yume-*`, `.trellis/tasks/archive/**`, and `.trellis/workspace/sayoriqwq/**`; no `apps/cli/src/**` or `apps/cli/templates/**` runtime/template paths changed in the release slice.
-  - Acceptance rationale: acceptable if the intended release is a repository workflow/infrastructure update, but not sufficient by itself to create a new npm package version.
+  - Evidence: `git diff --name-status main...HEAD` changed `.agents/skills/yume-*`, release metadata, `.trellis/tasks/archive/**`, and `.trellis/workspace/sayoriqwq/**`; no `apps/cli/src/**` or `apps/cli/templates/**` runtime/template paths changed in the release slice.
+  - Acceptance rationale: acceptable if the intended release is a repository workflow/infrastructure update, now paired with a `0.2.1` patch version and maintainer-facing changelog entry.
   - Follow-up: mention AI workflow infrastructure only in maintainer-facing release notes if publishing or merging this branch.
 
 - [P2] Generated smoke had transient npm registry retry warnings during install.
@@ -76,11 +79,16 @@ Review whether the current `dev` branch is ready for the next create-yume releas
 | Project-local skills | `quick_validate.py` for all five `yume-*` skills plus `generated-scaffold-audit` and `update-template-deps` | pass | All seven skill validations reported `Skill is valid!`. |
 | Diff hygiene | `git diff --check` | pass | No whitespace or patch hygiene issues. |
 | Dependency freshness | `pnpm deps:check` | pass | `dependencies are already up-to-date`. |
-| Changesets status | `pnpm changeset status --since main` | fail for publishing new version | Command succeeded but reports no packages to bump at patch/minor/major. |
+| Changesets status before metadata follow-up | `pnpm changeset status --since main` | fail for publishing new version | Command succeeded but reported no packages to bump at patch/minor/major. |
+| Changesets versioning | `pnpm changeset version` | pass | Consumed the patch changeset and updated `apps/cli/package.json` plus `apps/cli/CHANGELOG.md`. |
+| Changesets status after versioning | `pnpm changeset status --since main` | expected post-versioning failure | Exits 1 with `Some packages have been changed but no changesets were found` because there is no pending changeset after the version/changelog have already been materialized. |
+| Local install metadata refresh | `pnpm install` | pass | Refreshed pnpm workspace install state after the package version changed; `pnpm-lock.yaml` has no diff. |
+| Release metadata diff hygiene | `git diff --check` | pass | No whitespace or patch hygiene issues after version/changelog updates. |
+| Release metadata inspection | `git diff -- apps/cli/package.json apps/cli/CHANGELOG.md`; manual read | pass | Only the package version changed from `0.2.0` to `0.2.1` and the changelog gained the `0.2.1` patch section. |
 | Code verification | `pnpm verify` | pass | Build passed; Vitest passed 33 files / 300 tests; eslint and knip completed. |
 | Dry-run smoke | `pnpm smoke:dry-run` | pass | React, Vue, workspace, Node, backend, library, and CLI dry-run previews produced no target directories. |
 | Generated examples smoke | `pnpm smoke:examples` | pass | 14 generated cases completed install/build/lint/bin/workspace checks. |
-| npm package state | `npm view @sayoriqwq/create-yume version dist-tags --json` | confirms blocker | Published latest is already `0.2.0`, matching local `apps/cli/package.json`. |
+| npm package state | `npm view @sayoriqwq/create-yume version dist-tags --json` | published baseline inspected | Published latest was `0.2.0`; local `apps/cli/package.json` now prepares `0.2.1` after metadata follow-up. |
 
 ### Comparison Summary
 
@@ -90,9 +98,10 @@ Review whether the current `dev` branch is ready for the next create-yume releas
 - Commit range: `main..dev`
 - Changed surfaces:
   - Project-local AI workflow skills under `.agents/skills/yume-*`
+  - Release metadata under `apps/cli/package.json` and `apps/cli/CHANGELOG.md`
   - Trellis task archive records
   - Trellis workspace journal/index records
-- Working tree during checklist: only this active readiness task was untracked before recording results.
+- Working tree after metadata follow-up: modified `apps/cli/package.json`, `apps/cli/CHANGELOG.md`, and this active task PRD.
 
 ### Generated Output And Warning Judgment
 
@@ -111,7 +120,7 @@ Review whether the current `dev` branch is ready for the next create-yume releas
 - Catalog or generated manifest impact: none in this release slice.
 - Release notes required: yes if publishing or merging as a maintainer-facing release; mention project-local AI workflow infrastructure, not end-user scaffold behavior.
 - Migration or breaking-change notes: none.
-- Package publication state: not ready for a new npm version until a new Changesets bump/version exists.
+- Package publication state: `@sayoriqwq/create-yume` now has publishable local version `0.2.1` prepared by Changesets; final commit, merge to `main`, push, and publish/release trigger remain outside this implementation handoff.
 
 ## Knowledge Sync Judgment
 
@@ -122,5 +131,5 @@ Review whether the current `dev` branch is ready for the next create-yume releas
   - Target: n/a
   - Reason: supported scaffold scope, project architecture, onboarding, and human operating commands did not change.
 - Existing contract followed: release readiness compared `dev` to `main`, used the verification matrix, treated generated output as evidence, kept dependency freshness separate from verification, and did not use `docs/` as source of truth.
-- Verification: `quick_validate.py`, `git diff --check`, `pnpm deps:check`, `pnpm verify`, `pnpm smoke:dry-run`, `pnpm smoke:examples`, `pnpm changeset status --since main`, and `npm view`.
-- Residual risk: publishing a new npm version requires a follow-up release metadata decision because current local and published versions are both `0.2.0`.
+- Verification: `quick_validate.py`, `git diff --check`, `pnpm deps:check`, `pnpm verify`, `pnpm smoke:dry-run`, `pnpm smoke:examples`, `pnpm changeset status --since main`, `pnpm changeset version`, `pnpm install`, release metadata diff inspection, and `npm view`.
+- Residual risk: `pnpm changeset status --since main` is no longer the right signal after `pnpm changeset version` because the pending changeset has been consumed; reviewers should inspect the materialized `0.2.1` package version and changelog before committing and merging.
