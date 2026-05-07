@@ -454,3 +454,37 @@ Executed the parallel yume skill plan as lead agent: added Wave 1 and Wave 2 cre
 ### Next Steps
 
 - None - task complete
+
+
+## Session 14: Dogfood yume AI infrastructure skills
+
+**Date**: 2026-05-07
+**Task**: Dogfood yume AI infrastructure skills
+**Package**: create-yume
+**Branch**: `dev`
+
+### Summary
+
+Ran the new yume skill layer on the AI infrastructure slice: used release readiness, docs/spec sync, and skill improver; verified all relevant skills, ran pnpm verify, and patched yume-release-readiness to explicitly cover project-local skill validation.
+
+### Main Changes
+
+(Add details)
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `b65177e` | (see git log) |
+
+### Testing
+
+- [OK] (Add test results)
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- None - task complete

@@ -8,7 +8,7 @@
 
 <!-- @@@auto:current-status -->
 - **Active File**: `journal-1.md`
-- **Total Sessions**: 13
+- **Total Sessions**: 14
 - **Last Active**: 2026-05-07
 <!-- @@@/auto:current-status -->
 
@@ -19,7 +19,7 @@
 <!-- @@@auto:active-documents -->
 | File | Lines | Status |
 |------|-------|--------|
-| `journal-1.md` | ~456 | Active |
+| `journal-1.md` | ~490 | Active |
 <!-- @@@/auto:active-documents -->
 
 ---
@@ -29,6 +29,7 @@
 <!-- @@@auto:session-history -->
 | # | Date | Title | Commits | Branch |
 |---|------|-------|---------|--------|
+| 14 | 2026-05-07 | Dogfood yume AI infrastructure skills | `b65177e` | `dev` |
 | 13 | 2026-05-07 | Execute yume autonomy skill waves | `8069de4`, `64d5ed9`, `7373e7c`, `3706cc0` | `dev` |
 | 12 | 2026-05-07 | Archive legacy Trellis task statuses | - | `dev` |
 | 11 | 2026-05-07 | Clean up completed Trellis tasks | - | `dev` |
