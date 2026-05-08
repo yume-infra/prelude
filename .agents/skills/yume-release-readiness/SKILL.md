@@ -79,6 +79,7 @@ If the release base is not `main`, replace `main` with the explicit base and nam
    - CLI args, `--spec`, resolved spec export: `pnpm --filter create-yume test -- cli-args create-spec compose preview && pnpm --filter create-yume typecheck`; add `pnpm --filter create-yume smoke:dry-run` for dry-run no-write behavior or root/package preview grouping.
    - CLI toolkit track, generated CLI dependencies, or bin behavior: `pnpm --filter create-yume test -- cli-args create-spec planner package-json template-render generated-smoke-gate && CREATE_YUME_SMOKE_CASES=cli pnpm --filter create-yume smoke:examples`.
    - Real generated project baseline: `pnpm --filter create-yume smoke:examples`.
+   - Release metadata, version commits, publish readiness, generated `verify` gate changes, package manifest policy, Knip policy, or dependency ownership changes: full `pnpm smoke:examples` is mandatory; targeted `CREATE_YUME_SMOKE_CASES=<selector>` runs may be used for debugging but must not be reported as release-ready evidence.
    - Project-local skill changes: `python3 /Users/sayori/.codex/skills/.system/skill-creator/scripts/quick_validate.py .agents/skills/<skill-name>` for each changed skill, plus `git diff --check` and a manual cold read of trigger routing and output contracts.
    - Docs/spec/user-only changes: manual cold read plus targeted tests that assert documentation contracts.
    - Unknown or broad impact: `pnpm verify`.
