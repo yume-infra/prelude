@@ -1,5 +1,11 @@
 # create-yume
 
+## 0.2.3
+
+### Patch Changes
+
+- Publish the generated Husky lifecycle fix so lint-enabled generated projects keep hook installation working, keep `husky` visible to Knip, and avoid no-`.git` pack noise.
+
 ## 0.2.2
 
 ### Patch Changes
