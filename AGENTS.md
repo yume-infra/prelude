@@ -32,6 +32,7 @@ Managed by Trellis. Edits outside this block are preserved; edits inside may be 
 ## Project Notes
 
 - Generated React/Vue full presets can emit Tailwind CSS / Lightning CSS unknown at-rule warnings during Vite production builds. Treat those warnings as expected and non-blocking when the build completes and generated lint checks pass.
+- npm publishing for this repository is handled by `.github/workflows/release.yml` on `main` pushes or manual workflow dispatch. Do not treat local `npm whoami` / `ENEEDAUTH` as a release blocker unless the user explicitly asks for local publishing.
 
 ## Skill Workflow Usage
 

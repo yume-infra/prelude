@@ -26,7 +26,8 @@ Do not use this skill for fixing generated scaffold defects. Use `yume-template-
 4. Read `.trellis/spec/create-yume/verification/generated-scaffold-audit.md` when generated-output quality, smoke results, lint warnings, editor diagnostics, or audit handoffs are part of the release surface.
 5. Read the layer indexes matching changed files from `main...dev`: `cli-runtime`, `generation-model`, `template-system`, `workspace-packages`, `effect`, or repository docs.
 6. Read `.trellis/user/generated-scaffolds.md` and `.trellis/user/create-yume.md` when supported scaffold scope, human-facing commands, or project architecture changed.
-7. Read `yume-docs-spec-sync` before making the final knowledge-sync judgment.
+7. Read `.github/workflows/release.yml` before judging publish readiness or npm release blockers.
+8. Read `yume-docs-spec-sync` before making the final knowledge-sync judgment.
 
 ## Comparison Baseline
 
@@ -66,6 +67,7 @@ If the release base is not `main`, replace `main` with the explicit base and nam
    - **Docs/spec/user knowledge**: verify `.trellis/spec/` and `.trellis/user/` decisions with `yume-docs-spec-sync`; do not point to `docs/` as a source of truth.
    - **Project-local skills**: verify new or changed `.agents/skills/**` entries with the skill validator when available, manual cold read, trigger routing, and any bundled script checks.
    - **Dependencies**: inspect catalog, lockfile, generated manifest policy, and any dependency freshness evidence. Dependency staleness is not a verification failure by itself; missing catalog ownership or incompatible generated dependency behavior can be a blocker.
+   - **Release automation**: inspect `.github/workflows/release.yml` before deciding whether publishing is blocked. This repository publishes through GitHub Actions on `main` pushes or `workflow_dispatch`, using `changesets/action@v1`, `pnpm release`, and `secrets.NPM_TOKEN`; local `npm whoami` / `ENEEDAUTH` is not a release blocker unless the user explicitly asks for local publishing.
    - **Release notes risk**: identify user-visible behavior, breaking changes, new commands, changed supported scope, dependency changes, warning classifications, and migration notes that release notes must mention.
 
 4. Validate changed surfaces with the minimum matching commands.
@@ -150,6 +152,7 @@ Lead with findings. If there are no blockers, say so clearly before the checklis
 
 - Dependency state:
 - Catalog or generated manifest impact:
+- Release automation:
 - Release notes required:
 - Migration or breaking-change notes:
 
