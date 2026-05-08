@@ -13,7 +13,7 @@ import {
   assertGeneratedNodePackageContract,
   assertGeneratedProjectPackage,
   assertNonInteractiveGeneration,
-  generatedLintArgs,
+  generatedVerifyArgs,
   parseGeneratedSmokeConcurrency,
   runGeneratedSmokePhase,
   shouldRunLintForPreset,
@@ -132,6 +132,7 @@ const smokeCases: readonly GeneratedSmokeCase[] = [
     label: 'standalone cli full preset',
     preset: 'standalone-cli-full',
     projectName: 'smoke-cli-full',
+    git: true,
   },
   {
     label: 'standalone library minimal preset',
@@ -693,7 +694,7 @@ async function generateSmokeCase(rootDir: string, testCase: GeneratedSmokeCase):
       '--name',
       testCase.projectName,
       '--no-install',
-      '--no-git',
+      testCase.git === true ? '--git' : '--no-git',
     ],
     stdio: 'pipe',
   })
@@ -766,10 +767,10 @@ async function verifySmokeCase(smokeRun: Extract<SmokeCaseRun, { readonly kind: 
     await runGeneratedSmokePhase({
       prefix: smokePrefix,
       testCase,
-      phase: 'lint',
+      phase: 'verify',
       cwd: generatedDir,
       command: 'pnpm',
-      args: generatedLintArgs,
+      args: generatedVerifyArgs,
     })
     return
   }

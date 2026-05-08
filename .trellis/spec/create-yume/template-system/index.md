@@ -68,18 +68,21 @@ Dist-backed TypeScript package manifests (`node`, `cli`, and `library`) must adv
 
 ### 1. Scope / Trigger
 
-- Trigger: Code-quality scaffold generation needs Git hooks installed without letting Husky mutate generated package scripts.
+- Trigger: Code-quality scaffold generation needs Git hooks installed for fresh clones without letting package publishing emit `.git can't be found` noise.
 
 ### 2. Signatures
 
 - Post-generate command with install enabled: `pnpm install`, `git init`, `pnpm exec husky`.
 - Post-generate command with install skipped: `git init`, `pnpm add -D husky`, `pnpm exec husky`.
+- Generated package scripts with code-quality tools: `husky:install = husky`, plus a `.git`-aware `prepare` wrapper that runs Husky only when `.git` exists.
 - Hook files are explicit post-generate file actions under `.husky/`.
 
 ### 3. Contracts
 
 - Generated manifests may include `husky` as a dev dependency when code-quality tools are selected.
-- Generated manifests must not gain `scripts.prepare = "husky"` from the scaffold workflow.
+- Generated manifests must not gain bare `scripts.prepare = "husky"` from the scaffold workflow.
+- Generated manifests with Husky hooks must keep `husky` visible to Knip and must keep fresh-clone installs capable of setting `core.hooksPath`.
+- Generated pack commands in no-`.git` environments must not print Husky `.git can't be found` noise.
 - `lint-staged` owns `.husky/pre-commit`; `commitlint` owns `.husky/commit-msg`.
 
 ### 4. Validation & Error Matrix
@@ -87,31 +90,37 @@ Dist-backed TypeScript package manifests (`node`, `cli`, and `library`) must adv
 - `codeQuality.length === 0` -> no Husky commands or hook file actions.
 - `installDeps === false && codeQuality.length > 0` -> add `husky` before executing it.
 - `git === false` -> no `git init`; do not rely on Husky command side effects for hook file content.
+- `.git` absent during `pnpm pack --dry-run` -> `prepare` exits quietly without invoking Husky.
+- `.git` present during `pnpm install` -> `prepare` invokes Husky through the generated wrapper.
 
 ### 5. Good/Base/Bad Cases
 
 - Good: `pnpm exec husky` installs hook plumbing after `git init`, then explicit file actions write hook content.
+- Good: generated `prepare` checks `.git` before invoking Husky, while `husky:install` keeps the `husky` binary visible to Knip.
 - Base: `pnpm exec husky` is run only when code-quality tools are selected.
 - Bad: `pnpm exec husky init`, because it mutates `package.json` with a `prepare` script and writes a default hook outside the owner model.
+- Bad: removing `prepare` entirely while keeping `.husky/*`, because `pnpm verify` then reports `husky` as unused and fresh clones do not install hooks.
 
 ### 6. Tests Required
 
 - Workspace bootstrap command tests assert the exact command list.
 - Dry-run preview tests assert the post-generate command and hook file-action surfaces.
-- Real generated full-preset checks should confirm no generated `prepare` script when testing install+git behavior.
+- Manifest tests assert the generated `prepare` wrapper is not the bare `husky` command.
+- Real generated full-preset checks must run `pnpm verify`, not only `pnpm lint`, so Knip dependency usage regressions are caught.
+- Real install+git checks should confirm `prepare` remains quiet in pack/no-`.git` environments and hooks are installable in Git worktrees.
 
 ### 7. Wrong vs Correct
 
 Wrong:
 
 ```text
-pnpm exec husky init
+"prepare": "husky"
 ```
 
 Correct:
 
 ```text
-pnpm exec husky
+"prepare": "node -e \"if (require('node:fs').existsSync('.git')) require('node:child_process').execFileSync('husky', { stdio: 'inherit', shell: true })\""
 ```
 
 ## Tests Required

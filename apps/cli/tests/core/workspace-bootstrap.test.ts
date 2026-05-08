@@ -170,6 +170,10 @@ describe('workspace/bootstrap contract', () => {
           devDependencies: {
             husky: '^9.1.7',
           },
+          scripts: {
+            'husky:install': 'husky',
+            'prepare': 'node -e "if (require(\'node:fs\').existsSync(\'.git\')) require(\'node:child_process\').execFileSync(\'husky\', { stdio: \'inherit\', shell: true })"',
+          },
         },
       },
       {
@@ -233,9 +237,11 @@ describe('workspace/bootstrap contract', () => {
       'deps:check': 'taze',
       'deps:check:all': 'taze --all',
       'deps:fresh': 'taze minor -w -i --maturity-period 7',
+      'husky:install': 'husky',
       'knip': 'knip',
       'lint': 'eslint',
       'lint:fix': 'eslint --fix',
+      'prepare': 'node -e "if (require(\'node:fs\').existsSync(\'.git\')) require(\'node:child_process\').execFileSync(\'husky\', { stdio: \'inherit\', shell: true })"',
       'verify': 'pnpm build && pnpm lint && pnpm knip',
     })
     expect(draft.scripts).not.toHaveProperty('commit')

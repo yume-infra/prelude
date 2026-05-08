@@ -21,7 +21,7 @@ export type GeneratedPreset
     | 'workspace-fullstack-react'
     | 'workspace-fullstack-vue'
 
-export type GeneratedSmokePhase = 'generation' | 'install' | 'build' | 'lint' | 'link' | 'invoke'
+export type GeneratedSmokePhase = 'generation' | 'install' | 'build' | 'lint' | 'verify' | 'link' | 'invoke'
 
 export interface GeneratedSmokeCaseBase {
   readonly label: string
@@ -30,6 +30,7 @@ export interface GeneratedSmokeCaseBase {
 
 export interface GeneratedSmokeCase extends GeneratedSmokeCaseBase {
   readonly preset: GeneratedPreset
+  readonly git?: boolean
 }
 
 export interface GeneratedSpecSmokeCase extends GeneratedSmokeCaseBase {
@@ -57,6 +58,7 @@ export interface RunGeneratedSmokePhaseOptions {
 export const generatedSmokePhaseTimeoutMs = 300_000
 export const defaultGeneratedSmokeConcurrency = 2
 export const generatedLintArgs = ['lint', '--max-warnings=0'] as const
+export const generatedVerifyArgs = ['verify'] as const
 
 export function generatedSmokeEnv(options: GeneratedSmokeEnvOptions = {}) {
   return {

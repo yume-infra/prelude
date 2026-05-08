@@ -113,9 +113,11 @@ describe('buildPackageJson', () => {
       'deps:check:all',
       'deps:fresh',
       'dev',
+      'husky:install',
       'knip',
       'lint',
       'lint:fix',
+      'prepare',
       'preview',
       'verify',
     ])

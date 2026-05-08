@@ -14,6 +14,7 @@ import {
   defaultGeneratedSmokeConcurrency,
   formatGeneratedSmokeError,
   generatedLintArgs,
+  generatedVerifyArgs,
   parseGeneratedSmokeConcurrency,
   shouldRunLintForPreset,
 } from './support/generated-smoke-gate'
@@ -85,6 +86,10 @@ describe('generated smoke gate contract', () => {
 
   it('locks generated-project lint invocation to zero warnings', () => {
     expect(generatedLintArgs).toEqual(['lint', '--max-warnings=0'])
+  })
+
+  it('locks full generated-project validation to verify', () => {
+    expect(generatedVerifyArgs).toEqual(['verify'])
   })
 
   it('parses generated smoke concurrency from an optional positive integer env var', () => {

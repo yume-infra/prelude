@@ -77,6 +77,16 @@ const workspaceBootstrapMaintenanceScripts = {
   'knip': 'knip',
 } as const
 
+const workspaceBootstrapHuskyScripts = {
+  'husky:install': 'husky',
+  'prepare': 'node -e "if (require(\'node:fs\').existsSync(\'.git\')) require(\'node:child_process\').execFileSync(\'husky\', { stdio: \'inherit\', shell: true })"',
+} as const
+
+function workspaceBootstrapHuskyPackage(draft: Record<string, unknown>) {
+  devDeps({ husky: '^9.1.7' })(draft)
+  scripts(workspaceBootstrapHuskyScripts)(draft)
+}
+
 const workspaceRootMaintenanceScripts = {
   'deps:check': 'taze -r',
   'deps:check:all': 'taze -r --all',
@@ -272,6 +282,7 @@ function getWorkspaceBootstrapCodeQualityPackageContributions(
       targetScope: 'root',
       sections: {
         devDependencies: { husky: '^9.1.7' },
+        scripts: workspaceBootstrapHuskyScripts,
       },
     })
   }
@@ -342,7 +353,7 @@ export function applyWorkspaceBootstrapPackageJson(
     .modify(when(config.linting === 'antfu-eslint', scripts({ 'lint': 'eslint', 'lint:fix': 'eslint --fix' })), workspaceBootstrapPackageJsonMutation)
     .modify(devDeps(workspaceBootstrapMaintenanceDevDependencies), workspaceBootstrapPackageJsonMutation)
     .modify(scripts({ ...workspaceBootstrapMaintenanceScripts, verify: getWorkspaceBootstrapVerifyScript(config) }), workspaceBootstrapPackageJsonMutation)
-    .modify(when(config.codeQuality.length > 0, devDeps({ husky: '^9.1.7' })), workspaceBootstrapPackageJsonMutation)
+    .modify(when(config.codeQuality.length > 0, workspaceBootstrapHuskyPackage), workspaceBootstrapPackageJsonMutation)
     .modify(when(config.codeQuality.includes('lint-staged'), devDeps({ 'lint-staged': '^17.0.2' })), workspaceBootstrapPackageJsonMutation)
     .modify(when(config.codeQuality.includes('commitlint'), devDeps({ '@commitlint/cli': '^20.5.3', '@commitlint/config-conventional': '^20.5.3' })), workspaceBootstrapPackageJsonMutation)
 }
