@@ -109,14 +109,16 @@ describe('generated scaffold audit skill', () => {
     ].join('\n')
 
     expectPhrases('skill corpus', corpus, [
-      'real create-yume React and Vue scaffold output',
+      'real generated output',
       'template whitespace',
       'unused imports / dead code',
       'framework lint semantics',
       'generated config policy',
+      'package publishability',
       'dependency/build warning',
       'editor-only diagnostics',
-      'templates, partials, JSON/config mutation, package policy, lint strategy, or dependency/build-warning owners',
+      'templates, partials, JSON/config mutation, package policy, lint strategy, publishability policy, lifecycle policy, or dependency/build-warning owners',
+      'pnpm pack --dry-run',
       'Tailwind/lightningcss',
       'build warnings separate from lint failures',
       'minimal presets remain build-only',

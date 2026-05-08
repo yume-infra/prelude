@@ -47,7 +47,7 @@ Use these ownership labels when mapping a generated-output symptom to a durable 
 </source_map_vocabulary>
 
 <boundary_rules>
-- Output-first audit order is mandatory: generate or inspect real React/Vue output before editing templates.
+- Output-first audit order is mandatory: generate or inspect real generated output before editing templates.
 - `eslint --fix` is never the durable remediation path. It may explain expected output but final fixes belong in templates, partials, config mutation, package policy, lint strategy, or dependency/build-warning policy.
 - Full presets must preserve the zero-warning lint phrase `lint --max-warnings=0` when lint is enabled.
 - Minimal presets remain build-only and must not be failed for lacking lint assets unless a later documented strategy changes their policy.
