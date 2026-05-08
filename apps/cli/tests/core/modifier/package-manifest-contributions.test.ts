@@ -194,7 +194,7 @@ describe('collectPackageManifestContributions', () => {
       {
         targetPath: 'package.json',
         section: 'dependencies',
-        key: 'react-router',
+        key: 'react-router-dom',
         owners: ['router'],
         value: '^7.15.0',
       },
@@ -203,7 +203,7 @@ describe('collectPackageManifestContributions', () => {
       'dependencies.vite',
       'devDependencies.eslint',
       'dependencies.jotai',
-      'dependencies.react-router',
+      'dependencies.react-router-dom',
     ]))
     expect(Object.keys(collection.manifest)).toEqual([
       'scripts',
@@ -216,7 +216,6 @@ describe('collectPackageManifestContributions', () => {
       'jotai',
       'react',
       'react-dom',
-      'react-router',
       'react-router-dom',
       'tailwindcss',
       'vite',

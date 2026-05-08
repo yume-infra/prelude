@@ -129,7 +129,6 @@ describe('buildPackageJson', () => {
       '@types/react',
       '@types/react-dom',
       'eslint',
-      'eslint-plugin-react-hooks',
       'eslint-plugin-react-refresh',
       'husky',
       'knip',
@@ -250,7 +249,6 @@ describe('buildPackageJson', () => {
       '@vitejs/plugin-react': '^6.0.1',
       'react': '^19.2.6',
       'react-dom': '^19.2.6',
-      'react-router': '^7.15.0',
       'react-router-dom': '^7.15.0',
       'zustand': '^5.0.12',
     })
@@ -259,7 +257,6 @@ describe('buildPackageJson', () => {
       '@eslint-react/eslint-plugin': '^3.0.0',
       '@types/react': '^19.2.14',
       '@types/react-dom': '^19.2.3',
-      'eslint-plugin-react-hooks': '^7.1.1',
       'eslint-plugin-react-refresh': '^0.5.2',
     })
   })

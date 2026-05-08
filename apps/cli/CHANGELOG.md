@@ -5,6 +5,7 @@
 ### Patch Changes
 
 - Publish the generated Husky lifecycle fix so lint-enabled generated projects keep hook installation working, keep `husky` visible to Knip, and avoid no-`.git` pack noise.
+- Keep full React/Vue generated `pnpm verify` clean after the smoke gate started running Knip by aligning Tailwind, React Router, and React lint package policy with generated usage.
 
 ## 0.2.2
 

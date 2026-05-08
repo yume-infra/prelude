@@ -248,7 +248,6 @@ export function getScaffoldFamilyPackageContributions(config: ProjectConfig): Pa
         sections: {
           devDependencies: {
             '@eslint-react/eslint-plugin': '^3.0.0',
-            'eslint-plugin-react-hooks': '^7.1.1',
             'eslint-plugin-react-refresh': '^0.5.2',
           },
         },

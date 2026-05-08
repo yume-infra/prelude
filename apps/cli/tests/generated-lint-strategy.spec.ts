@@ -290,7 +290,6 @@ describe('generated lint strategy', () => {
       'jotai',
       'react',
       'react-dom',
-      'react-router',
       'react-router-dom',
       'tailwindcss',
       'vite',

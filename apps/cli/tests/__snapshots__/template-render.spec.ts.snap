@@ -403,7 +403,10 @@ p { margin: 8px 0; }
 
 exports[`template render snapshots > renders standalone react Knip config 1`] = `
 "{
-  "$schema": "https://unpkg.com/knip@6/schema-jsonc.json"
+  "$schema": "https://unpkg.com/knip@6/schema-jsonc.json",
+  "ignoreDependencies": [
+    "tailwindcss"
+  ]
 }
 "
 `;
@@ -734,11 +737,15 @@ exports[`template render snapshots > renders workspace mixed Knip config 1`] = `
 "{
   "$schema": "https://unpkg.com/knip@6/schema-jsonc.json",
   "workspaces": {
+    "apps/web": {
+    },
     "apps/tool": {
       "ignoreBinaries": [
         "dist/index.js"
       ]
     },
+    "libs/shared": {
+    }
   }
 }
 "
