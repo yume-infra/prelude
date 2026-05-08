@@ -1,5 +1,11 @@
 # create-yume
 
+## 0.2.2
+
+### Patch Changes
+
+- Make generated dist-backed packages safer to publish by emitting ESM exports, running `pnpm build` before pack, avoiding Husky-generated prepare scripts, and removing redundant Knip dist ignores.
+
 ## 0.2.1
 
 ### Patch Changes
