@@ -6,7 +6,7 @@
 
 ## Scope
 
-Generated scaffold quality starts from real generated output, not from template assumptions. Use the project-local `generated-scaffold-audit` skill for React and Vue preset audits, generated lint failures, smoke evidence, and source-map handoffs.
+Generated scaffold quality starts from real generated output, not from template assumptions. Use the project-local `generated-scaffold-audit` skill for supported preset audits, generated lint failures, smoke evidence, package publishability checks, and source-map handoffs.
 
 Skill entrypoint:
 
@@ -30,6 +30,7 @@ Use these durable finding classes:
 - `unused imports / dead code`
 - `framework lint semantics`
 - `generated config policy`
+- `package publishability`
 - `dependency/build warning`
 - `editor-only diagnostics`
 
@@ -43,6 +44,7 @@ Map generated-output symptoms to durable owners only after command evidence is c
 - partials
 - JSON/config mutation
 - package policy
+- publishability/lifecycle policy
 - lint strategy
 - dependency/build-warning policy
 - smoke/build gate design
@@ -52,6 +54,7 @@ Map generated-output symptoms to durable owners only after command evidence is c
 - Command, cwd, exit code, timeout status, and verdict.
 - Sanitized output excerpts.
 - Generated file path when available.
+- For dist-backed publishable packages, manifest field evidence plus `pnpm pack --dry-run` evidence after deleting `dist` in a disposable generated target.
 - Negative-test or ambiguity handling when ownership is split.
 
 ## Related Skill Contract
