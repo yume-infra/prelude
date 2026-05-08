@@ -32,3 +32,10 @@ Managed by Trellis. Edits outside this block are preserved; edits inside may be 
 ## Project Notes
 
 - Generated React/Vue full presets can emit Tailwind CSS / Lightning CSS unknown at-rule warnings during Vite production builds. Treat those warnings as expected and non-blocking when the build completes and generated lint checks pass.
+
+## Skill Workflow Usage
+
+- When a user names a project-local skill or the task matches a skill description, open that skill's `SKILL.md` before acting and follow its routed workflow, required reading, validation, and output contract. Do not treat loading the skill as sufficient by itself.
+- For generated scaffold quality work, route evidence-only audits to `generated-scaffold-audit`; route generated-output source fixes to `yume-template-source-map-fixer`; route regressions in skill behavior, workflow gaps, or missed validation to `yume-skill-improver`.
+- If multiple skills apply, state the order, use the minimal set that covers the task, and preserve each skill's phase boundary: audit evidence first, source-map/fix second, skill/process improvement only when the failure is in guidance or workflow.
+- If platform instructions restrict subagent use, satisfy Trellis verification intent with local or serialized checks and say so in the handoff instead of silently skipping the risk.
