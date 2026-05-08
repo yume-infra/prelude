@@ -235,4 +235,4 @@ git commit -m "docs: align project documentation"
 - [Effect](https://effect.website/)
 - [@clack/prompts](https://github.com/natemoo-re/clack)
 - [create-better-t-stack](https://github.com/AmanVarshney01/create-better-t-stack)
-- [Create Hana](https://github.com/hanaboso/create-hana)
+- [Create Hana](https://github.com/nonhana/create-hana)
