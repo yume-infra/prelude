@@ -7,7 +7,7 @@ export async function askProjectType() {
     options: [
       { value: 'vue', label: 'Vue Application' },
       { value: 'react', label: 'React Application' },
-      { value: 'workspace-root', label: 'pnpm Workspace Root' },
+      { value: 'workspace-root', label: 'pnpm Workspace / Monorepo' },
       { value: 'node', label: 'Node Application' },
       { value: 'cli', label: 'CLI Tool' },
     ],

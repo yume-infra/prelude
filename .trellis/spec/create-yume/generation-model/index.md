@@ -66,6 +66,15 @@ Runtime rules:
 | `--print-spec` | Prints resolved create spec and exits; it is not a dry-run JSON API. |
 | `--dry-run` | Builds normal `PlanSpec` preview and does not write files, create target dirs, or execute commands. |
 
+Interactive custom creation may expose curated workspace starter layouts after the `workspace-root` project type is selected:
+
+- Empty pnpm workspace root.
+- CLI-focused workspace with `apps/cli` and `libs/core`.
+- React fullstack workspace with `apps/web`, `apps/api`, and `libs/shared`.
+- Vue fullstack workspace with `apps/web`, `apps/api`, and `libs/shared`.
+
+These curated layouts must reuse the same package graph builders as their preset equivalents. Arbitrary workspace package graph editing remains a `--spec` responsibility, not a prompt flow.
+
 ## CLI Toolkit Tracks
 
 `CliProjectConfig.toolkit` selects the generated CLI runtime style:

@@ -66,6 +66,7 @@ pnpm build
 ```bash
 # 交互模式
 node apps/cli/dist/index.js
+# CLI monorepo: Create New Project -> pnpm Workspace / Monorepo -> CLI Tool + Core Library
 
 # 非交互 preset 模式
 node apps/cli/dist/index.js --preset standalone-react-full --name my-app --install

@@ -1,6 +1,6 @@
 import { readFileSync } from 'node:fs'
 import { Effect, Either, Layer } from 'effect'
-import { describe, expect, it } from 'vitest'
+import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { makePackageName } from '@/brand/package-name'
 import { makeProjectName } from '@/brand/project-name'
 import { getSharedFrontendPresetDefaults } from '@/core/template-registry/frontend-app'
@@ -10,7 +10,32 @@ import { CliContextLive } from '../../../src/core/cli-context'
 import { collectQuestions } from '../../../src/core/questions/compose'
 import { makeFsMockLayer } from '../../support/mock-layers'
 
+const { confirm, isCancel, multiselect, select, text } = vi.hoisted(() => ({
+  confirm: vi.fn(),
+  isCancel: vi.fn(),
+  multiselect: vi.fn(),
+  select: vi.fn(),
+  text: vi.fn(),
+}))
+
+vi.mock('@clack/prompts', () => ({
+  confirm,
+  isCancel,
+  multiselect,
+  select,
+  text,
+}))
+
 describe('collectQuestions', () => {
+  beforeEach(() => {
+    confirm.mockReset()
+    isCancel.mockReset()
+    multiselect.mockReset()
+    select.mockReset()
+    text.mockReset()
+    isCancel.mockReturnValue(false)
+  })
+
   it('keeps closed union exhaustiveness out of the Effect defect channel', () => {
     const source = readFileSync(new URL('../../../src/core/questions/compose.ts', import.meta.url), 'utf8')
 
@@ -214,6 +239,72 @@ describe('collectQuestions', () => {
         {
           id: makePackageId('core'),
           name: makePackageName('@non-interactive-cli-workspace/core'),
+          kind: 'library-package',
+          runtime: 'neutral',
+          internalDependencies: [],
+          library: {
+            toolkit: 'none',
+          },
+        },
+      ],
+    })
+  })
+
+  it('lets custom interactive workspace creation choose a CLI package layout', async () => {
+    select
+      .mockResolvedValueOnce('create')
+      .mockResolvedValueOnce('workspace-root')
+      .mockResolvedValueOnce('typescript')
+      .mockResolvedValueOnce('none')
+      .mockResolvedValueOnce('cli-library')
+    text.mockResolvedValue('interactive-cli-workspace')
+    confirm.mockResolvedValue(false)
+
+    const projectConfig = await Effect.runPromise(
+      collectQuestions.pipe(
+        Effect.provide(
+          Layer.mergeAll(
+            CliContextLive({
+              args: {},
+              isInteractive: true,
+            }),
+            makeFsMockLayer({
+              exists: () => Effect.succeed(false),
+            }),
+          ),
+        ),
+      ),
+    )
+
+    expect(projectConfig).toEqual({
+      name: makeProjectName('interactive-cli-workspace'),
+      type: 'workspace-root',
+      language: 'typescript',
+      git: false,
+      linting: 'none',
+      codeQuality: [],
+      packageManager: 'pnpm',
+      packages: [
+        {
+          id: makePackageId('cli'),
+          name: makePackageName('@interactive-cli-workspace/cli'),
+          kind: 'cli-tool',
+          runtime: 'node',
+          internalDependencies: [
+            {
+              target: {
+                by: 'id',
+                id: makePackageId('core'),
+              },
+            },
+          ],
+          cli: {
+            toolkit: 'effect',
+          },
+        },
+        {
+          id: makePackageId('core'),
+          name: makePackageName('@interactive-cli-workspace/core'),
           kind: 'library-package',
           runtime: 'neutral',
           internalDependencies: [],
