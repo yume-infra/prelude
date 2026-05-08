@@ -360,6 +360,12 @@ describe('buildPackageJson', () => {
     expect(packageJson).toMatchObject({
       name: 'phase-node-minimal',
       type: 'module',
+      exports: {
+        '.': {
+          types: './dist/index.d.ts',
+          import: './dist/index.js',
+        },
+      },
       main: 'dist/index.js',
       types: 'dist/index.d.ts',
       files: ['dist'],
@@ -369,6 +375,7 @@ describe('buildPackageJson', () => {
         'deps:check:all': 'taze --all',
         'deps:fresh': 'taze minor -w -i --maturity-period 7',
         'knip': 'knip',
+        'prepack': 'pnpm build',
         'start': 'node dist/index.js',
         'typecheck': 'tsc --noEmit',
         'verify': 'pnpm build && pnpm typecheck && pnpm knip',
@@ -400,6 +407,7 @@ describe('buildPackageJson', () => {
       'version',
       'description',
       'license',
+      'exports',
       'main',
       'types',
       'bin',
@@ -412,6 +420,12 @@ describe('buildPackageJson', () => {
     expect(packageJson).toMatchObject({
       name: 'phase-cli-minimal',
       type: 'module',
+      exports: {
+        '.': {
+          types: './dist/index.d.ts',
+          import: './dist/index.js',
+        },
+      },
       main: 'dist/index.js',
       types: 'dist/index.d.ts',
       bin: {
@@ -424,6 +438,7 @@ describe('buildPackageJson', () => {
         'deps:check:all': 'taze --all',
         'deps:fresh': 'taze minor -w -i --maturity-period 7',
         'knip': 'knip',
+        'prepack': 'pnpm build',
         'smoke:bin': 'pnpm build && dist/index.js --help',
         'typecheck': 'tsc --noEmit',
         'verify': 'pnpm build && pnpm typecheck && pnpm knip',
@@ -498,6 +513,7 @@ describe('buildPackageJson', () => {
         'deps:check:all': 'taze --all',
         'deps:fresh': 'taze minor -w -i --maturity-period 7',
         'knip': 'knip',
+        'prepack': 'pnpm build',
         'typecheck': 'tsc --noEmit',
         'verify': 'pnpm build && pnpm typecheck && pnpm knip',
       },

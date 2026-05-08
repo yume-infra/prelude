@@ -403,7 +403,7 @@ export function getWorkspaceBootstrapCommandSpecs(
       commands.push(packageManagerAddDevCommand('husky'))
     }
 
-    commands.push(packageManagerExecCommand('husky', 'init'))
+    commands.push(packageManagerExecCommand('husky'))
   }
 
   return commands

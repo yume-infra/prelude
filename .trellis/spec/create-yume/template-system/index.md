@@ -47,6 +47,15 @@ Templates must not use helper names from the third-party `handlebars-helpers` pa
 
 Generated package manifests must not advertise a Node engine floor older than the emitted tooling dependencies support. When bumping generated dependency ranges, review `taze` node compatibility output and update standalone, workspace-root, and workspace-child `engines.node` together.
 
+Dist-backed TypeScript package manifests (`node`, `cli`, and `library`) must advertise the built ESM entry consistently:
+
+- `exports["."].types` points at `./dist/index.d.ts`.
+- `exports["."].import` points at `./dist/index.js`.
+- `main` remains `dist/index.js` for older consumers.
+- `types` remains `dist/index.d.ts`.
+- `files` includes `dist`.
+- `scripts.prepack` is `pnpm build` so `pnpm pack` cannot produce a package without built artifacts.
+
 ## CLI Toolkit Template Contract
 
 - The minimal CLI track renders `fragments/cli/index.ts.hbs` and must not gain Effect runtime dependencies.
@@ -55,6 +64,56 @@ Generated package manifests must not advertise a Node engine floor older than th
 - Keep generated Effect dependency ranges peer-compatible when bumping the catalog.
 - Both CLI tracks preserve `type: "module"`, `bin`, `scripts.build`, `scripts.smoke:bin`, tsdown build output, shebang behavior, and `dist/index.js` as the executable entry.
 
+## Scenario: Husky Hook Bootstrap
+
+### 1. Scope / Trigger
+
+- Trigger: Code-quality scaffold generation needs Git hooks installed without letting Husky mutate generated package scripts.
+
+### 2. Signatures
+
+- Post-generate command with install enabled: `pnpm install`, `git init`, `pnpm exec husky`.
+- Post-generate command with install skipped: `git init`, `pnpm add -D husky`, `pnpm exec husky`.
+- Hook files are explicit post-generate file actions under `.husky/`.
+
+### 3. Contracts
+
+- Generated manifests may include `husky` as a dev dependency when code-quality tools are selected.
+- Generated manifests must not gain `scripts.prepare = "husky"` from the scaffold workflow.
+- `lint-staged` owns `.husky/pre-commit`; `commitlint` owns `.husky/commit-msg`.
+
+### 4. Validation & Error Matrix
+
+- `codeQuality.length === 0` -> no Husky commands or hook file actions.
+- `installDeps === false && codeQuality.length > 0` -> add `husky` before executing it.
+- `git === false` -> no `git init`; do not rely on Husky command side effects for hook file content.
+
+### 5. Good/Base/Bad Cases
+
+- Good: `pnpm exec husky` installs hook plumbing after `git init`, then explicit file actions write hook content.
+- Base: `pnpm exec husky` is run only when code-quality tools are selected.
+- Bad: `pnpm exec husky init`, because it mutates `package.json` with a `prepare` script and writes a default hook outside the owner model.
+
+### 6. Tests Required
+
+- Workspace bootstrap command tests assert the exact command list.
+- Dry-run preview tests assert the post-generate command and hook file-action surfaces.
+- Real generated full-preset checks should confirm no generated `prepare` script when testing install+git behavior.
+
+### 7. Wrong vs Correct
+
+Wrong:
+
+```text
+pnpm exec husky init
+```
+
+Correct:
+
+```text
+pnpm exec husky
+```
+
 ## Tests Required
 
 - Template render snapshots for fragment/partial behavior.
@@ -62,6 +121,7 @@ Generated package manifests must not advertise a Node engine floor older than th
 - Planner/PlanSpec tests when task shape, owner trace, or preview output changes.
 - Generated smoke when generated install/build/lint/runtime behavior changes.
 - CLI toolkit template tests for entrypoint selection, README rendering, package manifest contributions, and bin invocation.
+- Dist-backed manifest tests assert `exports`, `main`, `types`, `files`, and `scripts.prepack`; generated pack verification should delete `dist` first when checking `prepack`.
 
 ## Forbidden Patterns
 

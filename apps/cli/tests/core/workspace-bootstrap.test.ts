@@ -316,13 +316,13 @@ describe('workspace/bootstrap contract', () => {
     expect(getWorkspaceBootstrapCommandSpecs(reactPresetProjectConfig, true)).toEqual([
       { command: 'pnpm', args: ['install'] },
       { command: 'git', args: ['init'] },
-      { command: 'pnpm', args: ['exec', 'husky', 'init'] },
+      { command: 'pnpm', args: ['exec', 'husky'] },
     ])
 
     expect(getWorkspaceBootstrapCommandSpecs(reactPresetProjectConfig, false)).toEqual([
       { command: 'git', args: ['init'] },
       { command: 'pnpm', args: ['add', '-D', 'husky'] },
-      { command: 'pnpm', args: ['exec', 'husky', 'init'] },
+      { command: 'pnpm', args: ['exec', 'husky'] },
     ])
 
     expect(getWorkspaceBootstrapCommandSpecs({
@@ -341,7 +341,7 @@ describe('workspace/bootstrap contract', () => {
     expect(getPackageManagerField()).toBe('pnpm@10.33.4')
     expect(formatPackageManagerCommand(packageManagerInstallCommand())).toBe('pnpm install')
     expect(formatPackageManagerCommand(packageManagerAddDevCommand('husky'))).toBe('pnpm add -D husky')
-    expect(formatPackageManagerCommand(packageManagerExecCommand('husky', 'init'))).toBe('pnpm exec husky init')
+    expect(formatPackageManagerCommand(packageManagerExecCommand('husky'))).toBe('pnpm exec husky')
   })
 
   it('exposes root-owned workspace package manifest policy', () => {

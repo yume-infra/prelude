@@ -232,6 +232,18 @@ describe('collectPackageManifestContributions', () => {
       {
         targetPath: 'package.json',
         section: '<root>',
+        key: 'exports',
+        owners: ['cli-scaffold'],
+        value: {
+          '.': {
+            types: './dist/index.d.ts',
+            import: './dist/index.js',
+          },
+        },
+      },
+      {
+        targetPath: 'package.json',
+        section: '<root>',
         key: 'bin',
         owners: ['cli-scaffold'],
         value: {
@@ -244,6 +256,13 @@ describe('collectPackageManifestContributions', () => {
         key: 'build',
         owners: ['cli-scaffold'],
         value: 'tsdown --config tsdown.config.ts && node scripts/ensure-shebang.mjs',
+      },
+      {
+        targetPath: 'package.json',
+        section: 'scripts',
+        key: 'prepack',
+        owners: ['cli-scaffold'],
+        value: 'pnpm build',
       },
       {
         targetPath: 'package.json',
