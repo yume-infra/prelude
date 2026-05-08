@@ -39,5 +39,5 @@ Reusable output structures live in `templates/`:
 </workflows_index>
 
 <success_criteria>
-The skill succeeds when agents use the routed workflow, validate real generated output before assigning ownership, preserve the distinction between lint failures and build warnings, keep minimal presets build-only, check publishable dist-backed packages with pack evidence when in scope, and report evidence with commands such as `lint --max-warnings=0` where lint gates apply.
+The skill succeeds when agents use the routed workflow, validate real generated output before assigning ownership, preserve the distinction between lint failures and build warnings, keep minimal presets build-only, check publishable dist-backed packages with pack evidence when in scope, and report generated `pnpm verify` evidence where full lint-enabled gates apply.
 </success_criteria>
