@@ -35,6 +35,7 @@ import { askReactRouter } from './react/router'
 import { askReactStateManagement } from './react/state-management'
 import { askVueRouter } from './vue/router'
 import { askVueStateManagement } from './vue/state-management'
+import { askWorkspaceStarter } from './workspace/starter'
 
 function decodePromptedProjectName(input: string) {
   return decodeProjectName(input).pipe(
@@ -255,10 +256,29 @@ export const createProject = Effect.gen(function* () {
 
   if (projectType === 'workspace-root') {
     const base = yield* askBaseCommon
+    const starter = yield* ask(askWorkspaceStarter)
+    const rootName = String(base.name)
+
+    const packages = (() => {
+      switch (starter) {
+        case 'empty':
+          return []
+        case 'cli-library':
+          return workspaceCliLibraryPackages(rootName)
+        case 'fullstack-react':
+          return workspaceFullstackPackages(rootName, 'react')
+        case 'fullstack-vue':
+          return workspaceFullstackPackages(rootName, 'vue')
+        default:
+          return assertNever(starter)
+      }
+    })()
+
     return {
       ...base,
       type: 'workspace-root',
       packageManager: PnpmPackageManager.name,
+      packages,
     }
   }
 

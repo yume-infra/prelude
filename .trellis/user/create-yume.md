@@ -42,7 +42,7 @@ Create Yume 的主链路是一条稳定 workflow：
 
 CLI tool 现在有两条 toolkit 轨道：默认的 minimal CLI 不引入 Effect runtime；显式选择 Effect CLI 时，生成项目会带 `@effect/cli`、Effect platform 依赖和基于 `NodeRuntime.runMain` 的入口。
 
-workspace preset 里，`workspace-cli-library` 是偏 CLI 的默认组合：`apps/cli` 使用 Effect CLI，`libs/core` 是 neutral library，CLI 对 core 的引用通过显式 `workspace:*` internal dependency 生成。更任意的 package graph 仍通过结构化 `--spec` 表达。
+workspace preset 里，`workspace-cli-library` 是偏 CLI 的默认组合：`apps/cli` 使用 Effect CLI，`libs/core` 是 neutral library，CLI 对 core 的引用通过显式 `workspace:*` internal dependency 生成。交互式自定义创建选择 `pnpm Workspace / Monorepo` 后，也会暴露这个 CLI + core layout；更任意的 package graph 仍通过结构化 `--spec` 表达。
 
 workspace root 的脚本不是固定模板清单，而是从实际生成的 child package script 汇总出来。空 workspace 不应该出现无目标的 `test`、`lint`、`clean` 聚合脚本。
 

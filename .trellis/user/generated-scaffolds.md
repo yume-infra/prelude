@@ -34,6 +34,8 @@ workspace child package 当前规则：
 - `workspace-fullstack-react`：生成 `apps/web` React app、`apps/api` Node app 和 `libs/shared` neutral library。
 - `workspace-fullstack-vue`：生成 `apps/web` Vue app、`apps/api` Node app 和 `libs/shared` neutral library。
 
+交互式自定义创建里，选择 `pnpm Workspace / Monorepo` 后会继续选择 workspace layout。当前 layout 是 curated starter：空 workspace、CLI + core、React fullstack、Vue fullstack；任意 package graph 仍使用结构化 `--spec`。
+
 ## 当前不支持范围
 
 - 对已有项目做 append/update。
@@ -43,6 +45,14 @@ workspace child package 当前规则：
 - 完整 CLI flag 或交互式任意 workspace package graph 配置。
 
 ## CLI 常用输入
+
+交互模式：
+
+```bash
+node apps/cli/dist/index.js
+```
+
+要生成 CLI monorepo，在交互中选择 `Create New Project (Custom Configuration)`、`pnpm Workspace / Monorepo`、`CLI Tool + Core Library`。
 
 简单 preset：
 
