@@ -41,6 +41,14 @@ Future generated monorepo sophistication should be explicit and package-owned:
 - Package-local Turbo config should be opt-in and extend the root pipeline instead of replacing it.
 - Publishable packages and Changesets require an explicit release workflow before they appear in default output.
 
+## Release Automation Rules
+
+- npm publishing for `@sayoriqwq/create-yume` is owned by `.github/workflows/release.yml`.
+- The release workflow runs on pushes to `main` and on `workflow_dispatch`.
+- `changesets/action@v1` runs `pnpm version-packages` when changesets need a version PR and `pnpm release` when publishing is ready.
+- `pnpm release` runs `pnpm verify`, `pnpm smoke:dry-run`, `pnpm smoke:examples`, then `changeset publish`.
+- GitHub Actions publishes with `secrets.NPM_TOKEN`; local `npm whoami` / `ENEEDAUTH` is not a repository release blocker unless the user explicitly asks for local publishing.
+
 ## Git And Commit Rules
 
 - Use conventional commits: `feat`, `fix`, `docs`, `refactor`, `test`, `chore`.

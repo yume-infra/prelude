@@ -1,9 +1,6 @@
 {{#if (eq @config.type "cli")}}
 {
   "$schema": "https://unpkg.com/knip@6/schema-jsonc.json",
-  "ignore": [
-    "**/dist/**"
-  ],
   "ignoreBinaries": [
     "dist/index.js"
   ]
@@ -12,34 +9,37 @@
 {{#if @config.packages}}
 {
   "$schema": "https://unpkg.com/knip@6/schema-jsonc.json",
-  "ignore": [
-    "**/dist/**"
-  ],
   "workspaces": {
 {{#each @config.packages}}
-{{#if (eq kind "cli-tool")}}
+{{#if (eq kind "library-package")}}
+    "libs/{{id}}": {
+{{else}}
     "apps/{{id}}": {
+{{/if}}
+{{#if (eq kind "cli-tool")}}
       "ignoreBinaries": [
         "dist/index.js"
-      ]
-    }{{#unless @last}},{{/unless}}
+      ]{{#if (eq frontend.cssFramework "tailwind")}},{{/if}}
 {{/if}}
+{{#if (eq frontend.cssFramework "tailwind")}}
+      "ignoreDependencies": [
+        "tailwindcss"
+      ]
+{{/if}}
+    }{{#unless @last}},{{/unless}}
 {{/each}}
   }
 }
 {{else}}
 {
-  "$schema": "https://unpkg.com/knip@6/schema-jsonc.json",
-  "ignore": [
-    "**/dist/**"
-  ]
+  "$schema": "https://unpkg.com/knip@6/schema-jsonc.json"
 }
 {{/if}}
 {{else}}
 {
-  "$schema": "https://unpkg.com/knip@6/schema-jsonc.json",
-  "ignore": [
-    "**/dist/**"
-  ]
+  "$schema": "https://unpkg.com/knip@6/schema-jsonc.json"{{#if (eq @config.cssFramework "tailwind")}},
+  "ignoreDependencies": [
+    "tailwindcss"
+  ]{{/if}}
 }
 {{/if}}

@@ -30,7 +30,8 @@ Start from evidence, not preference.
    - Missing or harmful instruction:
    - Observable consequence:
 4. Read only the target skill files needed to understand the failure. Read adjacent skills only for style, routing, or reusable workflow patterns.
-5. If the evidence is too vague to diagnose, ask for the missing artifact or narrow the patch to clearly stated behavior only.
+5. When the evidence concerns a missed workflow, wrong skill, or weak process handoff, inspect `AGENTS.md` and `.trellis/workflow.md` before patching a target skill. Confirm whether the project entrypoint explained how to select and execute skills.
+6. If the evidence is too vague to diagnose, ask for the missing artifact or narrow the patch to clearly stated behavior only.
 
 ## Diagnosis Taxonomy
 
@@ -47,6 +48,7 @@ Classify the failure before editing. Multiple classes may apply, but the patch s
 | Stale project knowledge | Skill contradicts current `.trellis/spec/`, `.trellis/user/`, or repository workflow. | Update the skill to follow current source of truth; make a docs/spec sync judgment if a durable policy gap is found. |
 | Validation gap | Skill lacked proof that the revised behavior works. | Add targeted validation, manual cold-read expectations, or forward-test instructions. |
 | Output gap | Handoff omitted evidence, decisions, risks, or next actions. | Add a compact output template with required fields. |
+| Entrypoint routing gap | `AGENTS.md` or Trellis workflow did not make skill/workflow usage explicit enough for the model to follow. | Add concise entrypoint routing rules and keep detailed procedure in the target skill. |
 
 ## Minimal Patch Workflow
 
@@ -59,6 +61,7 @@ Classify the failure before editing. Multiple classes may apply, but the patch s
    - Name the failure class from the taxonomy.
    - Decide whether the fix belongs in frontmatter, trigger conditions, workflow steps, references, scripts, validation, output format, or boundaries.
    - Prefer one targeted section edit over a full rewrite unless the skill is structurally unusable.
+   - For workflow incidents, answer these routing questions before editing: Did `AGENTS.md` clearly explain skill workflow usage? Did the agent use the correct skill and the workflow inside it? Did the loaded skill still produce a poor result because of missing gates, evidence, or validation?
 
 3. Patch for future behavior.
    - Use concise imperative instructions.
@@ -112,6 +115,7 @@ Use this handoff shape:
 
 - Target skill:
 - Evidence used:
+- Routing assessment:
 - Primary diagnosis:
 - Patch shape:
 - Files changed:

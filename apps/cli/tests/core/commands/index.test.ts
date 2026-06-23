@@ -41,7 +41,7 @@ describe('buildCommands', () => {
     expect(commands.map(formatCommand)).toEqual([
       'pnpm install',
       'git init',
-      'pnpm exec husky init',
+      'pnpm exec husky',
     ])
     expect(commands.map(formatCommand).join('\n')).not.toContain('node -e')
     expect(commands.map(formatCommand).join('\n')).not.toContain('> .husky/')
@@ -68,7 +68,7 @@ describe('buildCommands', () => {
       },
       {
         command: 'pnpm',
-        args: ['exec', 'husky', 'init'],
+        args: ['exec', 'husky'],
         phase: 'after-plan-apply',
         ownership: {
           owner: 'workspace-bootstrap',
@@ -109,7 +109,7 @@ describe('buildCommands', () => {
     expect(commands.map(formatCommand)).toEqual([
       'git init',
       'pnpm add -D husky',
-      'pnpm exec husky init',
+      'pnpm exec husky',
     ])
     expect(commands.map(formatCommand).join('\n')).not.toContain('node -e')
     expect(commands.map(formatCommand).join('\n')).not.toContain('> .husky/')

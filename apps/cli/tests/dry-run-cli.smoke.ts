@@ -82,7 +82,7 @@ const dryRunCases: readonly DryRunCase[] = [
       'Post-generate commands:',
       'after-plan-apply: pnpm install',
       'after-plan-apply: git init',
-      'after-plan-apply: pnpm exec husky init',
+      'after-plan-apply: pnpm exec husky',
       'Post-generate file actions:',
       'after-post-generate-commands: write-file .husky/pre-commit (executable: false)',
       'after-post-generate-commands: write-file .husky/commit-msg (executable: true)',

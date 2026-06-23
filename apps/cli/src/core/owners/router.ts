@@ -61,7 +61,7 @@ export function getReactRouterPackageContributions(config: ReactProjectConfig): 
       ownership: routerPackageJsonMutation,
       targetScope: 'package',
       sections: {
-        dependencies: { 'react-router': '^7.15.0', 'react-router-dom': '^7.15.0' },
+        dependencies: { 'react-router-dom': '^7.15.0' },
       },
     }]
   }

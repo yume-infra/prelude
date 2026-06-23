@@ -74,7 +74,8 @@ Source fixes must land in the durable owner:
    - Workspace root or child packages: targeted planner/workspace tests and `pnpm --filter create-yume typecheck` when package graph behavior changes.
    - Real generated project behavior: `CREATE_YUME_SMOKE_CASES=<affected-selector> pnpm --filter create-yume smoke:examples`.
    - Broad or uncertain impact: `pnpm verify`.
-   - If a full preset is lint-enabled, include generated `pnpm lint --max-warnings=0` evidence either through smoke or direct generated-project commands.
+   - If a full preset is lint-enabled, include generated `pnpm verify` evidence either through smoke or direct generated-project commands; `lint --max-warnings=0` alone is insufficient because it misses Knip/package dependency regressions.
+   - If package manifest or lifecycle policy touches Husky/code-quality tooling, verify a Git-enabled generated target: confirm `pnpm verify` passes, `core.hooksPath` is `.husky/_`, and a no-`.git` pack copy is quiet while still including built `dist` files.
 
 7. Re-check the source map after the fix.
    - Regenerate or smoke the affected surface; do not rely only on the source diff.

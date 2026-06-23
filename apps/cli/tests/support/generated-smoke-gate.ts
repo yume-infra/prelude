@@ -21,7 +21,7 @@ export type GeneratedPreset
     | 'workspace-fullstack-react'
     | 'workspace-fullstack-vue'
 
-export type GeneratedSmokePhase = 'generation' | 'install' | 'build' | 'lint' | 'link' | 'invoke'
+export type GeneratedSmokePhase = 'generation' | 'install' | 'build' | 'lint' | 'verify' | 'link' | 'invoke'
 
 export interface GeneratedSmokeCaseBase {
   readonly label: string
@@ -30,6 +30,7 @@ export interface GeneratedSmokeCaseBase {
 
 export interface GeneratedSmokeCase extends GeneratedSmokeCaseBase {
   readonly preset: GeneratedPreset
+  readonly git?: boolean
 }
 
 export interface GeneratedSpecSmokeCase extends GeneratedSmokeCaseBase {
@@ -57,6 +58,7 @@ export interface RunGeneratedSmokePhaseOptions {
 export const generatedSmokePhaseTimeoutMs = 300_000
 export const defaultGeneratedSmokeConcurrency = 2
 export const generatedLintArgs = ['lint', '--max-warnings=0'] as const
+export const generatedVerifyArgs = ['verify'] as const
 
 export function generatedSmokeEnv(options: GeneratedSmokeEnvOptions = {}) {
   return {
@@ -250,8 +252,16 @@ export function assertGeneratedNodePackageContract(packageJson: unknown, testCas
   assert.equal(packageJson.type, 'module', `[${prefix}] ${testCase.preset} package.json must be ESM`)
   assert.equal(packageJson.main, 'dist/index.js', `[${prefix}] ${testCase.preset} package.json must document dist/index.js as main`)
   assert.equal(packageJson.types, 'dist/index.d.ts', `[${prefix}] ${testCase.preset} package.json must document dist/index.d.ts as types`)
+  assert.ok(isRecord(packageJson.exports), `[${prefix}] ${testCase.preset} package.json must include ESM exports metadata`)
+  assert.deepEqual(packageJson.exports, {
+    '.': {
+      types: './dist/index.d.ts',
+      import: './dist/index.js',
+    },
+  }, `[${prefix}] ${testCase.preset} exports must point at dist artifacts`)
   assert.ok(isRecord(packageJson.scripts), `[${prefix}] ${testCase.preset} package.json must include scripts`)
   assert.equal(packageJson.scripts.build, 'tsdown --config tsdown.config.ts', `[${prefix}] ${testCase.preset} must build with tsdown`)
+  assert.equal(packageJson.scripts.prepack, 'pnpm build', `[${prefix}] ${testCase.preset} must build before pnpm pack`)
 }
 
 export function assertGeneratedCliPackageContract(packageJson: unknown, testCase: GeneratedSmokeCase, prefix: string) {
@@ -259,6 +269,13 @@ export function assertGeneratedCliPackageContract(packageJson: unknown, testCase
   assert.ok(isRecord(packageJson), `[${prefix}] ${testCase.preset} package.json must be an object`)
   assert.equal(packageJson.type, 'module', `[${prefix}] ${testCase.preset} package.json must be ESM`)
   assert.equal(packageJson.main, 'dist/index.js', `[${prefix}] ${testCase.preset} package.json must document dist/index.js as main`)
+  assert.ok(isRecord(packageJson.exports), `[${prefix}] ${testCase.preset} package.json must include ESM exports metadata`)
+  assert.deepEqual(packageJson.exports, {
+    '.': {
+      types: './dist/index.d.ts',
+      import: './dist/index.js',
+    },
+  }, `[${prefix}] ${testCase.preset} exports must point at dist artifacts`)
   assert.ok(isRecord(packageJson.bin), `[${prefix}] ${testCase.preset} package.json must include npm bin metadata`)
   assert.equal(packageJson.bin[testCase.projectName], 'dist/index.js', `[${prefix}] ${testCase.preset} bin must point at dist/index.js`)
   assert.ok(isRecord(packageJson.scripts), `[${prefix}] ${testCase.preset} package.json must include scripts`)
@@ -267,6 +284,7 @@ export function assertGeneratedCliPackageContract(packageJson: unknown, testCase
     'tsdown --config tsdown.config.ts && node scripts/ensure-shebang.mjs',
     `[${prefix}] ${testCase.preset} build must preserve a shebang after tsdown`,
   )
+  assert.equal(packageJson.scripts.prepack, 'pnpm build', `[${prefix}] ${testCase.preset} must build before pnpm pack`)
   assert.equal(packageJson.scripts['smoke:bin'], 'pnpm build && dist/index.js --help', `[${prefix}] ${testCase.preset} must include a bin smoke script`)
 }
 

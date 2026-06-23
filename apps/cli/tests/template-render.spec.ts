@@ -260,6 +260,38 @@ describe('template render snapshots', () => {
     expect(output).toMatchSnapshot()
   })
 
+  it('renders Knip Tailwind dependency policy for CSS imports', async () => {
+    const standaloneTailwind = JSON.parse(
+      await renderTemplate('fragments/common/maintenance/knip.jsonc.hbs', vuePresetProjectConfig),
+    )
+    const standaloneWithoutTailwind = JSON.parse(
+      await renderTemplate('fragments/common/maintenance/knip.jsonc.hbs', vueCustomProjectConfig),
+    )
+    const workspaceTailwindConfig = {
+      ...workspaceMixedProjectConfig,
+      packages: workspaceMixedProjectConfig.packages.map(packageSpec =>
+        packageSpec.kind === 'frontend-app'
+          ? {
+              ...packageSpec,
+              frontend: {
+                ...packageSpec.frontend,
+                cssFramework: 'tailwind' as const,
+              },
+            }
+          : packageSpec,
+      ),
+    } satisfies ProjectConfig
+    const workspaceTailwind = JSON.parse(
+      await renderTemplate('fragments/common/maintenance/knip.jsonc.hbs', workspaceTailwindConfig),
+    )
+
+    expect(standaloneTailwind.ignoreDependencies).toEqual(['tailwindcss'])
+    expect(standaloneWithoutTailwind.ignoreDependencies).toBeUndefined()
+    expect(workspaceTailwind.workspaces['apps/web'].ignoreDependencies).toEqual(['tailwindcss'])
+    expect(workspaceTailwind.workspaces['apps/tool'].ignoreBinaries).toEqual(['dist/index.js'])
+    expect(workspaceTailwind.workspaces['libs/shared']).toEqual({})
+  })
+
   it('renders the effect cli entry with @effect/cli and NodeRuntime.runMain', async () => {
     const output = await renderTemplate('fragments/cli/effect-index.ts.hbs', cliEffectPresetProjectConfig)
 

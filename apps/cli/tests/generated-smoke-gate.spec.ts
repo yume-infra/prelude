@@ -14,6 +14,7 @@ import {
   defaultGeneratedSmokeConcurrency,
   formatGeneratedSmokeError,
   generatedLintArgs,
+  generatedVerifyArgs,
   parseGeneratedSmokeConcurrency,
   shouldRunLintForPreset,
 } from './support/generated-smoke-gate'
@@ -85,6 +86,10 @@ describe('generated smoke gate contract', () => {
 
   it('locks generated-project lint invocation to zero warnings', () => {
     expect(generatedLintArgs).toEqual(['lint', '--max-warnings=0'])
+  })
+
+  it('locks full generated-project validation to verify', () => {
+    expect(generatedVerifyArgs).toEqual(['verify'])
   })
 
   it('parses generated smoke concurrency from an optional positive integer env var', () => {
@@ -190,10 +195,17 @@ describe('generated smoke gate contract', () => {
     expect(() => assertGeneratedNodePackageContract({
       name: 'smoke-node-minimal',
       type: 'module',
+      exports: {
+        '.': {
+          types: './dist/index.d.ts',
+          import: './dist/index.js',
+        },
+      },
       main: 'dist/index.js',
       types: 'dist/index.d.ts',
       scripts: {
         build: 'tsdown --config tsdown.config.ts',
+        prepack: 'pnpm build',
       },
     }, nodeMinimalCase, 'generated-smoke')).not.toThrow()
   })
@@ -202,12 +214,19 @@ describe('generated smoke gate contract', () => {
     expect(() => assertGeneratedCliPackageContract({
       name: 'smoke-cli-minimal',
       type: 'module',
+      exports: {
+        '.': {
+          types: './dist/index.d.ts',
+          import: './dist/index.js',
+        },
+      },
       main: 'dist/index.js',
       bin: {
         'smoke-cli-minimal': 'dist/index.js',
       },
       scripts: {
         'build': 'tsdown --config tsdown.config.ts && node scripts/ensure-shebang.mjs',
+        'prepack': 'pnpm build',
         'smoke:bin': 'pnpm build && dist/index.js --help',
       },
     }, cliMinimalCase, 'generated-smoke')).not.toThrow()
@@ -226,12 +245,19 @@ describe('generated smoke gate contract', () => {
     expect(() => assertGeneratedEffectCliPackageContract({
       name: 'smoke-cli-effect',
       type: 'module',
+      exports: {
+        '.': {
+          types: './dist/index.d.ts',
+          import: './dist/index.js',
+        },
+      },
       main: 'dist/index.js',
       bin: {
         'smoke-cli-effect': 'dist/index.js',
       },
       scripts: {
         'build': 'tsdown --config tsdown.config.ts && node scripts/ensure-shebang.mjs',
+        'prepack': 'pnpm build',
         'smoke:bin': 'pnpm build && dist/index.js --help',
       },
       dependencies: {

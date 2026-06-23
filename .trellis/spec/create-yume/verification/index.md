@@ -23,6 +23,8 @@ Root `pnpm verify` and `pnpm verify:code` must include `pnpm knip` so broad main
 
 Dependency freshness checks are intentionally separate from verification. Use `pnpm deps:check` or generated `deps:check` scripts to inspect stale dependencies; do not fail build/test/lint verification just because the registry has a newer release.
 
+Release readiness and publish-path validation must run the workflow-equivalent full generated smoke command, `pnpm smoke:examples`, when release metadata, version commits, generated `verify` gates, package manifest policy, Knip policy, dependency ownership, or broad generated-output behavior changed. Targeted `CREATE_YUME_SMOKE_CASES=<selector>` runs are useful for debugging and focused fixes, but they are not sufficient release-ready evidence for those surfaces.
+
 ## Test Organization
 
 - CLI tests live under `apps/cli/tests/`.

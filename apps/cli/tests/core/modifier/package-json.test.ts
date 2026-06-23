@@ -113,9 +113,11 @@ describe('buildPackageJson', () => {
       'deps:check:all',
       'deps:fresh',
       'dev',
+      'husky:install',
       'knip',
       'lint',
       'lint:fix',
+      'prepare',
       'preview',
       'verify',
     ])
@@ -127,7 +129,6 @@ describe('buildPackageJson', () => {
       '@types/react',
       '@types/react-dom',
       'eslint',
-      'eslint-plugin-react-hooks',
       'eslint-plugin-react-refresh',
       'husky',
       'knip',
@@ -248,7 +249,6 @@ describe('buildPackageJson', () => {
       '@vitejs/plugin-react': '^6.0.1',
       'react': '^19.2.6',
       'react-dom': '^19.2.6',
-      'react-router': '^7.15.0',
       'react-router-dom': '^7.15.0',
       'zustand': '^5.0.12',
     })
@@ -257,7 +257,6 @@ describe('buildPackageJson', () => {
       '@eslint-react/eslint-plugin': '^3.0.0',
       '@types/react': '^19.2.14',
       '@types/react-dom': '^19.2.3',
-      'eslint-plugin-react-hooks': '^7.1.1',
       'eslint-plugin-react-refresh': '^0.5.2',
     })
   })
@@ -360,6 +359,12 @@ describe('buildPackageJson', () => {
     expect(packageJson).toMatchObject({
       name: 'phase-node-minimal',
       type: 'module',
+      exports: {
+        '.': {
+          types: './dist/index.d.ts',
+          import: './dist/index.js',
+        },
+      },
       main: 'dist/index.js',
       types: 'dist/index.d.ts',
       files: ['dist'],
@@ -369,6 +374,7 @@ describe('buildPackageJson', () => {
         'deps:check:all': 'taze --all',
         'deps:fresh': 'taze minor -w -i --maturity-period 7',
         'knip': 'knip',
+        'prepack': 'pnpm build',
         'start': 'node dist/index.js',
         'typecheck': 'tsc --noEmit',
         'verify': 'pnpm build && pnpm typecheck && pnpm knip',
@@ -400,6 +406,7 @@ describe('buildPackageJson', () => {
       'version',
       'description',
       'license',
+      'exports',
       'main',
       'types',
       'bin',
@@ -412,6 +419,12 @@ describe('buildPackageJson', () => {
     expect(packageJson).toMatchObject({
       name: 'phase-cli-minimal',
       type: 'module',
+      exports: {
+        '.': {
+          types: './dist/index.d.ts',
+          import: './dist/index.js',
+        },
+      },
       main: 'dist/index.js',
       types: 'dist/index.d.ts',
       bin: {
@@ -424,6 +437,7 @@ describe('buildPackageJson', () => {
         'deps:check:all': 'taze --all',
         'deps:fresh': 'taze minor -w -i --maturity-period 7',
         'knip': 'knip',
+        'prepack': 'pnpm build',
         'smoke:bin': 'pnpm build && dist/index.js --help',
         'typecheck': 'tsc --noEmit',
         'verify': 'pnpm build && pnpm typecheck && pnpm knip',
@@ -498,6 +512,7 @@ describe('buildPackageJson', () => {
         'deps:check:all': 'taze --all',
         'deps:fresh': 'taze minor -w -i --maturity-period 7',
         'knip': 'knip',
+        'prepack': 'pnpm build',
         'typecheck': 'tsc --noEmit',
         'verify': 'pnpm build && pnpm typecheck && pnpm knip',
       },

@@ -1,7 +1,7 @@
 {
   "name": "@sayoriqwq/create-yume",
   "type": "module",
-  "version": "0.2.1",
+  "version": "0.2.3",
   "description": "A focused local project scaffolding CLI for React, Vue, Node, CLI tools, libraries, and pnpm workspaces",
   "author": "sayoriqwq",
   "license": "ISC",

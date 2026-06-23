@@ -194,7 +194,7 @@ describe('collectPackageManifestContributions', () => {
       {
         targetPath: 'package.json',
         section: 'dependencies',
-        key: 'react-router',
+        key: 'react-router-dom',
         owners: ['router'],
         value: '^7.15.0',
       },
@@ -203,7 +203,7 @@ describe('collectPackageManifestContributions', () => {
       'dependencies.vite',
       'devDependencies.eslint',
       'dependencies.jotai',
-      'dependencies.react-router',
+      'dependencies.react-router-dom',
     ]))
     expect(Object.keys(collection.manifest)).toEqual([
       'scripts',
@@ -216,7 +216,6 @@ describe('collectPackageManifestContributions', () => {
       'jotai',
       'react',
       'react-dom',
-      'react-router',
       'react-router-dom',
       'tailwindcss',
       'vite',
@@ -232,6 +231,18 @@ describe('collectPackageManifestContributions', () => {
       {
         targetPath: 'package.json',
         section: '<root>',
+        key: 'exports',
+        owners: ['cli-scaffold'],
+        value: {
+          '.': {
+            types: './dist/index.d.ts',
+            import: './dist/index.js',
+          },
+        },
+      },
+      {
+        targetPath: 'package.json',
+        section: '<root>',
         key: 'bin',
         owners: ['cli-scaffold'],
         value: {
@@ -244,6 +255,13 @@ describe('collectPackageManifestContributions', () => {
         key: 'build',
         owners: ['cli-scaffold'],
         value: 'tsdown --config tsdown.config.ts && node scripts/ensure-shebang.mjs',
+      },
+      {
+        targetPath: 'package.json',
+        section: 'scripts',
+        key: 'prepack',
+        owners: ['cli-scaffold'],
+        value: 'pnpm build',
       },
       {
         targetPath: 'package.json',

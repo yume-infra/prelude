@@ -37,6 +37,24 @@ const libraryPackageJsonMutation = contributionTrace(
   ContributionUnitKind.JsonTextMutation,
 )
 
+const distPackageExports = {
+  '.': {
+    types: './dist/index.d.ts',
+    import: './dist/index.js',
+  },
+} as const
+
+const distPackageEntryFields = {
+  exports: distPackageExports,
+  main: 'dist/index.js',
+  types: 'dist/index.d.ts',
+  files: ['dist'],
+} as const
+
+const distPackageLifecycleScripts = {
+  prepack: 'pnpm build',
+} as const
+
 function packageContribution(options: PackageManifestContribution): PackageManifestContribution {
   return {
     ...options,
@@ -60,13 +78,12 @@ export function getScaffoldFamilyPackageContributions(config: ProjectConfig): Pa
     contributions.push(packageContribution({
       ownership: nodeScaffoldPackageJsonMutation,
       fields: {
-        main: 'dist/index.js',
-        types: 'dist/index.d.ts',
-        files: ['dist'],
+        ...distPackageEntryFields,
       },
       sections: {
         scripts: {
           build: 'tsdown --config tsdown.config.ts',
+          ...distPackageLifecycleScripts,
           start: 'node dist/index.js',
           typecheck: 'tsc --noEmit',
         },
@@ -83,16 +100,15 @@ export function getScaffoldFamilyPackageContributions(config: ProjectConfig): Pa
     contributions.push(packageContribution({
       ownership: cliScaffoldPackageJsonMutation,
       fields: {
-        main: 'dist/index.js',
-        types: 'dist/index.d.ts',
+        ...distPackageEntryFields,
         bin: {
           [config.name]: 'dist/index.js',
         },
-        files: ['dist'],
       },
       sections: {
         scripts: {
           'build': 'tsdown --config tsdown.config.ts && node scripts/ensure-shebang.mjs',
+          ...distPackageLifecycleScripts,
           'smoke:bin': 'pnpm build && dist/index.js --help',
           'typecheck': 'tsc --noEmit',
         },
@@ -125,19 +141,12 @@ export function getScaffoldFamilyPackageContributions(config: ProjectConfig): Pa
     contributions.push(packageContribution({
       ownership: libraryPackageJsonMutation,
       fields: {
-        exports: {
-          '.': {
-            types: './dist/index.d.ts',
-            import: './dist/index.js',
-          },
-        },
-        main: 'dist/index.js',
-        types: 'dist/index.d.ts',
-        files: ['dist'],
+        ...distPackageEntryFields,
       },
       sections: {
         scripts: {
           build: 'tsdown --config tsdown.config.ts',
+          ...distPackageLifecycleScripts,
           typecheck: 'tsc --noEmit',
         },
         devDependencies: {
@@ -239,7 +248,6 @@ export function getScaffoldFamilyPackageContributions(config: ProjectConfig): Pa
         sections: {
           devDependencies: {
             '@eslint-react/eslint-plugin': '^3.0.0',
-            'eslint-plugin-react-hooks': '^7.1.1',
             'eslint-plugin-react-refresh': '^0.5.2',
           },
         },
