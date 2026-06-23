@@ -1,21 +1,21 @@
 export const HELP_TEXT = `Usage:
-  create-yume --preset standalone-react-minimal --name my-app [--install | --no-install] [--git | --no-git] [--dry-run]
-  create-yume --preset standalone-react-full --name my-app [--install | --no-install] [--git | --no-git] [--dry-run]
-  create-yume --preset standalone-vue-minimal --name my-app [--install | --no-install] [--git | --no-git] [--dry-run]
-  create-yume --preset standalone-vue-full --name my-app [--install | --no-install] [--git | --no-git] [--dry-run]
-  create-yume --preset workspace-root-minimal --name my-workspace [--install | --no-install] [--git | --no-git] [--dry-run]
-  create-yume --preset workspace-cli-library --name my-tool-workspace [--install | --no-install] [--git | --no-git] [--dry-run]
-  create-yume --preset workspace-fullstack-react --name my-workspace [--install | --no-install] [--git | --no-git] [--dry-run]
-  create-yume --preset workspace-fullstack-vue --name my-workspace [--install | --no-install] [--git | --no-git] [--dry-run]
-  create-yume --preset standalone-library-minimal --name my-lib [--install | --no-install] [--git | --no-git] [--dry-run]
-  create-yume --preset standalone-library-node --name my-node-lib [--install | --no-install] [--git | --no-git] [--dry-run]
-  create-yume --preset standalone-backend-minimal --name my-app [--install | --no-install] [--git | --no-git] [--dry-run]
-  create-yume --preset standalone-backend-full --name my-app [--install | --no-install] [--git | --no-git] [--dry-run]
-  create-yume --preset standalone-cli-minimal --name my-tool [--install | --no-install] [--git | --no-git] [--dry-run]
-  create-yume --preset standalone-cli-effect --name my-tool [--install | --no-install] [--git | --no-git] [--dry-run]
-  create-yume --preset standalone-cli-full --name my-tool [--install | --no-install] [--git | --no-git] [--dry-run]
-  create-yume --spec create-yume.json --name my-workspace [--dry-run] [--no-input]
-  create-yume --preset standalone-react-full --name my-app --print-spec
+  prelude --preset standalone-react-minimal --name my-app [--install | --no-install] [--git | --no-git] [--dry-run]
+  prelude --preset standalone-react-full --name my-app [--install | --no-install] [--git | --no-git] [--dry-run]
+  prelude --preset standalone-vue-minimal --name my-app [--install | --no-install] [--git | --no-git] [--dry-run]
+  prelude --preset standalone-vue-full --name my-app [--install | --no-install] [--git | --no-git] [--dry-run]
+  prelude --preset workspace-root-minimal --name my-workspace [--install | --no-install] [--git | --no-git] [--dry-run]
+  prelude --preset workspace-cli-library --name my-tool-workspace [--install | --no-install] [--git | --no-git] [--dry-run]
+  prelude --preset workspace-fullstack-react --name my-workspace [--install | --no-install] [--git | --no-git] [--dry-run]
+  prelude --preset workspace-fullstack-vue --name my-workspace [--install | --no-install] [--git | --no-git] [--dry-run]
+  prelude --preset standalone-library-minimal --name my-lib [--install | --no-install] [--git | --no-git] [--dry-run]
+  prelude --preset standalone-library-node --name my-node-lib [--install | --no-install] [--git | --no-git] [--dry-run]
+  prelude --preset standalone-backend-minimal --name my-app [--install | --no-install] [--git | --no-git] [--dry-run]
+  prelude --preset standalone-backend-full --name my-app [--install | --no-install] [--git | --no-git] [--dry-run]
+  prelude --preset standalone-cli-minimal --name my-tool [--install | --no-install] [--git | --no-git] [--dry-run]
+  prelude --preset standalone-cli-effect --name my-tool [--install | --no-install] [--git | --no-git] [--dry-run]
+  prelude --preset standalone-cli-full --name my-tool [--install | --no-install] [--git | --no-git] [--dry-run]
+  prelude --spec prelude.json --name my-workspace [--dry-run] [--no-input]
+  prelude --preset standalone-react-full --name my-app --print-spec
 
 Options:
   --preset, --p <preset> Project preset combination:

@@ -11,10 +11,10 @@ const workflowRoute = 'workflows/audit-generated-output.md'
 const workflowPath = path.join(skillRoot, workflowRoute)
 const referenceRoutes = [
   'references/classification-vocabulary.md',
-  'references/create-yume-generated-quality.md',
+  'references/prelude-generated-quality.md',
 ] as const
 const templateRoute = 'templates/audit-report.md'
-const generatedQualitySpecPath = path.join(repoRoot, '.trellis/spec/create-yume/verification/generated-scaffold-audit.md')
+const generatedQualitySpecPath = path.join(repoRoot, '.trellis/spec/prelude/verification/generated-scaffold-audit.md')
 
 function readProjectFile(filePath: string) {
   expect(existsSync(filePath), `${path.relative(repoRoot, filePath)} must exist`).toBe(true)

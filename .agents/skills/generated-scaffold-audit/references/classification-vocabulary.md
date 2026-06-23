@@ -1,5 +1,5 @@
 <overview>
-This reference defines the durable vocabulary for create-yume generated scaffold audits. Use these names consistently so audit reports can separate generated-output symptoms, durable source owners, and strategy-level decisions without re-litigating S01-S04.
+This reference defines the durable vocabulary for @sayoriqwq/prelude generated scaffold audits. Use these names consistently so audit reports can separate generated-output symptoms, durable source owners, and strategy-level decisions without re-litigating S01-S04.
 </overview>
 
 <classification_terms>

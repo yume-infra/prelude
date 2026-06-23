@@ -15,7 +15,7 @@ export const TracingLive = Layer.unwrapEffect(
 
     return NodeSdk.layer(() => ({
       resource: {
-        serviceName: 'create-yume-cli',
+        serviceName: '@sayoriqwq/prelude',
       },
       spanProcessor: new BatchSpanProcessor(
         new OTLPTraceExporter({

@@ -1,6 +1,6 @@
 # Effect Entrypoints
 
-> Runtime execution boundaries for the `create-yume` CLI.
+> Runtime execution boundaries for the `@sayoriqwq/prelude` CLI.
 
 ---
 

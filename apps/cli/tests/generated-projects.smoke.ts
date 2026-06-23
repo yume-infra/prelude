@@ -26,8 +26,8 @@ const repoRoot = path.resolve(testsDir, '../../..')
 const examplesGeneratedRoot = path.join(repoRoot, 'apps/examples/.generated')
 const examplesGeneratedWorkspaceFile = path.join(examplesGeneratedRoot, 'pnpm-workspace.yaml')
 const examplesGeneratedNpmrcFile = path.join(examplesGeneratedRoot, '.npmrc')
-const smokeSelectionEnvName = 'CREATE_YUME_SMOKE_CASES'
-const smokeConcurrencyEnvName = 'CREATE_YUME_SMOKE_CONCURRENCY'
+const smokeSelectionEnvName = 'PRELUDE_SMOKE_CASES'
+const smokeConcurrencyEnvName = 'PRELUDE_SMOKE_CONCURRENCY'
 
 type WorkspacePackageKind = 'frontend-app' | 'backend-app' | 'cli-tool' | 'library-package' | 'worker-app'
 
@@ -729,10 +729,10 @@ async function verifySmokeCase(smokeRun: Extract<SmokeCaseRun, { readonly kind: 
       phase: 'invoke',
       cwd: generatedDir,
       command: 'node',
-      args: ['dist/index.js', 'create-yume'],
+      args: ['dist/index.js', 'prelude'],
       stdio: 'pipe',
     })
-    if (!(invocation.stdout ?? '').includes('Hello, create-yume!')) {
+    if (!(invocation.stdout ?? '').includes('Hello, prelude!')) {
       throw new Error(`[${smokePrefix}] ${testCase.preset} node invocation did not print the expected greeting`)
     }
   }
@@ -875,7 +875,7 @@ async function assertBuiltCliAvailable() {
     await access(cliDistPath)
   }
   catch (error) {
-    throw new Error(`[${smokePrefix}] Built CLI not found at ${cliDistPath}. Run pnpm --filter create-yume build before this smoke.`, { cause: error })
+    throw new Error(`[${smokePrefix}] Built CLI not found at ${cliDistPath}. Run pnpm --filter @sayoriqwq/prelude build before this smoke.`, { cause: error })
   }
 }
 

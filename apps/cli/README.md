@@ -1,6 +1,6 @@
-# Create Yume
+# @sayoriqwq/prelude
 
-Create Yume is a focused local project scaffolding CLI.
+@sayoriqwq/prelude is a focused local project scaffolding CLI.
 
 It currently supports generating:
 
@@ -18,25 +18,25 @@ The project is intentionally not a general-purpose template platform yet. Existi
 After the package is published, run:
 
 ```bash
-pnpm dlx @sayoriqwq/create-yume --preset standalone-react-full --name my-app
+pnpm dlx @sayoriqwq/prelude --preset standalone-react-full --name my-app
 ```
 
 For CI or agent-driven generation, use complete non-interactive input:
 
 ```bash
-pnpm dlx @sayoriqwq/create-yume --preset standalone-cli-minimal --name my-tool --no-input
+pnpm dlx @sayoriqwq/prelude --preset standalone-cli-minimal --name my-tool --no-input
 ```
 
 Preview the generation plan without writing files:
 
 ```bash
-pnpm dlx @sayoriqwq/create-yume --preset workspace-cli-library --name my-workspace --dry-run
+pnpm dlx @sayoriqwq/prelude --preset workspace-cli-library --name my-workspace --dry-run
 ```
 
 Use structured JSON for custom workspace package graphs:
 
 ```bash
-pnpm dlx @sayoriqwq/create-yume --spec create-yume.json --name my-workspace --no-input
+pnpm dlx @sayoriqwq/prelude --spec prelude.json --name my-workspace --no-input
 ```
 
 ## Common Presets
@@ -63,7 +63,7 @@ Compatibility aliases such as `react-full`, `vue-full`, `workspace-root`, `node-
 
 ```bash
 pnpm install
-pnpm --filter create-yume build
+pnpm --filter @sayoriqwq/prelude build
 node apps/cli/dist/index.js --help
 ```
 
@@ -71,15 +71,15 @@ Release confidence checks live in the repository root:
 
 ```bash
 pnpm verify
-pnpm --filter create-yume smoke:dry-run
-pnpm --filter create-yume smoke:generated
-pnpm --filter create-yume smoke:examples
+pnpm --filter @sayoriqwq/prelude smoke:dry-run
+pnpm --filter @sayoriqwq/prelude smoke:generated
+pnpm --filter @sayoriqwq/prelude smoke:examples
 ```
 
-`smoke:generated` and `smoke:examples` use the same generated scaffold matrix and write to `apps/examples/.generated/`. Use `CREATE_YUME_SMOKE_CASES` to run only the affected surface when a change does not touch the full template set:
+`smoke:generated` and `smoke:examples` use the same generated scaffold matrix and write to `apps/examples/.generated/`. Use `PRELUDE_SMOKE_CASES` to run only the affected surface when a change does not touch the full template set:
 
 ```bash
-CREATE_YUME_SMOKE_CASES=react pnpm --filter create-yume smoke:examples
-CREATE_YUME_SMOKE_CASES=cli,library pnpm --filter create-yume smoke:examples
-CREATE_YUME_SMOKE_CASES=workspace pnpm --filter create-yume smoke:examples
+PRELUDE_SMOKE_CASES=react pnpm --filter @sayoriqwq/prelude smoke:examples
+PRELUDE_SMOKE_CASES=cli,library pnpm --filter @sayoriqwq/prelude smoke:examples
+PRELUDE_SMOKE_CASES=workspace pnpm --filter @sayoriqwq/prelude smoke:examples
 ```

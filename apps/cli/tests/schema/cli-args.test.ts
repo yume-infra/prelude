@@ -105,7 +105,7 @@ describe('cliArgsSchema', () => {
     const result = await Effect.runPromise(
       Effect.either(
         decodeCliArgs({
-          spec: 'create-yume.json',
+          spec: 'prelude.json',
           name: 'demo-workspace',
           noInput: true,
           printSpec: true,
@@ -115,7 +115,7 @@ describe('cliArgsSchema', () => {
 
     expect(Either.isRight(result)).toBe(true)
     if (Either.isRight(result)) {
-      expect(result.right.spec).toBe('create-yume.json')
+      expect(result.right.spec).toBe('prelude.json')
       expect(result.right.noInput).toBe(true)
       expect(result.right.printSpec).toBe(true)
     }

@@ -63,7 +63,7 @@ describe('orchestratorService', () => {
       Effect.gen(function* () {
         const orchestrator = yield* OrchestratorService
         return yield* orchestrator.build(
-          makeTargetDir('/tmp/create-yume-orchestrator-build-only'),
+          makeTargetDir('/tmp/prelude-orchestrator-build-only'),
           reactPresetProjectConfig,
         )
       }).pipe(Effect.provide(makeOrchestratorLayer({
@@ -91,7 +91,7 @@ describe('orchestratorService', () => {
       Effect.gen(function* () {
         const orchestrator = yield* OrchestratorService
         return yield* orchestrator.execute(
-          makeTargetDir('/tmp/create-yume-orchestrator-execute'),
+          makeTargetDir('/tmp/prelude-orchestrator-execute'),
           reactPresetProjectConfig,
         )
       }).pipe(Effect.provide(makeOrchestratorLayer({
@@ -140,7 +140,7 @@ describe('orchestratorService', () => {
       Effect.gen(function* () {
         const orchestrator = yield* OrchestratorService
         return yield* orchestrator.execute(
-          makeTargetDir('/tmp/create-yume-mixed-workspace'),
+          makeTargetDir('/tmp/prelude-mixed-workspace'),
           workspaceMixedProjectConfig,
         )
       }).pipe(Effect.provide(orchestratorLayer)),
@@ -153,9 +153,9 @@ describe('orchestratorService', () => {
       'shared',
     ])
 
-    const webPackageJson = JSON.parse(writtenFiles.get('/tmp/create-yume-mixed-workspace/apps/web/package.json') ?? '{}')
-    const toolPackageJson = JSON.parse(writtenFiles.get('/tmp/create-yume-mixed-workspace/apps/tool/package.json') ?? '{}')
-    const sharedPackageJson = JSON.parse(writtenFiles.get('/tmp/create-yume-mixed-workspace/libs/shared/package.json') ?? '{}')
+    const webPackageJson = JSON.parse(writtenFiles.get('/tmp/prelude-mixed-workspace/apps/web/package.json') ?? '{}')
+    const toolPackageJson = JSON.parse(writtenFiles.get('/tmp/prelude-mixed-workspace/apps/tool/package.json') ?? '{}')
+    const sharedPackageJson = JSON.parse(writtenFiles.get('/tmp/prelude-mixed-workspace/libs/shared/package.json') ?? '{}')
 
     expect(webPackageJson.dependencies).toMatchObject({
       '@demo/shared': 'workspace:*',
@@ -171,8 +171,8 @@ describe('orchestratorService', () => {
       'effect': '^3.21.2',
     })
     expect(sharedPackageJson.dependencies).toEqual({})
-    expect(writtenFiles.get('/tmp/create-yume-mixed-workspace/apps/web/index.html')).toBe('rendered:react:web\n')
-    expect(writtenFiles.get('/tmp/create-yume-mixed-workspace/apps/tool/src/index.ts')).toBe('rendered:cli:tool\n')
-    expect(writtenFiles.get('/tmp/create-yume-mixed-workspace/libs/shared/src/index.ts')).toBe('rendered:library:shared\n')
+    expect(writtenFiles.get('/tmp/prelude-mixed-workspace/apps/web/index.html')).toBe('rendered:react:web\n')
+    expect(writtenFiles.get('/tmp/prelude-mixed-workspace/apps/tool/src/index.ts')).toBe('rendered:cli:tool\n')
+    expect(writtenFiles.get('/tmp/prelude-mixed-workspace/libs/shared/src/index.ts')).toBe('rendered:library:shared\n')
   })
 })

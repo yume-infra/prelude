@@ -365,11 +365,11 @@ python3 ./.trellis/scripts/task.py list-archive    # List archived tasks
 
 | Task Type | Must-read Document |
 |-----------|-------------------|
-| CLI runtime work | `create-yume/cli-runtime/index.md` → relevant docs |
-| Generation model work | `create-yume/generation-model/index.md` → relevant docs |
-| Template work | `create-yume/template-system/index.md` → relevant docs |
-| Workspace package work | `create-yume/workspace-packages/index.md` → relevant docs |
-| Verification work | `create-yume/verification/index.md` → relevant docs |
+| CLI runtime work | `prelude/cli-runtime/index.md` → relevant docs |
+| Generation model work | `prelude/generation-model/index.md` → relevant docs |
+| Template work | `prelude/template-system/index.md` → relevant docs |
+| Workspace package work | `prelude/workspace-packages/index.md` → relevant docs |
+| Verification work | `prelude/verification/index.md` → relevant docs |
 | Cross-Layer Feature | `guides/cross-layer-thinking-guide.md` |
 
 ### Commit Convention

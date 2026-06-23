@@ -7,7 +7,7 @@
 ## Repository Shape
 
 ```text
-apps/cli/       create-yume CLI package and templates
+apps/cli/       @sayoriqwq/prelude CLI package and templates
 apps/examples/  generated-output smoke workspace
 .trellis/spec/  agent-facing executable project specs
 .trellis/user/  human-facing project context
@@ -43,7 +43,7 @@ Future generated monorepo sophistication should be explicit and package-owned:
 
 ## Release Automation Rules
 
-- npm publishing for `@sayoriqwq/create-yume` is owned by `.github/workflows/release.yml`.
+- npm publishing for `@sayoriqwq/prelude` is owned by `.github/workflows/release.yml`.
 - The release workflow runs on pushes to `main` and on `workflow_dispatch`.
 - `changesets/action@v1` runs `pnpm version-packages` when changesets need a version PR and `pnpm release` when publishing is ready.
 - `pnpm release` runs `pnpm verify`, `pnpm smoke:dry-run`, `pnpm smoke:examples`, then `changeset publish`.

@@ -1,11 +1,11 @@
 ---
 name: yume-release-readiness
-description: "Review create-yume release readiness by comparing the current dev branch against main, checking implementation, tests, generated smoke, docs/spec/user knowledge, dependency state, and release-note risk, then producing a blocker-first release checklist with verification evidence."
+description: "Review `@sayoriqwq/prelude` release readiness by comparing the current dev branch against main, checking implementation, tests, generated smoke, docs/spec/user knowledge, dependency state, and release-note risk, then producing a blocker-first release checklist with verification evidence."
 ---
 
-# Yume Release Readiness
+# @sayoriqwq/prelude Release Readiness
 
-Use this skill when asked to decide whether the current create-yume `dev` branch is ready to release or merge toward release from `main`. The output is a blocker-first release checklist, not a general summary.
+Use this skill when asked to decide whether the current `@sayoriqwq/prelude` `dev` branch is ready to release or merge toward release from `main`. The output is a blocker-first release checklist, not a general summary.
 
 ## Trigger Conditions
 
@@ -20,12 +20,12 @@ Do not use this skill for fixing generated scaffold defects. Use `yume-template-
 
 ## Required Reading
 
-1. Read `.trellis/spec/create-yume/index.md`.
-2. Read `.trellis/spec/create-yume/repository/index.md`.
-3. Read `.trellis/spec/create-yume/verification/index.md`.
-4. Read `.trellis/spec/create-yume/verification/generated-scaffold-audit.md` when generated-output quality, smoke results, lint warnings, editor diagnostics, or audit handoffs are part of the release surface.
+1. Read `.trellis/spec/prelude/index.md`.
+2. Read `.trellis/spec/prelude/repository/index.md`.
+3. Read `.trellis/spec/prelude/verification/index.md`.
+4. Read `.trellis/spec/prelude/verification/generated-scaffold-audit.md` when generated-output quality, smoke results, lint warnings, editor diagnostics, or audit handoffs are part of the release surface.
 5. Read the layer indexes matching changed files from `main...dev`: `cli-runtime`, `generation-model`, `template-system`, `workspace-packages`, `effect`, or repository docs.
-6. Read `.trellis/user/generated-scaffolds.md` and `.trellis/user/create-yume.md` when supported scaffold scope, human-facing commands, or project architecture changed.
+6. Read `.trellis/user/generated-scaffolds.md` and `.trellis/user/prelude.md` when supported scaffold scope, human-facing commands, or project architecture changed.
 7. Read `.github/workflows/release.yml` before judging publish readiness or npm release blockers.
 8. Read `yume-docs-spec-sync` before making the final knowledge-sync judgment.
 
@@ -63,7 +63,7 @@ If the release base is not `main`, replace `main` with the explicit base and nam
 3. Compare required surfaces.
    - **Implementation**: inspect changed source paths, changed schemas, owner contributions, template files, planner behavior, CLI UX, and workspace package logic.
    - **Tests**: verify that focused tests exist for changed contracts and that test names map to the changed surface.
-   - **Generated smoke**: check whether `CREATE_YUME_SMOKE_CASES=<selector> pnpm --filter create-yume smoke:examples` or broader smoke ran for changed generated behavior.
+   - **Generated smoke**: check whether `PRELUDE_SMOKE_CASES=<selector> pnpm --filter @sayoriqwq/prelude smoke:examples` or broader smoke ran for changed generated behavior.
    - **Docs/spec/user knowledge**: verify `.trellis/spec/` and `.trellis/user/` decisions with `yume-docs-spec-sync`; do not point to `docs/` as a source of truth.
    - **Project-local skills**: verify new or changed `.agents/skills/**` entries with the skill validator when available, manual cold read, trigger routing, and any bundled script checks.
    - **Dependencies**: inspect catalog, lockfile, generated manifest policy, and any dependency freshness evidence. Dependency staleness is not a verification failure by itself; missing catalog ownership or incompatible generated dependency behavior can be a blocker.
@@ -71,15 +71,15 @@ If the release base is not `main`, replace `main` with the explicit base and nam
    - **Release notes risk**: identify user-visible behavior, breaking changes, new commands, changed supported scope, dependency changes, warning classifications, and migration notes that release notes must mention.
 
 4. Validate changed surfaces with the minimum matching commands.
-   - Template fragment, partial, registry, helper: `pnpm --filter create-yume test`.
-   - Planner or `PlanSpec`: `pnpm --filter create-yume test`.
-   - JSON/text mutation or package manifest policy: `pnpm --filter create-yume build` plus focused tests.
-   - Workspace root materialization: `pnpm --filter create-yume test -- workspace-root`.
-   - Workspace package generation: `pnpm --filter create-yume test -- planner && pnpm --filter create-yume typecheck`.
-   - CLI args, `--spec`, resolved spec export: `pnpm --filter create-yume test -- cli-args create-spec compose preview && pnpm --filter create-yume typecheck`; add `pnpm --filter create-yume smoke:dry-run` for dry-run no-write behavior or root/package preview grouping.
-   - CLI toolkit track, generated CLI dependencies, or bin behavior: `pnpm --filter create-yume test -- cli-args create-spec planner package-json template-render generated-smoke-gate && CREATE_YUME_SMOKE_CASES=cli pnpm --filter create-yume smoke:examples`.
-   - Real generated project baseline: `pnpm --filter create-yume smoke:examples`.
-   - Release metadata, version commits, publish readiness, generated `verify` gate changes, package manifest policy, Knip policy, or dependency ownership changes: full `pnpm smoke:examples` is mandatory; targeted `CREATE_YUME_SMOKE_CASES=<selector>` runs may be used for debugging but must not be reported as release-ready evidence.
+   - Template fragment, partial, registry, helper: `pnpm --filter @sayoriqwq/prelude test`.
+   - Planner or `PlanSpec`: `pnpm --filter @sayoriqwq/prelude test`.
+   - JSON/text mutation or package manifest policy: `pnpm --filter @sayoriqwq/prelude build` plus focused tests.
+   - Workspace root materialization: `pnpm --filter @sayoriqwq/prelude test -- workspace-root`.
+   - Workspace package generation: `pnpm --filter @sayoriqwq/prelude test -- planner && pnpm --filter @sayoriqwq/prelude typecheck`.
+   - CLI args, `--spec`, resolved spec export: `pnpm --filter @sayoriqwq/prelude test -- cli-args create-spec compose preview && pnpm --filter @sayoriqwq/prelude typecheck`; add `pnpm --filter @sayoriqwq/prelude smoke:dry-run` for dry-run no-write behavior or root/package preview grouping.
+   - CLI toolkit track, generated CLI dependencies, or bin behavior: `pnpm --filter @sayoriqwq/prelude test -- cli-args create-spec planner package-json template-render generated-smoke-gate && PRELUDE_SMOKE_CASES=cli pnpm --filter @sayoriqwq/prelude smoke:examples`.
+   - Real generated project baseline: `pnpm --filter @sayoriqwq/prelude smoke:examples`.
+   - Release metadata, version commits, publish readiness, generated `verify` gate changes, package manifest policy, Knip policy, or dependency ownership changes: full `pnpm smoke:examples` is mandatory; targeted `PRELUDE_SMOKE_CASES=<selector>` runs may be used for debugging but must not be reported as release-ready evidence.
    - Project-local skill changes: `python3 /Users/sayori/.codex/skills/.system/skill-creator/scripts/quick_validate.py .agents/skills/<skill-name>` for each changed skill, plus `git diff --check` and a manual cold read of trigger routing and output contracts.
    - Docs/spec/user-only changes: manual cold read plus targeted tests that assert documentation contracts.
    - Unknown or broad impact: `pnpm verify`.

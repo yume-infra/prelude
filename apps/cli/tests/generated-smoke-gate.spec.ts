@@ -56,7 +56,7 @@ const workspaceSpecCase = {
 } satisfies GeneratedSpecSmokeCase
 
 async function withTempProject(run: (dir: string) => Promise<void>) {
-  const dir = await mkdtemp(path.join(tmpdir(), 'create-yume-smoke-gate-spec-'))
+  const dir = await mkdtemp(path.join(tmpdir(), 'prelude-smoke-gate-spec-'))
 
   try {
     await run(dir)
@@ -93,16 +93,16 @@ describe('generated smoke gate contract', () => {
   })
 
   it('parses generated smoke concurrency from an optional positive integer env var', () => {
-    expect(parseGeneratedSmokeConcurrency(undefined, 'CREATE_YUME_SMOKE_CONCURRENCY')).toBe(defaultGeneratedSmokeConcurrency)
-    expect(parseGeneratedSmokeConcurrency('', 'CREATE_YUME_SMOKE_CONCURRENCY')).toBe(defaultGeneratedSmokeConcurrency)
-    expect(parseGeneratedSmokeConcurrency(' 3 ', 'CREATE_YUME_SMOKE_CONCURRENCY')).toBe(3)
+    expect(parseGeneratedSmokeConcurrency(undefined, 'PRELUDE_SMOKE_CONCURRENCY')).toBe(defaultGeneratedSmokeConcurrency)
+    expect(parseGeneratedSmokeConcurrency('', 'PRELUDE_SMOKE_CONCURRENCY')).toBe(defaultGeneratedSmokeConcurrency)
+    expect(parseGeneratedSmokeConcurrency(' 3 ', 'PRELUDE_SMOKE_CONCURRENCY')).toBe(3)
   })
 
   it('rejects malformed generated smoke concurrency values', () => {
-    expect(() => parseGeneratedSmokeConcurrency('0', 'CREATE_YUME_SMOKE_CONCURRENCY')).toThrow('positive integer')
-    expect(() => parseGeneratedSmokeConcurrency('-1', 'CREATE_YUME_SMOKE_CONCURRENCY')).toThrow('positive integer')
-    expect(() => parseGeneratedSmokeConcurrency('1.5', 'CREATE_YUME_SMOKE_CONCURRENCY')).toThrow('positive integer')
-    expect(() => parseGeneratedSmokeConcurrency('fast', 'CREATE_YUME_SMOKE_CONCURRENCY')).toThrow('positive integer')
+    expect(() => parseGeneratedSmokeConcurrency('0', 'PRELUDE_SMOKE_CONCURRENCY')).toThrow('positive integer')
+    expect(() => parseGeneratedSmokeConcurrency('-1', 'PRELUDE_SMOKE_CONCURRENCY')).toThrow('positive integer')
+    expect(() => parseGeneratedSmokeConcurrency('1.5', 'PRELUDE_SMOKE_CONCURRENCY')).toThrow('positive integer')
+    expect(() => parseGeneratedSmokeConcurrency('fast', 'PRELUDE_SMOKE_CONCURRENCY')).toThrow('positive integer')
   })
 
   it('formats phase errors with local command diagnostics and no environment dump', () => {

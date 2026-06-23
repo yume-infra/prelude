@@ -2,16 +2,16 @@
 Read these files before changing audit logic, templates, or generated-project gates:
 
 - `references/classification-vocabulary.md`
-- `references/create-yume-generated-quality.md`
+- `references/prelude-generated-quality.md`
 - `templates/audit-report.md` when producing the final handoff
-- `.trellis/spec/create-yume/verification/generated-scaffold-audit.md`
-- `.trellis/spec/create-yume/verification/phase-roadmap.md`
+- `.trellis/spec/prelude/verification/generated-scaffold-audit.md`
+- `.trellis/spec/prelude/verification/phase-roadmap.md`
 - Existing generated scaffold tests under `apps/cli/tests/` that mention generated smoke, generated lint strategy, or generated template cleanliness.
 </required_reading>
 
 <process>
 <step number="1" name="Start from generated output">
-Generate or inspect real create-yume scaffold output for the affected supported preset, create spec, or workspace package before reading templates or assigning blame. Treat generated files as the user-visible product and avoid starting from implementation structure, because Handlebars branches, JSON mutation, package policy, generated dependencies, lifecycle scripts, and workspace shape can combine in ways templates alone do not reveal.
+Generate or inspect real prelude scaffold output for the affected supported preset, create spec, or workspace package before reading templates or assigning blame. Treat generated files as the user-visible product and avoid starting from implementation structure, because Handlebars branches, JSON mutation, package policy, generated dependencies, lifecycle scripts, and workspace shape can combine in ways templates alone do not reveal.
 </step>
 
 <step number="2" name="Run verification commands">

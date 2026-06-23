@@ -15,24 +15,24 @@
 
 ## 项目一眼看懂
 
-Create Yume 是一个用于创建本地项目脚手架的 TypeScript CLI。它本身不是传统前端或后端应用，而是一个 CLI monorepo：
+@sayoriqwq/prelude 是一个用于创建本地项目脚手架的 TypeScript CLI。它本身不是传统前端或后端应用，而是一个 CLI monorepo：
 
 | 区域 | 角色 |
 | --- | --- |
 | `apps/cli` | CLI 本体、Effect runtime、schema、planner、template registry、templates |
 | `apps/examples` | generated smoke 的可检查生成物落点 |
-| `.trellis/spec/create-yume` | create-yume 的 agent-facing 执行规范 |
+| `.trellis/spec/prelude` | @sayoriqwq/prelude 的 agent-facing 执行规范 |
 | `.trellis/spec/examples` | examples/smoke 区域规范 |
 | `.trellis/user` | user-facing 项目地图和阅读顺序 |
 
 ## 先读什么
 
 1. 读本文件，先确认项目是 CLI monorepo，而不是传统业务应用拆分。
-2. 读 [Create Yume 项目说明](./create-yume.md)，理解 CLI 生成链路。
+2. 读 [@sayoriqwq/prelude 项目说明](./prelude.md)，理解 CLI 生成链路。
 3. 读 [生成脚手架说明](./generated-scaffolds.md)，理解当前支持范围。
 4. 读 [产品能力清单与 TODO](./product-capabilities-and-todo.md)，确认已有能力、暂缓能力和下一步产品 TODO。
 5. 读 [协作与验证说明](./contributing.md)，确认常用命令和提交前检查。
-6. 开始改代码前，再读 `.trellis/spec/create-yume/index.md` 和对应 layer。
+6. 开始改代码前，再读 `.trellis/spec/prelude/index.md` 和对应 layer。
 
 ## 什么时候维护 user docs
 

@@ -2,7 +2,7 @@
 
 ## 这个文档的作用
 
-这份文档用来防止 Create Yume 的产品方向偏移：
+这份文档用来防止 @sayoriqwq/prelude 的产品方向偏移：
 
 - 先记录已经具备的能力。
 - 再记录明确不支持或暂缓的能力。
@@ -12,7 +12,7 @@ TODO 里的条目只是产品意图，不自动代表已承诺实现。进入实
 
 ## 当前产品定位
 
-Create Yume 是一个本地项目脚手架生成 CLI。它通过交互、preset 或结构化 spec 收集项目意图，构建 `PlanSpec`，再把模板、组合型文件、post-generate commands 和 post-generate file actions 物化到目标目录。
+@sayoriqwq/prelude 是一个本地项目脚手架生成 CLI。它通过交互、preset 或结构化 spec 收集项目意图，构建 `PlanSpec`，再把模板、组合型文件、post-generate commands 和 post-generate file actions 物化到目标目录。
 
 当前重点不是覆盖所有框架和模板来源，而是把一组清晰边界内的项目生成做稳、做可组合、做可验证。
 
@@ -79,8 +79,8 @@ Create Yume 是一个本地项目脚手架生成 CLI。它通过交互、preset 
 - root 仓库有 `pnpm verify`，包含 build、test、lint、knip。
 - root 仓库有 `pnpm smoke:dry-run` 和 `pnpm smoke:examples`。
 - generated smoke 输出保留在 `apps/examples/.generated/`，方便人工检查。
-- smoke 支持 `CREATE_YUME_SMOKE_CASES` 选择相关生成面。
-- smoke 支持 `CREATE_YUME_SMOKE_CONCURRENCY` 控制并发。
+- smoke 支持 `PRELUDE_SMOKE_CASES` 选择相关生成面。
+- smoke 支持 `PRELUDE_SMOKE_CONCURRENCY` 控制并发。
 
 ### 知识与协作能力
 

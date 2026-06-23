@@ -339,12 +339,12 @@ async function assertDryRunWroteNothing(testCase: DryRunCase, rootDir: string, t
 
 async function assertBuiltCliAvailable() {
   if (!(await pathExists(cliDistPath))) {
-    throw new Error(`[${smokePrefix}] Built CLI not found at ${cliDistPath}. Run pnpm --filter create-yume build before this smoke.`)
+    throw new Error(`[${smokePrefix}] Built CLI not found at ${cliDistPath}. Run pnpm --filter @sayoriqwq/prelude build before this smoke.`)
   }
 }
 
 async function runDryRunCase(testCase: DryRunCase) {
-  const rootDir = await mkdtemp(path.join(tmpdir(), 'create-yume-dry-run-'))
+  const rootDir = await mkdtemp(path.join(tmpdir(), 'prelude-dry-run-'))
   const targetDir = path.join(rootDir, testCase.projectName)
   let passed = false
 

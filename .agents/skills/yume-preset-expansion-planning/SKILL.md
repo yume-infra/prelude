@@ -1,11 +1,11 @@
 ---
 name: yume-preset-expansion-planning
-description: "Plan new create-yume presets or scaffold families before implementation. Use when Codex is asked to add, expand, rename, or expose React, Vue, Node, CLI, library, workspace, or future scaffold-family support and needs implementation-ready scope, contracts, verification, ownership boundaries, and docs/spec sync decisions."
+description: "Plan new `@sayoriqwq/prelude` presets or scaffold families before implementation. Use when Codex is asked to add, expand, rename, or expose React, Vue, Node, CLI, library, workspace, or future scaffold-family support and needs implementation-ready scope, contracts, verification, ownership boundaries, and docs/spec sync decisions."
 ---
 
-# Yume Preset Expansion Planning
+# @sayoriqwq/prelude Preset Expansion Planning
 
-Use this skill before implementing a new create-yume preset, scaffold family, workspace package graph, generated package kind, toolkit track, or supported-scope expansion. The output should be an implementation-ready plan, not code.
+Use this skill before implementing a new `@sayoriqwq/prelude` preset, scaffold family, workspace package graph, generated package kind, toolkit track, or supported-scope expansion. The output should be an implementation-ready plan, not code.
 
 ## Trigger Conditions
 
@@ -21,14 +21,14 @@ Do not use this skill for dependency freshness only; use `update-template-deps` 
 
 ## Required Reading
 
-1. Read `.trellis/spec/create-yume/index.md`.
+1. Read `.trellis/spec/prelude/index.md`.
 2. Read the layer indexes matching the requested expansion:
-   - `.trellis/spec/create-yume/generation-model/index.md` for presets, taxonomy, create spec, and supported scope.
-   - `.trellis/spec/create-yume/template-system/index.md` for owner contributions, templates, helpers, manifest policy, and materialization strategy.
-   - `.trellis/spec/create-yume/workspace-packages/index.md` for workspace roots, child packages, `apps/*` and `libs/*` targets, and `workspace:*` links.
-   - `.trellis/spec/create-yume/verification/index.md` for the verification matrix and generated smoke policy.
-   - `.trellis/spec/create-yume/cli-runtime/index.md` when CLI args, `--preset`, `--spec`, `--print-spec`, `--dry-run`, help text, or prompts change.
-   - `.trellis/spec/create-yume/repository/index.md` for docs/spec source-of-truth and dependency rules.
+   - `.trellis/spec/prelude/generation-model/index.md` for presets, taxonomy, create spec, and supported scope.
+   - `.trellis/spec/prelude/template-system/index.md` for owner contributions, templates, helpers, manifest policy, and materialization strategy.
+   - `.trellis/spec/prelude/workspace-packages/index.md` for workspace roots, child packages, `apps/*` and `libs/*` targets, and `workspace:*` links.
+   - `.trellis/spec/prelude/verification/index.md` for the verification matrix and generated smoke policy.
+   - `.trellis/spec/prelude/cli-runtime/index.md` when CLI args, `--preset`, `--spec`, `--print-spec`, `--dry-run`, help text, or prompts change.
+   - `.trellis/spec/prelude/repository/index.md` for docs/spec source-of-truth and dependency rules.
 3. Read `.trellis/user/generated-scaffolds.md` when supported scope, common commands, or human-facing scaffold descriptions may change.
 4. Read `yume-docs-spec-sync` when making the final knowledge sync judgment.
 
@@ -50,7 +50,7 @@ For every planned expansion, mark each surface as `yes`, `no`, or `unknown`, the
 
 | Surface | Questions to answer |
 | --- | --- |
-| Supported scope | Does `.trellis/spec/create-yume/generation-model/index.md` or `.trellis/user/generated-scaffolds.md` need to list the new capability or keep it explicitly out of scope? |
+| Supported scope | Does `.trellis/spec/prelude/generation-model/index.md` or `.trellis/user/generated-scaffolds.md` need to list the new capability or keep it explicitly out of scope? |
 | Preset schema | Does `apps/cli/src/schema/preset.ts` need a new literal, alias, or compatibility mapping? |
 | Project config schema | Does `apps/cli/src/schema/project-config.ts` or related generation package spec schema need a new field, runtime, kind, toolkit, or default? |
 | Create spec | Does `apps/cli/src/schema/create-spec.ts` need decode/export/round-trip coverage or structured input support? |
@@ -92,10 +92,10 @@ For every planned expansion, mark each surface as `yes`, `no`, or `unknown`, the
    - Prefer separate PRDs for: schema and composition, template/owner materialization, workspace package behavior, generated smoke and audit, and docs/spec updates.
 
 6. Produce the verification matrix.
-   - Start from `.trellis/spec/create-yume/verification/index.md`.
+   - Start from `.trellis/spec/prelude/verification/index.md`.
    - Include focused unit or snapshot tests for every changed contract.
    - Include generated smoke when generated install/build/lint/runtime behavior changes.
-   - Use `CREATE_YUME_SMOKE_CASES=<selector>` only when the selector covers the affected generated surface; otherwise use broader smoke.
+   - Use `PRELUDE_SMOKE_CASES=<selector>` only when the selector covers the affected generated surface; otherwise use broader smoke.
    - Use `pnpm verify` for unknown or broad impact.
 
 7. Make the knowledge sync judgment.

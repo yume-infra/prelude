@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Check or update create-yume generated-template dependency literals with taze."""
+"""Check or update @sayoriqwq/prelude generated-template dependency literals with taze."""
 
 from __future__ import annotations
 
@@ -65,7 +65,7 @@ def repo_root_from(start: Path) -> Path:
     for candidate in (current, *current.parents):
         if (candidate / "pnpm-workspace.yaml").is_file() and (candidate / "apps/cli").is_dir():
             return candidate
-    raise SystemExit(f"Unable to find create-yume repo root from {start}")
+    raise SystemExit(f"Unable to find prelude repo root from {start}")
 
 
 def collect_probe(repo: Path) -> Probe:
@@ -104,7 +104,7 @@ def collect_probe(repo: Path) -> Probe:
 
 def write_probe_package_json(probe: Probe, directory: Path) -> Path:
     package_json = {
-        "name": "create-yume-template-dependency-probe",
+        "name": "prelude-template-dependency-probe",
         "private": True,
         "dependencies": dict(sorted(probe.dependencies.items())),
     }
@@ -232,7 +232,7 @@ def print_summary(
 def parse_args(argv: list[str]) -> argparse.Namespace:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--mode", choices=("check", "update"), default="check")
-    parser.add_argument("--repo", type=Path, default=Path.cwd(), help="create-yume repository root or a child path")
+    parser.add_argument("--repo", type=Path, default=Path.cwd(), help="@sayoriqwq/prelude repository root or a child path")
     parser.add_argument("--keep-probe", action="store_true", help="keep the temporary probe directory for debugging")
     parser.add_argument("--no-force", action="store_true", help="do not pass --force to taze")
     return parser.parse_args(argv)
@@ -243,7 +243,7 @@ def main(argv: list[str]) -> int:
     repo = repo_root_from(args.repo)
     probe = collect_probe(repo)
 
-    temp_dir = Path(tempfile.mkdtemp(prefix="create-yume-template-deps-"))
+    temp_dir = Path(tempfile.mkdtemp(prefix="prelude-template-deps-"))
     try:
       package_json_path = write_probe_package_json(probe, temp_dir)
       result = run_taze(repo, temp_dir, write=True, force=not args.no_force)

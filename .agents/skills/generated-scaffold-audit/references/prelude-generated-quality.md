@@ -1,10 +1,10 @@
 <overview>
-This reference captures create-yume-specific generated quality boundaries established across M005 S01-S04. It should be read with `classification-vocabulary.md` before producing or updating generated scaffold audit reports.
+This reference captures `@sayoriqwq/prelude`-specific generated quality boundaries established across M005 S01-S04. It should be read with `classification-vocabulary.md` before producing or updating generated scaffold audit reports.
 </overview>
 
 <preset_boundaries>
 <supported_scope>
-The current create-yume generated scaffold scope includes React, Vue, Node backend, CLI, library, workspace root, and structured workspace child packages. Audit reports should stay within supported generated surfaces and should not introduce worker scaffolds, remote template sources, plugin systems, or incremental updates to existing projects.
+The current @sayoriqwq/prelude generated scaffold scope includes React, Vue, Node backend, CLI, library, workspace root, and structured workspace child packages. Audit reports should stay within supported generated surfaces and should not introduce worker scaffolds, remote template sources, plugin systems, or incremental updates to existing projects.
 </supported_scope>
 
 <full_preset_policy>

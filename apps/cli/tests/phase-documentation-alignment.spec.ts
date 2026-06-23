@@ -5,7 +5,7 @@ import { describe, expect, it } from 'vitest'
 
 const testsDir = path.dirname(fileURLToPath(import.meta.url))
 const repoRoot = path.resolve(testsDir, '../../..')
-const verificationSpecRoot = path.join(repoRoot, '.trellis/spec/create-yume/verification')
+const verificationSpecRoot = path.join(repoRoot, '.trellis/spec/prelude/verification')
 
 const docs = {
   phaseRoadmap: path.join(verificationSpecRoot, 'phase-roadmap.md'),
@@ -15,7 +15,7 @@ const docs = {
 function readTrackedVerificationSpec(filePath: string) {
   const relativePath = path.relative(repoRoot, filePath)
 
-  expect(relativePath, 'contract test must only read tracked Trellis verification specs').toMatch(/^\.trellis\/spec\/create-yume\/verification\//)
+  expect(relativePath, 'contract test must only read tracked Trellis verification specs').toMatch(/^\.trellis\/spec\/prelude\/verification\//)
   expect(relativePath, 'contract test must not read legacy docs').not.toMatch(/^docs\//)
   expect(relativePath, 'contract test must not read generated example artifacts').not.toContain('apps/examples/.generated')
   expect(existsSync(filePath), `${relativePath} must exist`).toBe(true)

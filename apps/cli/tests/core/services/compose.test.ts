@@ -114,7 +114,7 @@ describe('command working directory helpers', () => {
 
   it('applies the target directory through Command.workingDirectory', () => {
     const command = Command.make('pnpm', 'install') as StandardCommand
-    const targetDir = makeTargetDir('/tmp/create-yume-working-dir')
+    const targetDir = makeTargetDir('/tmp/prelude-working-dir')
 
     const located = withWorkingDirectory(command, targetDir)
 
@@ -137,7 +137,7 @@ describe('command working directory helpers', () => {
         ownership: contributionTrace(WorkspaceBootstrapOwner, ContributionUnitKind.PostGenerateCommand),
       },
     ]
-    const targetDir = makeTargetDir('/tmp/create-yume-execute-dir')
+    const targetDir = makeTargetDir('/tmp/prelude-execute-dir')
     const executed: Array<{ command: string, cwd?: string }> = []
 
     await Effect.runPromise(

@@ -8,14 +8,14 @@
 
 | Change type | Minimum command |
 | --- | --- |
-| Template fragment, partial, registry, helper | `pnpm --filter create-yume test` |
-| Planner behavior or `PlanSpec` projection | `pnpm --filter create-yume test` |
-| JSON/text mutation or package manifest policy | `pnpm --filter create-yume build` plus focused tests |
-| Workspace root materialization | `pnpm --filter create-yume test -- workspace-root` |
-| Workspace package generation | `pnpm --filter create-yume test -- planner && pnpm --filter create-yume typecheck` |
-| CLI args, `--spec`, resolved spec export | `pnpm --filter create-yume test -- cli-args create-spec compose preview && pnpm --filter create-yume typecheck`; add `pnpm --filter create-yume smoke:dry-run` when the change touches dry-run no-write behavior or root/package preview grouping |
-| CLI toolkit track, generated CLI dependencies, or bin behavior | `pnpm --filter create-yume test -- cli-args create-spec planner package-json template-render generated-smoke-gate && CREATE_YUME_SMOKE_CASES=cli pnpm --filter create-yume smoke:examples` |
-| Real generated project baseline | `pnpm --filter create-yume smoke:examples` |
+| Template fragment, partial, registry, helper | `pnpm --filter @sayoriqwq/prelude test` |
+| Planner behavior or `PlanSpec` projection | `pnpm --filter @sayoriqwq/prelude test` |
+| JSON/text mutation or package manifest policy | `pnpm --filter @sayoriqwq/prelude build` plus focused tests |
+| Workspace root materialization | `pnpm --filter @sayoriqwq/prelude test -- workspace-root` |
+| Workspace package generation | `pnpm --filter @sayoriqwq/prelude test -- planner && pnpm --filter @sayoriqwq/prelude typecheck` |
+| CLI args, `--spec`, resolved spec export | `pnpm --filter @sayoriqwq/prelude test -- cli-args create-spec compose preview && pnpm --filter @sayoriqwq/prelude typecheck`; add `pnpm --filter @sayoriqwq/prelude smoke:dry-run` when the change touches dry-run no-write behavior or root/package preview grouping |
+| CLI toolkit track, generated CLI dependencies, or bin behavior | `pnpm --filter @sayoriqwq/prelude test -- cli-args create-spec planner package-json template-render generated-smoke-gate && PRELUDE_SMOKE_CASES=cli pnpm --filter @sayoriqwq/prelude smoke:examples` |
+| Real generated project baseline | `pnpm --filter @sayoriqwq/prelude smoke:examples` |
 | Docs/spec/user-only changes | Manual cold read plus targeted tests that assert documentation contracts |
 | Unknown or broad impact | `pnpm verify` |
 
@@ -23,7 +23,7 @@ Root `pnpm verify` and `pnpm verify:code` must include `pnpm knip` so broad main
 
 Dependency freshness checks are intentionally separate from verification. Use `pnpm deps:check` or generated `deps:check` scripts to inspect stale dependencies; do not fail build/test/lint verification just because the registry has a newer release.
 
-Release readiness and publish-path validation must run the workflow-equivalent full generated smoke command, `pnpm smoke:examples`, when release metadata, version commits, generated `verify` gates, package manifest policy, Knip policy, dependency ownership, or broad generated-output behavior changed. Targeted `CREATE_YUME_SMOKE_CASES=<selector>` runs are useful for debugging and focused fixes, but they are not sufficient release-ready evidence for those surfaces.
+Release readiness and publish-path validation must run the workflow-equivalent full generated smoke command, `pnpm smoke:examples`, when release metadata, version commits, generated `verify` gates, package manifest policy, Knip policy, dependency ownership, or broad generated-output behavior changed. Targeted `PRELUDE_SMOKE_CASES=<selector>` runs are useful for debugging and focused fixes, but they are not sufficient release-ready evidence for those surfaces.
 
 ## Test Organization
 
@@ -41,8 +41,8 @@ Release readiness and publish-path validation must run the workflow-equivalent f
 - CLI tool smoke must verify `bin` metadata, shebang behavior, and executable invocation.
 - Effect CLI smoke must install peer-compatible Effect packages, build the generated project, and invoke the generated bin.
 - Workspace generated smoke must cover real install/build for mixed `apps/*` and `libs/*` packages, explicit `workspace:*` links, root workspace files, and package-local CLI bin invocation.
-- Use `CREATE_YUME_SMOKE_CASES` to run only affected generated surfaces when unrelated templates or generation paths were not changed. Supported selectors include preset names, project names, and broad tags such as `react`, `vue`, `frontend`, `node`, `backend`, `cli`, `library`, and `workspace`.
-- Generated smoke uses `CREATE_YUME_SMOKE_CONCURRENCY` for bounded parallel generation and post-install build/lint/bin checks; default is `2`. Keep per-project `pnpm install` serial under `apps/examples/.generated/` to avoid shared pnpm workspace lockfile races.
+- Use `PRELUDE_SMOKE_CASES` to run only affected generated surfaces when unrelated templates or generation paths were not changed. Supported selectors include preset names, project names, and broad tags such as `react`, `vue`, `frontend`, `node`, `backend`, `cli`, `library`, and `workspace`.
+- Generated smoke uses `PRELUDE_SMOKE_CONCURRENCY` for bounded parallel generation and post-install build/lint/bin checks; default is `2`. Keep per-project `pnpm install` serial under `apps/examples/.generated/` to avoid shared pnpm workspace lockfile races.
 
 ## Related Contracts
 

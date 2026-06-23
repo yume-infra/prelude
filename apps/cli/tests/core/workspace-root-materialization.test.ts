@@ -163,7 +163,7 @@ describe('workspace root materialization', () => {
   it('applies the minimal workspace root plan as root-level files', async () => {
     const writes: Array<{ path: string, content: string }> = []
     const directories: string[] = []
-    const baseDir = makeTargetDir('/tmp/create-yume-workspace-root-apply')
+    const baseDir = makeTargetDir('/tmp/prelude-workspace-root-apply')
 
     await Effect.runPromise(
       Effect.gen(function* () {
@@ -208,7 +208,7 @@ describe('workspace root materialization', () => {
   it('rolls back generated workspace root files when root package writing fails', async () => {
     const writes: Array<{ path: string, content: string }> = []
     const removes: string[] = []
-    const baseDir = makeTargetDir('/tmp/create-yume-workspace-root-rollback')
+    const baseDir = makeTargetDir('/tmp/prelude-workspace-root-rollback')
     const packageJsonPath = `${baseDir}/package.json`
 
     const exit = await Effect.runPromiseExit(

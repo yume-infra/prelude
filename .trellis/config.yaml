@@ -67,8 +67,8 @@ update:
 
 # Auto-detected monorepo packages
 packages:
-  create-yume:
+  prelude:
     path: apps/cli
   examples:
     path: apps/examples
-default_package: create-yume
+default_package: prelude

@@ -1,11 +1,11 @@
 ---
 name: yume-template-source-map-fixer
-description: "Map create-yume generated-output symptoms back to durable template, owner, manifest, planner, or verification sources; implement source fixes instead of editing ignored generated output; and verify the affected generated surface."
+description: "Map @sayoriqwq/prelude generated-output symptoms back to durable template, owner, manifest, planner, or verification sources; implement source fixes instead of editing ignored generated output; and verify the affected generated surface."
 ---
 
-# Yume Template Source-Map Fixer
+# @sayoriqwq/prelude Template Source-Map Fixer
 
-Use this skill when the task is to fix a create-yume generated scaffold defect after there is a concrete generated-output symptom, audit report, failing smoke command, lint/build failure, or user-visible generated file issue. The skill turns generated evidence into source-owned changes.
+Use this skill when the task is to fix a @sayoriqwq/prelude generated scaffold defect after there is a concrete generated-output symptom, audit report, failing smoke command, lint/build failure, or user-visible generated file issue. The skill turns generated evidence into source-owned changes.
 
 ## Trigger Conditions
 
@@ -68,11 +68,11 @@ Source fixes must land in the durable owner:
    - Add or update focused tests when the owner behavior is covered by render snapshots, manifest contribution tests, planner tests, smoke-gate tests, or schema tests.
 
 6. Verify the affected surface.
-   - Template fragment, partial, registry, helper: `pnpm --filter create-yume test`.
-   - Planner or `PlanSpec`: `pnpm --filter create-yume test`.
-   - Package manifest policy: `pnpm --filter create-yume build` plus focused manifest tests.
-   - Workspace root or child packages: targeted planner/workspace tests and `pnpm --filter create-yume typecheck` when package graph behavior changes.
-   - Real generated project behavior: `CREATE_YUME_SMOKE_CASES=<affected-selector> pnpm --filter create-yume smoke:examples`.
+   - Template fragment, partial, registry, helper: `pnpm --filter @sayoriqwq/prelude test`.
+   - Planner or `PlanSpec`: `pnpm --filter @sayoriqwq/prelude test`.
+   - Package manifest policy: `pnpm --filter @sayoriqwq/prelude build` plus focused manifest tests.
+   - Workspace root or child packages: targeted planner/workspace tests and `pnpm --filter @sayoriqwq/prelude typecheck` when package graph behavior changes.
+   - Real generated project behavior: `PRELUDE_SMOKE_CASES=<affected-selector> pnpm --filter @sayoriqwq/prelude smoke:examples`.
    - Broad or uncertain impact: `pnpm verify`.
    - If a full preset is lint-enabled, include generated `pnpm verify` evidence either through smoke or direct generated-project commands; `lint --max-warnings=0` alone is insufficient because it misses Knip/package dependency regressions.
    - If package manifest or lifecycle policy touches Husky/code-quality tooling, verify a Git-enabled generated target: confirm `pnpm verify` passes, `core.hooksPath` is `.husky/_`, and a no-`.git` pack copy is quiet while still including built `dist` files.

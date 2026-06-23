@@ -156,7 +156,7 @@ describe('templateEngineService', () => {
     await expect(runWithTemplateEngine(
       Effect.gen(function* () {
         const templateEngine = yield* TemplateEngineService
-        yield* templateEngine.prepare(vueConfig, makeTemplatePath('/tmp/create-yume/missing-partials'))
+        yield* templateEngine.prepare(vueConfig, makeTemplatePath('/tmp/prelude/missing-partials'))
       }),
     )).resolves.toBeUndefined()
   })

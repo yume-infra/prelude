@@ -75,14 +75,14 @@ describe('parseRawCliArgs', () => {
   it('normalizes structured spec, no-input, and print-spec flags', () => {
     expect(parseRawCliArgs([
       '--spec',
-      'create-yume.json',
+      'prelude.json',
       '--name',
       'demo-workspace',
       '--no-input',
       '--print-spec',
     ])).toEqual({
       _: [],
-      spec: 'create-yume.json',
+      spec: 'prelude.json',
       name: 'demo-workspace',
       rollback: true,
       noInput: true,

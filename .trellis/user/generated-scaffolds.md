@@ -2,7 +2,7 @@
 
 ## 当前支持范围
 
-Create Yume 当前支持这些本地 scaffold：
+@sayoriqwq/prelude 当前支持这些本地 scaffold：
 
 - React standalone app
 - Vue standalone app
@@ -65,7 +65,7 @@ node apps/cli/dist/index.js --preset standalone-library-minimal --name my-lib
 结构化 spec：
 
 ```bash
-node apps/cli/dist/index.js --spec create-yume.json --name my-workspace --no-input
+node apps/cli/dist/index.js --spec prelude.json --name my-workspace --no-input
 ```
 
 dry run：

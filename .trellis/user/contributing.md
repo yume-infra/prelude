@@ -4,9 +4,9 @@
 
 ```bash
 pnpm build
-pnpm --filter create-yume build
-pnpm --filter create-yume test
-pnpm --filter create-yume typecheck
+pnpm --filter @sayoriqwq/prelude build
+pnpm --filter @sayoriqwq/prelude test
+pnpm --filter @sayoriqwq/prelude typecheck
 pnpm verify
 pnpm smoke:dry-run
 pnpm smoke:examples
@@ -15,18 +15,18 @@ pnpm smoke:examples
 `pnpm smoke:examples` 会把 generated scaffold 输出保留在 `apps/examples/.generated/`。如果只改了某类模板或生成链路，不需要全量跑慢 smoke，可以按影响面选择：
 
 ```bash
-CREATE_YUME_SMOKE_CASES=react pnpm smoke:examples
-CREATE_YUME_SMOKE_CASES=cli,library pnpm smoke:examples
-CREATE_YUME_SMOKE_CASES=workspace pnpm smoke:examples
+PRELUDE_SMOKE_CASES=react pnpm smoke:examples
+PRELUDE_SMOKE_CASES=cli,library pnpm smoke:examples
+PRELUDE_SMOKE_CASES=workspace pnpm smoke:examples
 ```
 
-generated smoke 默认 `CREATE_YUME_SMOKE_CONCURRENCY=2`：生成阶段和安装后的 build/lint/bin 检查会限流并发，`pnpm install` 会串行执行，避免 `apps/examples/.generated/` workspace 的共享 lockfile 竞争。排查不稳定问题时可用 `CREATE_YUME_SMOKE_CONCURRENCY=1` 完全串行。
+generated smoke 默认 `PRELUDE_SMOKE_CONCURRENCY=2`：生成阶段和安装后的 build/lint/bin 检查会限流并发，`pnpm install` 会串行执行，避免 `apps/examples/.generated/` workspace 的共享 lockfile 竞争。排查不稳定问题时可用 `PRELUDE_SMOKE_CONCURRENCY=1` 完全串行。
 
 ## 验证怎么选
 
 只改 `.trellis/user/` 或 `.trellis/spec/` 时，重点做人工冷读和相关文档 contract 测试。
 
-改模板、registry、planner、schema、CLI args 或 generated output 时，按 `.trellis/spec/create-yume/verification/index.md` 选择最低验证命令。
+改模板、registry、planner、schema、CLI args 或 generated output 时，按 `.trellis/spec/prelude/verification/index.md` 选择最低验证命令。
 
 不确定影响面时，直接跑：
 

@@ -10,7 +10,7 @@
 
 **Date**: 2026-05-06
 **Task**: Merge Turborepo and Effect CLI expansion tracks
-**Package**: create-yume
+**Package**: prelude
 **Branch**: `main`
 
 ### Summary
@@ -33,9 +33,9 @@ Merged the A/B/C expansion worktrees into main: hardened workspace root script d
 
 - [OK] `pnpm knip`
 - [OK] `pnpm lint`
-- [OK] `pnpm --filter create-yume typecheck`
-- [OK] `pnpm --filter create-yume build`
-- [OK] `pnpm --filter create-yume test` (33 files, 296 tests)
+- [OK] `pnpm --filter @sayoriqwq/prelude typecheck`
+- [OK] `pnpm --filter @sayoriqwq/prelude build`
+- [OK] `pnpm --filter @sayoriqwq/prelude test` (33 files, 296 tests)
 - [OK] `git diff --check`
 
 ### Status
@@ -51,7 +51,7 @@ Merged the A/B/C expansion worktrees into main: hardened workspace root script d
 
 **Date**: 2026-05-06
 **Task**: Migrate final acceptance smoke gates
-**Package**: create-yume
+**Package**: prelude
 **Branch**: `main`
 
 ### Summary
@@ -85,7 +85,7 @@ Manually migrated final acceptance smoke coverage onto main: dry-run spec no-wri
 
 **Date**: 2026-05-06
 **Task**: Expand preset recommendations
-**Package**: create-yume
+**Package**: prelude
 **Branch**: `main`
 
 ### Summary
@@ -120,7 +120,7 @@ Added workspace and standalone preset families, synced docs/specs, and verified 
 
 **Date**: 2026-05-07
 **Task**: Add and clean Knip verification
-**Package**: create-yume
+**Package**: prelude
 **Branch**: `dev`
 
 ### Summary
@@ -155,7 +155,7 @@ Added root Knip workspace check, aligned the dependency with the pnpm catalog, t
 
 **Date**: 2026-05-07
 **Task**: Integrate Knip into verify workflow
-**Package**: create-yume
+**Package**: prelude
 **Branch**: `dev`
 
 ### Summary
@@ -189,7 +189,7 @@ Added Knip to the root verify and verify:code workflows, then updated agent-faci
 
 **Date**: 2026-05-07
 **Task**: Exclude Trellis metadata from lint
-**Package**: create-yume
+**Package**: prelude
 **Branch**: `dev`
 
 ### Summary
@@ -223,7 +223,7 @@ Updated the root ESLint ignore list so normal lint, lint:fix, and lint-staged do
 
 **Date**: 2026-05-07
 **Task**: Raise Node engine floor
-**Package**: create-yume
+**Package**: prelude
 **Branch**: `dev`
 
 ### Summary
@@ -257,7 +257,7 @@ Raised the root workspace Node engine requirement from >=18 to >=22 while keepin
 
 **Date**: 2026-05-07
 **Task**: Introduce Taze dependency maintenance
-**Package**: create-yume
+**Package**: prelude
 **Branch**: `dev`
 
 ### Summary
@@ -291,12 +291,12 @@ Installed taze through the pnpm catalog, added reproducible deps:check/deps:fres
 
 **Date**: 2026-05-07
 **Task**: Update dependencies with taze
-**Package**: create-yume
+**Package**: prelude
 **Branch**: `dev`
 
 ### Summary
 
-Ran installed taze to update the pnpm catalog, package manager version, and lockfile to current latest dependency versions; fixed the create-yume prepare script to patch workspace-root TypeScript under the updated pnpm layout; verified with taze freshness check and pnpm verify.
+Ran installed taze to update the pnpm catalog, package manager version, and lockfile to current latest dependency versions; fixed the prelude prepare script to patch workspace-root TypeScript under the updated pnpm layout; verified with taze freshness check and pnpm verify.
 
 ### Main Changes
 
@@ -325,7 +325,7 @@ Ran installed taze to update the pnpm catalog, package manager version, and lock
 
 **Date**: 2026-05-07
 **Task**: Review release readiness and gates
-**Package**: create-yume
+**Package**: prelude
 **Branch**: `dev`
 
 ### Summary
@@ -359,7 +359,7 @@ Reviewed dev against main with subagents, fixed release-readiness blockers, rest
 
 **Date**: 2026-05-07
 **Task**: Clean up completed Trellis tasks
-**Package**: create-yume
+**Package**: prelude
 **Branch**: `dev`
 
 ### Summary
@@ -391,7 +391,7 @@ Archived completed and completion-ready Trellis task directories so the active t
 
 **Date**: 2026-05-07
 **Task**: Archive legacy Trellis task statuses
-**Package**: create-yume
+**Package**: prelude
 **Branch**: `dev`
 
 ### Summary
@@ -423,12 +423,12 @@ Checked the remaining May 4 and May 5 tasks against git history. Final acceptanc
 
 **Date**: 2026-05-07
 **Task**: Execute yume autonomy skill waves
-**Package**: create-yume
+**Package**: prelude
 **Branch**: `dev`
 
 ### Summary
 
-Executed the parallel yume skill plan as lead agent: added Wave 1 and Wave 2 create-yume workflow skills, audited existing project-local skills without renaming them, recorded lead execution state, and archived the completed task tree.
+Executed the parallel yume skill plan as lead agent: added Wave 1 and Wave 2 prelude workflow skills, audited existing project-local skills without renaming them, recorded lead execution state, and archived the completed task tree.
 
 ### Main Changes
 
@@ -460,7 +460,7 @@ Executed the parallel yume skill plan as lead agent: added Wave 1 and Wave 2 cre
 
 **Date**: 2026-05-07
 **Task**: Dogfood yume AI infrastructure skills
-**Package**: create-yume
+**Package**: prelude
 **Branch**: `dev`
 
 ### Summary
@@ -494,7 +494,7 @@ Ran the new yume skill layer on the AI infrastructure slice: used release readin
 
 **Date**: 2026-05-07
 **Task**: Prepare 0.2.1 release
-**Package**: create-yume
+**Package**: prelude
 **Branch**: `dev`
 
 ### Summary
@@ -528,7 +528,7 @@ Prepared the 0.2.1 release metadata after release readiness found no new publish
 
 **Date**: 2026-05-08
 **Task**: Document Product Capabilities
-**Package**: create-yume
+**Package**: prelude
 **Branch**: `main`
 
 ### Summary

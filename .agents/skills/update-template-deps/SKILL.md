@@ -1,13 +1,13 @@
 ---
 name: update-template-deps
-description: Update create-yume generated template dependency versions with taze. Use when Codex needs to check or refresh dependency ranges emitted into generated React, Vue, Node, CLI, library, or workspace template package.json files, especially after root dependency maintenance or before release validation.
+description: Update @sayoriqwq/prelude generated template dependency versions with taze. Use when Codex needs to check or refresh dependency ranges emitted into generated React, Vue, Node, CLI, library, or workspace template package.json files, especially after root dependency maintenance or before release validation.
 ---
 
 # Update Template Deps
 
 ## Workflow
 
-1. From the create-yume repository root, inspect the current diff with `git status --short`.
+1. From the @sayoriqwq/prelude repository root, inspect the current diff with `git status --short`.
 2. Run the bundled checker first:
 
 ```bash
@@ -24,8 +24,8 @@ python3 .agents/skills/update-template-deps/scripts/update_template_deps.py --mo
 5. Verify according to the changed surface. For dependency literal changes, start with:
 
 ```bash
-pnpm --filter create-yume test -- package-json workspace-root planner
-pnpm --filter create-yume typecheck
+pnpm --filter @sayoriqwq/prelude test -- package-json workspace-root planner
+pnpm --filter @sayoriqwq/prelude typecheck
 ```
 
 Run `pnpm verify` when the update is broad, affects package manager behavior, or before committing.

@@ -1,6 +1,6 @@
 # Effect Runtime Style
 
-> Local Effect style baseline for the create-yume CLI.
+> Local Effect style baseline for the `@sayoriqwq/prelude` CLI.
 
 ---
 

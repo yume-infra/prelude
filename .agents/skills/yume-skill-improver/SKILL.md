@@ -1,9 +1,9 @@
 ---
 name: yume-skill-improver
-description: "Improve a create-yume project-local skill from concrete execution evidence. Use when a skill triggered poorly, missed context, asked weak questions, produced an incomplete handoff, caused rework, or needs a focused behavior revision with validation and residual-risk reporting."
+description: "Improve an `@sayoriqwq/prelude` project-local skill from concrete execution evidence. Use when a skill triggered poorly, missed context, asked weak questions, produced an incomplete handoff, caused rework, or needs a focused behavior revision with validation and residual-risk reporting."
 ---
 
-# Yume Skill Improver
+# @sayoriqwq/prelude Skill Improver
 
 Use this skill when revising a project-local skill because real execution showed that the skill did not guide Codex well enough. The goal is a minimal durable skill patch that prevents the observed failure class without turning the skill into a transcript, task log, or broad rewrite.
 
@@ -14,7 +14,7 @@ Use this skill when the request includes concrete evidence such as:
 - A user complaint about a specific skill run.
 - A transcript excerpt, prompt, final response, bad handoff, weak plan, missed question, or incorrect trigger.
 - A failed command, missing validation, stale reference, wrong file owner, or repeated rework caused by skill instructions.
-- A request to make a project-local skill more autonomous, less vague, safer under parallel work, or better at using create-yume evidence.
+- A request to make a project-local skill more autonomous, less vague, safer under parallel work, or better at using `@sayoriqwq/prelude` evidence.
 
 Do not use this skill for creating a brand-new skill from scratch; use `skill-creator` for general skill creation and the relevant yume planning skill for domain-specific scope. Do not rename or refactor unrelated skills unless the task explicitly grants ownership.
 

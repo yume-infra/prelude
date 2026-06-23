@@ -1,8 +1,8 @@
-# Create Yume
+# @sayoriqwq/prelude
 
 > 一个支持 React、Vue、pnpm workspace root、Node、CLI tool 与结构化 workspace package 生成的现代本地脚手架，用 Effect 驱动交互、模板编排与生成流程。
 
-Create Yume 用来把“新建项目”这件事做得更稳一点。
+@sayoriqwq/prelude 用来把“新建项目”这件事做得更稳一点。
 
 它当前不追求覆盖所有框架、所有模板来源、所有工程玩法，而是把范围收紧在几类本地项目上：
 
@@ -56,7 +56,7 @@ Create Yume 用来把“新建项目”这件事做得更稳一点。
 
 ```bash
 git clone <repository-url>
-cd create-yume
+cd prelude
 pnpm install
 pnpm build
 ```
@@ -108,11 +108,11 @@ node apps/cli/dist/index.js --p vue-full --name my-app --no-rollback
 复杂 workspace package graph 使用结构化 create spec，而不是把子包列表塞进一长串 CLI flags。`--spec` 可以接收 JSON 文件路径，也可以接收 inline JSON；`--name` 仍然负责目标目录名。
 
 ```bash
-node apps/cli/dist/index.js --spec create-yume.json --name my-workspace --dry-run --no-input
+node apps/cli/dist/index.js --spec prelude.json --name my-workspace --dry-run --no-input
 node apps/cli/dist/index.js --spec '{"shape":"workspace","packages":[]}' --name empty-workspace --print-spec --no-input
 ```
 
-`create-yume.json` 示例：
+`prelude.json` 示例：
 
 ```json
 {
@@ -173,7 +173,7 @@ node apps/cli/dist/index.js --preset standalone-react-full --name my-app --dry-r
 
 ```bash
 pnpm link
-create-yume
+prelude
 ```
 
 ## 常用命令
@@ -188,26 +188,26 @@ pnpm smoke:dry-run
 pnpm smoke:examples
 ```
 
-`pnpm smoke:examples` 会把生成物落到 `apps/examples/.generated/`，成功后也保留，方便直接检查真实 scaffold 输出。慢 smoke 不需要每次全跑；只改某类模板或生成链路时，用 `CREATE_YUME_SMOKE_CASES` 选择相关 case：
+`pnpm smoke:examples` 会把生成物落到 `apps/examples/.generated/`，成功后也保留，方便直接检查真实 scaffold 输出。慢 smoke 不需要每次全跑；只改某类模板或生成链路时，用 `PRELUDE_SMOKE_CASES` 选择相关 case：
 
 ```bash
-CREATE_YUME_SMOKE_CASES=react pnpm smoke:examples
-CREATE_YUME_SMOKE_CASES=cli,library pnpm smoke:examples
-CREATE_YUME_SMOKE_CASES=workspace pnpm smoke:examples
+PRELUDE_SMOKE_CASES=react pnpm smoke:examples
+PRELUDE_SMOKE_CASES=cli,library pnpm smoke:examples
+PRELUDE_SMOKE_CASES=workspace pnpm smoke:examples
 ```
 
-generated smoke 默认用 `CREATE_YUME_SMOKE_CONCURRENCY=2` 并发生成项目和运行安装后的 build/lint/bin 检查；`pnpm install` 阶段会按项目串行执行，避免 `.generated` pnpm workspace 的共享 lockfile 竞争。调试时可设为 `1`：
+generated smoke 默认用 `PRELUDE_SMOKE_CONCURRENCY=2` 并发生成项目和运行安装后的 build/lint/bin 检查；`pnpm install` 阶段会按项目串行执行，避免 `.generated` pnpm workspace 的共享 lockfile 竞争。调试时可设为 `1`：
 
 ```bash
-CREATE_YUME_SMOKE_CONCURRENCY=1 CREATE_YUME_SMOKE_CASES=cli pnpm smoke:examples
+PRELUDE_SMOKE_CONCURRENCY=1 PRELUDE_SMOKE_CASES=cli pnpm smoke:examples
 ```
 
 ## 项目知识入口
 
 - [项目上下文总览](./.trellis/user/index.md)
-- [Create Yume 项目说明](./.trellis/user/create-yume.md)
+- [@sayoriqwq/prelude 项目说明](./.trellis/user/prelude.md)
 - [生成脚手架说明](./.trellis/user/generated-scaffolds.md)
-- [执行规范索引](./.trellis/spec/create-yume/index.md)
+- [执行规范索引](./.trellis/spec/prelude/index.md)
 
 ## 仓库内有什么
 
@@ -229,7 +229,7 @@ git commit -m "docs: align project documentation"
 更多约定见：
 
 - [协作与验证说明](./.trellis/user/contributing.md)
-- [验证规范](./.trellis/spec/create-yume/verification/index.md)
+- [验证规范](./.trellis/spec/prelude/verification/index.md)
 
 ## 致谢
 

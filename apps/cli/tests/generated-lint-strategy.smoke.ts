@@ -79,14 +79,14 @@ async function assertBuiltCliAvailable() {
     await access(cliDistPath)
   }
   catch (error) {
-    throw new Error(`[${smokePrefix}] Built CLI not found at ${cliDistPath}. Run pnpm --filter create-yume build before this smoke.`, { cause: error })
+    throw new Error(`[${smokePrefix}] Built CLI not found at ${cliDistPath}. Run pnpm --filter @sayoriqwq/prelude build before this smoke.`, { cause: error })
   }
 }
 
 async function main() {
   await assertBuiltCliAvailable()
 
-  const rootDir = await mkdtemp(path.join(tmpdir(), 'create-yume-lint-strategy-'))
+  const rootDir = await mkdtemp(path.join(tmpdir(), 'prelude-lint-strategy-'))
   let passed = false
 
   try {

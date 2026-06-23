@@ -1,6 +1,6 @@
 # Effect Config
 
-> Runtime configuration boundaries for `create-yume`.
+> Runtime configuration boundaries for `@sayoriqwq/prelude`.
 
 ---
 
@@ -23,4 +23,3 @@
 - The same raw config is parsed in more than one place.
 - A sensitive value can be logged as a plain string.
 - A downstream service depends on environment shape instead of typed `AppConfig`.
-

@@ -1,5 +1,5 @@
 {
-  "name": "@sayoriqwq/create-yume",
+  "name": "@sayoriqwq/prelude",
   "type": "module",
   "version": "0.2.3",
   "description": "A focused local project scaffolding CLI for React, Vue, Node, CLI tools, libraries, and pnpm workspaces",
@@ -14,7 +14,7 @@
   ],
   "main": "dist/index.js",
   "bin": {
-    "create-yume": "dist/index.js"
+    "prelude": "dist/index.js"
   },
   "files": [
     "dist",

@@ -1,12 +1,12 @@
-# Create Yume Spec Index
+# @sayoriqwq/prelude Spec Index
 
-> Agent-facing source of truth for the `create-yume` CLI monorepo.
+> Agent-facing source of truth for the `@sayoriqwq/prelude` CLI monorepo.
 
 ---
 
 ## Overview
 
-`create-yume` is not a traditional two-layer web application. It is a pnpm workspace whose primary package, `apps/cli`, is an Effect-based TypeScript CLI that plans and materializes local project scaffolds.
+`@sayoriqwq/prelude` is not a traditional two-layer web application. It is a pnpm workspace whose primary package, `apps/cli`, is an Effect-based TypeScript CLI that plans and materializes local project scaffolds.
 
 Use domain-specific layers instead of generic web-app layers.
 
@@ -33,6 +33,6 @@ Use domain-specific layers instead of generic web-app layers.
 ## Quality Check
 
 - No new spec or workflow guidance should point to `docs/`.
-- No new create-yume spec should use a generic web-app split as the primary model.
+- No new `@sayoriqwq/prelude` spec should use a generic web-app split as the primary model.
 - Contracts must reference real code paths, command names, schema fields, or generated target paths.
 - User-facing explanations belong in `.trellis/user/`; executable implementation rules belong here.

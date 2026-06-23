@@ -59,4 +59,4 @@ Map generated-output symptoms to durable owners only after command evidence is c
 
 ## Related Skill Contract
 
-The generated scaffold audit skill must keep pointing to this spec. Its workflow required reading should include this file, `references/classification-vocabulary.md`, `references/create-yume-generated-quality.md`, and existing generated scaffold tests under `apps/cli/tests/`.
+The generated scaffold audit skill must keep pointing to this spec. Its workflow required reading should include this file, `references/classification-vocabulary.md`, `references/prelude-generated-quality.md`, and existing generated scaffold tests under `apps/cli/tests/`.

@@ -1,8 +1,8 @@
-# Create Yume 项目说明
+# @sayoriqwq/prelude 项目说明
 
 ## 它是什么
 
-Create Yume 是一个脚手架生成 CLI。用户通过交互、preset 或结构化 spec 输入描述想创建的项目，CLI 会构建一份 `PlanSpec`，再把模板、组合型文件、post-generate commands 和 post-generate file actions 物化到目标目录。
+@sayoriqwq/prelude 是一个脚手架生成 CLI。用户通过交互、preset 或结构化 spec 输入描述想创建的项目，CLI 会构建一份 `PlanSpec`，再把模板、组合型文件、post-generate commands 和 post-generate file actions 物化到目标目录。
 
 它不是传统业务系统，也不应该按通用业务应用心智模型理解。更贴近的拆分是：
 
@@ -28,7 +28,7 @@ Create Yume 是一个脚手架生成 CLI。用户通过交互、preset 或结构
 
 ## 生成链路
 
-Create Yume 的主链路是一条稳定 workflow：
+@sayoriqwq/prelude 的主链路是一条稳定 workflow：
 
 1. 收集并 decode 输入。
 2. 得到 `ProjectConfig`。

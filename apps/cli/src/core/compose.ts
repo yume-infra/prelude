@@ -3,7 +3,7 @@ import { intro } from '@clack/prompts'
 import { Effect, pipe } from 'effect'
 
 export const showWelcome = Effect.sync(() => {
-  intro('welcome to create-yume')
+  intro('welcome to @sayoriqwq/prelude')
 })
 
 // for debugging
