@@ -52,7 +52,7 @@
 
 ## 重构方向
 
-`prelude` 正在转向新的最终架构：preset、普通 CLI 和 spec 输入最终都进入同一条 composition pipeline；能力不直接写共享文件，而是贡献到 logical surfaces；每个 physical write 由一个 materializer 负责；生成结果通过 `.prelude/manifest.json` 记录 ownership、pins、providers 和 managed surfaces。
+`prelude` 正在转向新的最终架构：`CreateSpec` 是唯一 canonical creation input；普通 CLI 是 guided `CreateSpec` builder；方向明确时直接提供 spec。能力不直接写共享文件，而是贡献到 logical surfaces；每个 physical write 由一个 materializer 负责。生成结果通过 `.prelude/manifest.json` 记录创建账本、providers 和 lifecycle surfaces；普通 scaffold 输出创建后默认交给项目所有者，update 只服务仍有生命周期价值的 harness/provider。
 
 当前目标与最终态以 `docs/` 为准：
 
@@ -78,7 +78,7 @@ pnpm build
 node apps/cli/dist/index.js
 # CLI monorepo: Create New Project -> pnpm Workspace / Monorepo -> CLI Tool + Core Library
 
-# 非交互 preset 模式
+# 当前兼容的非交互 preset 模式
 node apps/cli/dist/index.js --preset standalone-react-full --name my-app --install
 node apps/cli/dist/index.js --preset workspace-root-minimal --name my-workspace
 node apps/cli/dist/index.js --preset workspace-cli-library --name my-tool-workspace

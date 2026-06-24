@@ -1,7 +1,8 @@
 # Manifest Materialization Architecture
 
 This document explains how `prelude` should turn a user request into files while
-remaining composable and upgradable.
+remaining composable, while leaving only explicit lifecycle provider surfaces
+updatable after creation.
 
 The core rule is:
 
@@ -9,7 +10,8 @@ The core rule is:
 Capabilities do not write shared files directly.
 Capabilities contribute to logical surfaces.
 One materializer owns each physical write.
-The manifest records the resolved graph and managed surfaces after verification.
+The manifest records the resolved graph, handed-off provenance, and lifecycle
+surfaces after verification.
 ```
 
 ## Why This Exists
@@ -20,8 +22,8 @@ The manifest records the resolved graph and managed surfaces after verification.
 - package families: React, Vue, Node, CLI, library, Effect
 - engineering capabilities: linting, Knip, dependency update tooling
 - AI harness providers such as `effect-harness`
-- preset mode as a pre-filled composition
-- normal CLI mode as explicit composition
+- guided CLI as a `CreateSpec` builder
+- direct spec input for agent, CI, scripts, and repeatable generation
 
 That cannot be implemented safely as "every capability renders or patches the
 files it cares about." Many capabilities naturally want the same file:
@@ -33,23 +35,32 @@ files it cares about." Many capabilities naturally want the same file:
 - verification scripts
 - provider manifests
 
-The architecture must prevent write-order bugs, accidental overwrite, and
-future update guessing.
+The architecture must prevent write-order bugs, accidental overwrite, and future
+lifecycle update guessing.
 
 ## Core Objects
 
-### Original Intent
+### CreateSpec
 
-The user's initial request or choices before defaults are applied.
+The confirmed project creation specification before pins, provider versions, and
+materialization choices are applied.
 
 Examples:
 
 - "single package React app with Jotai, Knip, linting, and AI harness"
 - "workspace with one React app and one Effect package"
-- a preset name plus overrides
+- a reusable `CreateSpec` file maintained by Sayori
 
-Original intent is kept in the manifest so update can re-resolve the same user
-goal under newer pins and provider artifacts.
+`CreateSpec` is kept in the manifest as creation provenance and provider
+context. It is not a promise that `prelude` will reapply the full scaffold under
+newer pins after day one.
+
+`CreateSpec` may omit defaults. Defaults are applied by the resolver and recorded
+in the resolved graph, not backfilled into the spec.
+
+`CreateSpec` is closed. It does not support include, import, extends, or remote
+references. Composition is performed by capabilities and the resolver after the
+complete spec has been parsed.
 
 ### Resolved Graph
 
@@ -66,8 +77,8 @@ The resolved graph is what generation actually follows. It must include:
 - version pins
 - materialization plan inputs
 
-Update compares the previous resolved graph to the next resolved graph. It does
-not infer intent from the file tree.
+The resolved graph is creation truth. Lifecycle providers may use it as context,
+but lifecycle update does not compare and reapply the whole project graph.
 
 ### Capability Contribution
 
@@ -83,6 +94,10 @@ Examples:
 - add a provider-owned surface declaration for `effect-harness`
 
 Contributions are not file writes.
+
+Capability granularity is higher than a contribution. A capability is a
+user-understandable project ability; a contribution is how that capability
+affects logical surfaces.
 
 ### Logical Surface
 
@@ -131,13 +146,15 @@ Operations must declare:
 
 - target path or provider target
 - owning capability or provider
-- surface kind
-- create/update behavior
+- surface authority
+- create behavior
+- lifecycle update behavior, when any
 - verification or snapshot rule
 
 ### Surface Snapshot
 
-A snapshot is the manifest record used for drift detection.
+A snapshot is the manifest record used for drift detection when an active
+lifecycle surface has `owner` or `bounded` authority.
 
 Snapshot forms:
 
@@ -146,9 +163,14 @@ Snapshot forms:
 - structured value or hash for JSON/YAML/TOML pointers
 - provider-reported digest for provider-owned surfaces
 
+`none` authority surfaces are different. They are handed-off surfaces: their
+records are provenance, not lifecycle snapshots. An initial hash may be recorded
+for audit, but lifecycle update must not use it as a drift gate.
+
 ### Manifest
 
-The manifest is the root ledger written after successful generation or update.
+The manifest is the root ledger written after successful generation or lifecycle
+update.
 
 Expected generated path:
 
@@ -160,21 +182,22 @@ It should include:
 
 - `schemaVersion`
 - `preludeVersion`
-- `originalIntent`
+- `createSpec`
 - `resolvedGraph`
 - `pins`
 - `providers`
-- `managedSurfaces`
+- `lifecycleSurfaces`
 - `generatedUserSurfaces`
 
 The manifest is not the source used to write initial files. It is the durable
-state used to verify ownership and make future update deterministic.
+state used to verify lifecycle ownership and make provider-scoped update
+deterministic.
 
 ## Create Flow
 
 ```text
 input
-  -> parse original intent
+  -> parse CreateSpec
   -> resolve topology and capability graph
   -> resolve pins and providers
   -> collect contributions
@@ -183,40 +206,43 @@ input
   -> build operations
   -> apply operations
   -> run verification
-  -> snapshot managed surfaces
+  -> snapshot lifecycle surfaces and handed-off provenance
   -> write .prelude/manifest.json
 ```
 
-The manifest is written last. A failed create should not claim a managed project
-state that was not actually produced and verified.
+The manifest is written last. A failed create should not claim a generated
+project state that was not actually produced and verified.
 
-## Update Flow
+## Lifecycle Update Flow
 
 ```text
 read .prelude/manifest.json
   -> validate manifest schema
-  -> check current managed surfaces against stored snapshots
-  -> block on core managed drift
-  -> re-resolve original intent with current prelude and pins
-  -> compare previous resolved graph to next resolved graph
-  -> build update operations for declared managed surfaces only
+  -> select active lifecycle providers
+  -> validate provider contract schemas
+  -> ask providers for status/update plans
+  -> check provider-owned lifecycle surfaces against snapshots or provider reports
+  -> block on lifecycle drift
+  -> build provider lifecycle operations only
   -> dry-run or apply operations
-  -> run verification
-  -> snapshot updated managed surfaces
+  -> run provider verification
+  -> snapshot updated lifecycle surfaces
   -> write updated manifest
 ```
 
-Update must block when:
+Lifecycle update must block when:
 
 - the manifest schema version is unsupported
 - a provider contract schema version is unsupported
-- a core managed surface was manually changed
-- the next graph requires changing a generated-user surface
-- a capability conflict has no deterministic rule
-- major version drift requires redesign instead of ordinary update
+- no active lifecycle provider exists
+- an active provider-owned `owner` surface or `bounded` region was manually
+  changed
+- the provider update plan requires changing a `none` authority surface
+- a provider lifecycle conflict has no deterministic rule
+- provider major version drift requires redesign
 
-Repair is a separate flow. Starting a repair agent requires user approval, and
-applying its file changes requires separate approval.
+Lifecycle drift blocks. Lifecycle update does not repair, reconcile, or
+reinterpret drift.
 
 ## Conflict Rules
 
@@ -239,6 +265,14 @@ For managed blocks:
 
 - each block id has exactly one owner
 - adjacent user content is extension surface and must be preserved
+
+For bounded selectors:
+
+- v1 supports managed block markers
+- v1 supports structured pointers for structured files such as JSON, YAML, and
+  TOML
+- v1 does not support line ranges, regex ranges, AST nodes, or semantic source
+  regions
 
 For provider surfaces:
 
@@ -290,14 +324,15 @@ If two capabilities request `/scripts/lint` with different values, generation
 blocks unless the package manifest surface declares a deterministic composition
 rule.
 
-Manifest snapshot:
+Create ledger record:
 
 ```json
 {
   "path": "package.json",
   "kind": "structured-field",
   "owner": "package-manifest",
-  "pointers": {
+  "authority": "none",
+  "createContributions": {
     "/dependencies/react": {
       "owner": "capability:react",
       "value": "19.2.7"
@@ -314,8 +349,31 @@ Manifest snapshot:
 }
 ```
 
-On update, if `/dependencies/react` no longer matches the old manifest snapshot
-before `prelude` applies the new pin, update blocks as core managed drift.
+After create, these ordinary scaffold entries are handed off. If the user edits
+`/dependencies/react`, lifecycle update must not care. The same physical
+`package.json` may still contain provider-owned bounded entries, but only those
+provider-declared pointers are lifecycle surfaces.
+
+Example provider-owned bounded entry:
+
+```json
+{
+  "path": "package.json",
+  "kind": "structured-field",
+  "owner": "provider:effect-harness",
+  "authority": "bounded",
+  "pointers": {
+    "/devDependencies/@effect/platform": {
+      "value": "0.97.0",
+      "snapshot": "0.97.0"
+    }
+  }
+}
+```
+
+On lifecycle update, drift in the provider-owned pointer blocks provider update.
+Drift in ordinary React, Jotai, Knip, or linting entries is outside the update
+surface.
 
 ## Example: React App Shell
 
@@ -364,9 +422,10 @@ tailwind capability
 The React app shell materializer renders `src/App.tsx` once.
 
 However, the safer default is still to treat demo source files as
-generated-user surfaces after create. Update should only keep managing app shell
-files when there is an explicit managed shell contract and stable slots. Without
-that contract, source files should not be touched after initial generation.
+generated-user surfaces after create. Lifecycle update should only keep managing
+app shell files when there is an explicit lifecycle provider contract and stable
+slots. Without that contract, source files should not be touched after initial
+generation.
 
 ## Provider Harnesses
 
@@ -402,4 +461,5 @@ The provider owns:
 - provider-owned surface snapshots or digests
 
 Do not extract a shared `harness-core` module until at least two provider
-adapters prove the common interface. One adapter is a hypothetical seam.
+adapters prove the common interface. One adapter is not enough evidence for a
+shared abstraction.
