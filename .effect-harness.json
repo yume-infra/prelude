@@ -1,0 +1,28 @@
+{
+  "schemaVersion": 1,
+  "harnessRoot": "/Users/sayori/Desktop/yume-infra/effect-harness",
+  "commands": {
+    "status": "node \"/Users/sayori/Desktop/yume-infra/effect-harness/dist/bin/effect-harness.js\" status",
+    "verify": "node \"/Users/sayori/Desktop/yume-infra/effect-harness/dist/bin/effect-harness.js\" verify --target .",
+    "init": "node \"/Users/sayori/Desktop/yume-infra/effect-harness/dist/bin/effect-harness.js\" init --target . --harness \"/Users/sayori/Desktop/yume-infra/effect-harness\""
+  },
+  "routes": {
+    "harness": "/Users/sayori/Desktop/yume-infra/effect-harness/HARNESS.md",
+    "agentContract": "/Users/sayori/Desktop/yume-infra/effect-harness/harness/index.md",
+    "targetContract": "/Users/sayori/Desktop/yume-infra/effect-harness/harness/target-agent-contract.md",
+    "officialGuide": "/Users/sayori/Desktop/yume-infra/effect-harness/repos/effect/LLMS.md"
+  },
+  "source": {
+    "repository": "https://github.com/Effect-TS/effect-smol.git",
+    "branch": "main",
+    "split": "95545bdc334f4cd27a14f3308e68114e5bed92f2"
+  },
+  "packageBaseline": {
+    "effect": "4.0.0-beta.83",
+    "@effect/platform-node": "4.0.0-beta.83",
+    "@effect/vitest": "4.0.0-beta.83",
+    "@effect/tsgo": "0.14.4",
+    "@effect/language-service": "0.86.2",
+    "@typescript/native-preview": "7.0.0-dev.20260615.1"
+  }
+}

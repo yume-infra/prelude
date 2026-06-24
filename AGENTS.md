@@ -65,3 +65,36 @@ Repo-local agent configuration lives under `docs/agents/`.
 - Use the default triage labels: `needs-triage`, `needs-info`,
   `ready-for-agent`, `ready-for-human`, and `wontfix`.
 - Domain reading starts at `docs/README.md`.
+
+<!-- eslint-disable markdown/no-multiple-h1 -->
+<!-- effect-harness:start -->
+# Effect Harness
+
+This repo uses `/Users/sayori/Desktop/yume-infra/effect-harness` as its Effect harness root.
+
+Before writing non-trivial Effect code, read:
+
+- `/Users/sayori/Desktop/yume-infra/effect-harness/repos/effect/LLMS.md`
+- `/Users/sayori/Desktop/yume-infra/effect-harness/harness/index.md`
+- `/Users/sayori/Desktop/yume-infra/effect-harness/repos/effect.subtree.json`
+- `.effect-harness.json`
+
+Runtime skills and agents installed by the harness:
+
+- Use `.codex/skills/effect-code/SKILL.md` for Effect implementation and review.
+- Use `.codex/skills/effect-feedback/SKILL.md` for reusable target feedback.
+- Use `.codex/agents/effect-worker.md` when delegating focused Effect subagent work.
+
+Use:
+
+```bash
+pnpm effect:status
+pnpm effect:verify
+pnpm verify
+```
+
+Do not import from `/Users/sayori/Desktop/yume-infra/effect-harness/repos/effect`.
+Do not copy effect-harness `.codex/skills`; this target only uses the runtime installed under
+`.codex/`.
+<!-- effect-harness:end -->
+<!-- eslint-enable markdown/no-multiple-h1 -->

@@ -1,0 +1,14 @@
+{
+  "compilerOptions": {
+    "plugins": [
+      {
+        "name": "@effect/language-service",
+        "options": {
+          "diagnosticSeverity": {
+            "floatingEffect": "error"
+          }
+        }
+      }
+    ]
+  }
+}

@@ -21,7 +21,12 @@
     // Effect LSP：提供悬停信息、诊断与重构能力
     "plugins": [
       {
-        "name": "@effect/language-service"
+        "name": "@effect/language-service",
+        "options": {
+          "diagnosticSeverity": {
+            "floatingEffect": "error"
+          }
+        }
       }
     ],
 
