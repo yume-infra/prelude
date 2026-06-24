@@ -249,6 +249,286 @@ describe('create spec creation path', () => {
     )
   })
 
+  it('creates a React package runtime through package manifest and app shell surfaces', async () => {
+    await Effect.runPromise(
+      Effect.gen(function* () {
+        const targetDir = yield* Effect.promise(makeTempProjectDir)
+
+        const result = yield* createProjectFromSpec({
+          spec: {
+            topology: 'single-package',
+            package: {
+              id: 'app',
+              name: makePackageName('demo-react-app'),
+              capabilities: ['react-app', 'react-counter'],
+            },
+            rootCapabilities: [],
+            providers: [],
+            overrides: {},
+          },
+          targetDir: makeTargetDir(targetDir),
+          preludeVersion: '0.0.0-test',
+        })
+
+        assert.deepEqual(result.writePlan.operations.map(operation => ({
+          id: operation.id,
+          kind: operation.kind,
+          owner: operation.owner,
+          surfaceId: operation.surfaceId,
+          path: operation.path,
+          authority: operation.authority,
+        })), [
+          {
+            id: 'write-package-json',
+            kind: 'writeStructuredFile',
+            owner: 'materializer:package-json',
+            surfaceId: 'package-manifest:root',
+            path: 'package.json',
+            authority: 'none',
+          },
+          {
+            id: 'write-react-index-html',
+            kind: 'writeGeneratedUserFile',
+            owner: 'materializer:react-app-static',
+            surfaceId: 'react-app-static:app/index.html',
+            path: 'index.html',
+            authority: 'none',
+          },
+          {
+            id: 'write-react-main',
+            kind: 'writeGeneratedUserFile',
+            owner: 'materializer:react-app-static',
+            surfaceId: 'react-app-static:app/src/main.tsx',
+            path: 'src/main.tsx',
+            authority: 'none',
+          },
+          {
+            id: 'write-react-app-shell',
+            kind: 'writeGeneratedUserFile',
+            owner: 'materializer:react-app-shell',
+            surfaceId: 'react-app-shell:app',
+            path: 'src/App.tsx',
+            authority: 'none',
+          },
+        ])
+
+        const packageJson = yield* Effect.promise(() => readJson(path.join(targetDir, 'package.json')))
+        assert.deepEqual(packageJson, {
+          name: 'demo-react-app',
+          type: 'module',
+          version: '0.0.0',
+          scripts: {
+            dev: 'vite',
+            build: 'vite build',
+            preview: 'vite preview',
+          },
+          dependencies: {
+            'react': '^19.2.6',
+            'react-dom': '^19.2.6',
+          },
+          devDependencies: {
+            '@vitejs/plugin-react': '^6.0.1',
+            '@types/react': '^19.2.14',
+            '@types/react-dom': '^19.2.3',
+            'typescript': 'catalog:',
+            'vite': '^8.0.9',
+          },
+        })
+
+        const appShell = yield* Effect.promise(() => fs.readFile(path.join(targetDir, 'src/App.tsx'), 'utf8'))
+        assert.equal(appShell, `import { useState } from 'react'
+
+export function App() {
+  const [count, setCount] = useState(0)
+
+  return (
+    <main>
+      <h1>demo-react-app</h1>
+      <button type="button" onClick={() => setCount(value => value + 1)}>
+        Count: {count}
+      </button>
+    </main>
+  )
+}
+`)
+
+        const mainSource = yield* Effect.promise(() => fs.readFile(path.join(targetDir, 'src/main.tsx'), 'utf8'))
+        assert.equal(mainSource, `import { StrictMode } from 'react'
+import { createRoot } from 'react-dom/client'
+import { App } from './App'
+
+createRoot(document.getElementById('root')!).render(
+  <StrictMode>
+    <App />
+  </StrictMode>,
+)
+`)
+
+        const manifest = yield* Effect.promise(() =>
+          readJson<{
+            resolvedGraph: {
+              packageCapabilities: unknown
+              logicalSurfaces: unknown
+            }
+            generatedUserSurfaces: Array<{ path: string, creator: string, authority: string, operationId: string }>
+            verificationRecords: unknown
+          }>(path.join(targetDir, '.prelude/manifest.json')),
+        )
+        assert.deepEqual(manifest.resolvedGraph.packageCapabilities, {
+          app: ['react-app', 'react-counter'],
+        })
+        assert.deepEqual(manifest.resolvedGraph.logicalSurfaces, [
+          {
+            id: 'package-manifest:root',
+            materializer: 'package-json',
+            owner: 'prelude',
+          },
+          {
+            id: 'react-app-static:app/index.html',
+            materializer: 'generated-user-file',
+            owner: 'capability:react-app',
+          },
+          {
+            id: 'react-app-static:app/src/main.tsx',
+            materializer: 'generated-user-file',
+            owner: 'capability:react-app',
+          },
+          {
+            id: 'react-app-shell:app',
+            materializer: 'react-app-shell',
+            owner: 'capability:react-app',
+          },
+        ])
+        assert.deepEqual(manifest.generatedUserSurfaces, [
+          {
+            path: 'package.json',
+            creator: 'materializer:package-json',
+            authority: 'none',
+            operationId: 'write-package-json',
+          },
+          {
+            path: 'index.html',
+            creator: 'materializer:react-app-static',
+            authority: 'none',
+            operationId: 'write-react-index-html',
+          },
+          {
+            path: 'src/main.tsx',
+            creator: 'materializer:react-app-static',
+            authority: 'none',
+            operationId: 'write-react-main',
+          },
+          {
+            path: 'src/App.tsx',
+            creator: 'materializer:react-app-shell',
+            authority: 'none',
+            operationId: 'write-react-app-shell',
+          },
+        ])
+        assert.deepEqual(manifest.verificationRecords, [
+          {
+            id: 'react-app-files-present',
+            status: 'passed',
+            checkedPaths: ['package.json', 'index.html', 'src/main.tsx', 'src/App.tsx'],
+          },
+        ])
+      }).pipe(Effect.provide(TestLayer)),
+    )
+  })
+
+  it('combines React package runtime output with root engineering surfaces', async () => {
+    await Effect.runPromise(
+      Effect.gen(function* () {
+        const targetDir = yield* Effect.promise(makeTempProjectDir)
+
+        const result = yield* createProjectFromSpec({
+          spec: {
+            topology: 'single-package',
+            package: {
+              id: 'app',
+              name: makePackageName('demo-react-app'),
+              capabilities: ['react-app', 'react-counter'],
+            },
+            rootCapabilities: ['package-manager:pnpm', 'linting', 'knip'],
+            providers: [],
+            overrides: {},
+          },
+          targetDir: makeTargetDir(targetDir),
+          preludeVersion: '0.0.0-test',
+        })
+
+        assert.deepEqual(result.writePlan.operations.map(operation => operation.path), [
+          'package.json',
+          'eslint.config.mjs',
+          'knip.json',
+          'index.html',
+          'src/main.tsx',
+          'src/App.tsx',
+        ])
+
+        const packageJson = yield* Effect.promise(() => readJson(path.join(targetDir, 'package.json')))
+        assert.deepEqual(packageJson, {
+          name: 'demo-react-app',
+          type: 'module',
+          version: '0.0.0',
+          packageManager: 'pnpm@10.33.4',
+          scripts: {
+            dev: 'vite',
+            build: 'vite build',
+            preview: 'vite preview',
+            lint: 'eslint .',
+            knip: 'knip',
+            verify: 'pnpm build && pnpm lint && pnpm knip',
+          },
+          dependencies: {
+            'react': '^19.2.6',
+            'react-dom': '^19.2.6',
+          },
+          devDependencies: {
+            '@vitejs/plugin-react': '^6.0.1',
+            '@antfu/eslint-config': 'catalog:',
+            '@types/react': '^19.2.14',
+            '@types/react-dom': '^19.2.3',
+            'eslint': 'catalog:',
+            'knip': 'catalog:',
+            'typescript': 'catalog:',
+            'vite': '^8.0.9',
+          },
+        })
+
+        const manifest = yield* Effect.promise(() =>
+          readJson<{
+            verificationRecords: unknown
+            generatedUserSurfaces: Array<{ path: string, authority: string }>
+          }>(path.join(targetDir, '.prelude/manifest.json')),
+        )
+        assert.deepEqual(manifest.verificationRecords, [
+          {
+            id: 'react-app-files-present',
+            status: 'passed',
+            checkedPaths: ['package.json', 'index.html', 'src/main.tsx', 'src/App.tsx'],
+          },
+          {
+            id: 'root-engineering-files-present',
+            status: 'passed',
+            checkedPaths: ['eslint.config.mjs', 'knip.json'],
+          },
+        ])
+        assert.deepEqual(
+          manifest.generatedUserSurfaces.map(surface => ({ path: surface.path, authority: surface.authority })),
+          [
+            { path: 'package.json', authority: 'none' },
+            { path: 'eslint.config.mjs', authority: 'none' },
+            { path: 'knip.json', authority: 'none' },
+            { path: 'index.html', authority: 'none' },
+            { path: 'src/main.tsx', authority: 'none' },
+            { path: 'src/App.tsx', authority: 'none' },
+          ],
+        )
+      }).pipe(Effect.provide(TestLayer)),
+    )
+  })
+
   it('dedupes equal structured package keys and blocks incompatible values before writes', async () => {
     const dedupedPlan = await Effect.runPromise(materializeWritePlan([
       {

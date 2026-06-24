@@ -4,8 +4,10 @@ import type { TargetDir } from '@/brand/target-dir'
 import type { FileIOError, SchemaContractError } from '@/core/errors'
 
 export type Topology = 'single-package' | 'workspace'
-export type CapabilityId = 'minimal-node-package'
+export type CapabilityId = 'minimal-node-package' | 'react-app' | 'react-counter'
 export type RootCapabilityId = 'package-manager:pnpm' | 'linting' | 'knip'
+export type PackageManifestSurfaceId = `package-manifest:${string}`
+export type ReactAppShellSurfaceId = `react-app-shell:${string}`
 
 export interface CreateSpecPackage {
   readonly id: string
@@ -55,7 +57,7 @@ export type JsonValue = null | boolean | number | string | readonly JsonValue[] 
 
 export interface PackageManifestContribution {
   readonly kind: 'packageManifest'
-  readonly surfaceId: 'package-manifest:root'
+  readonly surfaceId: PackageManifestSurfaceId
   readonly owner: string
   readonly entries: Record<string, JsonValue>
 }
@@ -75,10 +77,19 @@ export interface KnipRootContribution {
 
 export interface GeneratedUserFileContribution {
   readonly kind: 'generatedUserFile'
-  readonly surfaceId: 'source:root/src/index.ts'
+  readonly surfaceId: string
   readonly owner: string
-  readonly path: 'src/index.ts'
+  readonly path: string
   readonly content: string
+}
+
+export interface ReactAppShellContribution {
+  readonly kind: 'reactAppShell'
+  readonly surfaceId: ReactAppShellSurfaceId
+  readonly owner: string
+  readonly imports: readonly string[]
+  readonly declarations: readonly string[]
+  readonly body: readonly string[]
 }
 
 export type CapabilityContribution
@@ -86,6 +97,7 @@ export type CapabilityContribution
     | EslintRootContribution
     | KnipRootContribution
     | GeneratedUserFileContribution
+    | ReactAppShellContribution
 
 export interface WriteStructuredFileOperation {
   readonly id: string
@@ -108,11 +120,11 @@ export interface WriteManagedFileOperation {
 }
 
 export interface WriteGeneratedUserFileOperation {
-  readonly id: 'write-root-source'
+  readonly id: string
   readonly kind: 'writeGeneratedUserFile'
-  readonly owner: 'capability:minimal-node-package'
-  readonly surfaceId: 'source:root/src/index.ts'
-  readonly path: 'src/index.ts'
+  readonly owner: string
+  readonly surfaceId: string
+  readonly path: string
   readonly authority: 'none'
   readonly content: string
 }

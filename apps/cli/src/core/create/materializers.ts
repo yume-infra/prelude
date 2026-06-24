@@ -5,6 +5,7 @@ import type {
   JsonValue,
   KnipRootContribution,
   PackageManifestContribution,
+  ReactAppShellContribution,
   WriteOperation,
   WritePlan,
 } from './model'
@@ -47,16 +48,17 @@ function jsonValuesMatch(left: JsonValue, right: JsonValue) {
 }
 
 function packageManifestConflict(options: {
+  readonly surfaceId: string
   readonly path: readonly string[]
   readonly existing: StructuredSlot
   readonly incomingOwner: string
   readonly incomingValue: JsonValue
 }) {
   return new SchemaContractError({
-    schema: 'package-manifest:root',
+    schema: options.surfaceId,
     issueCount: 1,
     message: [
-      `Conflicting package-manifest:root contribution at ${formatJsonPointer(options.path)}.`,
+      `Conflicting ${options.surfaceId} contribution at ${formatJsonPointer(options.path)}.`,
       `Existing owner(s): ${options.existing.owners.join(', ')} with value ${formatDiagnosticValue(options.existing.value)}.`,
       `Incoming owner: ${options.incomingOwner} with value ${formatDiagnosticValue(options.incomingValue)}.`,
     ].join(' '),
@@ -106,6 +108,7 @@ function mergeStructuredValue(options: {
   readonly incomingOwner: string
   readonly path: readonly string[]
   readonly slots: Map<string, StructuredSlot>
+  readonly surfaceId: string
 }): SchemaContractError | undefined {
   const nextPath = [...options.path, options.key]
   const existingValue = options.target[options.key]
@@ -127,6 +130,7 @@ function mergeStructuredValue(options: {
         incomingOwner: options.incomingOwner,
         path: nextPath,
         slots: options.slots,
+        surfaceId: options.surfaceId,
       })
 
       if (conflict) {
@@ -142,6 +146,7 @@ function mergeStructuredValue(options: {
   }
 
   return packageManifestConflict({
+    surfaceId: options.surfaceId,
     path: nextPath,
     existing: options.slots.get(formatJsonPointer(nextPath)) ?? {
       value: currentValue,
@@ -174,6 +179,7 @@ function orderPackageManifest(manifest: Record<string, JsonValue>) {
 function mergePackageManifestContributions(contributions: readonly PackageManifestContribution[]) {
   const manifest: Record<string, JsonValue> = {}
   const slots = new Map<string, StructuredSlot>()
+  const surfaceId = contributions[0]?.surfaceId ?? 'package-manifest:root'
 
   for (const contribution of contributions) {
     for (const [key, value] of Object.entries(contribution.entries)) {
@@ -184,6 +190,7 @@ function mergePackageManifestContributions(contributions: readonly PackageManife
         incomingOwner: contribution.owner,
         path: [],
         slots,
+        surfaceId,
       })
 
       if (conflict) {
@@ -195,12 +202,12 @@ function mergePackageManifestContributions(contributions: readonly PackageManife
   return Effect.succeed(orderPackageManifest(manifest))
 }
 
-function materializePackageJson(contributions: readonly PackageManifestContribution[]) {
+function materializePackageJson(surfaceId: string, contributions: readonly PackageManifestContribution[]) {
   return Effect.map(mergePackageManifestContributions(contributions), value => ({
     id: 'write-package-json',
     kind: 'writeStructuredFile',
     owner: 'materializer:package-json',
-    surfaceId: 'package-manifest:root',
+    surfaceId,
     path: 'package.json',
     authority: 'none',
     value,
@@ -232,15 +239,73 @@ function materializeKnipRoot(contributions: readonly KnipRootContribution[]): Wr
 }
 
 function materializeGeneratedUserFile(contribution: GeneratedUserFileContribution): WriteOperation {
+  if (contribution.surfaceId.includes('/index.html')) {
+    return {
+      id: 'write-react-index-html',
+      kind: 'writeGeneratedUserFile',
+      owner: 'materializer:react-app-static',
+      surfaceId: contribution.surfaceId,
+      path: contribution.path,
+      authority: 'none',
+      content: contribution.content,
+    }
+  }
+
+  if (contribution.surfaceId.includes('/src/main.tsx')) {
+    return {
+      id: 'write-react-main',
+      kind: 'writeGeneratedUserFile',
+      owner: 'materializer:react-app-static',
+      surfaceId: contribution.surfaceId,
+      path: contribution.path,
+      authority: 'none',
+      content: contribution.content,
+    }
+  }
+
   return {
     id: 'write-root-source',
     kind: 'writeGeneratedUserFile',
-    owner: 'capability:minimal-node-package',
+    owner: contribution.owner,
     surfaceId: contribution.surfaceId,
     path: contribution.path,
     authority: 'none',
     content: contribution.content,
   }
+}
+
+function unique(values: readonly string[]) {
+  return [...new Set(values)]
+}
+
+function materializeReactAppShell(contributions: readonly ReactAppShellContribution[]): WriteOperation[] {
+  if (contributions.length === 0) {
+    return []
+  }
+
+  const surfaceId = contributions[0]!.surfaceId
+  const imports = unique(contributions.flatMap(contribution => contribution.imports))
+  const declarations = contributions.flatMap(contribution => contribution.declarations)
+  const bodyContribution = contributions.find(contribution => contribution.owner !== 'capability:react-app')
+    ?? contributions[0]!
+  const body = bodyContribution.body.join('\n')
+  const importBlock = imports.length > 0 ? `${imports.join('\n')}\n\n` : ''
+  const declarationBlock = declarations.length > 0 ? `\n${declarations.join('\n')}\n` : ''
+
+  return [{
+    id: 'write-react-app-shell',
+    kind: 'writeGeneratedUserFile',
+    owner: 'materializer:react-app-shell',
+    surfaceId,
+    path: 'src/App.tsx',
+    authority: 'none',
+    content: `${importBlock}export function App() {${declarationBlock}
+  return (
+${body}
+  )
+}
+`,
+  }]
 }
 
 export function materializeWritePlan(contributions: readonly CapabilityContribution[]): Effect.Effect<WritePlan, SchemaContractError> {
@@ -256,13 +321,29 @@ export function materializeWritePlan(contributions: readonly CapabilityContribut
   const sourceContributions = contributions.filter(
     (contribution): contribution is GeneratedUserFileContribution => contribution.kind === 'generatedUserFile',
   )
+  const reactAppShellContributions = contributions.filter(
+    (contribution): contribution is ReactAppShellContribution => contribution.kind === 'reactAppShell',
+  )
+  const packageManifestSurfaces = new Map<string, readonly PackageManifestContribution[]>()
 
-  return Effect.map(materializePackageJson(packageManifestContributions), packageJsonOperation => ({
-    operations: [
-      packageJsonOperation,
-      ...materializeEslintRoot(eslintRootContributions),
-      ...materializeKnipRoot(knipRootContributions),
-      ...sourceContributions.map(materializeGeneratedUserFile),
-    ],
-  }))
+  for (const contribution of packageManifestContributions) {
+    const existing = packageManifestSurfaces.get(contribution.surfaceId) ?? []
+    packageManifestSurfaces.set(contribution.surfaceId, [...existing, contribution])
+  }
+
+  return Effect.map(
+    Effect.all(
+      [...packageManifestSurfaces.entries()].map(([surfaceId, surfaceContributions]) =>
+        materializePackageJson(surfaceId, surfaceContributions)),
+    ),
+    packageJsonOperations => ({
+      operations: [
+        ...packageJsonOperations,
+        ...materializeEslintRoot(eslintRootContributions),
+        ...materializeKnipRoot(knipRootContributions),
+        ...sourceContributions.map(materializeGeneratedUserFile),
+        ...materializeReactAppShell(reactAppShellContributions),
+      ],
+    }),
+  )
 }

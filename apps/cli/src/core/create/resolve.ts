@@ -1,4 +1,4 @@
-import type { CreateSpec, JsonCreateSpec, LogicalSurface, ResolvedGraph, RootCapabilityId } from './model'
+import type { CapabilityId, CreateSpec, JsonCreateSpec, LogicalSurface, ResolvedGraph, RootCapabilityId } from './model'
 import { Effect } from 'effect'
 import { SchemaContractError } from '@/core/errors'
 
@@ -28,6 +28,7 @@ const rootCapabilityLogicalSurfaces: Partial<Record<RootCapabilityId, LogicalSur
 }
 
 const supportedRootCapabilities = ['package-manager:pnpm', 'linting', 'knip'] as const satisfies readonly RootCapabilityId[]
+const supportedPackageCapabilities = ['minimal-node-package', 'react-app', 'react-counter'] as const satisfies readonly CapabilityId[]
 
 const minimalVerification = [
   'minimal-create-files-present',
@@ -35,6 +36,26 @@ const minimalVerification = [
 
 function isRootCapabilityId(capability: string): capability is RootCapabilityId {
   return supportedRootCapabilities.includes(capability as RootCapabilityId)
+}
+
+function isPackageCapabilityId(capability: string): capability is CapabilityId {
+  return supportedPackageCapabilities.includes(capability as CapabilityId)
+}
+
+function reactStaticSurface(packageId: string, path: string): LogicalSurface {
+  return {
+    id: `react-app-static:${packageId}/${path}`,
+    materializer: 'generated-user-file',
+    owner: 'capability:react-app',
+  }
+}
+
+function reactAppShellSurface(packageId: string): LogicalSurface {
+  return {
+    id: `react-app-shell:${packageId}`,
+    materializer: 'react-app-shell',
+    owner: 'capability:react-app',
+  }
 }
 
 function resolveRootCapabilities(spec: CreateSpec): readonly RootCapabilityId[] {
@@ -49,8 +70,15 @@ function resolveRootCapabilities(spec: CreateSpec): readonly RootCapabilityId[] 
   return rootCapabilities
 }
 
-function logicalSurfacesFor(rootCapabilities: readonly RootCapabilityId[]): readonly LogicalSurface[] {
-  const surfaces: LogicalSurface[] = [packageManifestLogicalSurface]
+function logicalSurfacesFor(spec: CreateSpec, rootCapabilities: readonly RootCapabilityId[]): readonly LogicalSurface[] {
+  const surfaces: LogicalSurface[] = spec.package.capabilities.includes('react-app')
+    ? [
+        packageManifestLogicalSurface,
+        reactStaticSurface(spec.package.id, 'index.html'),
+        reactStaticSurface(spec.package.id, 'src/main.tsx'),
+        reactAppShellSurface(spec.package.id),
+      ]
+    : [packageManifestLogicalSurface]
 
   for (const capability of rootCapabilities) {
     const surface = rootCapabilityLogicalSurfaces[capability]
@@ -59,11 +87,18 @@ function logicalSurfacesFor(rootCapabilities: readonly RootCapabilityId[]): read
     }
   }
 
-  surfaces.push(generatedRootSourceLogicalSurface)
+  if (spec.package.capabilities.includes('minimal-node-package')) {
+    surfaces.push(generatedRootSourceLogicalSurface)
+  }
+
   return surfaces
 }
 
-function verificationFor(rootCapabilities: readonly RootCapabilityId[]): readonly string[] {
+function verificationFor(spec: CreateSpec, rootCapabilities: readonly RootCapabilityId[]): readonly string[] {
+  if (spec.package.capabilities.includes('react-app')) {
+    return ['react-app-files-present']
+  }
+
   if (rootCapabilities.length === 0) {
     return minimalVerification
   }
@@ -110,12 +145,26 @@ export function validateCreateSpec(spec: CreateSpec): Effect.Effect<void, Schema
     issues.push(`unsupported root capabilities: ${unsupportedRootCapabilities.join(', ')}`)
   }
 
+  const unsupportedPackageCapabilities = spec.package.capabilities.filter(capability => !isPackageCapabilityId(capability))
+  if (unsupportedPackageCapabilities.length > 0) {
+    issues.push(`unsupported package capabilities: ${unsupportedPackageCapabilities.join(', ')}`)
+  }
+
   if (spec.providers.length > 0) {
     issues.push(`unsupported providers: ${spec.providers.join(', ')}`)
   }
 
-  if (!spec.package.capabilities.includes('minimal-node-package')) {
-    issues.push('minimal-node-package capability is required for the minimal creation path')
+  const selectedRuntimeCapabilities = spec.package.capabilities.filter(
+    capability => capability === 'minimal-node-package' || capability === 'react-app',
+  )
+  if (selectedRuntimeCapabilities.length === 0) {
+    issues.push('one package runtime capability is required: minimal-node-package or react-app')
+  }
+  if (selectedRuntimeCapabilities.length > 1) {
+    issues.push(`only one package runtime capability is supported: ${selectedRuntimeCapabilities.join(', ')}`)
+  }
+  if (spec.package.capabilities.includes('react-counter') && !spec.package.capabilities.includes('react-app')) {
+    issues.push('react-counter requires react-app')
   }
 
   if (issues.length > 0) {
@@ -146,7 +195,9 @@ export function resolveCreateSpec(spec: CreateSpec): ResolvedGraph {
       [spec.package.id]: spec.package.capabilities,
     },
     providers: [],
-    logicalSurfaces: rootCapabilities.length === 0 ? minimalLogicalSurfaces : logicalSurfacesFor(rootCapabilities),
-    verification: verificationFor(rootCapabilities),
+    logicalSurfaces: rootCapabilities.length === 0 && spec.package.capabilities.includes('minimal-node-package')
+      ? minimalLogicalSurfaces
+      : logicalSurfacesFor(spec, rootCapabilities),
+    verification: verificationFor(spec, rootCapabilities),
   }
 }

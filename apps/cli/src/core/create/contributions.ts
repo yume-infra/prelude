@@ -1,5 +1,9 @@
 import type { CapabilityContribution, ResolvedGraph } from './model'
 
+function reactAppShellSurfaceId(packageId: string) {
+  return `react-app-shell:${packageId}` as const
+}
+
 function verifyScriptFor(graph: ResolvedGraph): string | undefined {
   const commands = ['pnpm build']
 
@@ -16,6 +20,8 @@ function verifyScriptFor(graph: ResolvedGraph): string | undefined {
 
 export function collectCapabilityContributions(graph: ResolvedGraph): readonly CapabilityContribution[] {
   const contributions: CapabilityContribution[] = []
+  const packageId = graph.rootPackage.id
+  const packageName = graph.rootPackage.name
 
   for (const capability of graph.rootPackage.capabilities) {
     switch (capability) {
@@ -42,6 +48,90 @@ export function collectCapabilityContributions(graph: ResolvedGraph): readonly C
             content: 'export {}\n',
           },
         )
+        break
+      case 'react-app':
+        contributions.push(
+          {
+            kind: 'packageManifest',
+            surfaceId: 'package-manifest:root',
+            owner: 'capability:react-app',
+            entries: {
+              name: packageName,
+              type: 'module',
+              version: '0.0.0',
+              scripts: {
+                dev: 'vite',
+                build: 'vite build',
+                preview: 'vite preview',
+              },
+              dependencies: {
+                'react': '^19.2.6',
+                'react-dom': '^19.2.6',
+              },
+              devDependencies: {
+                '@vitejs/plugin-react': '^6.0.1',
+                '@types/react': '^19.2.14',
+                '@types/react-dom': '^19.2.3',
+                'typescript': 'catalog:',
+                'vite': '^8.0.9',
+              },
+            },
+          },
+          {
+            kind: 'generatedUserFile',
+            surfaceId: `react-app-static:${packageId}/index.html`,
+            owner: 'capability:react-app',
+            path: 'index.html',
+            content: `<div id="root"></div>
+<script type="module" src="/src/main.tsx"></script>
+`,
+          },
+          {
+            kind: 'generatedUserFile',
+            surfaceId: `react-app-static:${packageId}/src/main.tsx`,
+            owner: 'capability:react-app',
+            path: 'src/main.tsx',
+            content: `import { StrictMode } from 'react'
+import { createRoot } from 'react-dom/client'
+import { App } from './App'
+
+createRoot(document.getElementById('root')!).render(
+  <StrictMode>
+    <App />
+  </StrictMode>,
+)
+`,
+          },
+          {
+            kind: 'reactAppShell',
+            surfaceId: reactAppShellSurfaceId(packageId),
+            owner: 'capability:react-app',
+            imports: [],
+            declarations: [],
+            body: [
+              `    <main>
+      <h1>${packageName}</h1>
+    </main>`,
+            ],
+          },
+        )
+        break
+      case 'react-counter':
+        contributions.push({
+          kind: 'reactAppShell',
+          surfaceId: reactAppShellSurfaceId(packageId),
+          owner: 'capability:react-counter',
+          imports: ['import { useState } from \'react\''],
+          declarations: ['  const [count, setCount] = useState(0)'],
+          body: [
+            `    <main>
+      <h1>${packageName}</h1>
+      <button type="button" onClick={() => setCount(value => value + 1)}>
+        Count: {count}
+      </button>
+    </main>`,
+          ],
+        })
     }
   }
 

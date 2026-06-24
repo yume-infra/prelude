@@ -3,7 +3,7 @@ import * as path from 'node:path'
 import { Effect } from 'effect'
 
 function requiredPathsFor(graph: ResolvedGraph): readonly string[] {
-  return graph.logicalSurfaces.flatMap((surface) => {
+  const paths = graph.logicalSurfaces.flatMap((surface) => {
     switch (surface.id) {
       case 'package-manifest:root':
         return ['package.json']
@@ -14,9 +14,23 @@ function requiredPathsFor(graph: ResolvedGraph): readonly string[] {
       case 'source:root/src/index.ts':
         return ['src/index.ts']
       default:
+        if (surface.id.startsWith('package-manifest:')) {
+          return ['package.json']
+        }
+        if (surface.id.includes('/index.html')) {
+          return ['index.html']
+        }
+        if (surface.id.includes('/src/main.tsx')) {
+          return ['src/main.tsx']
+        }
+        if (surface.id.startsWith('react-app-shell:')) {
+          return ['src/App.tsx']
+        }
         return []
     }
   })
+
+  return [...new Set(paths)]
 }
 
 export function verifyCreateOutputs(fs: CreateFs, baseDir: string, graph: ResolvedGraph): Effect.Effect<VerificationResult, never> {
@@ -33,6 +47,31 @@ export function verifyCreateOutputs(fs: CreateFs, baseDir: string, graph: Resolv
 
     if (missingPaths.length > 0) {
       return yield* Effect.die(new Error(`Create output verification failed for missing paths: ${missingPaths.join(', ')}`))
+    }
+
+    if (graph.rootPackage.capabilities.includes('react-app')) {
+      return {
+        records: [
+          {
+            id: 'react-app-files-present',
+            status: 'passed',
+            checkedPaths: requiredPaths.filter(requiredPath =>
+              requiredPath === 'package.json'
+              || requiredPath === 'index.html'
+              || requiredPath === 'src/main.tsx'
+              || requiredPath === 'src/App.tsx'),
+          },
+          ...(graph.rootCapabilities.length > 0
+            ? [{
+                id: 'root-engineering-files-present',
+                status: 'passed' as const,
+                checkedPaths: requiredPaths.filter(requiredPath =>
+                  requiredPath === 'eslint.config.mjs'
+                  || requiredPath === 'knip.json'),
+              }]
+            : []),
+        ],
+      }
     }
 
     return {
