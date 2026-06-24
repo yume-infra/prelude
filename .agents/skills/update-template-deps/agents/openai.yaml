@@ -1,4 +1,0 @@
-interface:
-  display_name: "Update Template Deps"
-  short_description: "Refresh generated template dependencies with taze"
-  default_prompt: "Use $update-template-deps to check and update @sayoriqwq/prelude generated template dependency versions with taze."

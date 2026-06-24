@@ -1,4 +1,0 @@
-{"file": ".trellis/user/index.md", "reason": "Human-facing reading order and project context entrypoint."}
-{"file": ".trellis/user/create-yume.md", "reason": "Current CLI generation chain and supported create-yume product boundaries."}
-{"file": ".trellis/user/generated-scaffolds.md", "reason": "Current supported and unsupported generated scaffold scope."}
-{"file": ".trellis/spec/create-yume/repository/index.md", "reason": "Documentation source-of-truth rules for user docs versus spec docs."}

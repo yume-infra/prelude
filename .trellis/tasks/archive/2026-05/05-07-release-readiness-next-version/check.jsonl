@@ -1,5 +1,0 @@
-{"file": ".agents/skills/yume-release-readiness/SKILL.md", "reason": "Check release checklist output contract and severity classification."}
-{"file": ".agents/skills/yume-docs-spec-sync/SKILL.md", "reason": "Check knowledge sync judgment format."}
-{"file": ".trellis/spec/create-yume/repository/index.md", "reason": "Check documentation and dependency source-of-truth judgment."}
-{"file": ".trellis/spec/create-yume/verification/index.md", "reason": "Check verification command selection."}
-{"file": ".trellis/spec/create-yume/verification/generated-scaffold-audit.md", "reason": "Check generated-output warning and audit policy classification."}

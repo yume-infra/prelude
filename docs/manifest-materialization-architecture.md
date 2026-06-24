@@ -25,7 +25,7 @@ surfaces after verification.
 - guided CLI as a `CreateSpec` builder
 - direct spec input for agent, CI, scripts, and repeatable generation
 
-That cannot be implemented safely as "every capability renders or patches the
+That cannot be implemented safely as "every capability emits or patches the
 files it cares about." Many capabilities naturally want the same file:
 
 - `package.json`
@@ -124,7 +124,8 @@ Examples:
 - package manifest materializer writes `package.json`
 - React app shell materializer writes `src/App.tsx`
 - managed block materializer updates a marked block in `AGENTS.md`
-- provider adapter calls `effect-harness init` and records provider surfaces
+- provider lifecycle materializer validates provider-declared operations and
+  writes provider artifacts under `.prelude/providers/<id>/**`
 
 One materializer owns the final write for a physical file or managed block.
 
@@ -134,12 +135,14 @@ An operation is the explicit side effect that the apply step may execute.
 
 Initial operation types:
 
-- `renderTemplate`
+- `writeSourceFile`
 - `writeStructuredField`
 - `writeManagedBlock`
 - `writeManagedFile`
 - `writeGeneratedUserFile`
-- `callProvider`
+- `callProviderStatus`
+- `callProviderVerify`
+- `callProviderPlanUpdate`
 - `runCommand`
 
 Operations must declare:
@@ -150,6 +153,10 @@ Operations must declare:
 - create behavior
 - lifecycle update behavior, when any
 - verification or snapshot rule
+
+There is no `renderTemplate` operation. Handlebars-style `template + params bag`
+rendering is not part of the final architecture. Materializers emit complete
+files or structured changes from typed surface data.
 
 ### Surface Snapshot
 
@@ -185,7 +192,7 @@ It should include:
 - `createSpec`
 - `resolvedGraph`
 - `pins`
-- `providers`
+- `lifecycleProviders`
 - `lifecycleSurfaces`
 - `generatedUserSurfaces`
 
@@ -223,7 +230,7 @@ read .prelude/manifest.json
   -> ask providers for status/update plans
   -> check provider-owned lifecycle surfaces against snapshots or provider reports
   -> block on lifecycle drift
-  -> build provider lifecycle operations only
+  -> validate provider-declared operations against provider namespace or declared lifecycle surfaces
   -> dry-run or apply operations
   -> run provider verification
   -> snapshot updated lifecycle surfaces
@@ -239,6 +246,7 @@ Lifecycle update must block when:
   changed
 - the provider update plan requires changing a `none` authority surface
 - a provider lifecycle conflict has no deterministic rule
+- the provider update plan targets an undeclared external surface
 - provider major version drift requires redesign
 
 Lifecycle drift blocks. Lifecycle update does not repair, reconcile, or
@@ -276,10 +284,14 @@ For bounded selectors:
 
 For provider surfaces:
 
-- provider owns its internals
+- provider owns lifecycle semantics
 - `prelude` records provider artifact, contract version, declared surfaces, and
   provider status
-- `prelude` does not patch provider-owned runtime files directly
+- `prelude` owns the write boundary
+- providers do not write project files directly
+- provider internal artifacts live under `.prelude/providers/<id>/**`
+- external project writes are allowed only for lifecycle surfaces declared at
+  create
 
 ## Example: package.json
 
@@ -380,7 +392,7 @@ surface.
 Wrong model:
 
 ```text
-React renderer patches src/App.tsx
+React feature writer patches src/App.tsx
 Router patches src/App.tsx
 State management patches src/App.tsx
 CSS framework patches src/App.tsx
@@ -419,7 +431,7 @@ tailwind capability
   -> react-app-shell classNameTokens
 ```
 
-The React app shell materializer renders `src/App.tsx` once.
+The React app shell materializer emits `src/App.tsx` once.
 
 However, the safer default is still to treat demo source files as
 generated-user surfaces after create. Lifecycle update should only keep managing
@@ -435,11 +447,9 @@ semantics.
 For `effect-harness`, the first useful adapter can be narrow:
 
 ```text
-init(target, resolvedGraph)
-status(target)
-verify(target)
-update(target, fromProviderVersion, toProviderVersion)
-surfaceReport(target)
+status(lifecycleProviderRecord)
+verify(lifecycleProviderRecord)
+planUpdate(lifecycleProviderRecord, options)
 ```
 
 `prelude` owns:
@@ -447,7 +457,9 @@ surfaceReport(target)
 - selecting the provider
 - recording provider artifact and contract version
 - checking provider freshness
-- invoking provider lifecycle commands
+- invoking provider lifecycle planning and verification
+- validating provider-declared operations
+- applying provider-declared writes through `prelude` materializers
 - integrating provider status into overall verification
 
 The provider owns:
@@ -458,8 +470,34 @@ The provider owns:
 - agent routes
 - guardrails
 - provider-owned update policy
-- provider-owned surface snapshots or digests
+- provider-owned lifecycle semantics
+- provider-owned surface summaries or digests
 
 Do not extract a shared `harness-core` module until at least two provider
 adapters prove the common interface. One adapter is not enough evidence for a
 shared abstraction.
+
+Provider lifecycle artifacts are centralized under:
+
+```text
+.prelude/providers/<provider-id>/**
+```
+
+There is no dual path. For `effect-harness`, use:
+
+```text
+.prelude/providers/effect-harness/**
+```
+
+not `.effect-harness/**`.
+
+Provider update plans may only replace declared lifecycle surfaces:
+
+- owned provider files under `.prelude/providers/<provider-id>/**`
+- managed blocks declared at create
+- structured pointers declared at create
+- explicitly declared owned files
+
+Provider update plans must not use arbitrary patches, git diffs, source rewrites,
+direct writes, or direct side-effect commands. If a provider needs a new external
+surface, lifecycle update must block for explicit migration or redesign.

@@ -1,8 +1,0 @@
-{"file": ".agents/skills/trellis-check/SKILL.md", "reason": "Project check workflow"}
-{"file": ".agents/skills/trellis-finish-work/SKILL.md", "reason": "Final verification checklist"}
-{"file": ".trellis/spec/create-yume/repository/index.md", "reason": "Check repository-level integration consistency"}
-{"file": ".trellis/spec/create-yume/workspace-packages/index.md", "reason": "Check A workspace package behavior"}
-{"file": ".trellis/spec/create-yume/cli-runtime/index.md", "reason": "Check B CLI runtime behavior"}
-{"file": ".trellis/spec/create-yume/effect/index.md", "reason": "Check Effect dependency and entrypoint contracts"}
-{"file": ".trellis/spec/create-yume/template-system/index.md", "reason": "Check templates and manifest contribution ownership"}
-{"file": ".trellis/spec/create-yume/verification/index.md", "reason": "Check validation coverage is sufficient"}

@@ -1,5 +1,0 @@
-{"file": ".agents/skills/yume-release-readiness/SKILL.md", "reason": "Check that dogfood output follows the release checklist contract."}
-{"file": ".agents/skills/yume-docs-spec-sync/SKILL.md", "reason": "Check that knowledge sync judgment follows the required template."}
-{"file": ".agents/skills/yume-skill-improver/SKILL.md", "reason": "Check whether any skill-improvement decision is evidence-backed."}
-{"file": ".trellis/spec/create-yume/verification/index.md", "reason": "Check verification commands and residual risk classification."}
-{"file": ".trellis/spec/create-yume/repository/index.md", "reason": "Check docs/spec/user source-of-truth decision."}

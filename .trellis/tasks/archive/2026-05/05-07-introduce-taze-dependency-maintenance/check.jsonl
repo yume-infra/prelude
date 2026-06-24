@@ -1,5 +1,0 @@
-{"file": ".trellis/spec/create-yume/repository/index.md", "reason": "Check catalog/devDependency placement and docs sync decision."}
-{"file": ".trellis/spec/create-yume/template-system/index.md", "reason": "Check generated package.json policy flows through manifest contributions."}
-{"file": ".trellis/spec/create-yume/workspace-packages/index.md", "reason": "Check workspace-root recursive scripts and standalone package scripts diverge correctly."}
-{"file": ".trellis/spec/create-yume/verification/index.md", "reason": "Check the focused tests match the changed generated surfaces."}
-{"file": ".trellis/spec/guides/index.md", "reason": "Check config/dependency values were searched before modification."}

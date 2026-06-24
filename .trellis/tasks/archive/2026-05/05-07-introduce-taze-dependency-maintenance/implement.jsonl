@@ -1,5 +1,0 @@
-{"file": ".trellis/spec/create-yume/repository/index.md", "reason": "Dependency catalog, generated dependency policy, verification, and commit rules."}
-{"file": ".trellis/spec/create-yume/template-system/index.md", "reason": "Package.json changes must use manifest contributions, not ad hoc templates."}
-{"file": ".trellis/spec/create-yume/workspace-packages/index.md", "reason": "Generated workspace-root versus package-scoped manifest behavior."}
-{"file": ".trellis/spec/create-yume/verification/index.md", "reason": "Focused verification selection for generated manifest and maintenance tooling changes."}
-{"file": ".trellis/spec/guides/index.md", "reason": "Shared pre-modification search triggers for config/dependency changes."}

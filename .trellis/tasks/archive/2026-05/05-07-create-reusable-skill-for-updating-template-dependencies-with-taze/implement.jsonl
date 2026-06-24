@@ -1,4 +1,0 @@
-{"file": ".trellis/spec/create-yume/repository/index.md", "reason": "Dependency centralization, taze workflow, generated output, and documentation rules."}
-{"file": ".trellis/spec/create-yume/template-system/index.md", "reason": "Generated package.json policy lives in manifest contributions rather than static templates."}
-{"file": ".trellis/spec/create-yume/verification/index.md", "reason": "Verification selection for generated manifest dependency maintenance."}
-{"file": ".trellis/spec/guides/index.md", "reason": "Config/dependency pre-modification search triggers."}

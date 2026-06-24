@@ -1,6 +1,0 @@
-{"file": ".agents/skills/yume-release-readiness/SKILL.md", "reason": "Primary release readiness workflow requested by the user."}
-{"file": ".agents/skills/yume-docs-spec-sync/SKILL.md", "reason": "Required knowledge sync judgment after release readiness review."}
-{"file": ".trellis/spec/create-yume/index.md", "reason": "Top-level create-yume spec index required by release readiness."}
-{"file": ".trellis/spec/create-yume/repository/index.md", "reason": "Repository source-of-truth, dependency, commit, and documentation rules."}
-{"file": ".trellis/spec/create-yume/verification/index.md", "reason": "Verification matrix and generated smoke policy for release readiness."}
-{"file": ".trellis/spec/create-yume/verification/generated-scaffold-audit.md", "reason": "Generated-output audit and warning classification rules."}

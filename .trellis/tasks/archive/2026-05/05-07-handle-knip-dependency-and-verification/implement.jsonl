@@ -1,3 +1,0 @@
-{"file": ".trellis/spec/create-yume/repository/index.md", "reason": "Dependency policy requires external versions in the pnpm catalog."}
-{"file": ".trellis/spec/create-yume/verification/index.md", "reason": "Verification expectations for dependency and manifest changes."}
-{"file": ".trellis/spec/guides/code-reuse-thinking-guide.md", "reason": "Config modifications require searching existing patterns first."}

@@ -1,6 +1,0 @@
-{"file": ".agents/skills/trellis-finish-work/SKILL.md", "reason": "Finish work checklist"}
-{"file": ".agents/skills/trellis-check/SKILL.md", "reason": "Code quality check spec"}
-{"file": ".trellis/spec/create-yume/cli-runtime/index.md", "reason": "Check CLI runtime behavior and input contracts"}
-{"file": ".trellis/spec/create-yume/effect/index.md", "reason": "Check Effect entrypoint/config/schema/service style"}
-{"file": ".trellis/spec/create-yume/template-system/index.md", "reason": "Check template registry and manifest contribution ownership"}
-{"file": ".trellis/spec/create-yume/verification/index.md", "reason": "Check smoke and typecheck coverage for generated CLI behavior"}

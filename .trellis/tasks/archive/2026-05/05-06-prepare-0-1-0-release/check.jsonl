@@ -1,3 +1,0 @@
-{"file": ".trellis/spec/create-yume/repository/index.md", "reason": "Check dependency and documentation changes against repository rules."}
-{"file": ".trellis/spec/create-yume/verification/index.md", "reason": "Check the final command suite against release-prep impact."}
-{"file": ".trellis/spec/guides/index.md", "reason": "Check config/dependency changes against shared thinking triggers."}

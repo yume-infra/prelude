@@ -1,5 +1,0 @@
-{"file": ".trellis/workflow.md", "reason": "Project workflow and conventions"}
-{"file": ".trellis/spec/create-yume/workspace-packages/index.md", "reason": "workspace-packages development guide"}
-{"file": ".trellis/spec/create-yume/template-system/index.md", "reason": "Workspace root and package output uses template registry and package manifest contribution contracts"}
-{"file": ".trellis/spec/create-yume/generation-model/index.md", "reason": "Workspace package generation must preserve supported generation taxonomy"}
-{"file": ".trellis/spec/create-yume/verification/index.md", "reason": "Select correct verification for workspace root and package generation changes"}

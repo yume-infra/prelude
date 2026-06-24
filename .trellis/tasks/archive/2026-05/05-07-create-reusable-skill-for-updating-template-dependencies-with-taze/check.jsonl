@@ -1,4 +1,0 @@
-{"file": ".trellis/spec/create-yume/repository/index.md", "reason": "Confirm the skill preserves source-of-truth and dependency maintenance rules."}
-{"file": ".trellis/spec/create-yume/template-system/index.md", "reason": "Confirm workflow updates generator source rather than generated output."}
-{"file": ".trellis/spec/create-yume/verification/index.md", "reason": "Confirm validation commands cover skill and generated manifest risk."}
-{"file": ".trellis/spec/guides/index.md", "reason": "Confirm config/dependency changes were searched before edits."}

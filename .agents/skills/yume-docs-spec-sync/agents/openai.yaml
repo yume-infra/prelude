@@ -1,4 +1,0 @@
-interface:
-  display_name: "@sayoriqwq/prelude Docs Spec Sync"
-  short_description: "Review `@sayoriqwq/prelude` knowledge sync needs"
-  default_prompt: "Use $yume-docs-spec-sync to decide whether this @sayoriqwq/prelude change needs spec or user-doc updates."

@@ -1,5 +1,0 @@
-{"file":".trellis/tasks/05-06-expand-preset-recommendations/prd.md","reason":"Quality gate source for required behavior, explicit exclusions, and accepted default package paths/ids."}
-{"file":".trellis/spec/create-yume/generation-model/index.md","reason":"Verify new presets obey preset taxonomy, CLI toolkit preservation, supported scope, and create-spec/preset test requirements."}
-{"file":".trellis/spec/create-yume/workspace-packages/index.md","reason":"Verify workspace presets use explicit package specs, target paths, package names, and `workspace:*` internal dependency behavior."}
-{"file":".trellis/spec/create-yume/verification/index.md","reason":"Select and enforce the minimum verification matrix for workspace package generation, CLI toolkit behavior, docs, and generated smoke risk."}
-{"file":".trellis/spec/create-yume/repository/index.md","reason":"Check documentation synchronization and ensure no worker/generated-output/source-of-truth boundary regressions."}

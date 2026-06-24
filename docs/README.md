@@ -2,43 +2,36 @@
 
 This directory is the active knowledge source for the `prelude` rebuild.
 
-The previous `.trellis/` knowledge system is deprecated. It may be consulted as
-historical reference, but it is not the current source of truth and should not be
-updated as part of ordinary project work.
+The docs describe the final architecture directly. Do not record migration
+states, compatibility adapters, or old baselines as durable architecture.
 
 ## Read Order
 
 1. [`prelude-goal.md`](./prelude-goal.md)
-   - Product goal, user, non-goals, ownership model, and upgrade expectations.
+   - Product goal, first user, non-goals, ownership model, and lifecycle update
+     boundary.
 2. [`prelude-final-state.md`](./prelude-final-state.md)
    - The target architecture after the rebuild is complete.
-3. [`manifest-materialization-architecture.md`](./manifest-materialization-architecture.md)
-   - The file-writing, logical surface, materializer, manifest, and update
-     model.
-4. [`agents/`](./agents/)
-   - Repo-local configuration for engineering skills: issue tracker, triage
-     labels, and domain-doc reading rules.
+3. [`prelude-rebuild-plan.md`](./prelude-rebuild-plan.md)
+   - What to delete, what to build, and how to know the rebuild is aligned.
+4. [`manifest-materialization-architecture.md`](./manifest-materialization-architecture.md)
+   - The composition, logical surface, materializer, write plan, manifest, and
+     update model.
+5. [`provider-lifecycle-architecture.md`](./provider-lifecycle-architecture.md)
+   - The lifecycle provider contract, status/verify/update semantics,
+     centralized provider state, and post-create write rules.
+6. [`agents/`](./agents/)
+   - Repo-local configuration for issue tracking, triage labels, and domain-doc
+     reading rules.
 
-## Current Source Of Truth
-
-Use these docs as the current contract:
+## Current Contract
 
 - Product direction: [`prelude-goal.md`](./prelude-goal.md)
 - Target architecture: [`prelude-final-state.md`](./prelude-final-state.md)
+- Rebuild execution: [`prelude-rebuild-plan.md`](./prelude-rebuild-plan.md)
 - Materialization model: [`manifest-materialization-architecture.md`](./manifest-materialization-architecture.md)
+- Provider lifecycle model: [`provider-lifecycle-architecture.md`](./provider-lifecycle-architecture.md)
 - Agent workflow configuration: [`agents/`](./agents/)
-
-## Deprecated Reference
-
-`.trellis/` is historical reference only.
-
-Agents may read `.trellis/` to recover prior context or implementation history,
-but must not treat it as the active workflow, active spec, or current human
-documentation. Do not create or update `.trellis/` tasks, specs, user docs, or
-workspace journals unless the user explicitly asks for a one-off history mining
-or history extraction task.
-
-When `.trellis/` conflicts with `docs/`, `docs/` wins.
 
 ## Documentation Policy
 
@@ -47,8 +40,12 @@ Keep docs organized by purpose:
 - Goal documents explain why the product exists.
 - Final-state architecture documents explain what the finished system must look
   like.
+- Rebuild plans name deletion targets, construction targets, and acceptance
+  criteria.
 - Materialization documents explain how resolved intent becomes files and a
   manifest.
-- Agent docs explain how repo-local engineering skills should operate.
+- Provider lifecycle documents explain what may still evolve after create.
+- Agent docs explain how external engineering skills should operate in this
+  repo.
 
-Avoid recording temporary implementation stages as durable product architecture.
+Temporary implementation stages do not belong in durable architecture docs.

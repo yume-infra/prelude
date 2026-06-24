@@ -1,7 +1,0 @@
-{"file": ".trellis/spec/create-yume/index.md", "reason": "Top-level create-yume layer index and pre-development checklist for this cross-layer template/tooling change."}
-{"file": ".trellis/spec/create-yume/template-system/index.md", "reason": "Defines package.json as a structured hotspot, root-only template boundaries, and tests required for template/manifest policy changes."}
-{"file": ".trellis/spec/create-yume/workspace-packages/index.md", "reason": "Covers workspace root generation, child package target scopes, and root-only tooling/config behavior."}
-{"file": ".trellis/spec/create-yume/generation-model/index.md", "reason": "Covers ProjectConfig, presets, defaults, and create spec contracts affected by making Knip default generated tooling."}
-{"file": ".trellis/spec/create-yume/verification/index.md", "reason": "Defines verification expectations and explicitly requires root verify gates to include Knip."}
-{"file": ".trellis/spec/guides/index.md", "reason": "Thinking triggers for cross-layer changes and code reuse before modifying config/tooling constants."}
-{"file": ".trellis/tasks/05-07-add-knip-to-generated-templates/research/knip-cli-and-config.md", "reason": "Task-specific research on Knip CLI/config conventions and how they map to create-yume."}

@@ -15,16 +15,11 @@ Engineering skills should consume project knowledge in this order:
 If these files do not exist, proceed silently. Do not create them upfront unless
 the task is explicitly about documentation.
 
-## Deprecated Trellis Reference
+## Removed Local Skill Baseline
 
-The previous `.trellis/` knowledge system is deprecated.
-
-Skills may read `.trellis/` only as historical reference. Do not treat
-`.trellis/` as the active workflow, active spec, or current human documentation.
-Do not create or update `.trellis/` files unless the user explicitly asks for
-history mining or a one-off history extraction task.
-
-When `.trellis/` conflicts with `docs/`, `docs/` wins.
+This repository does not maintain a project-local skill baseline. External
+engineering skills may use these docs as context, but should not expect
+`.agents/skills/` or workflow-state files to exist.
 
 ## Use Domain Vocabulary
 

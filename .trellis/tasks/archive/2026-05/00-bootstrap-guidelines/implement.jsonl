@@ -1,8 +1,0 @@
-{"file": ".trellis/workflow.md", "reason": "Trellis workflow source"}
-{"file": ".trellis/spec/create-yume/index.md", "reason": "create-yume spec layer index"}
-{"file": ".trellis/spec/create-yume/repository/index.md", "reason": "Repository knowledge source policy"}
-{"file": ".trellis/spec/create-yume/verification/index.md", "reason": "Verification matrix and knowledge validation"}
-{"file": ".trellis/spec/create-yume/verification/generated-scaffold-audit.md", "reason": "Generated scaffold audit contract"}
-{"file": ".trellis/user/index.md", "reason": "Human-facing project map"}
-{"file": ".trellis/user/create-yume.md", "reason": "Human-facing CLI architecture context"}
-{"file": ".agents/skills/trellis-update-spec/SKILL.md", "reason": "Knowledge-doc update workflow"}

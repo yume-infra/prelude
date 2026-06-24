@@ -1,8 +1,0 @@
-{"file": ".agents/skills/yume-release-readiness/SKILL.md", "reason": "Primary dogfood workflow for dev-vs-main release readiness review."}
-{"file": ".agents/skills/yume-docs-spec-sync/SKILL.md", "reason": "Required knowledge sync judgment after release readiness and any skill-layer findings."}
-{"file": ".agents/skills/yume-skill-improver/SKILL.md", "reason": "Conditional workflow if dogfood evidence shows a skill needs revision."}
-{"file": ".agents/skills/yume-template-source-map-fixer/SKILL.md", "reason": "Conditional routing if release readiness finds a generated-output symptom requiring source fixing."}
-{"file": ".agents/skills/yume-preset-expansion-planning/SKILL.md", "reason": "Conditional routing if release readiness finds supported-scope or preset planning gaps."}
-{"file": ".trellis/spec/create-yume/index.md", "reason": "Top-level create-yume spec index required by release readiness and docs/spec sync."}
-{"file": ".trellis/spec/create-yume/repository/index.md", "reason": "Repository source-of-truth and dependency/documentation rules for knowledge sync."}
-{"file": ".trellis/spec/create-yume/verification/index.md", "reason": "Verification matrix and release gate guidance for release readiness."}

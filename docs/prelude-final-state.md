@@ -100,8 +100,8 @@ provider artifact set.
 
 Default policy changes are not generated-project updates. If the same
 `CreateSpec` resolves to a different `ResolvedGraph` because `prelude` changed a
-default choice, that is a creation policy change or scaffold compatibility task,
-not something lifecycle update silently applies to an existing project.
+default choice, that is a creation policy change or scaffold redesign task, not
+something lifecycle update silently applies to an existing project.
 
 ### Capability
 
@@ -123,7 +123,7 @@ A capability declares:
 
 - id
 - root or package scope
-- compatible topology
+- supported topology
 - required inputs
 - default inputs
 - prelude-owned pins it consumes
@@ -135,9 +135,9 @@ A capability declares:
 A capability does not write shared files directly.
 
 Capability granularity follows user-understandable project ability, not files,
-dependencies, or template fragments. `react-app` is a capability. `add react to
-dependencies` is not. Source imports, template partials, and package manifest
-entries are contributions behind a capability.
+dependencies, or source fragments. `react-app` is a capability. `add react to
+dependencies` is not. Source imports, source slots, and package manifest entries
+are contributions behind a capability.
 
 The boundary between a capability and an option is ownership. If a choice has
 its own dependencies, logical surface contributions, lifecycle surfaces,
@@ -223,8 +223,10 @@ Operation kinds:
 - `writeManagedFile`
 - `writeManagedBlock`
 - `writeGeneratedUserFile`
-- `renderManagedTemplate`
-- `callProvider`
+- `writeSourceFile`
+- `callProviderStatus`
+- `callProviderVerify`
+- `callProviderPlanUpdate`
 - `runCommand`
 
 Every operation declares:
@@ -239,8 +241,9 @@ Every operation declares:
 - snapshot rule
 - verification rule
 
-Template rendering, JSON editing, copying files, and running commands are
-implementation details behind operations.
+Structured serialization, source emission, copying files, and running commands
+are implementation details behind operations. There is no Handlebars operation
+and no global template-rendering layer.
 
 ## Surface Authority
 
@@ -289,15 +292,16 @@ hash for audit, but lifecycle update must not use that hash as a drift gate.
 
 ## Manifest
 
-Every `prelude`-generated project may have one root manifest:
+Every `prelude`-generated project has one root manifest:
 
 ```text
 .prelude/manifest.json
 ```
 
 The manifest is the ledger for creation provenance and lifecycle provider state.
-It is not a template input, and it is not a claim that `prelude` owns the whole
-project after day one. It is written after successful apply and verification.
+It is not a generator input, and it is not a claim that `prelude` owns the whole
+project after day one. It is written after successful apply and verification for
+every generated project.
 
 Manifest contents:
 
@@ -338,9 +342,9 @@ read manifest
   -> validate manifest schema
   -> select active lifecycle providers
   -> validate provider contract schemas
-  -> ask providers for status/update plans
+  -> ask providers for status and update plans
   -> verify provider-owned lifecycle surfaces against snapshots or provider reports
-  -> build provider lifecycle operations only
+  -> validate provider-declared operations against provider namespace or declared lifecycle surfaces
   -> dry-run or apply
   -> provider verify
   -> write manifest
@@ -355,10 +359,18 @@ Lifecycle update blocks when:
 - provider-owned or provider-bounded lifecycle surface drifted
 - handed-off scaffold surface would need to change
 - provider update plan has no deterministic resolution
+- provider update plan targets an undeclared external surface
 - provider major version drift requires redesign
 
 Lifecycle drift blocks. Lifecycle update does not repair, reconcile, or
 reinterpret drift.
+
+Default `prelude update` updates all active lifecycle providers. With
+`--provider <id>`, it updates only the selected provider.
+
+`prelude status` is read-only provider lifecycle inspection. `prelude verify`
+executes provider lifecycle checks. Create acceptance verification stays inside
+the create flow and is separate from post-create lifecycle verification.
 
 ## Providers
 
@@ -380,6 +392,7 @@ provider-specific target package surfaces.
 - provider invocation
 - provider status integration
 - provider record in the manifest
+- provider write boundary
 
 Provider owns:
 
@@ -390,25 +403,43 @@ Provider owns:
 - provider-owned lifecycle surfaces
 - provider update policy
 - provider verification
-- provider surface reports
+- provider lifecycle records
 
 Provider adapter shape:
 
 ```text
-init(target, resolvedGraph)
-status(target)
-verify(target)
-update(target, fromProviderVersion, toProviderVersion)
-surfaceReport(target)
+status(lifecycleProviderRecord)
+verify(lifecycleProviderRecord)
+planUpdate(lifecycleProviderRecord, options)
 ```
 
 `effect-harness` is one provider adapter. A shared harness core only exists when
 multiple real providers prove the same interface.
 
+Providers do not receive the full manifest or the full resolved graph as
+post-create input. They receive only their lifecycle provider record and
+explicitly projected context. Providers do not write project files directly and
+do not run side-effect commands directly. They declare lifecycle operations;
+`prelude` validates and applies them.
+
 A selected capability or provider is required. If a selected provider is missing,
-unavailable, or contract-incompatible, create and lifecycle update must block.
+unavailable, or contract-unsupported, create and lifecycle update must block.
 `prelude` must not silently degrade by generating the project without the
 selected provider-owned behavior.
+
+Provider lifecycle state is centralized under:
+
+```text
+.prelude/providers/<provider-id>/**
+```
+
+For `effect-harness`, the required provider namespace is:
+
+```text
+.prelude/providers/effect-harness/**
+```
+
+There is no dual path such as `.effect-harness/**` in v1.
 
 ## Version Ownership
 
@@ -422,7 +453,7 @@ Version ownership follows content ownership.
 - linting dependencies
 - Knip/Taze tooling
 - package manager baseline
-- template-owned defaults
+- scaffold defaults
 
 Those pins are creation inputs and repository maintenance inputs. They do not
 make existing generated projects part of a general `prelude` update surface.
@@ -516,7 +547,8 @@ agents-root-instructions
 
 provider:effect-harness
   -> call effect-harness adapter
-  -> record provider surface report
+  -> record provider lifecycle state
+  -> write provider artifacts under .prelude/providers/effect-harness/**
 
 generated-user source surfaces
   -> packages/web/src/*
@@ -527,7 +559,9 @@ Update behavior:
 
 - ordinary scaffold files and package manifest entries are handed off after
   create unless an active lifecycle provider owns a declared boundary.
-- provider-owned surfaces update only through provider contract.
+- provider-owned surfaces update only through provider-declared plans applied by
+  `prelude`.
+- provider internal artifacts stay under `.prelude/providers/<id>/**`.
 - user source files are not rewritten.
 - manual edits to provider-owned lifecycle surfaces block.
 
@@ -535,7 +569,7 @@ Update behavior:
 
 - One canonical creation input: `CreateSpec`.
 - One resolver for guided CLI output and direct spec input.
-- One manifest per generated project that needs lifecycle state.
+- One manifest per generated project.
 - One owner for each lifecycle surface.
 - One materializer for each physical write.
 - No capability directly patches shared files.
@@ -543,4 +577,7 @@ Update behavior:
 - No lifecycle update across unsupported schema versions.
 - No lifecycle update across provider major drift.
 - No provider internals inside `prelude`.
+- No provider direct project writes.
+- No post-create external writes except declared lifecycle surfaces.
+- No arbitrary patch or git diff lifecycle contract.
 - No generated-user source rewrite during lifecycle update.

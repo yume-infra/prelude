@@ -2,7 +2,6 @@
 
 This document records the current product direction for `prelude`.
 It lives under `docs/`, which is the active knowledge source for the rebuild.
-The old `.trellis/` material is historical reference only.
 
 ## Core Goal
 
@@ -12,7 +11,7 @@ When starting a new project, it should generate an agent-ready project
 workspace that already contains the preferred technology stack, engineering
 baseline, AI/agent harness setup, and verification surface.
 
-The output is not just a code template. It is a workspace that an agent can
+The output is not just a file skeleton. It is a workspace that an agent can
 understand, modify, and verify from day one.
 
 The name `prelude` is literal: this system prepares the opening state before the
@@ -95,7 +94,7 @@ choices should be modeled as scoped capabilities rather than top-level project
 types.
 
 Capabilities represent user-understandable project abilities. They are not raw
-dependencies, files, template partials, or individual JSON pointers.
+dependencies, files, source fragments, or individual JSON pointers.
 
 The boundary between a capability and an option is ownership. Choices such as
 state management, routing, or CSS framework become capabilities when they own
@@ -169,10 +168,10 @@ Effect runtime, and Effect verifier contract.
 update the provider artifact or contract version it integrates with.
 
 `prelude` owns the pins for content it emits directly, such as ordinary scaffold
-dependencies, template defaults, and its own tooling baseline. That ownership is
+dependencies, scaffold defaults, and its own tooling baseline. That ownership is
 primarily for reproducible creation and for maintaining the `prelude`
-repository's templates and examples. It is not a promise that generated projects
-will keep receiving framework, linter, or template updates after day one.
+repository's generated examples. It is not a promise that generated projects
+will keep receiving framework, linter, or scaffold updates after day one.
 
 ## Self-Iteration
 
@@ -184,7 +183,7 @@ The loop should:
 2. Update the relevant pin.
 3. Regenerate scaffold outputs or smoke examples.
 4. Run verification and generated smoke checks.
-5. Let an agent fix compatibility issues caused by the version update.
+5. Let an agent fix breakages caused by the version update.
 6. Update docs only when observable behavior or contracts change.
 
 The first loop should not automatically add new frameworks, invent new reusable
@@ -193,7 +192,7 @@ specs, change product defaults, or perform broad architecture refactors.
 Major version drift is not part of the ordinary version-update loop.
 
 - Provider artifact major drift is a provider integration redesign trigger.
-- Generated scaffold dependency major drift is a scaffold compatibility task.
+- Generated scaffold dependency major drift is a scaffold redesign task.
 - `prelude` self-tooling major drift is a repository maintenance task.
 
 Lifecycle provider update may handle non-major provider artifact drift when the
@@ -202,7 +201,7 @@ an explicit task.
 
 Default-policy drift is not a generated-project update. If a new `prelude`
 default would change project shape for the same `CreateSpec`, that is a create
-policy change or scaffold compatibility task, not something `prelude update`
+policy change or scaffold redesign task, not something `prelude update`
 silently applies to existing projects.
 
 ## Lifecycle Update
@@ -213,7 +212,8 @@ surface is intentionally narrow.
 `prelude update` is not a general project updater. It exists for active
 lifecycle providers selected during creation, currently the AI harness provider.
 
-A generated project may have one root manifest. The manifest should record:
+Every `prelude`-generated project has one root manifest. The manifest should
+record:
 
 - schema version
 - create spec
@@ -240,7 +240,8 @@ Lifecycle update should not blindly regenerate from files on disk. It should:
 3. Validate manifest and provider contract schemas.
 4. Ask providers for status and update plans.
 5. Check only provider-owned or provider-bounded lifecycle surfaces.
-6. Apply provider lifecycle operations through provider contracts.
+6. Validate provider-declared operations against provider namespace or declared
+   lifecycle surfaces.
 7. Write back provider records, lifecycle surface snapshots, and verification.
 
 Projects without a `prelude` manifest are not lifecycle update targets. Projects
@@ -249,6 +250,16 @@ update" rather than pretending `prelude` still owns the whole scaffold.
 
 Adding a capability and migrating topology are explicit operations. They should
 not be hidden inside lifecycle update.
+
+Post-create commands are lifecycle-provider commands:
+
+- `prelude status` inspects active lifecycle providers without writing.
+- `prelude verify` runs active lifecycle provider checks.
+- `prelude update` updates all active lifecycle providers by default.
+- `prelude update --provider <id>` updates only one provider.
+
+Create acceptance verification is part of create and may be wider. Post-create
+verification is lifecycle-provider verification only.
 
 ## Manifest And Materialization
 
@@ -270,19 +281,20 @@ CreateSpec
   -> write manifest last
 ```
 
-The current function-based composition and template rendering can remain useful
-as an execution layer, but they must not become the product architecture. They
-are only ways to materialize resolved operations.
+There is no template-rendering layer in the final architecture. Composition
+happens in typed capability contributions and logical surfaces. Physical files
+are emitted by owner materializers through structured writers or dedicated source
+emitters.
 
-The root manifest should eventually live at `.prelude/manifest.json` in generated
-projects and include:
+The root manifest should eventually live at `.prelude/manifest.json` in every
+generated project and include:
 
 - `schemaVersion`
 - `preludeVersion`
 - `createSpec`
 - `resolvedGraph`
 - `pins`
-- `providers`
+- `lifecycleProviders`
 - `lifecycleSurfaces`
 - `generatedUserSurfaces`
 
@@ -334,11 +346,11 @@ Example:
 Materialization should be represented as explicit operations. Initial operation
 types can be small:
 
-- render a template into a managed file
+- write an owner-produced source or managed file
 - edit a structured JSON/YAML/TOML surface
 - write a managed block with stable markers
 - create a generated-user file
-- call provider `init`, `status`, `verify`, or `update`
+- call provider `status`, `verify`, or `planUpdate`
 - run a declared command with known side effects
 
 Later, semantic rewrite or recipe-style operations can be added, but they must
@@ -359,8 +371,11 @@ The lifecycle update flow should be provider-scoped:
 2. Select active lifecycle providers.
 3. Validate provider contracts and current lifecycle surfaces.
 4. Block if a provider-owned or provider-bounded lifecycle surface drifted.
-5. Invoke provider update/status/verify operations.
-6. Record updated provider state and lifecycle snapshots.
+5. Ask providers for lifecycle update plans.
+6. Validate provider-declared operations against provider namespace or declared
+   external lifecycle surfaces.
+7. Apply operations through `prelude`.
+8. Record updated provider state and lifecycle snapshots.
 
 Dry-run should show the same operation plan and the same blockers without
 writing files.
@@ -415,14 +430,34 @@ Schema evolution must be deterministic, support dry-run review, show
 before/after summaries, and only handle known schema versions. Manifest schema
 evolution should not modify business files. Provider contract schema evolution
 should update the provider
-record and ownership metadata; provider-owned target runtime changes remain the
-provider's responsibility through its own update and verify contract.
+record and ownership metadata. Provider target runtime changes remain provider
+semantic responsibility, but any project file writes must still go through
+`prelude` operations.
+
+Provider lifecycle state must be centralized under:
+
+```text
+.prelude/providers/<provider-id>/**
+```
+
+There is no dual provider path in v1. `effect-harness` should be adapted to the
+`prelude` provider layout instead of writing `.effect-harness/**`.
+
+After create, `prelude` writes by default only under `.prelude/**`. External
+project areas may be updated only when a lifecycle surface was declared during
+create and recorded in the manifest. Adding or expanding external lifecycle
+surfaces is not part of v1 lifecycle update and must block for explicit user
+approval.
+
+Providers declare lifecycle operations; `prelude` owns physical writes. Provider
+contracts must not use arbitrary patches, git diffs, source rewrites, or direct
+project file writes.
 
 ## Non-Goals
 
 `prelude` is not:
 
-- a remote template marketplace
+- a remote scaffold marketplace
 - a plugin marketplace
 - an existing-project adoption or append/update tool
 - a general generated-project updater
@@ -431,11 +466,11 @@ provider's responsibility through its own update and verify contract.
 - the owner of provider-specific domain semantics
 - a system where every harness internal module is freely user-composable
 
-## Current Gap
+## Rebuild Boundary
 
-The current CLI does not yet fully implement free composition. Existing create
-mode is still closer to a project-type wizard, and the current implementation
-still has hardcoded preset branches that are not part of the final architecture.
+The final model is the only target. Old generator structures that encode
+separate preset branches, `ProjectConfig` creation truth, Plan/PlanSpec creation
+truth, or Handlebars rendering are deletion targets, not compatibility targets.
 
-The next product direction is to make normal create mode a guided `CreateSpec`
-builder and make direct spec input the automation path.
+Normal create mode becomes a guided `CreateSpec` builder. Direct spec input is
+the automation path. Both enter the same resolver and materializer pipeline.

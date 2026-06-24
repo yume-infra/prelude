@@ -1,4 +1,0 @@
-{"file":".trellis/spec/create-yume/verification/index.md","reason":"Select verification commands and update smoke policy expectations."}
-{"file":".trellis/spec/examples/generated-smoke/index.md","reason":"Verify apps/examples generated output behavior remains within contract."}
-{"file":".trellis/spec/create-yume/repository/index.md","reason":"Check documentation and generated output source-of-truth boundaries."}
-{"file":".trellis/spec/guides/index.md","reason":"Shared quality thinking guide for missed paths and reuse."}

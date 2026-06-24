@@ -1,7 +1,0 @@
-{"file": ".trellis/spec/create-yume/index.md", "reason": "create-yume spec layer index"}
-{"file": ".trellis/spec/create-yume/repository/index.md", "reason": "Repository knowledge and source-of-truth policy"}
-{"file": ".trellis/spec/create-yume/verification/index.md", "reason": "Validation matrix"}
-{"file": ".trellis/spec/create-yume/verification/phase-roadmap.md", "reason": "Documentation contract test target"}
-{"file": ".trellis/spec/create-yume/verification/generated-scaffold-audit.md", "reason": "Generated scaffold audit test target"}
-{"file": ".trellis/user/index.md", "reason": "Human-facing project map"}
-{"file": ".agents/skills/trellis-check/SKILL.md", "reason": "Local check workflow"}

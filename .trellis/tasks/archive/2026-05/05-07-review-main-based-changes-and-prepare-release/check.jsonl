@@ -1,5 +1,0 @@
-{"file":".trellis/spec/create-yume/index.md","reason":"Top-level package quality check routing."}
-{"file":".trellis/spec/create-yume/verification/index.md","reason":"Defines broad verification and generated smoke coverage required for release readiness."}
-{"file":".trellis/spec/examples/generated-smoke/index.md","reason":"Generated examples persistence and smoke behavior changed in this branch."}
-{"file":".trellis/tasks/05-04-final-integration-full-acceptance/prd.md","reason":"Final integration acceptance checklist for the reviewed feature wave."}
-{"file":".trellis/user/generated-scaffolds.md","reason":"Human-facing supported scaffold scope must match shipped behavior."}

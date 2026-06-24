@@ -1,3 +1,0 @@
-{"file": ".trellis/spec/create-yume/repository/index.md", "reason": "Confirm dependency centralization and taze workflow remain aligned."}
-{"file": ".trellis/spec/create-yume/verification/index.md", "reason": "Confirm the chosen verification command covers broad dependency changes."}
-{"file": ".trellis/spec/guides/index.md", "reason": "Confirm no config value was changed without search context."}

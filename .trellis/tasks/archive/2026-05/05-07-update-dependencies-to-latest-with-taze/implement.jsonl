@@ -1,3 +1,0 @@
-{"file": ".trellis/spec/create-yume/repository/index.md", "reason": "Dependency catalog, taze usage, generated dependency policy, and commit rules."}
-{"file": ".trellis/spec/create-yume/verification/index.md", "reason": "Verification selection for broad dependency and lockfile maintenance."}
-{"file": ".trellis/spec/guides/index.md", "reason": "Shared pre-modification search triggers for config/dependency changes."}
