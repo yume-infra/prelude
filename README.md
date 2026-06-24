@@ -28,7 +28,7 @@
 
 - 用 Effect 组织命令执行、配置收集和错误边界
 - 用模板注册与计划生成来描述“生成什么”
-- 用明确的 Trellis 知识分层来区分用户说明与实现约束
+- 用 `docs/` 记录重构后的产品目标、最终架构和生成模型
 
 如果你关心的不只是“怎么生成项目”，还包括“脚手架本身如何组织得更清楚”，这个仓库就是围绕这件事展开的。
 
@@ -49,6 +49,16 @@
 - 通过 CLI flag 或交互问题完整配置任意 workspace package graph
 - 远程模板
 - 插件化模板来源
+
+## 重构方向
+
+`prelude` 正在转向新的最终架构：preset、普通 CLI 和 spec 输入最终都进入同一条 composition pipeline；能力不直接写共享文件，而是贡献到 logical surfaces；每个 physical write 由一个 materializer 负责；生成结果通过 `.prelude/manifest.json` 记录 ownership、pins、providers 和 managed surfaces。
+
+当前目标与最终态以 `docs/` 为准：
+
+- [当前目标](./docs/prelude-goal.md)
+- [最终态架构](./docs/prelude-final-state.md)
+- [manifest/materialization 架构](./docs/manifest-materialization-architecture.md)
 
 ## 快速开始
 
@@ -204,18 +214,21 @@ PRELUDE_SMOKE_CONCURRENCY=1 PRELUDE_SMOKE_CASES=cli pnpm smoke:examples
 
 ## 项目知识入口
 
-- [项目上下文总览](./.trellis/user/index.md)
-- [@sayoriqwq/prelude 项目说明](./.trellis/user/prelude.md)
-- [生成脚手架说明](./.trellis/user/generated-scaffolds.md)
-- [执行规范索引](./.trellis/spec/prelude/index.md)
+- [docs 入口](./docs/README.md)
+- [当前目标](./docs/prelude-goal.md)
+- [最终态架构](./docs/prelude-final-state.md)
+- [manifest/materialization 架构](./docs/manifest-materialization-architecture.md)
+- [agent skill 配置](./docs/agents/)
+
+`.trellis/` 已废弃为历史参考，只用于必要时追溯旧上下文。当前项目知识、重构目标和架构约束以 `docs/` 为准。
 
 ## 仓库内有什么
 
 ```text
 apps/cli/      CLI 本体、问题流、模板注册与生成逻辑
 apps/examples/ generated smoke 的可检查生成物落点
-.trellis/user/ 面向使用者与贡献者的项目上下文
-.trellis/spec/ 面向实现与维护工作的执行规范
+docs/          当前项目知识、目标架构、agent 配置
+.trellis/      已废弃的历史参考
 ```
 
 ## 提交与协作
@@ -228,8 +241,9 @@ git commit -m "docs: align project documentation"
 
 更多约定见：
 
-- [协作与验证说明](./.trellis/user/contributing.md)
-- [验证规范](./.trellis/spec/prelude/verification/index.md)
+- [agent skill issue tracker 配置](./docs/agents/issue-tracker.md)
+- [agent skill triage label 配置](./docs/agents/triage-labels.md)
+- [agent skill domain docs 配置](./docs/agents/domain.md)
 
 ## 致谢
 
