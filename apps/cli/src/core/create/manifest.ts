@@ -17,6 +17,13 @@ function generatedSurfaceRecordForOperation(operation: WritePlan['operations'][n
         authority: operation.authority,
         operationId: operation.id,
       }
+    case 'writeManagedFile':
+      return {
+        path: operation.path,
+        creator: operation.owner,
+        authority: operation.authority,
+        operationId: operation.id,
+      }
     case 'writeGeneratedUserFile':
       return {
         path: operation.path,

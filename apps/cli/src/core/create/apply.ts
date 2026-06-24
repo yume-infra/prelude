@@ -21,6 +21,9 @@ function writeOperation(fs: CreateFs, baseDir: string, operation: WriteOperation
       case 'writeStructuredFile':
         yield* fs.writeFileString(targetPath, encodeJson(operation.value))
         return
+      case 'writeManagedFile':
+        yield* fs.writeFileString(targetPath, operation.content)
+        return
       case 'writeGeneratedUserFile':
         yield* fs.writeFileString(targetPath, operation.content)
     }

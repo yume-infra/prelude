@@ -7,15 +7,15 @@ import { Effect, Layer } from 'effect'
 import { describe, it } from 'vitest'
 import { makePackageName } from '@/brand/package-name'
 import { makeTargetDir } from '@/brand/target-dir'
-import { createProjectFromSpec } from '@/core/create'
+import { createProjectFromSpec, materializeWritePlan } from '@/core/create'
 import { FsLive } from '@/core/services/fs'
 
 async function makeTempProjectDir() {
   return await fs.mkdtemp(path.join(os.tmpdir(), 'prelude-create-'))
 }
 
-async function readJson(filePath: string) {
-  return JSON.parse(await fs.readFile(filePath, 'utf8')) as unknown
+async function readJson<T = unknown>(filePath: string) {
+  return JSON.parse(await fs.readFile(filePath, 'utf8')) as T
 }
 
 const TestLayer = FsLive.pipe(
@@ -70,7 +70,7 @@ describe('create spec creation path', () => {
         const source = yield* Effect.promise(() => fs.readFile(path.join(targetDir, 'src/index.ts'), 'utf8'))
         assert.equal(source, 'export {}\n')
 
-        const manifest = yield* Effect.promise(() => readJson(path.join(targetDir, '.prelude/manifest.json')))
+        const manifest = yield* Effect.promise(() => readJson<{ resolvedGraph: { rootCapabilities: unknown, logicalSurfaces: unknown }, generatedUserSurfaces: Array<{ path: string, authority: string }> }>(path.join(targetDir, '.prelude/manifest.json')))
         assert.deepEqual(manifest, {
           schemaVersion: 1,
           preludeVersion: '0.0.0-test',
@@ -145,6 +145,179 @@ describe('create spec creation path', () => {
     )
   })
 
+  it('materializes root engineering capabilities through logical surfaces', async () => {
+    await Effect.runPromise(
+      Effect.gen(function* () {
+        const targetDir = yield* Effect.promise(makeTempProjectDir)
+
+        const result = yield* createProjectFromSpec({
+          spec: {
+            topology: 'single-package',
+            package: {
+              id: 'app',
+              name: makePackageName('demo-app'),
+              capabilities: ['minimal-node-package'],
+            },
+            rootCapabilities: ['package-manager:pnpm', 'linting', 'knip'],
+            providers: [],
+            overrides: {},
+          },
+          targetDir: makeTargetDir(targetDir),
+          preludeVersion: '0.0.0-test',
+        })
+
+        assert.deepEqual(result.writePlan.operations.map(operation => operation.path), [
+          'package.json',
+          'eslint.config.mjs',
+          'knip.json',
+          'src/index.ts',
+        ])
+
+        const packageJson = yield* Effect.promise(() => readJson(path.join(targetDir, 'package.json')))
+        assert.deepEqual(packageJson, {
+          name: 'demo-app',
+          type: 'module',
+          version: '0.0.0',
+          packageManager: 'pnpm@10.33.4',
+          scripts: {
+            build: 'tsc --noEmit',
+            lint: 'eslint .',
+            knip: 'knip',
+            verify: 'pnpm build && pnpm lint && pnpm knip',
+          },
+          devDependencies: {
+            '@antfu/eslint-config': 'catalog:',
+            'eslint': 'catalog:',
+            'knip': 'catalog:',
+            'typescript': 'catalog:',
+          },
+        })
+
+        const eslintConfig = yield* Effect.promise(() => fs.readFile(path.join(targetDir, 'eslint.config.mjs'), 'utf8'))
+        assert.equal(eslintConfig, 'import antfu from \'@antfu/eslint-config\'\n\nexport default antfu()\n')
+
+        const knipConfig = yield* Effect.promise(() => readJson(path.join(targetDir, 'knip.json')))
+        assert.deepEqual(knipConfig, {
+          $schema: 'https://unpkg.com/knip@6/schema.json',
+        })
+
+        const manifest = yield* Effect.promise(() =>
+          readJson<{
+            resolvedGraph: {
+              rootCapabilities: unknown
+              logicalSurfaces: unknown
+            }
+            generatedUserSurfaces: Array<{ path: string, authority: string }>
+          }>(path.join(targetDir, '.prelude/manifest.json')),
+        )
+        assert.deepEqual(manifest.resolvedGraph.rootCapabilities, ['package-manager:pnpm', 'linting', 'knip'])
+        assert.deepEqual(manifest.resolvedGraph.logicalSurfaces, [
+          {
+            id: 'package-manifest:root',
+            materializer: 'package-json',
+            owner: 'prelude',
+          },
+          {
+            id: 'eslint-root',
+            materializer: 'eslint-config',
+            owner: 'capability:linting',
+          },
+          {
+            id: 'knip-root',
+            materializer: 'knip-config',
+            owner: 'capability:knip',
+          },
+          {
+            id: 'source:root/src/index.ts',
+            materializer: 'generated-user-file',
+            owner: 'capability:minimal-node-package',
+          },
+        ])
+        assert.deepEqual(
+          manifest.generatedUserSurfaces.map((surface: { path: string, authority: string }) => ({
+            path: surface.path,
+            authority: surface.authority,
+          })),
+          [
+            { path: 'package.json', authority: 'none' },
+            { path: 'eslint.config.mjs', authority: 'none' },
+            { path: 'knip.json', authority: 'none' },
+            { path: 'src/index.ts', authority: 'none' },
+          ],
+        )
+      }).pipe(Effect.provide(TestLayer)),
+    )
+  })
+
+  it('dedupes equal structured package keys and blocks incompatible values before writes', async () => {
+    const dedupedPlan = await Effect.runPromise(materializeWritePlan([
+      {
+        kind: 'packageManifest',
+        surfaceId: 'package-manifest:root',
+        owner: 'capability:alpha-linting',
+        entries: {
+          scripts: {
+            lint: 'eslint .',
+          },
+        },
+      },
+      {
+        kind: 'packageManifest',
+        surfaceId: 'package-manifest:root',
+        owner: 'capability:beta-linting',
+        entries: {
+          scripts: {
+            lint: 'eslint .',
+          },
+        },
+      },
+    ]))
+
+    assert.deepEqual(dedupedPlan.operations[0], {
+      id: 'write-package-json',
+      kind: 'writeStructuredFile',
+      owner: 'materializer:package-json',
+      surfaceId: 'package-manifest:root',
+      path: 'package.json',
+      authority: 'none',
+      value: {
+        scripts: {
+          lint: 'eslint .',
+        },
+      },
+    })
+
+    await assert.rejects(
+      Effect.runPromise(materializeWritePlan([
+        {
+          kind: 'packageManifest',
+          surfaceId: 'package-manifest:root',
+          owner: 'capability:alpha-linting',
+          entries: {
+            scripts: {
+              lint: 'eslint .',
+            },
+          },
+        },
+        {
+          kind: 'packageManifest',
+          surfaceId: 'package-manifest:root',
+          owner: 'capability:beta-linting',
+          entries: {
+            scripts: {
+              lint: 'biome check .',
+            },
+          },
+        },
+      ])),
+      error =>
+        error instanceof Error
+        && error.message.includes('Conflicting package-manifest:root contribution at /scripts/lint')
+        && error.message.includes('capability:alpha-linting')
+        && error.message.includes('capability:beta-linting'),
+    )
+  })
+
   it('blocks unsupported spec branches instead of silently dropping them', async () => {
     await assert.rejects(
       Effect.runPromise(
@@ -159,7 +332,7 @@ describe('create spec creation path', () => {
                 name: makePackageName('demo-app'),
                 capabilities: ['minimal-node-package'],
               },
-              rootCapabilities: ['linting'],
+              rootCapabilities: ['unsupported-root-capability'],
               providers: ['effect-harness'],
               overrides: {},
             },
@@ -172,7 +345,7 @@ describe('create spec creation path', () => {
         error instanceof Error
         && error.message.includes('Unsupported CreateSpec for the minimal creation path')
         && error.message.includes('unsupported topology "workspace"')
-        && error.message.includes('unsupported root capabilities: linting')
+        && error.message.includes('unsupported root capabilities: unsupported-root-capability')
         && error.message.includes('unsupported providers: effect-harness'),
     )
   })

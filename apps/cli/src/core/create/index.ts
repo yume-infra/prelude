@@ -6,8 +6,9 @@ import { collectCapabilityContributions } from './contributions'
 import { buildManifest, encodeManifest } from './manifest'
 import { materializeWritePlan } from './materializers'
 import { resolveCreateSpec, validateCreateSpec } from './resolve'
-import { verifyMinimalCreate } from './verify'
+import { verifyCreateOutputs } from './verify'
 
+export { materializeWritePlan } from './materializers'
 export type {
   CapabilityContribution,
   CreateProjectError,
@@ -26,10 +27,10 @@ export function createProjectFromSpec(options: CreateProjectOptions): Effect.Eff
     yield* validateCreateSpec(options.spec)
     const resolvedGraph = resolveCreateSpec(options.spec)
     const contributions = collectCapabilityContributions(resolvedGraph)
-    const writePlan = materializeWritePlan(contributions)
+    const writePlan = yield* materializeWritePlan(contributions)
 
     yield* applyWritePlan(fs, options.targetDir, writePlan)
-    const verification = yield* verifyMinimalCreate(fs, options.targetDir)
+    const verification = yield* verifyCreateOutputs(fs, options.targetDir, resolvedGraph)
     const manifest = buildManifest({
       preludeVersion: options.preludeVersion,
       createSpec: options.spec,

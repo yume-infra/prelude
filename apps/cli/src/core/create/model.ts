@@ -5,6 +5,7 @@ import type { FileIOError, SchemaContractError } from '@/core/errors'
 
 export type Topology = 'single-package' | 'workspace'
 export type CapabilityId = 'minimal-node-package'
+export type RootCapabilityId = 'package-manager:pnpm' | 'linting' | 'knip'
 
 export interface CreateSpecPackage {
   readonly id: string
@@ -37,7 +38,7 @@ export interface ResolvedGraph {
   readonly topology: 'single-package'
   readonly rootPackage: ResolvedPackage
   readonly packages: readonly []
-  readonly rootCapabilities: readonly []
+  readonly rootCapabilities: readonly RootCapabilityId[]
   readonly packageCapabilities: Record<string, readonly CapabilityId[]>
   readonly providers: readonly []
   readonly logicalSurfaces: readonly LogicalSurface[]
@@ -59,6 +60,19 @@ export interface PackageManifestContribution {
   readonly entries: Record<string, JsonValue>
 }
 
+export interface EslintRootContribution {
+  readonly kind: 'eslintRoot'
+  readonly surfaceId: 'eslint-root'
+  readonly owner: string
+}
+
+export interface KnipRootContribution {
+  readonly kind: 'knipRoot'
+  readonly surfaceId: 'knip-root'
+  readonly owner: string
+  readonly config: Record<string, JsonValue>
+}
+
 export interface GeneratedUserFileContribution {
   readonly kind: 'generatedUserFile'
   readonly surfaceId: 'source:root/src/index.ts'
@@ -67,16 +81,30 @@ export interface GeneratedUserFileContribution {
   readonly content: string
 }
 
-export type CapabilityContribution = PackageManifestContribution | GeneratedUserFileContribution
+export type CapabilityContribution
+  = | PackageManifestContribution
+    | EslintRootContribution
+    | KnipRootContribution
+    | GeneratedUserFileContribution
 
 export interface WriteStructuredFileOperation {
-  readonly id: 'write-package-json'
+  readonly id: string
   readonly kind: 'writeStructuredFile'
-  readonly owner: 'materializer:package-json'
-  readonly surfaceId: 'package-manifest:root'
-  readonly path: 'package.json'
+  readonly owner: string
+  readonly surfaceId: string
+  readonly path: string
   readonly authority: 'none'
   readonly value: Record<string, JsonValue>
+}
+
+export interface WriteManagedFileOperation {
+  readonly id: string
+  readonly kind: 'writeManagedFile'
+  readonly owner: string
+  readonly surfaceId: string
+  readonly path: string
+  readonly authority: 'none'
+  readonly content: string
 }
 
 export interface WriteGeneratedUserFileOperation {
@@ -89,16 +117,16 @@ export interface WriteGeneratedUserFileOperation {
   readonly content: string
 }
 
-export type WriteOperation = WriteStructuredFileOperation | WriteGeneratedUserFileOperation
+export type WriteOperation = WriteStructuredFileOperation | WriteManagedFileOperation | WriteGeneratedUserFileOperation
 
 export interface WritePlan {
   readonly operations: readonly WriteOperation[]
 }
 
 export interface VerificationRecord {
-  readonly id: 'minimal-create-files-present'
+  readonly id: string
   readonly status: 'passed'
-  readonly checkedPaths: readonly ['package.json', 'src/index.ts']
+  readonly checkedPaths: readonly string[]
 }
 
 export interface VerificationResult {
