@@ -1,4 +1,5 @@
 import type { CapabilityContribution, ResolvedGraph } from './model'
+import { effectHarnessContributions, hasEffectHarnessProvider } from './effect-harness-provider'
 
 function reactAppShellSurfaceId(packageId: string) {
   return `react-app-shell:${packageId}` as const
@@ -44,6 +45,30 @@ export function collectCapabilityContributions(graph: ResolvedGraph): readonly C
             kind: 'generatedUserFile',
             surfaceId: 'source:root/src/index.ts',
             owner: 'capability:minimal-node-package',
+            path: 'src/index.ts',
+            content: 'export {}\n',
+          },
+        )
+        break
+      case 'effect-package':
+        contributions.push(
+          {
+            kind: 'packageManifest',
+            surfaceId: 'package-manifest:root',
+            owner: 'capability:effect-package',
+            entries: {
+              name: graph.rootPackage.name,
+              type: 'module',
+              version: '0.0.0',
+              scripts: {
+                build: 'tsgo --noEmit',
+              },
+            },
+          },
+          {
+            kind: 'generatedUserFile',
+            surfaceId: 'source:root/src/index.ts',
+            owner: 'capability:effect-package',
             path: 'src/index.ts',
             content: 'export {}\n',
           },
@@ -212,6 +237,10 @@ createRoot(document.getElementById('root')!).render(
         },
       },
     })
+  }
+
+  if (hasEffectHarnessProvider(graph)) {
+    contributions.push(...effectHarnessContributions(graph))
   }
 
   return contributions

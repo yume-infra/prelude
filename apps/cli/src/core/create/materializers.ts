@@ -5,10 +5,12 @@ import type {
   JsonValue,
   KnipRootContribution,
   PackageManifestContribution,
+  ProviderArtifactContribution,
   ReactAppShellContribution,
   WriteOperation,
   WritePlan,
 } from './model'
+import * as path from 'node:path'
 import { Effect } from 'effect'
 import { SchemaContractError } from '@/core/errors'
 
@@ -308,6 +310,44 @@ ${body}
   }]
 }
 
+function providerArtifactPathError(contribution: ProviderArtifactContribution) {
+  return new SchemaContractError({
+    schema: contribution.surfaceId,
+    issueCount: 1,
+    message: `Provider ${contribution.providerId} declared unsupported artifact path "${contribution.path}". Provider artifacts must stay under .prelude/providers/${contribution.providerId}/.`,
+  })
+}
+
+function isProviderNamespacePath(providerId: string, artifactPath: string) {
+  if (path.isAbsolute(artifactPath)) {
+    return false
+  }
+
+  const normalized = path.posix.normalize(artifactPath)
+  const providerRoot = `.prelude/providers/${providerId}/`
+
+  return normalized === artifactPath
+    && normalized.startsWith(providerRoot)
+    && normalized.length > providerRoot.length
+    && !normalized.split('/').includes('..')
+}
+
+function materializeProviderArtifact(contribution: ProviderArtifactContribution): Effect.Effect<WriteOperation, SchemaContractError> {
+  if (!isProviderNamespacePath(contribution.providerId, contribution.path)) {
+    return Effect.fail(providerArtifactPathError(contribution))
+  }
+
+  return Effect.succeed({
+    id: 'write-effect-harness-provider-record',
+    kind: 'writeStructuredFile',
+    owner: 'materializer:provider-artifact',
+    surfaceId: contribution.surfaceId,
+    path: contribution.path,
+    authority: 'owner',
+    value: contribution.value,
+  })
+}
+
 export function materializeWritePlan(contributions: readonly CapabilityContribution[]): Effect.Effect<WritePlan, SchemaContractError> {
   const packageManifestContributions = contributions.filter(
     (contribution): contribution is PackageManifestContribution => contribution.kind === 'packageManifest',
@@ -324,6 +364,9 @@ export function materializeWritePlan(contributions: readonly CapabilityContribut
   const reactAppShellContributions = contributions.filter(
     (contribution): contribution is ReactAppShellContribution => contribution.kind === 'reactAppShell',
   )
+  const providerArtifactContributions = contributions.filter(
+    (contribution): contribution is ProviderArtifactContribution => contribution.kind === 'providerArtifact',
+  )
   const packageManifestSurfaces = new Map<string, readonly PackageManifestContribution[]>()
 
   for (const contribution of packageManifestContributions) {
@@ -331,19 +374,24 @@ export function materializeWritePlan(contributions: readonly CapabilityContribut
     packageManifestSurfaces.set(contribution.surfaceId, [...existing, contribution])
   }
 
-  return Effect.map(
-    Effect.all(
+  return Effect.gen(function* () {
+    const packageJsonOperations = yield* Effect.all(
       [...packageManifestSurfaces.entries()].map(([surfaceId, surfaceContributions]) =>
         materializePackageJson(surfaceId, surfaceContributions)),
-    ),
-    packageJsonOperations => ({
+    )
+    const providerArtifactOperations = yield* Effect.all(
+      providerArtifactContributions.map(materializeProviderArtifact),
+    )
+
+    return {
       operations: [
         ...packageJsonOperations,
         ...materializeEslintRoot(eslintRootContributions),
         ...materializeKnipRoot(knipRootContributions),
         ...sourceContributions.map(materializeGeneratedUserFile),
         ...materializeReactAppShell(reactAppShellContributions),
+        ...providerArtifactOperations,
       ],
-    }),
-  )
+    }
+  })
 }

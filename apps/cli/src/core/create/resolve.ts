@@ -1,6 +1,7 @@
-import type { CapabilityId, CreateSpec, JsonCreateSpec, LogicalSurface, ResolvedGraph, RootCapabilityId } from './model'
+import type { CapabilityId, CreateSpec, JsonCreateSpec, LogicalSurface, ProviderId, ResolvedGraph, ResolvedProvider, RootCapabilityId } from './model'
 import { Effect } from 'effect'
 import { SchemaContractError } from '@/core/errors'
+import { effectHarnessResolvedProvider, effectHarnessVerificationId } from './effect-harness-provider'
 
 const packageManifestLogicalSurface = {
   id: 'package-manifest:root',
@@ -12,6 +13,12 @@ const generatedRootSourceLogicalSurface = {
   id: 'source:root/src/index.ts',
   materializer: 'generated-user-file',
   owner: 'capability:minimal-node-package',
+} as const satisfies LogicalSurface
+
+const generatedEffectSourceLogicalSurface = {
+  id: 'source:root/src/index.ts',
+  materializer: 'generated-user-file',
+  owner: 'capability:effect-package',
 } as const satisfies LogicalSurface
 
 const rootCapabilityLogicalSurfaces: Partial<Record<RootCapabilityId, LogicalSurface>> = {
@@ -27,8 +34,15 @@ const rootCapabilityLogicalSurfaces: Partial<Record<RootCapabilityId, LogicalSur
   },
 }
 
-const supportedRootCapabilities = ['package-manager:pnpm', 'linting', 'knip'] as const satisfies readonly RootCapabilityId[]
-const supportedPackageCapabilities = ['minimal-node-package', 'react-app', 'react-counter'] as const satisfies readonly CapabilityId[]
+const effectHarnessLogicalSurface = {
+  id: 'provider:effect-harness',
+  materializer: 'provider-artifact',
+  owner: 'capability:ai-harness',
+} as const satisfies LogicalSurface
+
+const supportedRootCapabilities = ['package-manager:pnpm', 'linting', 'knip', 'ai-harness'] as const satisfies readonly RootCapabilityId[]
+const supportedPackageCapabilities = ['minimal-node-package', 'react-app', 'react-counter', 'effect-package'] as const satisfies readonly CapabilityId[]
+const supportedProviders = ['effect-harness'] as const satisfies readonly ProviderId[]
 
 const minimalVerification = [
   'minimal-create-files-present',
@@ -40,6 +54,10 @@ function isRootCapabilityId(capability: string): capability is RootCapabilityId 
 
 function isPackageCapabilityId(capability: string): capability is CapabilityId {
   return supportedPackageCapabilities.includes(capability as CapabilityId)
+}
+
+function isProviderId(provider: string): provider is ProviderId {
+  return supportedProviders.includes(provider as ProviderId)
 }
 
 function reactStaticSurface(packageId: string, path: string): LogicalSurface {
@@ -70,6 +88,14 @@ function resolveRootCapabilities(spec: CreateSpec): readonly RootCapabilityId[] 
   return rootCapabilities
 }
 
+function resolveProviders(spec: CreateSpec, rootCapabilities: readonly RootCapabilityId[]): readonly ResolvedProvider[] {
+  if (!rootCapabilities.includes('ai-harness') || !spec.providers.includes('effect-harness')) {
+    return []
+  }
+
+  return [effectHarnessResolvedProvider(spec.package.id)]
+}
+
 function logicalSurfacesFor(spec: CreateSpec, rootCapabilities: readonly RootCapabilityId[]): readonly LogicalSurface[] {
   const surfaces: LogicalSurface[] = spec.package.capabilities.includes('react-app')
     ? [
@@ -87,23 +113,41 @@ function logicalSurfacesFor(spec: CreateSpec, rootCapabilities: readonly RootCap
     }
   }
 
+  if (rootCapabilities.includes('ai-harness') && spec.providers.includes('effect-harness')) {
+    surfaces.push(effectHarnessLogicalSurface)
+  }
+
   if (spec.package.capabilities.includes('minimal-node-package')) {
     surfaces.push(generatedRootSourceLogicalSurface)
+  }
+  if (spec.package.capabilities.includes('effect-package')) {
+    surfaces.push(generatedEffectSourceLogicalSurface)
   }
 
   return surfaces
 }
 
-function verificationFor(spec: CreateSpec, rootCapabilities: readonly RootCapabilityId[]): readonly string[] {
+function verificationFor(
+  spec: CreateSpec,
+  rootCapabilities: readonly RootCapabilityId[],
+  providers: readonly ResolvedProvider[],
+): readonly string[] {
+  const hasRootEngineeringFiles = rootCapabilities.includes('linting') || rootCapabilities.includes('knip')
+  const providerVerification = providers.some(provider => provider.id === 'effect-harness')
+    ? [effectHarnessVerificationId]
+    : []
+
   if (spec.package.capabilities.includes('react-app')) {
-    return ['react-app-files-present']
+    return hasRootEngineeringFiles
+      ? ['react-app-files-present', 'root-engineering-files-present', ...providerVerification]
+      : ['react-app-files-present', ...providerVerification]
   }
 
-  if (rootCapabilities.length === 0) {
-    return minimalVerification
+  if (!hasRootEngineeringFiles) {
+    return [...minimalVerification, ...providerVerification]
   }
 
-  return [...minimalVerification, 'root-engineering-files-present']
+  return [...minimalVerification, 'root-engineering-files-present', ...providerVerification]
 }
 
 const minimalLogicalSurfaces = [
@@ -150,21 +194,34 @@ export function validateCreateSpec(spec: CreateSpec): Effect.Effect<void, Schema
     issues.push(`unsupported package capabilities: ${unsupportedPackageCapabilities.join(', ')}`)
   }
 
-  if (spec.providers.length > 0) {
-    issues.push(`unsupported providers: ${spec.providers.join(', ')}`)
+  const unsupportedProviders = spec.providers.filter(provider => !isProviderId(provider))
+  if (unsupportedProviders.length > 0) {
+    issues.push(`unsupported providers: ${unsupportedProviders.join(', ')}`)
   }
 
   const selectedRuntimeCapabilities = spec.package.capabilities.filter(
-    capability => capability === 'minimal-node-package' || capability === 'react-app',
+    capability => capability === 'minimal-node-package' || capability === 'react-app' || capability === 'effect-package',
   )
   if (selectedRuntimeCapabilities.length === 0) {
-    issues.push('one package runtime capability is required: minimal-node-package or react-app')
+    issues.push('one package runtime capability is required: minimal-node-package, react-app, or effect-package')
   }
   if (selectedRuntimeCapabilities.length > 1) {
     issues.push(`only one package runtime capability is supported: ${selectedRuntimeCapabilities.join(', ')}`)
   }
   if (spec.package.capabilities.includes('react-counter') && !spec.package.capabilities.includes('react-app')) {
     issues.push('react-counter requires react-app')
+  }
+  if (spec.providers.length > 0 && !spec.rootCapabilities.includes('ai-harness')) {
+    issues.push('providers require root capability: ai-harness')
+  }
+  if (spec.rootCapabilities.includes('ai-harness') && spec.providers.length === 0) {
+    issues.push('ai-harness requires provider: effect-harness')
+  }
+  if (spec.rootCapabilities.includes('ai-harness') && spec.providers.length > 1) {
+    issues.push(`only one ai-harness provider is supported: ${spec.providers.join(', ')}`)
+  }
+  if (spec.providers.includes('effect-harness') && !spec.package.capabilities.includes('effect-package')) {
+    issues.push('effect-harness requires effect-package')
   }
 
   if (issues.length > 0) {
@@ -180,6 +237,7 @@ export function validateCreateSpec(spec: CreateSpec): Effect.Effect<void, Schema
 
 export function resolveCreateSpec(spec: CreateSpec): ResolvedGraph {
   const rootCapabilities = resolveRootCapabilities(spec)
+  const providers = resolveProviders(spec, rootCapabilities)
 
   return {
     topology: 'single-package',
@@ -194,10 +252,10 @@ export function resolveCreateSpec(spec: CreateSpec): ResolvedGraph {
     packageCapabilities: {
       [spec.package.id]: spec.package.capabilities,
     },
-    providers: [],
+    providers,
     logicalSurfaces: rootCapabilities.length === 0 && spec.package.capabilities.includes('minimal-node-package')
       ? minimalLogicalSurfaces
       : logicalSurfacesFor(spec, rootCapabilities),
-    verification: verificationFor(spec, rootCapabilities),
+    verification: verificationFor(spec, rootCapabilities, providers),
   }
 }
