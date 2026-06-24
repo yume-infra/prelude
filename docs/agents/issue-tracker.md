@@ -1,7 +1,7 @@
 # Issue Tracker: GitHub
 
 Issues and PRDs for this repo live in GitHub Issues for
-`sayoriqwq/create-yume`. Use the `gh` CLI for issue tracker operations.
+`yume-infra/prelude`. Use the `gh` CLI for issue tracker operations.
 
 ## Conventions
 

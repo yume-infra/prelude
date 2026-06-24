@@ -61,7 +61,7 @@ compatibility layer.
 
 Repo-local agent configuration lives under `docs/agents/`.
 
-- Issues and PRDs are tracked in GitHub Issues for `sayoriqwq/create-yume`.
+- Issues and PRDs are tracked in GitHub Issues for `yume-infra/prelude`.
 - Use the default triage labels: `needs-triage`, `needs-info`,
   `ready-for-agent`, `ready-for-human`, and `wontfix`.
 - Domain reading starts at `docs/README.md`.
