@@ -65,7 +65,7 @@ try {
   assert.equal(packageJson.scripts.lint, 'eslint .')
   assert.equal(packageJson.scripts.knip, 'knip')
   assert.equal(packageJson.scripts.verify, 'pnpm build && pnpm lint && pnpm knip')
-  assert.equal(packageJson.devDependencies['@effect/tsgo'], '0.14.4')
+  assert.equal(packageJson.devDependencies['@effect/tsgo'], '0.14.6')
   assert.equal(manifest.createSpec.package.capabilities[0], 'effect-package')
   assert.deepEqual(manifest.lifecycleProviders.map(provider => provider.id), ['effect-harness'])
   assert.equal(providerArtifact.id, 'effect-harness')

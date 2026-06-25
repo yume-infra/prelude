@@ -62,7 +62,7 @@ const effectHarnessRecord = {
       split: 'abc123',
     },
     packageBaseline: {
-      effect: '4.0.0-beta.83',
+      effect: '4.0.0-beta.90',
     },
   },
   projectedContext: {
@@ -415,7 +415,7 @@ describe('provider lifecycle runtime', () => {
                   kind: 'structuredPointer',
                   path: 'package.json',
                   pointer: '/devDependencies/@effect~1tsgo',
-                  snapshot: '0.14.4',
+                  snapshot: '0.14.6',
                   operationId: 'write-package-json',
                 },
               ],

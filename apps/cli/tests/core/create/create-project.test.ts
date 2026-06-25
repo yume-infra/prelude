@@ -590,14 +590,14 @@ createRoot(document.getElementById('root')!).render(
             build: 'tsgo --noEmit',
           },
           dependencies: {
-            '@effect/platform-node': '4.0.0-beta.83',
-            'effect': '4.0.0-beta.83',
+            '@effect/platform-node': '4.0.0-beta.90',
+            'effect': '4.0.0-beta.90',
           },
           devDependencies: {
             '@effect/language-service': '0.86.2',
-            '@effect/tsgo': '0.14.4',
-            '@effect/vitest': '4.0.0-beta.83',
-            '@typescript/native-preview': '7.0.0-dev.20260615.1',
+            '@effect/tsgo': '0.14.6',
+            '@effect/vitest': '4.0.0-beta.90',
+            '@typescript/native-preview': '7.0.0-dev.20260624.1',
             'typescript': 'catalog:',
           },
         })
@@ -617,15 +617,15 @@ createRoot(document.getElementById('root')!).render(
             source: {
               repository: 'https://github.com/Effect-TS/effect-smol.git',
               branch: 'main',
-              split: '95545bdc334f4cd27a14f3308e68114e5bed92f2',
+              split: '3475ee6c2bda6b05c6d7a12ce30c8bb840b5b1a6',
             },
             packageBaseline: {
-              'effect': '4.0.0-beta.83',
-              '@effect/platform-node': '4.0.0-beta.83',
-              '@effect/vitest': '4.0.0-beta.83',
-              '@effect/tsgo': '0.14.4',
+              'effect': '4.0.0-beta.90',
+              '@effect/platform-node': '4.0.0-beta.90',
+              '@effect/vitest': '4.0.0-beta.90',
+              '@effect/tsgo': '0.14.6',
               '@effect/language-service': '0.86.2',
-              '@typescript/native-preview': '7.0.0-dev.20260615.1',
+              '@typescript/native-preview': '7.0.0-dev.20260624.1',
             },
           },
           projectedContext: {
@@ -701,15 +701,15 @@ createRoot(document.getElementById('root')!).render(
               source: {
                 repository: 'https://github.com/Effect-TS/effect-smol.git',
                 branch: 'main',
-                split: '95545bdc334f4cd27a14f3308e68114e5bed92f2',
+                split: '3475ee6c2bda6b05c6d7a12ce30c8bb840b5b1a6',
               },
               packageBaseline: {
-                'effect': '4.0.0-beta.83',
-                '@effect/platform-node': '4.0.0-beta.83',
-                '@effect/vitest': '4.0.0-beta.83',
-                '@effect/tsgo': '0.14.4',
+                'effect': '4.0.0-beta.90',
+                '@effect/platform-node': '4.0.0-beta.90',
+                '@effect/vitest': '4.0.0-beta.90',
+                '@effect/tsgo': '0.14.6',
                 '@effect/language-service': '0.86.2',
-                '@typescript/native-preview': '7.0.0-dev.20260615.1',
+                '@typescript/native-preview': '7.0.0-dev.20260624.1',
               },
             },
             projectedContext: {
@@ -748,7 +748,7 @@ createRoot(document.getElementById('root')!).render(
             kind: 'structuredPointer',
             path: 'package.json',
             pointer: '/dependencies/effect',
-            snapshot: '4.0.0-beta.83',
+            snapshot: '4.0.0-beta.90',
             operationId: 'write-package-json',
           },
           {
@@ -758,7 +758,7 @@ createRoot(document.getElementById('root')!).render(
             kind: 'structuredPointer',
             path: 'package.json',
             pointer: '/dependencies/@effect~1platform-node',
-            snapshot: '4.0.0-beta.83',
+            snapshot: '4.0.0-beta.90',
             operationId: 'write-package-json',
           },
           {
@@ -768,7 +768,7 @@ createRoot(document.getElementById('root')!).render(
             kind: 'structuredPointer',
             path: 'package.json',
             pointer: '/devDependencies/@effect~1vitest',
-            snapshot: '4.0.0-beta.83',
+            snapshot: '4.0.0-beta.90',
             operationId: 'write-package-json',
           },
           {
@@ -778,7 +778,7 @@ createRoot(document.getElementById('root')!).render(
             kind: 'structuredPointer',
             path: 'package.json',
             pointer: '/devDependencies/@effect~1tsgo',
-            snapshot: '0.14.4',
+            snapshot: '0.14.6',
             operationId: 'write-package-json',
           },
           {
@@ -798,7 +798,7 @@ createRoot(document.getElementById('root')!).render(
             kind: 'structuredPointer',
             path: 'package.json',
             pointer: '/devDependencies/@typescript~1native-preview',
-            snapshot: '7.0.0-dev.20260615.1',
+            snapshot: '7.0.0-dev.20260624.1',
             operationId: 'write-package-json',
           },
         ])

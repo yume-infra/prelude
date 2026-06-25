@@ -1,25 +1,23 @@
 # 示例项目
 
-`apps/examples/.generated/` 专门用于存放本地 generated smoke 验证生成物。
+当前仓库不再维护持久的模板目录或 `.generated/` 示例目录。
 
-从仓库根目录运行 generated examples smoke：
+`pnpm smoke:examples` 会把代表性项目生成到系统临时目录，完成断言后清理。它验证的是当前 `CreateSpec -> Resolver -> Contributions -> Materializers -> WritePlan` 管线，而不是保留一份可浏览的生成物。
+
+从仓库根目录运行：
 
 ```bash
 pnpm smoke:examples
 ```
 
-该 smoke 会生成代表性的 preset / workspace 项目，安装依赖，并构建生成后的项目。成功后生成物会保留在 `.generated/`，方便检查。
-
-慢 smoke 不需要每次全跑；只改某类模板或生成逻辑时，用 `PRELUDE_SMOKE_CASES` 选择相关 case：
+如果需要人工检查可渲染结果，直接用 CLI 生成到你指定的目录：
 
 ```bash
-PRELUDE_SMOKE_CASES=react pnpm smoke:examples
-PRELUDE_SMOKE_CASES=cli,library pnpm smoke:examples
-PRELUDE_SMOKE_CASES=workspace pnpm smoke:examples
+pnpm build:cli
+repo_root="$(pwd)"
+mkdir -p /tmp/prelude-preview
+cd /tmp/prelude-preview
+node "$repo_root/apps/cli/dist/index.js" --spec '{"topology":"single-package","package":{"id":"app","name":"preview-app","capabilities":["react-app","react-counter"]},"rootCapabilities":["package-manager:pnpm","linting","knip"],"providers":[],"overrides":{}}' --name preview-app --no-input
 ```
 
-默认并发度是 `PRELUDE_SMOKE_CONCURRENCY=2`。runner 会并发生成项目和运行安装后的 build/lint/bin 检查，但会串行执行每个 generated project 的 `pnpm install`，避免 `.generated` workspace 里的共享 pnpm lockfile 发生竞争。需要完全串行排查时可设为 `1`：
-
-```bash
-PRELUDE_SMOKE_CONCURRENCY=1 PRELUDE_SMOKE_CASES=react pnpm smoke:examples
-```
+生成物会出现在 `/tmp/prelude-preview/preview-app`。
