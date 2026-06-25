@@ -19,6 +19,41 @@ function verifyScriptFor(graph: ResolvedGraph): string | undefined {
   return commands.length > 1 ? commands.join(' && ') : undefined
 }
 
+function effectPackageSource(graph: ResolvedGraph) {
+  if (!hasEffectHarnessProvider(graph)) {
+    return 'export {}\n'
+  }
+
+  return `import { NodeRuntime } from '@effect/platform-node'
+import { Console, Effect } from 'effect'
+
+const program = Effect.gen(function* () {
+  yield* Console.log('canonical-worker ready')
+})
+
+NodeRuntime.runMain(program)
+`
+}
+
+function effectPackageBuildScript(graph: ResolvedGraph) {
+  return hasEffectHarnessProvider(graph)
+    ? 'tsgo --noEmit --project tsconfig.json'
+    : 'tsc --noEmit --project tsconfig.json'
+}
+
+const effectPackageTsconfig = `{
+  "compilerOptions": {
+    "target": "ES2022",
+    "module": "NodeNext",
+    "moduleResolution": "NodeNext",
+    "strict": true,
+    "skipLibCheck": true,
+    "types": ["node"]
+  },
+  "include": ["src/**/*.ts"]
+}
+`
+
 export function collectCapabilityContributions(graph: ResolvedGraph): readonly CapabilityContribution[] {
   const contributions: CapabilityContribution[] = []
   const packageId = graph.rootPackage.id
@@ -61,7 +96,11 @@ export function collectCapabilityContributions(graph: ResolvedGraph): readonly C
               type: 'module',
               version: '0.0.0',
               scripts: {
-                build: 'tsgo --noEmit',
+                build: effectPackageBuildScript(graph),
+              },
+              devDependencies: {
+                '@types/node': 'catalog:',
+                'typescript': 'catalog:',
               },
             },
           },
@@ -70,7 +109,14 @@ export function collectCapabilityContributions(graph: ResolvedGraph): readonly C
             surfaceId: 'source:root/src/index.ts',
             owner: 'capability:effect-package',
             path: 'src/index.ts',
-            content: 'export {}\n',
+            content: effectPackageSource(graph),
+          },
+          {
+            kind: 'generatedUserFile',
+            surfaceId: 'tsconfig:root',
+            owner: 'capability:effect-package',
+            path: 'tsconfig.json',
+            content: effectPackageTsconfig,
           },
         )
         break

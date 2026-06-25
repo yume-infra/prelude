@@ -265,6 +265,18 @@ function materializeGeneratedUserFile(contribution: GeneratedUserFileContributio
     }
   }
 
+  if (contribution.path === 'tsconfig.json') {
+    return {
+      id: 'write-tsconfig',
+      kind: 'writeGeneratedUserFile',
+      owner: contribution.owner,
+      surfaceId: contribution.surfaceId,
+      path: contribution.path,
+      authority: 'none',
+      content: contribution.content,
+    }
+  }
+
   return {
     id: 'write-root-source',
     kind: 'writeGeneratedUserFile',

@@ -21,6 +21,12 @@ const generatedEffectSourceLogicalSurface = {
   owner: 'capability:effect-package',
 } as const satisfies LogicalSurface
 
+const effectTsconfigLogicalSurface = {
+  id: 'tsconfig:root',
+  materializer: 'generated-user-file',
+  owner: 'capability:effect-package',
+} as const satisfies LogicalSurface
+
 const rootCapabilityLogicalSurfaces: Partial<Record<RootCapabilityId, LogicalSurface>> = {
   linting: {
     id: 'eslint-root',
@@ -122,6 +128,7 @@ function logicalSurfacesFor(spec: CreateSpec, rootCapabilities: readonly RootCap
   }
   if (spec.package.capabilities.includes('effect-package')) {
     surfaces.push(generatedEffectSourceLogicalSurface)
+    surfaces.push(effectTsconfigLogicalSurface)
   }
 
   return surfaces

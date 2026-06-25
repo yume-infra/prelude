@@ -76,7 +76,9 @@ pnpm --filter @sayoriqwq/prelude smoke:examples
 ```
 
 `smoke:generated` and `smoke:examples` run the same canonical generated
-project check. They generate into a system temporary directory, print the target
-path, and keep the generated project for inspection. After a stable commit has
-passed smoke, do not rerun smoke again unless code, docs that affect the
-contract, or the harness/package baseline changes.
+project check. They generate `canonical-worker` and `react-counter-app` under
+`apps/examples/.generated/`, print the target paths, and keep the generated
+projects for inspection. The generated directory is gitignored and contains a
+local `pnpm-workspace.yaml` so the generated packages can install and build.
+After a stable commit has passed smoke, do not rerun smoke again unless code,
+docs that affect the contract, or the harness/package baseline changes.

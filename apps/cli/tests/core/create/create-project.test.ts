@@ -572,6 +572,13 @@ createRoot(document.getElementById('root')!).render(
             authority: 'none',
           },
           {
+            id: 'write-tsconfig',
+            kind: 'writeGeneratedUserFile',
+            owner: 'capability:effect-package',
+            path: 'tsconfig.json',
+            authority: 'none',
+          },
+          {
             id: 'write-effect-harness-provider-record',
             kind: 'writeStructuredFile',
             owner: 'materializer:provider-artifact',
@@ -587,7 +594,7 @@ createRoot(document.getElementById('root')!).render(
           version: '0.0.0',
           packageManager: 'pnpm@10.33.4',
           scripts: {
-            build: 'tsgo --noEmit',
+            build: 'tsgo --noEmit --project tsconfig.json',
           },
           dependencies: {
             '@effect/platform-node': '4.0.0-beta.90',
@@ -597,13 +604,35 @@ createRoot(document.getElementById('root')!).render(
             '@effect/language-service': '0.86.2',
             '@effect/tsgo': '0.14.6',
             '@effect/vitest': '4.0.0-beta.90',
+            '@types/node': 'catalog:',
             '@typescript/native-preview': '7.0.0-dev.20260624.1',
             'typescript': 'catalog:',
           },
         })
 
         const source = yield* Effect.promise(() => fs.readFile(path.join(targetDir, 'src/index.ts'), 'utf8'))
-        assert.equal(source, 'export {}\n')
+        assert.equal(source, `import { NodeRuntime } from '@effect/platform-node'
+import { Console, Effect } from 'effect'
+
+const program = Effect.gen(function* () {
+  yield* Console.log('canonical-worker ready')
+})
+
+NodeRuntime.runMain(program)
+`)
+
+        const tsconfig = yield* Effect.promise(() => readJson(path.join(targetDir, 'tsconfig.json')))
+        assert.deepEqual(tsconfig, {
+          compilerOptions: {
+            target: 'ES2022',
+            module: 'NodeNext',
+            moduleResolution: 'NodeNext',
+            strict: true,
+            skipLibCheck: true,
+            types: ['node'],
+          },
+          include: ['src/**/*.ts'],
+        })
 
         const providerArtifact = yield* Effect.promise(() =>
           readJson<Record<string, unknown>>(path.join(targetDir, '.prelude/providers/effect-harness/provider.json')),
@@ -683,6 +712,11 @@ createRoot(document.getElementById('root')!).render(
           },
           {
             id: 'source:root/src/index.ts',
+            materializer: 'generated-user-file',
+            owner: 'capability:effect-package',
+          },
+          {
+            id: 'tsconfig:root',
             materializer: 'generated-user-file',
             owner: 'capability:effect-package',
           },
@@ -807,13 +841,14 @@ createRoot(document.getElementById('root')!).render(
           [
             { path: 'package.json', authority: 'none' },
             { path: 'src/index.ts', authority: 'none' },
+            { path: 'tsconfig.json', authority: 'none' },
           ],
         )
         assert.deepEqual(manifest.verificationRecords, [
           {
             id: 'minimal-create-files-present',
             status: 'passed',
-            checkedPaths: ['package.json', 'src/index.ts'],
+            checkedPaths: ['package.json', 'src/index.ts', 'tsconfig.json'],
           },
           {
             id: 'provider:effect-harness:create-contract',

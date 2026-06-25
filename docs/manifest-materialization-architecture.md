@@ -1,7 +1,7 @@
 # Manifest Materialization Architecture
 
 This document explains how `prelude` should turn a user request into files while
-remaining composable, while leaving only explicit lifecycle provider surfaces
+remaining composable, while leaving only explicit managed contributions
 updatable after creation.
 
 The core rule is:
@@ -10,8 +10,8 @@ The core rule is:
 Capabilities do not write shared files directly.
 Capabilities contribute to logical surfaces.
 One materializer owns each physical write.
-The manifest records the resolved graph, handed-off provenance, and lifecycle
-surfaces after verification.
+The manifest records handed-off provenance and managed-surface reconciliation
+base after verification.
 ```
 
 ## Why This Exists
@@ -36,7 +36,7 @@ files it cares about." Many capabilities naturally want the same file:
 - provider manifests
 
 The architecture must prevent write-order bugs, accidental overwrite, and future
-lifecycle update guessing.
+update guessing.
 
 ## Core Objects
 
@@ -77,13 +77,14 @@ The resolved graph is what generation actually follows. It must include:
 - version pins
 - materialization plan inputs
 
-The resolved graph is creation truth. Lifecycle providers may use it as context,
-but lifecycle update does not compare and reapply the whole project graph.
+The resolved graph is creation truth. Managed providers may use projected parts
+as context, but lifecycle update does not compare and reapply the whole project
+graph.
 
 ### Capability Contribution
 
 A capability contribution is a typed request to add something to a logical
-surface.
+surface, or an opaque artifact emitted through one materializer.
 
 Examples:
 
@@ -91,13 +92,23 @@ Examples:
 - add `knip` script to root `package.json`
 - add a Vite dev script to an app package
 - add a React provider slot to the app shell
-- add a provider-owned surface declaration for `effect-harness`
+- add a provider-owned managed claim for `effect-harness`
 
 Contributions are not file writes.
 
 Capability granularity is higher than a contribution. A capability is a
 user-understandable project ability; a contribution is how that capability
 affects logical surfaces.
+
+Every contribution declares lifecycle:
+
+```text
+handoff | managed
+```
+
+`handoff` means create-only. `managed` means the contribution participates in
+post-create reconciliation when its surface has a stable reconcile contract.
+Lifecycle belongs to the contribution, not to a whole provider.
 
 ### Logical Surface
 
@@ -114,6 +125,10 @@ Examples:
 Logical surfaces solve the "multiple pointers to the same content" problem. A
 capability points to a logical surface and a typed slot, not to arbitrary text in
 a file.
+
+Typed surfaces are introduced only at semantic boundaries. A source file can be
+generated from a complete template when one capability owns it. A source file can
+also be generated from a typed surface during create and then handed off.
 
 ### Materializer
 
@@ -149,7 +164,7 @@ Operations must declare:
 
 - target path or provider target
 - owning capability or provider
-- surface authority
+- contribution lifecycle claim, when relevant
 - create behavior
 - lifecycle update behavior, when any
 - verification or snapshot rule
@@ -158,10 +173,35 @@ There is no `renderTemplate` operation. Handlebars-style `template + params bag`
 rendering is not part of the final architecture. Materializers emit complete
 files or structured changes from typed surface data.
 
-### Surface Snapshot
+### Template Boundary
 
-A snapshot is the manifest record used for drift detection when an active
-lifecycle surface has `owner` or `bounded` authority.
+`prelude` does not enforce text-level single source of truth. It enforces
+semantic single authority.
+
+Default to complete, local, readable templates or opaque artifacts when:
+
+- one capability owns the output
+- there is no independent add, remove, or update behavior
+- no other capability expresses an opinion about the resource
+- no stable identity is needed
+
+Promote to a typed logical surface when:
+
+- multiple capabilities express opinions
+- independent lifecycle is needed
+- long-term reconcile is needed
+- stable identity is needed
+- conflicts must be explainable
+
+Template reuse may use complete file copy, small explicit variables, and local
+helpers inside one materializer. It must not use cross-capability template
+inheritance, cross-capability textual includes, or global capability-list
+conditionals.
+
+### Managed Claim Snapshot
+
+A snapshot is the manifest base used for drift detection when a contribution is
+managed.
 
 Snapshot forms:
 
@@ -170,9 +210,9 @@ Snapshot forms:
 - structured value or hash for JSON/YAML/TOML pointers
 - provider-reported digest for provider-owned surfaces
 
-`none` authority surfaces are different. They are handed-off surfaces: their
-records are provenance, not lifecycle snapshots. An initial hash may be recorded
-for audit, but lifecycle update must not use it as a drift gate.
+Handoff surfaces are different. Their records are provenance, not reconciliation
+base. An initial hash may be recorded for audit, but lifecycle update must not
+use it as a drift gate.
 
 ### Manifest
 
@@ -193,12 +233,23 @@ It should include:
 - `resolvedGraph`
 - `pins`
 - `lifecycleProviders`
-- `lifecycleSurfaces`
+- `managedClaims`
+- `managedSurfaces`
 - `generatedUserSurfaces`
 
-The manifest is not the source used to write initial files. It is the durable
-state used to verify lifecycle ownership and make provider-scoped update
-deterministic.
+The manifest is not desired truth and not the source used to write initial
+files. It is reconciliation base: the durable record of the claims, ownership,
+locators, and observed base after successful apply.
+
+Update uses:
+
+```text
+desired = prelude config + prelude lock + current capability/provider implementation
+base    = manifest
+current = filesystem
+```
+
+New desired state must not be reverse-engineered from old manifest claims.
 
 ## Create Flow
 
@@ -213,7 +264,7 @@ input
   -> build operations
   -> apply operations
   -> run verification
-  -> snapshot lifecycle surfaces and handed-off provenance
+  -> snapshot managed claims and handed-off provenance
   -> write .prelude/manifest.json
 ```
 
@@ -223,17 +274,17 @@ project state that was not actually produced and verified.
 ## Lifecycle Update Flow
 
 ```text
-read .prelude/manifest.json
+read .prelude/manifest.json as base
   -> validate manifest schema
-  -> select active lifecycle providers
-  -> validate provider contract schemas
-  -> ask providers for status/update plans
-  -> check provider-owned lifecycle surfaces against snapshots or provider reports
-  -> block on lifecycle drift
-  -> validate provider-declared operations against provider namespace or declared lifecycle surfaces
+  -> recompute desired managed contributions from config, lock, and current implementations
+  -> validate provider contract schemas and migration paths
+  -> read current logical values from the filesystem
+  -> reconcile base/current/desired for managed claims
+  -> block on managed drift
+  -> validate operations against provider namespace or declared managed surfaces
   -> dry-run or apply operations
   -> run provider verification
-  -> snapshot updated lifecycle surfaces
+  -> snapshot updated managed claims
   -> write updated manifest
 ```
 
@@ -241,13 +292,13 @@ Lifecycle update must block when:
 
 - the manifest schema version is unsupported
 - a provider contract schema version is unsupported
-- no active lifecycle provider exists
-- an active provider-owned `owner` surface or `bounded` region was manually
-  changed
-- the provider update plan requires changing a `none` authority surface
-- a provider lifecycle conflict has no deterministic rule
+- no active managed contribution exists
+- a managed logical value was manually changed
+- an update plan requires changing a handoff surface
+- a managed-surface conflict has no deterministic rule
 - the provider update plan targets an undeclared external surface
-- provider major version drift requires redesign
+- a contract transition cannot prove identity, ownership topology, and semantic
+  continuity
 
 Lifecycle drift blocks. Lifecycle update does not repair, reconcile, or
 reinterpret drift.
@@ -290,8 +341,16 @@ For provider surfaces:
 - `prelude` owns the write boundary
 - providers do not write project files directly
 - provider internal artifacts live under `.prelude/providers/<id>/**`
-- external project writes are allowed only for lifecycle surfaces declared at
+- external project writes are allowed only for managed surfaces declared at
   create
+
+For physical path conflicts:
+
+- two contributions outputting the same path block by default
+- shared files must enter one logical surface and one materializer
+- exclusive files must have one owner
+- identical text does not automatically create shared ownership
+- last-writer-wins is forbidden
 
 ## Example: package.json
 
@@ -343,7 +402,7 @@ Create ledger record:
   "path": "package.json",
   "kind": "structured-field",
   "owner": "package-manifest",
-  "authority": "none",
+  "lifecycle": "handoff",
   "createContributions": {
     "/dependencies/react": {
       "owner": "capability:react",
@@ -363,27 +422,29 @@ Create ledger record:
 
 After create, these ordinary scaffold entries are handed off. If the user edits
 `/dependencies/react`, lifecycle update must not care. The same physical
-`package.json` may still contain provider-owned bounded entries, but only those
-provider-declared pointers are lifecycle surfaces.
+`package.json` may still contain provider-owned managed entries, but only those
+managed claims participate in lifecycle update.
 
-Example provider-owned bounded entry:
+Example provider-owned managed entry:
 
 ```json
 {
   "path": "package.json",
   "kind": "structured-field",
   "owner": "provider:effect-harness",
-  "authority": "bounded",
+  "lifecycle": "managed",
+  "scope": "entry",
+  "conflictPolicy": "block",
   "pointers": {
     "/devDependencies/@effect/platform": {
-      "value": "0.97.0",
-      "snapshot": "0.97.0"
+      "desired": "0.97.0",
+      "base": "0.97.0"
     }
   }
 }
 ```
 
-On lifecycle update, drift in the provider-owned pointer blocks provider update.
+On lifecycle update, drift in the provider-owned pointer blocks update.
 Drift in ordinary React, Jotai, Knip, or linting entries is outside the update
 surface.
 
@@ -433,11 +494,14 @@ tailwind capability
 
 The React app shell materializer emits `src/App.tsx` once.
 
-However, the safer default is still to treat demo source files as
-generated-user surfaces after create. Lifecycle update should only keep managing
-app shell files when there is an explicit lifecycle provider contract and stable
-slots. Without that contract, source files should not be touched after initial
-generation.
+The shell surface may still be handoff. Typed composition is useful during create
+for free composition and conflict diagnostics even when the generated file is
+not managed afterward.
+
+The safer default is to treat demo source files as generated-user surfaces after
+create. Lifecycle update should only keep managing app shell files when there is
+an explicit managed claim and stable locator. Without that contract, source
+files should not be touched after initial generation.
 
 ## Provider Harnesses
 
@@ -457,8 +521,8 @@ planUpdate(lifecycleProviderRecord, options)
 - selecting the provider
 - recording provider artifact and contract version
 - checking provider freshness
-- invoking provider lifecycle planning and verification
-- validating provider-declared operations
+- invoking provider lifecycle planning, migration, and verification
+- validating provider-declared managed contributions and operations
 - applying provider-declared writes through `prelude` materializers
 - integrating provider status into overall verification
 
@@ -491,7 +555,7 @@ There is no dual path. For `effect-harness`, use:
 
 not `.effect-harness/**`.
 
-Provider update plans may only replace declared lifecycle surfaces:
+Provider update plans may only replace declared managed surfaces:
 
 - owned provider files under `.prelude/providers/<provider-id>/**`
 - managed blocks declared at create
@@ -501,3 +565,8 @@ Provider update plans may only replace declared lifecycle surfaces:
 Provider update plans must not use arbitrary patches, git diffs, source rewrites,
 direct writes, or direct side-effect commands. If a provider needs a new external
 surface, lifecycle update must block for explicit migration or redesign.
+
+Provider migration plans must be declarative. They must name `fromContract`,
+`toContract`, identity mapping, ownership transfer, retire/delete/detach
+behavior, and preconditions. Core validates and executes the plan; providers do
+not mutate old manifests or files directly.

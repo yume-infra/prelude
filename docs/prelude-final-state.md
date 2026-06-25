@@ -7,8 +7,8 @@ The point is to state what the system looks like when the design is correct.
 
 `prelude` is a project genesis system that turns a canonical `CreateSpec` into
 an agent-ready, provider-aware workspace through one composition pipeline, then
-hands off ordinary scaffold output while keeping selected lifecycle providers
-updatable.
+hands off ordinary scaffold output while keeping explicitly managed
+contributions updatable.
 
 ## Final Product Shape
 
@@ -42,8 +42,8 @@ No prompt branch, reusable spec file, or input adapter may bypass this path.
 
 Input source is provenance only. A generated manifest may record whether the
 `CreateSpec` came from guided CLI, direct file input, an agent, or CI, but
-lifecycle update semantics come from selected providers and their recorded
-contracts.
+lifecycle update semantics come from managed contributions and their recorded
+claims.
 
 ## Core Runtime Model
 
@@ -129,6 +129,7 @@ A capability declares:
 - prelude-owned pins it consumes
 - provider dependencies, if any
 - logical surface contributions
+- contribution lifecycle choices
 - conflict rules
 - verification requirements
 
@@ -175,8 +176,8 @@ Examples:
 - `react-app-shell:packages/web`
 - `provider:effect-harness`
 
-Capabilities contribute typed slots to logical surfaces. They do not patch
-physical files.
+Capabilities contribute typed slots to logical surfaces when a semantic boundary
+exists. They do not patch physical files.
 
 Examples:
 
@@ -195,8 +196,23 @@ knip capability
   -> managed-file:root knip.json
 ```
 
-One logical surface has one materializer. One physical file or managed block has
-one writer.
+One logical surface has one merge policy and one materializer. One physical file
+or managed block has one writer.
+
+Typed surfaces and long-term management are orthogonal. A typed surface may be
+used only during create and then handed off. A complete provider template may be
+copied as an opaque artifact and still be managed when it is under an owned
+provider namespace.
+
+Promote an output to a typed logical surface only when at least one of these is
+true:
+
+- multiple capabilities express opinions about the same semantic resource
+- the resource needs independent add, remove, or update behavior
+- the resource needs stable identity for reconciliation
+- conflicts must be detected and explained before writing
+
+Otherwise prefer a complete, local, readable template or opaque artifact.
 
 ## Materializers
 
@@ -211,7 +227,7 @@ Examples:
 - provider materializer invokes a provider adapter
 
 Materializers produce operations. They also define how surfaces are snapshotted
-when those surfaces remain part of an active lifecycle provider.
+when contributions on those surfaces declare managed lifecycle.
 
 ## Operations
 
@@ -235,7 +251,7 @@ Every operation declares:
 - owner
 - logical surface
 - target path or provider target
-- surface authority
+- contribution lifecycle claim, when relevant
 - create behavior
 - lifecycle update behavior, when any
 - snapshot rule
@@ -245,50 +261,91 @@ Structured serialization, source emission, copying files, and running commands
 are implementation details behind operations. There is no Handlebars operation
 and no global template-rendering layer.
 
-## Surface Authority
+## Template Boundary
 
-Every emitted surface declares an authority level. Authority is the primitive
-used by lifecycle update for surfaces that remain active after create.
+`prelude` does not pursue text-level DRY. It pursues semantic single authority.
 
-### `owner`
+Semantic authority belongs to:
 
-`prelude` or a provider owns the selected surface.
+- user intent in `prelude.config.*` or the accepted `CreateSpec`
+- pins and bundle versions in `prelude.lock`
+- capability and provider contracts
+- logical surface schemas and merge rules
+- managed claims and observed base in the manifest
+- current observed bytes and structured values on disk
 
-Lifecycle update may change it only when:
+Text output may be duplicated when that makes templates easier for humans and
+agents to read. Template reuse is local to one materializer.
 
-- the manifest says the surface has `owner` authority
-- the current surface still matches the previous snapshot
-- the provider lifecycle plan requires the change
+Allowed template mechanisms:
 
-Manual drift blocks lifecycle update.
+- complete file copy
+- small explicit variable substitution
+- local helper functions inside one materializer
 
-### `bounded`
+Forbidden template mechanisms:
 
-`prelude` or a provider owns only a declared boundary inside a larger user-owned
-file or structure.
+- cross-capability template inheritance
+- cross-capability textual includes
+- global capability-list conditionals inside templates
+- last-writer-wins file output
 
-Lifecycle update may change only the declared boundary. It must preserve content
-outside the boundary. Drift inside the boundary blocks lifecycle update. Drift
-outside the boundary is ignored.
+If two contributions target the same physical path, generation blocks unless
+they enter the same logical surface and materializer.
 
-Bounded authority v1 only supports stable selectors:
+## Contribution Lifecycle
+
+Every contribution declares lifecycle:
+
+```text
+handoff | managed
+```
+
+Lifecycle belongs to a contribution, not to an entire provider.
+
+`handoff` means the contribution is applied during create and then handed to the
+project owner. Manifest records are provenance only.
+
+`managed` means the contribution participates in post-create reconciliation, but
+only if its logical surface has a stable reconcile contract.
+
+Managed claims declare:
+
+- owner or owners
+- lifecycle
+- scope: `field`, `entry`, `block`, `file`, or `namespace`
+- locator
+- conflict policy, defaulting to `block`
+- contract version and implementation version
+
+The managed reconcile rule compares logical values, not whole files unless the
+claim scope is `file`:
+
+```text
+current == desired
+  -> already applied, success
+current == base
+  -> safe to apply desired
+otherwise
+  -> drift, block
+```
+
+`desired == base` with `current != base` blocks. User edits inside a managed
+locator are not accepted silently as the new base.
+
+Stable locator forms for v1:
 
 - managed block marker
-- structured pointer for structured files such as JSON, YAML, or TOML
+- structured pointer for JSON, YAML, and TOML
+- whole file
+- provider namespace
 
-It does not support line ranges, regex ranges, AST nodes, or semantic source
-regions.
+V1 does not support line ranges, regex ranges, AST nodes, semantic source
+regions, or arbitrary codemods as managed locators.
 
-### `none`
-
-Generated once, then handed to the project owner.
-
-Lifecycle update does not modify it. User source files default to `none`
-authority unless an explicit lifecycle provider contract owns a stable boundary.
-
-`none` authority surfaces are handed-off surfaces. Their manifest records are
-provenance, not lifecycle snapshots. They may record path, creator, and initial
-hash for audit, but lifecycle update must not use that hash as a drift gate.
+Provider runtime files under `.prelude/providers/<id>/**` are normally managed
+namespace or file claims. Provider demos and examples are ordinary handoff
+contributions unless they explicitly declare managed lifecycle.
 
 ## Manifest
 
@@ -299,9 +356,19 @@ Every `prelude`-generated project has one root manifest:
 ```
 
 The manifest is the ledger for creation provenance and lifecycle provider state.
-It is not a generator input, and it is not a claim that `prelude` owns the whole
-project after day one. It is written after successful apply and verification for
-every generated project.
+It is reconciliation base, not desired truth. It is not a generator input, and
+it is not a claim that `prelude` owns the whole project after day one. It is
+written after successful apply and verification for every generated project.
+
+Update state is derived as:
+
+```text
+desired = prelude config + prelude lock + current capability/provider implementation
+base    = manifest
+current = filesystem
+```
+
+The manifest must not be used to derive new desired state.
 
 Manifest contents:
 
@@ -311,62 +378,67 @@ Manifest contents:
 - resolved graph
 - prelude-owned pins
 - provider records
-- lifecycle surfaces
+- managed claims and surfaces
 - handed-off scaffold surfaces
 - generated-user surfaces
 - verification records
 
-Lifecycle surface records include:
+Managed surface records include:
 
 - surface id
-- owner
-- authority
-- path
-- structured pointer or block id, when relevant
+- owner or owners
+- lifecycle
+- scope
+- locator
+- base value or hash
+- contract version
+- implementation version
 - snapshot value or hash
 - operation id that last wrote it
 - provider report id, when provider-owned
 
-`none` authority surface records include provenance such as path, creator, and
-initial hash. They do not grant lifecycle update authority.
+Handoff surface records include provenance such as path, creator, template
+bundle version, and initial hash. They do not grant lifecycle update authority.
 
 The manifest is written last. A failed apply or failed verification must not
 record a successful generated state.
 
 ## Lifecycle Update
 
-Lifecycle update is deterministic, manifest-driven, and provider-scoped.
+Lifecycle update is deterministic and managed-surface scoped. In v1, most active
+managed surfaces are produced by lifecycle providers.
 
 ```text
-read manifest
+read manifest as base
   -> validate manifest schema
-  -> select active lifecycle providers
-  -> validate provider contract schemas
-  -> ask providers for status and update plans
-  -> verify provider-owned lifecycle surfaces against snapshots or provider reports
-  -> validate provider-declared operations against provider namespace or declared lifecycle surfaces
+  -> recompute desired managed contributions from config, lock, and current implementations
+  -> validate provider contract schemas and migration paths
+  -> read current logical values from the filesystem
+  -> reconcile base/current/desired for managed claims
+  -> validate operations against provider namespace or declared managed surfaces
   -> dry-run or apply
-  -> provider verify
+  -> provider or surface verification
   -> write manifest
 ```
 
 Lifecycle update blocks when:
 
 - no manifest exists
-- no active lifecycle provider exists
+- no active managed contribution exists
 - manifest schema is unsupported
 - provider contract schema is unsupported
-- provider-owned or provider-bounded lifecycle surface drifted
+- a managed surface drifted
 - handed-off scaffold surface would need to change
-- provider update plan has no deterministic resolution
-- provider update plan targets an undeclared external surface
-- provider major version drift requires redesign
+- update plan has no deterministic resolution
+- update plan targets an undeclared external surface
+- contract transition cannot prove identity, ownership topology, and semantic
+  continuity
 
 Lifecycle drift blocks. Lifecycle update does not repair, reconcile, or
 reinterpret drift.
 
-Default `prelude update` updates all active lifecycle providers. With
-`--provider <id>`, it updates only the selected provider.
+Default `prelude update` updates all active managed providers. With
+`--provider <id>`, it selects managed contributions from that provider only.
 
 `prelude status` is read-only provider lifecycle inspection. `prelude verify`
 executes provider lifecycle checks. Create acceptance verification stays inside
@@ -400,7 +472,7 @@ Provider owns:
 - domain runtime files
 - domain agent routes
 - domain guardrails
-- provider-owned lifecycle surfaces
+- provider-owned managed surfaces
 - provider update policy
 - provider verification
 - provider lifecycle records
@@ -419,8 +491,8 @@ multiple real providers prove the same interface.
 Providers do not receive the full manifest or the full resolved graph as
 post-create input. They receive only their lifecycle provider record and
 explicitly projected context. Providers do not write project files directly and
-do not run side-effect commands directly. They declare lifecycle operations;
-`prelude` validates and applies them.
+do not run side-effect commands directly. They declare managed contributions,
+lifecycle operations, or migration plans; `prelude` validates and applies them.
 
 A selected capability or provider is required. If a selected provider is missing,
 unavailable, or contract-unsupported, create and lifecycle update must block.
@@ -465,7 +537,9 @@ Providers own pins for content they emit:
 - provider verifier dependencies
 - provider internal source pins
 
-Major version drift blocks lifecycle update when it affects an active provider.
+Contract drift blocks lifecycle update whenever identity, ownership topology, or
+semantic continuity cannot be explicitly proven. Semver major drift is only one
+possible signal.
 
 ## Final CLI Shape
 
@@ -558,26 +632,30 @@ generated-user source surfaces
 Update behavior:
 
 - ordinary scaffold files and package manifest entries are handed off after
-  create unless an active lifecycle provider owns a declared boundary.
-- provider-owned surfaces update only through provider-declared plans applied by
-  `prelude`.
+  create unless a contribution declares managed lifecycle on a stable surface.
+- provider-owned managed surfaces update only through provider-declared plans
+  applied by `prelude`.
 - provider internal artifacts stay under `.prelude/providers/<id>/**`.
 - user source files are not rewritten.
-- manual edits to provider-owned lifecycle surfaces block.
+- manual edits to managed surfaces block.
 
 ## Invariants
 
 - One canonical creation input: `CreateSpec`.
 - One resolver for guided CLI output and direct spec input.
 - One manifest per generated project.
-- One owner for each lifecycle surface.
+- Manifest is reconciliation base, not desired truth.
+- One lifecycle declaration per contribution.
+- One merge policy for each logical surface.
 - One materializer for each physical write.
 - No capability directly patches shared files.
-- No lifecycle update without manifest and active lifecycle provider.
+- No lifecycle update without manifest and active managed contributions.
 - No lifecycle update across unsupported schema versions.
-- No lifecycle update across provider major drift.
+- No lifecycle update across contract drift that cannot prove continuity.
 - No provider internals inside `prelude`.
 - No provider direct project writes.
-- No post-create external writes except declared lifecycle surfaces.
+- No post-create external writes except declared managed surfaces.
 - No arbitrary patch or git diff lifecycle contract.
+- No template inheritance or cross-capability textual includes.
+- No last-writer-wins file output.
 - No generated-user source rewrite during lifecycle update.

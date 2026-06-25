@@ -16,10 +16,11 @@ states, compatibility adapters, or old baselines as durable architecture.
    - What to delete, what to build, and how to know the rebuild is aligned.
 4. [`manifest-materialization-architecture.md`](./manifest-materialization-architecture.md)
    - The composition, logical surface, materializer, write plan, manifest, and
-     update model.
+     managed-surface reconciliation model.
 5. [`provider-lifecycle-architecture.md`](./provider-lifecycle-architecture.md)
    - The lifecycle provider contract, status/verify/update semantics,
-     centralized provider state, and post-create write rules.
+     contribution-level lifecycle, centralized provider state, and post-create
+     write rules.
 6. [`agents/`](./agents/)
    - Repo-local configuration for issue tracking, triage labels, and domain-doc
      reading rules.
@@ -43,7 +44,7 @@ Keep docs organized by purpose:
 - Rebuild plans name deletion targets, construction targets, and acceptance
   criteria.
 - Materialization documents explain how resolved intent becomes files and a
-  manifest.
+  manifest base for reconciliation.
 - Provider lifecycle documents explain what may still evolve after create.
 - Agent docs explain how external engineering skills should operate in this
   repo.

@@ -18,6 +18,8 @@ function requiredPathsFor(graph: ResolvedGraph): readonly string[] {
         return ['knip.json']
       case 'source:root/src/index.ts':
         return ['src/index.ts']
+      case 'tsconfig:root':
+        return ['tsconfig.json']
       case 'provider:effect-harness':
         return [effectHarnessProviderPath]
       default:
@@ -90,13 +92,19 @@ export function verifyCreateOutputs(fs: CreateFs, baseDir: string, graph: Resolv
         {
           id: 'minimal-create-files-present',
           status: 'passed',
-          checkedPaths: requiredPaths.filter(requiredPath => requiredPath === 'package.json' || requiredPath === 'src/index.ts'),
+          checkedPaths: requiredPaths.filter(requiredPath =>
+            requiredPath === 'package.json'
+            || requiredPath === 'src/index.ts'
+            || requiredPath === 'tsconfig.json'),
         },
         ...(hasRootEngineeringFiles
           ? [{
               id: 'root-engineering-files-present',
               status: 'passed' as const,
-              checkedPaths: requiredPaths.filter(requiredPath => requiredPath !== 'package.json' && requiredPath !== 'src/index.ts'),
+              checkedPaths: requiredPaths.filter(requiredPath =>
+                requiredPath !== 'package.json'
+                && requiredPath !== 'src/index.ts'
+                && requiredPath !== 'tsconfig.json'),
             }]
           : []),
         ...providerRecords,
