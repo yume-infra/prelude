@@ -1,107 +1,9 @@
 import { Effect, Either } from 'effect'
 import { describe, expect, it } from 'vitest'
-import { decodeCliArgs, formatCliArgsError } from '../../src/schema/cli-args'
+import { decodeCliArgs } from '../../src/schema/cli-args'
 
 describe('cliArgsSchema', () => {
-  it('returns a structured decode failure for an invalid preset fixture', async () => {
-    const result = await Effect.runPromise(
-      Effect.either(
-        decodeCliArgs({
-          preset: 'solid-app',
-          name: 'demo-app',
-        }),
-      ),
-    )
-
-    expect(Either.isLeft(result)).toBe(true)
-    if (Either.isLeft(result)) {
-      const formatted = formatCliArgsError(result.left)
-      expect(formatted).toContain('CliArgs')
-      expect(formatted).toContain('preset')
-      expect(formatted).toContain('react-minimal')
-    }
-  })
-
-  it('decodes the dry-run flag', async () => {
-    const result = await Effect.runPromise(
-      Effect.either(
-        decodeCliArgs({
-          preset: 'react-full',
-          name: 'demo-app',
-          dryRun: true,
-        }),
-      ),
-    )
-
-    expect(Either.isRight(result)).toBe(true)
-    if (Either.isRight(result)) {
-      expect(result.right.dryRun).toBe(true)
-    }
-  })
-
-  it('decodes the workspace root preset', async () => {
-    const result = await Effect.runPromise(
-      Effect.either(
-        decodeCliArgs({
-          preset: 'workspace-root',
-          name: 'demo-workspace',
-        }),
-      ),
-    )
-
-    expect(Either.isRight(result)).toBe(true)
-    if (Either.isRight(result)) {
-      expect(result.right.preset).toBe('workspace-root')
-    }
-  })
-
-  it('decodes the effect cli preset', async () => {
-    const result = await Effect.runPromise(
-      Effect.either(
-        decodeCliArgs({
-          preset: 'cli-effect',
-          name: 'demo-tool',
-        }),
-      ),
-    )
-
-    expect(Either.isRight(result)).toBe(true)
-    if (Either.isRight(result)) {
-      expect(result.right.preset).toBe('cli-effect')
-    }
-  })
-
-  it('decodes new workspace and standalone canonical presets', async () => {
-    await expect(Effect.runPromise(decodeCliArgs({
-      preset: 'workspace-cli-library',
-      name: 'demo-cli-workspace',
-    }))).resolves.toMatchObject({
-      preset: 'workspace-cli-library',
-    })
-
-    await expect(Effect.runPromise(decodeCliArgs({
-      preset: 'workspace-fullstack-react',
-      name: 'demo-react-workspace',
-    }))).resolves.toMatchObject({
-      preset: 'workspace-fullstack-react',
-    })
-
-    await expect(Effect.runPromise(decodeCliArgs({
-      preset: 'standalone-library-node',
-      name: 'demo-node-lib',
-    }))).resolves.toMatchObject({
-      preset: 'standalone-library-node',
-    })
-
-    await expect(Effect.runPromise(decodeCliArgs({
-      preset: 'standalone-cli-full',
-      name: 'demo-cli-full',
-    }))).resolves.toMatchObject({
-      preset: 'standalone-cli-full',
-    })
-  })
-
-  it('decodes structured spec and no-input flags', async () => {
+  it('decodes canonical spec and no-input flags', async () => {
     const result = await Effect.runPromise(
       Effect.either(
         decodeCliArgs({
@@ -119,5 +21,25 @@ describe('cliArgsSchema', () => {
       expect(result.right.noInput).toBe(true)
       expect(result.right.printSpec).toBe(true)
     }
+  })
+
+  it('decodes removed flags as raw CLI shape without modeling preset products', async () => {
+    const result = await Effect.runPromise(
+      decodeCliArgs({
+        preset: 'any-removed-preset-name',
+        dryRun: true,
+        install: false,
+        git: false,
+        rollback: false,
+      }),
+    )
+
+    expect(result).toEqual({
+      preset: 'any-removed-preset-name',
+      dryRun: true,
+      install: false,
+      git: false,
+      rollback: false,
+    })
   })
 })

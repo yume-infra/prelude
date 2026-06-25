@@ -77,25 +77,17 @@ The active project knowledge is under `docs/`:
 pnpm install
 pnpm build
 pnpm verify
-pnpm smoke:dry-run
 pnpm smoke:examples
 ```
 
-Generated smoke output is written under `apps/examples/.generated/`.
-
-Use `PRELUDE_SMOKE_CASES` for focused smoke runs:
-
-```bash
-PRELUDE_SMOKE_CASES=react pnpm smoke:examples
-PRELUDE_SMOKE_CASES=cli,library pnpm smoke:examples
-PRELUDE_SMOKE_CASES=workspace pnpm smoke:examples
-```
+The generated smoke command builds the CLI, runs the canonical `--spec` route
+in a temporary directory, and verifies the resulting manifest, engineering
+files, and provider namespace.
 
 ## Repository Map
 
 ```text
 apps/cli/      CLI implementation and current generator code
-apps/examples/ generated smoke output
 docs/          active product and architecture knowledge
 ```
 
@@ -107,5 +99,5 @@ Use conventional commits.
 git commit -m "docs: align prelude architecture"
 ```
 
-Issues and PRDs use GitHub Issues for `sayoriqwq/create-yume`; see
+Issues and PRDs use GitHub Issues for `yume-infra/prelude`; see
 [`docs/agents/issue-tracker.md`](./docs/agents/issue-tracker.md).

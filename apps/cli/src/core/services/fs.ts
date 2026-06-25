@@ -1,4 +1,3 @@
-import * as fs from 'node:fs/promises'
 import { FileSystem } from '@effect/platform'
 import { Effect, pipe } from 'effect'
 import { FileIOError } from '@/core/errors'
@@ -8,20 +7,11 @@ interface FsServiceShape {
   readonly exists: (path: string) => Effect.Effect<boolean, FileIOError>
   readonly readFileString: (path: string) => Effect.Effect<string, FileIOError>
   readonly writeFileString: (path: string, content: string) => Effect.Effect<void, FileIOError>
-  readonly readFile: (path: string) => Effect.Effect<Uint8Array, FileIOError>
-  readonly writeFile: (path: string, data: Uint8Array) => Effect.Effect<void, FileIOError>
-  readonly readDirectory: (path: string) => Effect.Effect<readonly string[], FileIOError>
   readonly makeDirectory: (
     path: string,
     options?: { recursive?: boolean },
   ) => Effect.Effect<void, FileIOError>
   readonly ensureDir: (path: string) => Effect.Effect<void, FileIOError>
-  readonly remove: (
-    path: string,
-    options?: { recursive?: boolean, force?: boolean },
-  ) => Effect.Effect<void, FileIOError>
-  readonly copyFile: (src: string, dest: string) => Effect.Effect<void, FileIOError>
-  readonly chmod: (path: string, mode: number) => Effect.Effect<void, FileIOError>
 }
 
 export class FsService extends Effect.Service<FsService>()('FsService', {
@@ -59,27 +49,6 @@ export class FsService extends Effect.Service<FsService>()('FsService', {
         Effect.provideService(FileSystem.FileSystem, platformFs),
       )
 
-    const readFile: FsServiceShape['readFile'] = path =>
-      pipe(
-        platformFs.readFile(path),
-        Effect.mapError(mapErr('read', path)),
-        Effect.provideService(FileSystem.FileSystem, platformFs),
-      )
-
-    const writeFile: FsServiceShape['writeFile'] = (path, data) =>
-      pipe(
-        platformFs.writeFile(path, data),
-        Effect.mapError(mapErr('write', path)),
-        Effect.provideService(FileSystem.FileSystem, platformFs),
-      )
-
-    const readDirectory: FsServiceShape['readDirectory'] = path =>
-      pipe(
-        platformFs.readDirectory(path),
-        Effect.mapError(mapErr('read', path)),
-        Effect.provideService(FileSystem.FileSystem, platformFs),
-      )
-
     const makeDirectory: FsServiceShape['makeDirectory'] = (path, options) =>
       pipe(
         platformFs.makeDirectory(path, options),
@@ -90,27 +59,7 @@ export class FsService extends Effect.Service<FsService>()('FsService', {
     const ensureDir: FsServiceShape['ensureDir'] = path =>
       makeDirectory(path, { recursive: true })
 
-    const remove: FsServiceShape['remove'] = (path, options) =>
-      pipe(
-        platformFs.remove(path, options),
-        Effect.mapError(mapErr('remove', path)),
-        Effect.provideService(FileSystem.FileSystem, platformFs),
-      )
-
-    const copyFile: FsServiceShape['copyFile'] = (src, dest) =>
-      pipe(
-        platformFs.copyFile(src, dest),
-        Effect.mapError(mapErr('copy', dest)),
-        Effect.provideService(FileSystem.FileSystem, platformFs),
-      )
-
-    const chmod: FsServiceShape['chmod'] = (path, mode) =>
-      Effect.tryPromise({
-        try: () => fs.chmod(path, mode),
-        catch: mapErr('chmod', path),
-      })
-
-    return { exists, readFileString, writeFileString, readFile, writeFile, readDirectory, makeDirectory, ensureDir, remove, copyFile, chmod } satisfies FsServiceShape
+    return { exists, readFileString, writeFileString, makeDirectory, ensureDir } satisfies FsServiceShape
   }),
 }) {}
 

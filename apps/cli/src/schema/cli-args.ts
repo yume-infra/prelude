@@ -1,10 +1,9 @@
 import { ParseResult, Schema } from 'effect'
 import { ProjectNameSchema } from '../brand/project-name'
-import { PresetSchema } from './preset'
 
 const CliArgsSchema = Schema.Struct({
   _: Schema.optionalWith(Schema.Array(Schema.String), { exact: true }),
-  preset: Schema.optionalWith(PresetSchema, { exact: true }),
+  preset: Schema.optionalWith(Schema.String, { exact: true }),
   spec: Schema.optionalWith(Schema.String, { exact: true }),
   name: Schema.optionalWith(ProjectNameSchema, { exact: true }),
   install: Schema.optionalWith(Schema.Boolean, { exact: true }),

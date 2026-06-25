@@ -186,7 +186,7 @@ describe('canonical create CLI route', () => {
     }
   })
 
-  it('rejects old structured spec shapes instead of adapting them to ProjectConfig', async () => {
+  it('rejects legacy structured spec shapes instead of adapting them', async () => {
     const result = await Effect.runPromise(
       Effect.either(loadCreateSpecFromInput(JSON.stringify({
         shape: 'standalone',
@@ -235,7 +235,7 @@ describe('canonical create CLI route', () => {
     }
   })
 
-  it('rejects dry-run instead of using the old PlanSpec preview', async () => {
+  it('rejects dry-run instead of invoking a legacy preview path', async () => {
     const result = await Effect.runPromise(
       Effect.either(
         runCreateRoute({
@@ -272,8 +272,7 @@ describe('canonical create CLI route', () => {
     assert.equal(result._tag, 'Left')
     if (result._tag === 'Left') {
       assert.equal(result.left._tag, 'SchemaContractError')
-      assert.match(result.left.message, /--dry-run is not available/)
-      assert.doesNotMatch(result.left.message, /PlanSpec/)
+      assert.match(result.left.message, /--dry-run has been removed/)
     }
   })
 })

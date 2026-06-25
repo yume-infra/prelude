@@ -31,6 +31,14 @@ function hasNoInputArg(argv: string[]) {
   return argv.some(arg => arg === '--no-input' || arg.startsWith('--no-input='))
 }
 
+function removedFlagError(flag: string, message: string) {
+  return new SchemaContractError({
+    schema: 'CliArgs',
+    message: `CliArgs: ${flag} has been removed. ${message}`,
+    issueCount: 1,
+  })
+}
+
 export function parseRawCliArgs(argv: string[]): RawCliArgs {
   const parsed = mri(argv, {
     alias: {
@@ -41,9 +49,6 @@ export function parseRawCliArgs(argv: string[]): RawCliArgs {
       'print-spec': 'printSpec',
     },
     boolean: ['install', 'git', 'help', 'version', 'rollback', 'dry-run', 'dryRun', 'print-spec', 'printSpec'],
-    default: {
-      rollback: true,
-    },
   })
 
   const rawArgs: MutableRawCliArgs = { _: parsed._ }
@@ -76,11 +81,23 @@ export function parseRawCliArgs(argv: string[]): RawCliArgs {
 
 function validateCliArgs(args: CliArgs) {
   if (args.preset !== undefined) {
-    return Effect.fail(new SchemaContractError({
-      schema: 'CliArgs',
-      message: 'CliArgs: --preset has been removed from the active create API. Reusable shapes are complete canonical CreateSpec files passed with --spec.',
-      issueCount: 1,
-    }))
+    return Effect.fail(removedFlagError('--preset', 'Reusable shapes are complete canonical CreateSpec files passed with --spec.'))
+  }
+
+  if (args.dryRun !== undefined) {
+    return Effect.fail(removedFlagError('--dry-run', 'Use --print-spec to inspect canonical CreateSpec input.'))
+  }
+
+  if (args.install !== undefined) {
+    return Effect.fail(removedFlagError('--install/--no-install', 'Dependency installation is not part of the canonical create route.'))
+  }
+
+  if (args.git !== undefined) {
+    return Effect.fail(removedFlagError('--git/--no-git', 'Git setup is not part of the canonical create route.'))
+  }
+
+  if (args.rollback !== undefined) {
+    return Effect.fail(removedFlagError('--rollback/--no-rollback', 'Creation now goes through the canonical write boundary.'))
   }
 
   return Effect.succeed(args)
@@ -98,11 +115,23 @@ export function parseCliArgs(argv: string[]) {
   const rawArgs = parseRawCliArgs(argv)
 
   if (rawArgs.preset !== undefined) {
-    return Effect.fail(new SchemaContractError({
-      schema: 'CliArgs',
-      message: 'CliArgs: --preset has been removed from the active create API. Reusable shapes are complete canonical CreateSpec files passed with --spec.',
-      issueCount: 1,
-    }))
+    return Effect.fail(removedFlagError('--preset', 'Reusable shapes are complete canonical CreateSpec files passed with --spec.'))
+  }
+
+  if (rawArgs.dryRun !== undefined) {
+    return Effect.fail(removedFlagError('--dry-run', 'Use --print-spec to inspect canonical CreateSpec input.'))
+  }
+
+  if (rawArgs.install !== undefined) {
+    return Effect.fail(removedFlagError('--install/--no-install', 'Dependency installation is not part of the canonical create route.'))
+  }
+
+  if (rawArgs.git !== undefined) {
+    return Effect.fail(removedFlagError('--git/--no-git', 'Git setup is not part of the canonical create route.'))
+  }
+
+  if (rawArgs.rollback !== undefined) {
+    return Effect.fail(removedFlagError('--rollback/--no-rollback', 'Creation now goes through the canonical write boundary.'))
   }
 
   return decodeCliArgs(rawArgs).pipe(

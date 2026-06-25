@@ -22,14 +22,14 @@ Options:
   --name <project>      Target directory name for create
   --print-spec          Print the canonical CreateSpec and exit before generation
   --no-input            Disable prompts; requires --spec unless --print-spec is used with --spec
-  --dry-run             Rejected on the canonical create route in this slice
+  --dry-run             Removed; use --print-spec to inspect canonical input
   --preset, --p         Removed; reusable shapes are complete CreateSpec files passed with --spec
-  --install             Accepted for compatibility, not used by the canonical create route
-  --no-install          Accepted for compatibility, not used by the canonical create route
-  --git                 Accepted for compatibility, not used by the canonical create route
-  --no-git              Accepted for compatibility, not used by the canonical create route
-  --rollback            Accepted for compatibility, not used by the canonical create route
-  --no-rollback         Accepted for compatibility, not used by the canonical create route
+  --install             Removed; dependency installation is outside create
+  --no-install          Removed; dependency installation is outside create
+  --git                 Removed; git setup is outside create
+  --no-git              Removed; git setup is outside create
+  --rollback            Removed; create uses the canonical write boundary
+  --no-rollback         Removed; create uses the canonical write boundary
   --help, -h            Show this help message
   --version, -v         Show CLI version
 `

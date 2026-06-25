@@ -33,7 +33,7 @@ function unsupportedPresetError() {
 function unsupportedDryRunError() {
   return new SchemaContractError({
     schema: 'CliArgs',
-    message: 'CliArgs: --dry-run is not available on the canonical create route yet. Use --print-spec to inspect the canonical CreateSpec for this slice.',
+    message: 'CliArgs: --dry-run has been removed. Use --print-spec to inspect canonical CreateSpec input.',
     issueCount: 1,
   })
 }

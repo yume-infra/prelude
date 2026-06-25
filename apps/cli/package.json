@@ -17,8 +17,7 @@
     "prelude": "dist/index.js"
   },
   "files": [
-    "dist",
-    "templates"
+    "dist"
   ],
   "engines": {
     "node": ">=22"
@@ -29,8 +28,6 @@
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "test": "vitest run",
     "smoke:generated": "pnpm build && tsx tests/generated-projects.smoke.ts",
-    "smoke:dry-run": "pnpm build && tsx tests/dry-run-cli.smoke.ts",
-    "smoke:lint-strategy": "pnpm build && tsx tests/generated-lint-strategy.smoke.ts",
     "smoke:examples": "pnpm build && tsx tests/generated-projects.smoke.ts",
     "prepare": "effect-language-service patch --dir ../../node_modules/typescript",
     "link:global": "pnpm link --global",
@@ -46,14 +43,10 @@
     "@opentelemetry/sdk-trace-base": "catalog:",
     "@opentelemetry/sdk-trace-node": "catalog:",
     "effect": "catalog:",
-    "handlebars": "catalog:",
-    "immer": "catalog:",
-    "lodash-es": "catalog:",
     "mri": "catalog:"
   },
   "devDependencies": {
     "@effect/language-service": "catalog:",
-    "@types/lodash-es": "catalog:",
     "@types/node": "catalog:",
     "execa": "catalog:",
     "tsdown": "catalog:",

@@ -4,7 +4,7 @@ import { Effect } from 'effect'
 import { describe, it } from 'vitest'
 import { makeTargetDir } from '@/brand/target-dir'
 import { runProviderLifecycleStatus, runProviderLifecycleUpdate, runProviderLifecycleVerify } from '@/core/lifecycle'
-import { makeFsMockLayer } from '../../support/mock-layers'
+import { makeFsMockLayer } from '../../support/fs-mock'
 
 function manifestJson(overrides: Record<string, unknown> = {}) {
   return `${JSON.stringify({
