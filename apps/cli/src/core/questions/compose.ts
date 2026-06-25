@@ -3,7 +3,6 @@ import { Effect, ParseResult } from 'effect'
 import { makePackageName } from '@/brand/package-name'
 import { decodeProjectName, formatProjectNameError } from '@/brand/project-name'
 import { makeProjectTargetDir } from '@/brand/target-dir'
-import { loadProjectConfigFromCreateSpecInput } from '@/core/create-spec-input'
 import { SchemaContractError } from '@/core/errors'
 import { PnpmPackageManager } from '@/core/package-manager'
 import {
@@ -494,17 +493,10 @@ export const collectQuestions = Effect.gen(function* () {
   const cli = yield* CliContext
 
   if (cli.args.spec !== undefined) {
-    if (cli.args.name === undefined) {
-      return yield* new SchemaContractError({
-        schema: 'CliArgs',
-        message: 'CliArgs: --spec requires --name so the target directory is explicit.',
-        issueCount: 1,
-      })
-    }
-
-    return yield* loadProjectConfigFromCreateSpecInput(cli.args.spec, {
-      name: cli.args.name,
-      git: cli.args.git ?? false,
+    return yield* new SchemaContractError({
+      schema: 'CliArgs',
+      message: 'CliArgs: --spec is handled by the canonical CreateSpec route.',
+      issueCount: 1,
     })
   }
 

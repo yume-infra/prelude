@@ -471,42 +471,47 @@ describe('collectQuestions', () => {
     }
   })
 
-  it('builds a workspace config from inline create spec input', async () => {
+  it('rejects inline create spec input because spec creation uses the canonical route', async () => {
     const projectName = makeProjectName('spec-workspace')
 
-    const projectConfig = await Effect.runPromise(
-      collectQuestions.pipe(
-        Effect.provide(
-          Layer.mergeAll(
-            CliContextLive({
-              args: {
-                spec: JSON.stringify({
-                  shape: 'workspace',
-                  packages: [],
-                }),
-                name: projectName,
-                noInput: true,
-              },
-              isInteractive: false,
-            }),
-            makeFsMockLayer({
-              exists: () => Effect.succeed(false),
-            }),
+    const result = await Effect.runPromise(
+      Effect.either(
+        collectQuestions.pipe(
+          Effect.provide(
+            Layer.mergeAll(
+              CliContextLive({
+                args: {
+                  spec: JSON.stringify({
+                    topology: 'single-package',
+                    package: {
+                      id: 'app',
+                      name: 'spec-workspace',
+                      capabilities: ['minimal-node-package'],
+                    },
+                    rootCapabilities: [],
+                    providers: [],
+                    overrides: {},
+                  }),
+                  name: projectName,
+                  noInput: true,
+                },
+                isInteractive: false,
+              }),
+              makeFsMockLayer({
+                exists: () => Effect.succeed(false),
+              }),
+            ),
           ),
         ),
       ),
     )
 
-    expect(projectConfig).toEqual({
-      name: projectName,
-      type: 'workspace-root',
-      language: 'typescript',
-      git: false,
-      linting: 'none',
-      codeQuality: [],
-      packageManager: 'pnpm',
-      packages: [],
-    })
+    expect(Either.isLeft(result)).toBe(true)
+    if (Either.isLeft(result)) {
+      expect(result.left._tag).toBe('SchemaContractError')
+      expect(result.left.message).toContain('canonical CreateSpec route')
+      expect(result.left.message).not.toContain('ProjectConfig')
+    }
   })
 
   it('fails non-interactive incomplete input instead of invoking prompts', async () => {

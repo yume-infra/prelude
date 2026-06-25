@@ -92,31 +92,21 @@ describe('parseRawCliArgs', () => {
 })
 
 describe('hELP_TEXT', () => {
-  it('documents the dry-run flag and safety promise', () => {
+  it('documents canonical spec input and removed legacy shortcuts', () => {
     expect(HELP_TEXT).toContain('--dry-run')
-    expect(HELP_TEXT).toContain('standalone-react-full')
-    expect(HELP_TEXT).toContain('standalone-backend-minimal')
-    expect(HELP_TEXT).toContain('workspace-cli-library')
-    expect(HELP_TEXT).toContain('workspace-fullstack-react')
-    expect(HELP_TEXT).toContain('workspace-fullstack-vue')
-    expect(HELP_TEXT).toContain('standalone-library-minimal')
-    expect(HELP_TEXT).toContain('standalone-library-node')
-    expect(HELP_TEXT).toContain('standalone-backend-full')
-    expect(HELP_TEXT).toContain('standalone-cli-effect')
-    expect(HELP_TEXT).toContain('standalone-cli-full')
-    expect(HELP_TEXT).toContain('node-minimal')
-    expect(HELP_TEXT).toContain('cli-minimal')
-    expect(HELP_TEXT).toContain('cli-effect')
     expect(HELP_TEXT).toContain('--spec <file-or-json>')
     expect(HELP_TEXT).toContain('--no-input')
     expect(HELP_TEXT).toContain('--print-spec')
-    expect(HELP_TEXT).toContain('without writing files or running commands')
-    expect(HELP_TEXT).toContain('workspace-root')
+    expect(HELP_TEXT).toContain('Complete canonical CreateSpec')
+    expect(HELP_TEXT).toContain('Rejected on the canonical create route')
+    expect(HELP_TEXT).toContain('--preset, --p')
+    expect(HELP_TEXT).toContain('Removed; reusable shapes are complete CreateSpec files')
+    expect(HELP_TEXT).not.toContain('standalone-react-full')
   })
 })
 
 describe('parseCliArgs', () => {
-  it('surfaces schema contract failures for unsupported preset values', async () => {
+  it('rejects preset input before decoding old preset values', async () => {
     const result = await Effect.runPromise(
       Effect.either(parseCliArgs([
         '--preset',
@@ -130,7 +120,8 @@ describe('parseCliArgs', () => {
     if (Either.isLeft(result)) {
       expect(result.left._tag).toBe('SchemaContractError')
       expect(result.left.message).toContain('CliArgs')
-      expect(result.left.message).toContain('react-minimal')
+      expect(result.left.message).toContain('--preset has been removed')
+      expect(result.left.message).not.toContain('react-minimal')
     }
   })
 
@@ -149,15 +140,15 @@ describe('parseCliArgs', () => {
     if (Either.isLeft(result)) {
       expect(result.left._tag).toBe('SchemaContractError')
       expect(result.left.message).toContain('--yes/-y has been removed')
-      expect(result.left.message).toContain('--preset or --p')
+      expect(result.left.message).toContain('complete canonical CreateSpec')
     }
   })
 
   it('rejects project names that would escape the target directory boundary', async () => {
     const result = await Effect.runPromise(
       Effect.either(parseCliArgs([
-        '--p',
-        'react-full',
+        '--spec',
+        '{"topology":"single-package","package":{"id":"app","name":"demo","capabilities":["minimal-node-package"]},"rootCapabilities":[],"providers":[],"overrides":{}}',
         '--name',
         '../outside',
       ])),
@@ -171,11 +162,11 @@ describe('parseCliArgs', () => {
     }
   })
 
-  it('rejects ambiguous spec and preset input', async () => {
+  it('rejects preset input as removed even when spec input is present', async () => {
     const result = await Effect.runPromise(
       Effect.either(parseCliArgs([
         '--spec',
-        '{"shape":"workspace","packages":[]}',
+        '{"topology":"single-package","package":{"id":"app","name":"demo","capabilities":["minimal-node-package"]},"rootCapabilities":[],"providers":[],"overrides":{}}',
         '--preset',
         'workspace-root',
         '--name',
@@ -186,7 +177,7 @@ describe('parseCliArgs', () => {
     expect(Either.isLeft(result)).toBe(true)
     if (Either.isLeft(result)) {
       expect(result.left._tag).toBe('SchemaContractError')
-      expect(result.left.message).toContain('--spec and --preset are mutually exclusive')
+      expect(result.left.message).toContain('--preset has been removed')
     }
   })
 })

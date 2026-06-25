@@ -75,10 +75,10 @@ export function parseRawCliArgs(argv: string[]): RawCliArgs {
 }
 
 function validateCliArgs(args: CliArgs) {
-  if (args.spec !== undefined && args.preset !== undefined) {
+  if (args.preset !== undefined) {
     return Effect.fail(new SchemaContractError({
       schema: 'CliArgs',
-      message: 'CliArgs: --spec and --preset are mutually exclusive. Use --spec with --name for structured input, or --preset with --name for simple preset input.',
+      message: 'CliArgs: --preset has been removed from the active create API. Reusable shapes are complete canonical CreateSpec files passed with --spec.',
       issueCount: 1,
     }))
   }
@@ -90,12 +90,22 @@ export function parseCliArgs(argv: string[]) {
   if (hasRemovedYesArg(argv)) {
     return Effect.fail(new SchemaContractError({
       schema: 'CliArgs',
-      message: 'CliArgs: --yes/-y has been removed. Use --preset or --p to choose an explicit preset combination.',
+      message: 'CliArgs: --yes/-y has been removed. Use --spec with a complete canonical CreateSpec for non-interactive creation.',
       issueCount: 1,
     }))
   }
 
-  return decodeCliArgs(parseRawCliArgs(argv)).pipe(
+  const rawArgs = parseRawCliArgs(argv)
+
+  if (rawArgs.preset !== undefined) {
+    return Effect.fail(new SchemaContractError({
+      schema: 'CliArgs',
+      message: 'CliArgs: --preset has been removed from the active create API. Reusable shapes are complete canonical CreateSpec files passed with --spec.',
+      issueCount: 1,
+    }))
+  }
+
+  return decodeCliArgs(rawArgs).pipe(
     Effect.mapError(error => new SchemaContractError({
       schema: 'CliArgs',
       message: formatCliArgsError(error),

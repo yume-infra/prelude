@@ -1,22 +1,33 @@
-import type { ProjectName } from '@/brand/project-name'
-import type { CreateSpec } from '@/schema/create-spec'
-import type { CodeQuality, Linting, ProjectConfig } from '@/schema/project-config'
+import type { CreateSpec } from '@/core/create'
 import { readFileSync } from 'node:fs'
 import { Effect, ParseResult, Schema } from 'effect'
+import { PackageNameSchema } from '@/brand/package-name'
 import { SchemaContractError } from '@/core/errors'
-import {
-  createSpecToProjectConfig,
-  decodeCreateSpec,
-  formatCreateSpecError,
-} from '@/schema/create-spec'
-import { decodeProjectConfig, formatProjectConfigError } from '@/schema/project-config'
 
-export interface CreateSpecInputOptions {
-  readonly name: ProjectName
-  readonly git?: boolean
-  readonly linting?: Linting
-  readonly codeQuality?: readonly CodeQuality[]
-}
+const CapabilityIdSchema = Schema.Literal(
+  'minimal-node-package',
+  'react-app',
+  'react-counter',
+  'effect-package',
+)
+
+const CanonicalCreateSpecSchema = Schema.Struct({
+  topology: Schema.Literal('single-package', 'workspace'),
+  package: Schema.Struct({
+    id: Schema.String,
+    name: PackageNameSchema,
+    capabilities: Schema.Array(CapabilityIdSchema),
+  }),
+  rootCapabilities: Schema.Array(Schema.String),
+  providers: Schema.Array(Schema.String),
+  overrides: Schema.Record({ key: Schema.String, value: Schema.Never }),
+}).annotations({
+  identifier: 'CanonicalCreateSpec',
+  title: 'CanonicalCreateSpec',
+})
+
+const decodeJsonSpecInput = Schema.decodeUnknown(Schema.parseJson(Schema.Unknown), { errors: 'all' })
+const decodeCanonicalCreateSpec = Schema.decodeUnknown(CanonicalCreateSpecSchema, { errors: 'all' })
 
 function formatUnknownError(error: unknown) {
   return error instanceof Error ? error.message : String(error)
@@ -30,18 +41,6 @@ function readSpecInput(input: string) {
   return isInlineJsonSpecInput(input) ? input : readFileSync(input, 'utf8')
 }
 
-const decodeJsonSpecInput = Schema.decodeUnknown(Schema.parseJson(Schema.Unknown), { errors: 'all' })
-
-function decodeJsonContent(content: string) {
-  return decodeJsonSpecInput(content).pipe(
-    Effect.mapError(error => new SchemaContractError({
-      schema: 'CreateSpec',
-      message: `CreateSpec: failed to parse --spec input: ${ParseResult.TreeFormatter.formatErrorSync(error)}`,
-      issueCount: ParseResult.ArrayFormatter.formatErrorSync(error).length,
-    })),
-  )
-}
-
 function parseSpecInput(input: string) {
   return Effect.try({
     try: () => readSpecInput(input),
@@ -50,44 +49,33 @@ function parseSpecInput(input: string) {
       message: `CreateSpec: failed to read --spec input: ${formatUnknownError(error)}`,
       issueCount: 1,
     }),
-  }).pipe(Effect.flatMap(decodeJsonContent))
-}
-
-function decodeSpecInput(input: unknown) {
-  return decodeCreateSpec(input).pipe(
-    Effect.mapError(error => new SchemaContractError({
-      schema: 'CreateSpec',
-      message: formatCreateSpecError(error),
-      issueCount: ParseResult.ArrayFormatter.formatErrorSync(error).length,
-    })),
+  }).pipe(
+    Effect.flatMap(content =>
+      decodeJsonSpecInput(content).pipe(
+        Effect.mapError(error => new SchemaContractError({
+          schema: 'CreateSpec',
+          message: `CreateSpec: failed to parse --spec input: ${ParseResult.TreeFormatter.formatErrorSync(error)}`,
+          issueCount: ParseResult.ArrayFormatter.formatErrorSync(error).length,
+        })),
+      ),
+    ),
   )
 }
 
-function adaptSpecInput(input: CreateSpec, options: CreateSpecInputOptions) {
-  return Effect.try({
-    try: () => createSpecToProjectConfig(input, options),
-    catch: error => new SchemaContractError({
-      schema: 'CreateSpec',
-      message: `CreateSpec: ${formatUnknownError(error)}`,
-      issueCount: 1,
-    }),
-  })
-}
-
-function decodeAdaptedProjectConfig(input: ProjectConfig) {
-  return decodeProjectConfig(input).pipe(
-    Effect.mapError(error => new SchemaContractError({
-      schema: 'ProjectConfig',
-      message: formatProjectConfigError(error),
-      issueCount: ParseResult.ArrayFormatter.formatErrorSync(error).length,
-    })),
-  )
-}
-
-export function loadProjectConfigFromCreateSpecInput(input: string, options: CreateSpecInputOptions) {
+export function loadCreateSpecFromInput(input: string): Effect.Effect<CreateSpec, SchemaContractError> {
   return parseSpecInput(input).pipe(
-    Effect.flatMap(decodeSpecInput),
-    Effect.flatMap(spec => adaptSpecInput(spec, options)),
-    Effect.flatMap(decodeAdaptedProjectConfig),
+    Effect.flatMap(spec =>
+      decodeCanonicalCreateSpec(spec).pipe(
+        Effect.mapError(error => new SchemaContractError({
+          schema: 'CreateSpec',
+          message: `CreateSpec: ${ParseResult.TreeFormatter.formatErrorSync(error)}`,
+          issueCount: ParseResult.ArrayFormatter.formatErrorSync(error).length,
+        })),
+      ),
+    ),
   )
+}
+
+export function formatCanonicalCreateSpecJson(spec: CreateSpec) {
+  return `${JSON.stringify(spec, null, 2)}\n`
 }
