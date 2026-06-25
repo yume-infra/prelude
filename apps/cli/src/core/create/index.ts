@@ -11,10 +11,14 @@ import { verifyCreateOutputs } from './verify'
 export { materializeWritePlan } from './materializers'
 export type {
   CapabilityContribution,
+  CreateFs,
   CreateProjectError,
   CreateProjectOptions,
   CreateProjectResult,
   CreateSpec,
+  JsonValue,
+  LifecycleProviderRecord,
+  LifecycleSurfaceRecord,
   PreludeManifest,
   ResolvedGraph,
   WriteOperation,

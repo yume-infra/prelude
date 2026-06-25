@@ -205,6 +205,7 @@ interface OwnedFileLifecycleSurfaceRecord {
   readonly authority: 'owner'
   readonly kind: 'ownedFile'
   readonly path: string
+  readonly snapshot?: string
   readonly operationId: string
 }
 
