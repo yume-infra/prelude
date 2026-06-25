@@ -255,7 +255,8 @@ function snapshotOf(value: JsonValue | undefined) {
 
 function parseJsonFile(content: string, relativePath: string): Effect.Effect<JsonValue, LifecycleCommandError> {
   try {
-    return Effect.succeed(JSON.parse(content) as JsonValue)
+    const parsed = JSON.parse(content) as JsonValue
+    return Effect.succeed(parsed)
   }
   catch (error) {
     return Effect.fail(new LifecycleCommandError({

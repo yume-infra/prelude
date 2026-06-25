@@ -64,13 +64,6 @@ updateConfig:
     - typescript
 
 verifyDepsBeforeRun: error
-catalogs:
-  conflicts_@effect/language-service_0_86_2:
-    '@effect/language-service': 0.86.2
-  conflicts_@effect/platform-node_4_0_0mbeta_83:
-    '@effect/platform-node': 4.0.0-beta.83
-  conflicts_effect_4_0_0mbeta_83:
-    effect: 4.0.0-beta.83
 peerDependencyRules:
   allowedVersions:
     '@effect/opentelemetry>@effect/platform': ^0.96.0

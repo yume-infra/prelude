@@ -16,6 +16,15 @@ export default antfu(
     'unicorn/throw-new-error': 'off',
   } },
   {
+    name: 'prelude/root-effect-harness-pins',
+    files: ['package.json'],
+    rules: {
+      // Root package is a prelude target. effect-harness verifies exact package pins here,
+      // while apps/cli keeps its app runtime dependencies on the shared catalog.
+      'pnpm/json-enforce-catalog': 'off',
+    },
+  },
+  {
     name: 'prelude/effect-import-boundary',
     files: ['apps/cli/src/**/*.ts', 'apps/cli/tests/**/*.ts'],
     rules: {

@@ -34,15 +34,15 @@
     "typecheck:tsc": "pnpm --filter @sayoriqwq/prelude typecheck"
   },
   "dependencies": {
-    "@effect/platform-node": "catalog:conflicts_@effect/platform-node_4_0_0mbeta_83",
-    "effect": "catalog:conflicts_effect_4_0_0mbeta_83"
+    "@effect/platform-node": "4.0.0-beta.83",
+    "effect": "4.0.0-beta.83"
   },
   "devDependencies": {
     "@antfu/eslint-config": "catalog:",
     "@changesets/cli": "catalog:",
     "@commitlint/cli": "catalog:",
     "@commitlint/config-conventional": "catalog:",
-    "@effect/language-service": "catalog:conflicts_@effect/language-service_0_86_2",
+    "@effect/language-service": "0.86.2",
     "@effect/tsgo": "catalog:",
     "@effect/vitest": "catalog:",
     "@types/node": "catalog:",

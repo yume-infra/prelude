@@ -84,6 +84,10 @@ The generated smoke command builds the CLI, runs the canonical `--spec` route
 in a temporary directory, and verifies the resulting manifest, engineering
 files, and provider namespace.
 
+`knip.json` keeps a narrow self-target allowance for the Effect harness package
+baseline and the exported CreateSpec/lifecycle type surface. Those entries are
+part of the active provider contract, not legacy generator residue.
+
 ## Repository Map
 
 ```text

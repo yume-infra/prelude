@@ -9,14 +9,12 @@
     "moduleDetection": "force", // 强制识别为模块（顶层 import/export 更稳）
 
     "useDefineForClassFields": true, // 标准类字段语义，和 Babel/规范一致
-    // 路径别名（与 bundler/解析工具协同）
-    "baseUrl": ".",
     // 模块与解析（面向打包器）
     "module": "ESNext", // 生成 ES 模块
     "moduleResolution": "bundler", // bundler 风格解析（尊重 exports/conditions）
     "paths": {
-      "@/*": ["src/*"],
-      "~/*": ["src/core/services/*"]
+      "@/*": ["./src/*"],
+      "~/*": ["./src/core/services/*"]
     },
     // Effect LSP：提供悬停信息、诊断与重构能力
     "plugins": [
