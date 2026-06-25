@@ -71,15 +71,12 @@ Release confidence checks live in the repository root:
 
 ```bash
 pnpm verify
-pnpm --filter @sayoriqwq/prelude smoke:dry-run
 pnpm --filter @sayoriqwq/prelude smoke:generated
 pnpm --filter @sayoriqwq/prelude smoke:examples
 ```
 
-`smoke:generated` and `smoke:examples` use the same generated scaffold matrix and write to `apps/examples/.generated/`. Use `PRELUDE_SMOKE_CASES` to run only the affected surface when a change does not touch the full template set:
-
-```bash
-PRELUDE_SMOKE_CASES=react pnpm --filter @sayoriqwq/prelude smoke:examples
-PRELUDE_SMOKE_CASES=cli,library pnpm --filter @sayoriqwq/prelude smoke:examples
-PRELUDE_SMOKE_CASES=workspace pnpm --filter @sayoriqwq/prelude smoke:examples
-```
+`smoke:generated` and `smoke:examples` run the same canonical generated
+project check. They generate into a system temporary directory, print the target
+path, and keep the generated project for inspection. After a stable commit has
+passed smoke, do not rerun smoke again unless code, docs that affect the
+contract, or the harness/package baseline changes.

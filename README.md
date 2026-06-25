@@ -81,8 +81,10 @@ pnpm smoke:examples
 ```
 
 The generated smoke command builds the CLI, runs the canonical `--spec` route
-in a temporary directory, and verifies the resulting manifest, engineering
-files, and provider namespace.
+in a temporary directory, verifies the resulting manifest, engineering files,
+and provider namespace, then prints the generated target path. The temporary
+target is intentionally kept for inspection. After a stable commit has passed
+smoke, do not rerun smoke again unless the working tree or baseline changes.
 
 `knip.json` keeps a narrow self-target allowance for the Effect harness package
 baseline and the exported CreateSpec/lifecycle type surface. Those entries are

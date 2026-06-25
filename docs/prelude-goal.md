@@ -186,6 +186,12 @@ The loop should:
 5. Let an agent fix breakages caused by the version update.
 6. Update docs only when observable behavior or contracts change.
 
+Generated smoke output should be inspectable. Smoke may use a system temporary
+directory, but it should print the generated target path and keep the target
+after assertions complete. Once a stable commit has passed smoke, do not rerun
+smoke again unless the working tree, generated contract, or harness/package
+baseline changes.
+
 The first loop should not automatically add new frameworks, invent new reusable
 specs, change product defaults, or perform broad architecture refactors.
 
