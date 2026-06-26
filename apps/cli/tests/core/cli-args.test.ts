@@ -1,5 +1,5 @@
+import { assert, describe, it } from '@effect/vitest'
 import { Effect, Result } from 'effect'
-import { assert, describe, it } from 'vitest'
 import { parseCliArgs, parseRawCliArgs } from '../../src/core/cli-args'
 import { HELP_TEXT } from '../../src/core/cli-help'
 

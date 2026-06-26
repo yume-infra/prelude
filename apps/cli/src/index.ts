@@ -79,10 +79,8 @@ const CliContextLayer = CliContextLive({
   isInteractive: canPrompt,
 })
 
-const main = Effect.gen(function* () {
-  yield* runCreateRoute({
-    preludeVersion: readPackageVersion(),
-  })
+const main = runCreateRoute({
+  preludeVersion: readPackageVersion(),
 })
 
 const program = main.pipe(

@@ -12,7 +12,7 @@ import type {
 
 const effectHarnessContractVersion = '1'
 const effectHarnessArtifactVersion = '0.1.0'
-export const effectHarnessProviderPath = '.prelude/providers/effect-harness/provider.json'
+const effectHarnessProviderPath = '.prelude/providers/effect-harness/provider.json'
 export const effectHarnessVerificationId = 'provider:effect-harness:create-contract'
 const effectHarnessSurfaceIds = [
   'provider-artifact:effect-harness',

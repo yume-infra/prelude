@@ -1,5 +1,5 @@
+import { assert, describe, it } from '@effect/vitest'
 import { Effect, Result } from 'effect'
-import { assert, describe, it } from 'vitest'
 import { decodeCliArgs } from '../../src/schema/cli-args'
 
 describe('cliArgsSchema', () => {

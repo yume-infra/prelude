@@ -1,5 +1,5 @@
+import { assert, describe, it } from '@effect/vitest'
 import { Effect, Fiber } from 'effect'
-import { describe, expect, it } from 'vitest'
 import { adjustTestClock, withTestClock } from './support/clock'
 
 describe('test clock support', () => {
@@ -17,6 +17,6 @@ describe('test clock support', () => {
       })),
     )
 
-    expect(result).toBe('done')
+    assert.strictEqual(result, 'done')
   })
 })

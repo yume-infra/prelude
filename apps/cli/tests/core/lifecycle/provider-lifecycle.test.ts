@@ -1,7 +1,7 @@
 import type { LifecycleProviderRegistry, ProviderUpdateOperation } from '@/core/lifecycle'
 import assert from 'node:assert/strict'
+import { describe, it } from '@effect/vitest'
 import { Effect } from 'effect'
-import { describe, it } from 'vitest'
 import { makeTargetDir } from '@/brand/target-dir'
 import { reconcileManagedLogicalValue, runProviderLifecycleStatus, runProviderLifecycleUpdate, runProviderLifecycleVerify } from '@/core/lifecycle'
 import { makeFsMockLayer } from '../../support/fs-mock'

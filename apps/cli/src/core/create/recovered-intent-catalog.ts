@@ -1,6 +1,6 @@
 type JsonValue = null | boolean | number | string | readonly JsonValue[] | { readonly [key: string]: JsonValue }
 
-export type RecoveredIntentArea
+type RecoveredIntentArea
   = | 'react'
     | 'vue'
     | 'node-backend'
@@ -13,7 +13,7 @@ export type RecoveredIntentArea
     | 'old-smoke-cases'
     | 'legacy-preset-shapes'
 
-export interface RecoveredWorkspaceDependency {
+interface RecoveredWorkspaceDependency {
   readonly target: {
     readonly by: 'id' | 'name'
     readonly value: string
@@ -21,7 +21,7 @@ export interface RecoveredWorkspaceDependency {
   readonly alias?: string
 }
 
-export interface RecoveredCreateSpecPackage {
+interface RecoveredCreateSpecPackage {
   readonly id: string
   readonly name: string
   readonly path: string
@@ -30,7 +30,7 @@ export interface RecoveredCreateSpecPackage {
   readonly internalDependencies: readonly RecoveredWorkspaceDependency[]
 }
 
-export interface RecoveredSinglePackageCreateSpec {
+interface RecoveredSinglePackageCreateSpec {
   readonly topology: 'single-package'
   readonly package: RecoveredCreateSpecPackage
   readonly rootCapabilities: readonly string[]
@@ -38,7 +38,7 @@ export interface RecoveredSinglePackageCreateSpec {
   readonly overrides: Record<string, never>
 }
 
-export interface RecoveredWorkspaceCreateSpec {
+interface RecoveredWorkspaceCreateSpec {
   readonly topology: 'workspace'
   readonly packages: readonly RecoveredCreateSpecPackage[]
   readonly rootCapabilities: readonly string[]
@@ -46,7 +46,7 @@ export interface RecoveredWorkspaceCreateSpec {
   readonly overrides: Record<string, never>
 }
 
-export type RecoveredCreateSpec = RecoveredSinglePackageCreateSpec | RecoveredWorkspaceCreateSpec
+type RecoveredCreateSpec = RecoveredSinglePackageCreateSpec | RecoveredWorkspaceCreateSpec
 
 export interface RecoveredCreateSpecFixture {
   readonly id: string
@@ -63,7 +63,7 @@ export interface RecoveredCreateSpecFixture {
   readonly recoveryNotes: readonly string[]
 }
 
-export interface LegacyChoiceInventory {
+interface LegacyChoiceInventory {
   readonly id: string
   readonly intentAreas: readonly RecoveredIntentArea[]
   readonly sourcePaths: readonly string[]
@@ -1235,7 +1235,7 @@ export const recoveredCreateSpecFixtures = [
 
 export type RecoveredCreateSpecFixtureId = typeof recoveredCreateSpecFixtures[number]['id']
 
-export interface MappedLegacyPreset {
+interface MappedLegacyPreset {
   readonly legacyPreset: string
   readonly status: 'mapped'
   readonly fixtureId: RecoveredCreateSpecFixtureId
@@ -1243,14 +1243,14 @@ export interface MappedLegacyPreset {
   readonly sourcePath: string
 }
 
-export interface OutOfScopeLegacyPreset {
+interface OutOfScopeLegacyPreset {
   readonly legacyPreset: string
   readonly status: 'out-of-scope'
   readonly reason: string
   readonly sourcePath: string
 }
 
-export type LegacyPresetMapping = MappedLegacyPreset | OutOfScopeLegacyPreset
+type LegacyPresetMapping = MappedLegacyPreset | OutOfScopeLegacyPreset
 
 export const legacyPresetMappings = [
   { legacyPreset: 'standalone-react-minimal', status: 'mapped', fixtureId: 'legacy-react-minimal', sourcePath: 'apps/cli/src/schema/preset.ts' },
@@ -1278,21 +1278,21 @@ export const legacyPresetMappings = [
   { legacyPreset: 'standalone-cli-full', status: 'mapped', fixtureId: 'legacy-cli-full', sourcePath: 'apps/cli/src/schema/preset.ts' },
 ] as const satisfies readonly LegacyPresetMapping[]
 
-export interface MappedLegacySmokeCase {
+interface MappedLegacySmokeCase {
   readonly legacySmokeCase: string
   readonly status: 'mapped'
   readonly fixtureId: RecoveredCreateSpecFixtureId
   readonly sourcePath: string
 }
 
-export interface OutOfScopeLegacySmokeCase {
+interface OutOfScopeLegacySmokeCase {
   readonly legacySmokeCase: string
   readonly status: 'out-of-scope'
   readonly reason: string
   readonly sourcePath: string
 }
 
-export type LegacySmokeCaseMapping = MappedLegacySmokeCase | OutOfScopeLegacySmokeCase
+type LegacySmokeCaseMapping = MappedLegacySmokeCase | OutOfScopeLegacySmokeCase
 
 const dryRunOutOfScopeReason = 'Old dry-run smoke asserted PlanSpec and Handlebars-era preview output. The recoverable intent is no-write inspection, but Plan/PlanSpec and template-render preview are forbidden target architecture.'
 
