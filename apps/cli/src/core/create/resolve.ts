@@ -5,7 +5,6 @@ import type {
   CreateSpecWorkspacePackage,
   JsonCreateSpec,
   LogicalSurface,
-  ProviderId,
   ResolvedGraph,
   ResolvedInternalDependency,
   ResolvedPackage,
@@ -14,6 +13,16 @@ import type {
 } from './model'
 import { Effect } from 'effect'
 import { SchemaContractError } from '@/core/errors'
+import {
+  isPackageCapabilityId,
+  isProviderId,
+  isRootCapabilityId,
+  logicalSurfacesForPackageCapabilities,
+  packageCapabilityConflicts,
+  packageCapabilityRequirements,
+  rootCapabilityDefinition,
+  runtimeCapabilityIds,
+} from './capabilities/registry'
 import { effectHarnessResolvedProvider, effectHarnessVerificationId } from './effect-harness-provider'
 
 const packageManifestLogicalSurface = {
@@ -28,85 +37,11 @@ const workspaceManifestLogicalSurface = {
   owner: 'prelude',
 } as const satisfies LogicalSurface
 
-const generatedRootSourceLogicalSurface = {
-  id: 'source:root/src/index.ts',
-  materializer: 'generated-user-file',
-  owner: 'capability:minimal-node-package',
-} as const satisfies LogicalSurface
-
-const generatedEffectSourceLogicalSurface = {
-  id: 'source:root/src/index.ts',
-  materializer: 'generated-user-file',
-  owner: 'capability:effect-package',
-} as const satisfies LogicalSurface
-
-const effectTsconfigLogicalSurface = {
-  id: 'tsconfig:root',
-  materializer: 'generated-user-file',
-  owner: 'capability:effect-package',
-} as const satisfies LogicalSurface
-
-const rootCapabilityLogicalSurfaces: Partial<Record<RootCapabilityId, LogicalSurface>> = {
-  linting: {
-    id: 'eslint-root',
-    materializer: 'eslint-config',
-    owner: 'capability:linting',
-  },
-  knip: {
-    id: 'knip-root',
-    materializer: 'knip-config',
-    owner: 'capability:knip',
-  },
-}
-
 const effectHarnessLogicalSurface = {
   id: 'provider:effect-harness',
   materializer: 'provider-artifact',
   owner: 'capability:ai-harness',
 } as const satisfies LogicalSurface
-
-const supportedRootCapabilities = ['package-manager:pnpm', 'linting', 'knip', 'dependency-update:taze', 'ai-harness'] as const satisfies readonly RootCapabilityId[]
-const supportedPackageCapabilities = ['minimal-node-package', 'react-app', 'react-counter', 'vue-app', 'effect-package', 'node-backend', 'library', 'cli-tool', 'router:react-router', 'router:vue-router', 'state:jotai', 'state:pinia', 'css:less', 'css:tailwind'] as const satisfies readonly CapabilityId[]
-const supportedProviders = ['effect-harness'] as const satisfies readonly ProviderId[]
-
-const runtimeCapabilities = [
-  'minimal-node-package',
-  'react-app',
-  'vue-app',
-  'effect-package',
-  'node-backend',
-  'library',
-  'cli-tool',
-] as const satisfies readonly CapabilityId[]
-
-const minimalVerification = [
-  'minimal-create-files-present',
-] as const
-
-const minimalLogicalSurfaces = [
-  {
-    id: 'package-manifest:root',
-    materializer: 'package-json',
-    owner: 'prelude',
-  },
-  {
-    id: 'source:root/src/index.ts',
-    materializer: 'generated-user-file',
-    owner: 'capability:minimal-node-package',
-  },
-] as const satisfies readonly LogicalSurface[]
-
-function isRootCapabilityId(capability: string): capability is RootCapabilityId {
-  return supportedRootCapabilities.includes(capability as RootCapabilityId)
-}
-
-function isPackageCapabilityId(capability: string): capability is CapabilityId {
-  return supportedPackageCapabilities.includes(capability as CapabilityId)
-}
-
-function isProviderId(provider: string): provider is ProviderId {
-  return supportedProviders.includes(provider as ProviderId)
-}
 
 function packageManifestSurface(scope: string): LogicalSurface {
   return scope === 'root'
@@ -118,124 +53,15 @@ function packageManifestSurface(scope: string): LogicalSurface {
       }
 }
 
-function sourceSurface(scope: string, capability: CapabilityId, filePath: string, materializer: string): LogicalSurface {
-  if (scope === 'root' && capability === 'node-backend') {
-    return {
-      id: 'source:node-backend/src/index.ts',
-      materializer,
-      owner: 'capability:node-backend',
-    }
-  }
-
-  if (scope === 'root' && capability === 'library') {
-    return {
-      id: 'source:library/src/index.ts',
-      materializer,
-      owner: 'capability:library',
-    }
-  }
-
-  if (scope === 'root' && capability === 'cli-tool' && filePath === 'src/index.ts') {
-    return {
-      id: 'source:cli-tool/src/index.ts',
-      materializer,
-      owner: 'capability:cli-tool',
-    }
-  }
-
-  if (scope === 'root' && capability === 'cli-tool' && filePath === 'scripts/ensure-shebang.mjs') {
-    return {
-      id: 'cli-tool-support:scripts/ensure-shebang.mjs',
-      materializer,
-      owner: 'capability:cli-tool',
-    }
-  }
-
-  return {
-    id: `source:${scope}/${filePath}`,
-    materializer,
-    owner: `capability:${capability}`,
-  }
+function packageManifestScopeForPackage(pkg: ResolvedPackage) {
+  return pkg.path === '.' ? 'root' : pkg.path
 }
 
-function typeScriptConfigSurface(scope: string): LogicalSurface {
-  return {
-    id: `typescript-config:${scope}`,
-    materializer: 'typescript-config',
-    owner: 'prelude',
-  }
-}
-
-function tsdownConfigSurface(scope: string): LogicalSurface {
-  return {
-    id: `tsdown-config:${scope}`,
-    materializer: 'tsdown-config',
-    owner: 'prelude',
-  }
-}
-
-function reactStaticSurface(scope: string, path: string): LogicalSurface {
-  return {
-    id: `react-app-static:${scope}/${path}`,
-    materializer: 'generated-user-file',
-    owner: 'capability:react-app',
-  }
-}
-
-function reactEntrySurface(scope: string): LogicalSurface {
-  return {
-    id: `react-app-entry:${scope}`,
-    materializer: 'frontend-entry',
-    owner: 'capability:react-app',
-  }
-}
-
-function reactAppShellSurface(scope: string): LogicalSurface {
-  return {
-    id: `react-app-shell:${scope}`,
-    materializer: 'react-app-shell',
-    owner: 'capability:react-app',
-  }
-}
-
-function vueEntrySurface(scope: string): LogicalSurface {
-  return {
-    id: `vue-app-entry:${scope}`,
-    materializer: 'frontend-entry',
-    owner: 'capability:vue-app',
-  }
-}
-
-function vueStaticSurface(scope: string, path: string): LogicalSurface {
-  return {
-    id: `vue-app-static:${scope}/${path}`,
-    materializer: 'generated-user-file',
-    owner: 'capability:vue-app',
-  }
-}
-
-function vueAppShellSurface(scope: string): LogicalSurface {
-  return {
-    id: `vue-app-shell:${scope}`,
-    materializer: 'vue-app-shell',
-    owner: 'capability:vue-app',
-  }
-}
-
-function viteConfigSurface(scope: string, owner: string): LogicalSurface {
-  return {
-    id: `vite-config:${scope}`,
-    materializer: 'generated-user-file',
-    owner,
-  }
-}
-
-function styleSheetSurface(scope: string, path: 'src/styles.css' | 'src/styles.less', owner: string): LogicalSurface {
-  return {
-    id: `stylesheet:${scope}/${path}`,
-    materializer: 'stylesheet',
-    owner,
-  }
+function rootCapabilitySurfaces(rootCapabilities: readonly RootCapabilityId[]): readonly LogicalSurface[] {
+  return rootCapabilities.flatMap((capability) => {
+    const definition = rootCapabilityDefinition(capability)
+    return definition?.logicalSurfaces() ?? []
+  })
 }
 
 function resolveRootCapabilities(spec: CreateSpec): readonly RootCapabilityId[] {
@@ -261,178 +87,30 @@ function resolveProviders(spec: CreateSpec, rootCapabilities: readonly RootCapab
   return [effectHarnessResolvedProvider(spec.package.id)]
 }
 
-function surfaceScopeForPackage(pkg: ResolvedPackage) {
-  return pkg.path === '.' ? pkg.id : pkg.path
-}
-
-function packageManifestScopeForPackage(pkg: ResolvedPackage) {
-  return pkg.path === '.' ? 'root' : pkg.path
-}
-
-function logicalSurfacesForPackage(pkg: ResolvedPackage): readonly LogicalSurface[] {
-  const scope = surfaceScopeForPackage(pkg)
-  const packageManifestScope = packageManifestScopeForPackage(pkg)
-  const surfaces: LogicalSurface[] = [packageManifestSurface(packageManifestScope)]
-
-  if (pkg.capabilities.includes('react-app')) {
-    surfaces.push(
-      reactStaticSurface(scope, 'index.html'),
-      reactEntrySurface(scope),
-      reactAppShellSurface(scope),
-      viteConfigSurface(scope, 'capability:react-app'),
-      typeScriptConfigSurface(packageManifestScope),
-    )
-  }
-
-  if (pkg.capabilities.includes('vue-app')) {
-    surfaces.push(
-      vueStaticSurface(scope, 'index.html'),
-      vueEntrySurface(scope),
-      vueAppShellSurface(scope),
-      viteConfigSurface(scope, 'capability:vue-app'),
-      typeScriptConfigSurface(packageManifestScope),
-    )
-  }
-
-  if (pkg.capabilities.includes('css:tailwind')) {
-    surfaces.push(styleSheetSurface(scope, 'src/styles.css', 'capability:css:tailwind'))
-  }
-
-  if (pkg.capabilities.includes('css:less')) {
-    surfaces.push(styleSheetSurface(scope, 'src/styles.less', 'capability:css:less'))
-  }
-
-  if (pkg.capabilities.includes('minimal-node-package')) {
-    surfaces.push(pkg.path === '.'
-      ? generatedRootSourceLogicalSurface
-      : sourceSurface(scope, 'minimal-node-package', 'src/index.ts', 'generated-user-file'))
-  }
-  if (pkg.capabilities.includes('effect-package')) {
-    surfaces.push(pkg.path === '.'
-      ? generatedEffectSourceLogicalSurface
-      : sourceSurface(scope, 'effect-package', 'src/index.ts', 'generated-user-file'))
-    surfaces.push(pkg.path === '.'
-      ? effectTsconfigLogicalSurface
-      : {
-          id: `tsconfig:${packageManifestScope}`,
-          materializer: 'generated-user-file',
-          owner: 'capability:effect-package',
-        })
-  }
-  if (pkg.capabilities.includes('node-backend')) {
-    surfaces.push(sourceSurface(pkg.path === '.' ? 'root' : scope, 'node-backend', 'src/index.ts', 'node-backend-source'))
-    surfaces.push(typeScriptConfigSurface(packageManifestScope))
-    surfaces.push(tsdownConfigSurface(packageManifestScope))
-  }
-  if (pkg.capabilities.includes('library')) {
-    surfaces.push(sourceSurface(pkg.path === '.' ? 'root' : scope, 'library', 'src/index.ts', 'library-source'))
-    surfaces.push(typeScriptConfigSurface(packageManifestScope))
-    surfaces.push(tsdownConfigSurface(packageManifestScope))
-  }
-  if (pkg.capabilities.includes('cli-tool')) {
-    surfaces.push(sourceSurface(pkg.path === '.' ? 'root' : scope, 'cli-tool', 'src/index.ts', 'cli-tool-source'))
-    surfaces.push(sourceSurface(pkg.path === '.' ? 'root' : scope, 'cli-tool', 'scripts/ensure-shebang.mjs', 'cli-tool-support'))
-    surfaces.push(typeScriptConfigSurface(packageManifestScope))
-    surfaces.push(tsdownConfigSurface(packageManifestScope))
-  }
-
-  return surfaces
-}
-
-function rootCapabilitySurfaces(rootCapabilities: readonly RootCapabilityId[]): readonly LogicalSurface[] {
-  return rootCapabilities.flatMap((capability) => {
-    const surface = rootCapabilityLogicalSurfaces[capability]
-    return surface ? [surface] : []
-  })
-}
-
-function logicalSurfacesForSinglePackage(
-  pkg: ResolvedPackage,
-  rootCapabilities: readonly RootCapabilityId[],
-  providers: readonly ResolvedProvider[],
-): readonly LogicalSurface[] {
-  if (rootCapabilities.length === 0 && pkg.capabilities.includes('minimal-node-package')) {
-    return minimalLogicalSurfaces
-  }
-
-  const scope = surfaceScopeForPackage(pkg)
-  const surfaces: LogicalSurface[] = [packageManifestLogicalSurface]
-
-  if (pkg.capabilities.includes('react-app')) {
-    surfaces.push(
-      reactStaticSurface(scope, 'index.html'),
-      reactEntrySurface(scope),
-      reactAppShellSurface(scope),
-      viteConfigSurface(scope, 'capability:react-app'),
-      typeScriptConfigSurface('root'),
-    )
-  }
-
-  if (pkg.capabilities.includes('vue-app')) {
-    surfaces.push(
-      vueStaticSurface(scope, 'index.html'),
-      vueEntrySurface(scope),
-      vueAppShellSurface(scope),
-      viteConfigSurface(scope, 'capability:vue-app'),
-      typeScriptConfigSurface('root'),
-    )
-  }
-
-  if (pkg.capabilities.includes('css:tailwind')) {
-    surfaces.push(styleSheetSurface(scope, 'src/styles.css', 'capability:css:tailwind'))
-  }
-
-  if (pkg.capabilities.includes('css:less')) {
-    surfaces.push(styleSheetSurface(scope, 'src/styles.less', 'capability:css:less'))
-  }
-
-  surfaces.push(...rootCapabilitySurfaces(rootCapabilities))
-
-  if (providers.some(provider => provider.id === 'effect-harness')) {
-    surfaces.push(effectHarnessLogicalSurface)
-  }
-
-  if (pkg.capabilities.includes('minimal-node-package')) {
-    surfaces.push(generatedRootSourceLogicalSurface)
-  }
-  if (pkg.capabilities.includes('effect-package')) {
-    surfaces.push(generatedEffectSourceLogicalSurface)
-    surfaces.push(effectTsconfigLogicalSurface)
-  }
-  if (pkg.capabilities.includes('node-backend')) {
-    surfaces.push(sourceSurface('root', 'node-backend', 'src/index.ts', 'node-backend-source'))
-    surfaces.push(typeScriptConfigSurface('root'))
-    surfaces.push(tsdownConfigSurface('root'))
-  }
-  if (pkg.capabilities.includes('library')) {
-    surfaces.push(sourceSurface('root', 'library', 'src/index.ts', 'library-source'))
-    surfaces.push(typeScriptConfigSurface('root'))
-    surfaces.push(tsdownConfigSurface('root'))
-  }
-  if (pkg.capabilities.includes('cli-tool')) {
-    surfaces.push(sourceSurface('root', 'cli-tool', 'src/index.ts', 'cli-tool-source'))
-    surfaces.push(sourceSurface('root', 'cli-tool', 'scripts/ensure-shebang.mjs', 'cli-tool-support'))
-    surfaces.push(typeScriptConfigSurface('root'))
-    surfaces.push(tsdownConfigSurface('root'))
-  }
-
-  return surfaces
+function logicalSurfacesForPackage(graph: ResolvedGraph, pkg: ResolvedPackage): readonly LogicalSurface[] {
+  return [
+    packageManifestSurface(packageManifestScopeForPackage(pkg)),
+    ...logicalSurfacesForPackageCapabilities(graph, pkg),
+  ]
 }
 
 function logicalSurfacesFor(
-  packages: readonly ResolvedPackage[],
-  rootCapabilities: readonly RootCapabilityId[],
-  providers: readonly ResolvedProvider[],
+  graph: Omit<ResolvedGraph, 'logicalSurfaces'>,
 ): readonly LogicalSurface[] {
-  if (packages.length === 1 && packages[0]!.path === '.') {
-    return logicalSurfacesForSinglePackage(packages[0]!, rootCapabilities, providers)
+  if (graph.packages.length === 0 && graph.rootPackage.path === '.') {
+    return [
+      packageManifestLogicalSurface,
+      ...rootCapabilitySurfaces(graph.rootCapabilities),
+      ...(graph.providers.some(provider => provider.id === 'effect-harness') ? [effectHarnessLogicalSurface] : []),
+      ...logicalSurfacesForPackageCapabilities(graph as ResolvedGraph, graph.rootPackage),
+    ]
   }
 
   return [
     packageManifestLogicalSurface,
     workspaceManifestLogicalSurface,
-    ...rootCapabilitySurfaces(rootCapabilities),
-    ...packages.flatMap(logicalSurfacesForPackage),
+    ...rootCapabilitySurfaces(graph.rootCapabilities),
+    ...graph.packages.flatMap(pkg => logicalSurfacesForPackage(graph as ResolvedGraph, pkg)),
   ]
 }
 
@@ -477,10 +155,10 @@ function verificationFor(
   }
 
   if (!hasRootEngineeringFiles) {
-    return [...minimalVerification, ...providerVerification]
+    return ['minimal-create-files-present', ...providerVerification]
   }
 
-  return [...minimalVerification, 'root-engineering-files-present', ...providerVerification]
+  return ['minimal-create-files-present', 'root-engineering-files-present', ...providerVerification]
 }
 
 export function toManifestCreateSpec(spec: CreateSpec): JsonCreateSpec {
@@ -516,7 +194,42 @@ export function toManifestCreateSpec(spec: CreateSpec): JsonCreateSpec {
 }
 
 function selectedRuntimeCapabilities(pkg: CreateSpecPackage) {
-  return pkg.capabilities.filter(capability => runtimeCapabilities.includes(capability as typeof runtimeCapabilities[number]))
+  const runtimeCapabilities = runtimeCapabilityIds()
+  return pkg.capabilities.filter(capability => runtimeCapabilities.includes(capability as CapabilityId))
+}
+
+function validateCapabilityRequirements(pkg: CreateSpecPackage, issues: string[]) {
+  for (const capability of pkg.capabilities) {
+    if (!isPackageCapabilityId(capability)) {
+      continue
+    }
+
+    for (const requirement of packageCapabilityRequirements(capability)) {
+      if (requirement.allOf?.some(required => !pkg.capabilities.includes(required)) ?? false) {
+        issues.push(requirement.message(pkg.id))
+      }
+      if (requirement.anyOf !== undefined && !requirement.anyOf.some(required => pkg.capabilities.includes(required))) {
+        issues.push(requirement.message(pkg.id))
+      }
+    }
+  }
+}
+
+function validateCapabilityConflicts(pkg: CreateSpecPackage, issues: string[]) {
+  const selectedRuntimes = selectedRuntimeCapabilities(pkg)
+  const runtimeSet = new Set(selectedRuntimes)
+
+  for (const capability of pkg.capabilities) {
+    if (!isPackageCapabilityId(capability) || runtimeSet.has(capability)) {
+      continue
+    }
+
+    for (const conflict of packageCapabilityConflicts(capability)) {
+      if (pkg.capabilities.includes(conflict)) {
+        issues.push(`${capability} conflicts with ${conflict} for ${pkg.id}`)
+      }
+    }
+  }
 }
 
 function validatePackageCapabilities(pkg: CreateSpecPackage, issues: string[]) {
@@ -532,27 +245,9 @@ function validatePackageCapabilities(pkg: CreateSpecPackage, issues: string[]) {
   if (selectedRuntimes.length > 1) {
     issues.push(`only one package runtime capability is supported for ${pkg.id}: ${selectedRuntimes.join(', ')}`)
   }
-  if (pkg.capabilities.includes('react-counter') && !pkg.capabilities.includes('react-app')) {
-    issues.push(`react-counter requires react-app for ${pkg.id}`)
-  }
-  if (pkg.capabilities.includes('router:react-router') && !pkg.capabilities.includes('react-app')) {
-    issues.push(`router:react-router requires react-app for ${pkg.id}`)
-  }
-  if (pkg.capabilities.includes('state:jotai') && !pkg.capabilities.includes('react-app')) {
-    issues.push(`state:jotai requires react-app for ${pkg.id}`)
-  }
-  if (pkg.capabilities.includes('router:vue-router') && !pkg.capabilities.includes('vue-app')) {
-    issues.push(`router:vue-router requires vue-app for ${pkg.id}`)
-  }
-  if (pkg.capabilities.includes('state:pinia') && !pkg.capabilities.includes('vue-app')) {
-    issues.push(`state:pinia requires vue-app for ${pkg.id}`)
-  }
-  if (pkg.capabilities.includes('css:less') && !pkg.capabilities.includes('react-app') && !pkg.capabilities.includes('vue-app')) {
-    issues.push(`css:less requires react-app or vue-app for ${pkg.id}`)
-  }
-  if (pkg.capabilities.includes('css:tailwind') && !pkg.capabilities.includes('react-app') && !pkg.capabilities.includes('vue-app')) {
-    issues.push(`css:tailwind requires react-app or vue-app for ${pkg.id}`)
-  }
+
+  validateCapabilityRequirements(pkg, issues)
+  validateCapabilityConflicts(pkg, issues)
 }
 
 function validateWorkspacePackageGraph(packages: readonly CreateSpecWorkspacePackage[], issues: string[]) {
@@ -692,6 +387,13 @@ function packageCapabilitiesFor(packages: readonly ResolvedPackage[]) {
   ) as Record<string, readonly CapabilityId[]>
 }
 
+function withLogicalSurfaces(graph: Omit<ResolvedGraph, 'logicalSurfaces'>): ResolvedGraph {
+  return {
+    ...graph,
+    logicalSurfaces: logicalSurfacesFor(graph),
+  }
+}
+
 export function resolveCreateSpec(spec: CreateSpec): ResolvedGraph {
   const rootCapabilities = resolveRootCapabilities(spec)
   const providers = resolveProviders(spec, rootCapabilities)
@@ -699,7 +401,7 @@ export function resolveCreateSpec(spec: CreateSpec): ResolvedGraph {
   if (spec.topology === 'workspace') {
     const packages = resolveWorkspacePackages(spec)
 
-    return {
+    return withLogicalSurfaces({
       topology: 'workspace',
       rootPackage: {
         id: 'root',
@@ -711,9 +413,8 @@ export function resolveCreateSpec(spec: CreateSpec): ResolvedGraph {
       rootCapabilities,
       packageCapabilities: packageCapabilitiesFor(packages),
       providers,
-      logicalSurfaces: logicalSurfacesFor(packages, rootCapabilities, providers),
       verification: verificationFor(spec, rootCapabilities, providers),
-    }
+    })
   }
 
   const rootPackage: ResolvedPackage = {
@@ -723,7 +424,7 @@ export function resolveCreateSpec(spec: CreateSpec): ResolvedGraph {
     capabilities: spec.package.capabilities,
   }
 
-  return {
+  return withLogicalSurfaces({
     topology: 'single-package',
     rootPackage,
     packages: [],
@@ -732,7 +433,6 @@ export function resolveCreateSpec(spec: CreateSpec): ResolvedGraph {
       [spec.package.id]: spec.package.capabilities,
     },
     providers,
-    logicalSurfaces: logicalSurfacesFor([rootPackage], rootCapabilities, providers),
     verification: verificationFor(spec, rootCapabilities, providers),
-  }
+  })
 }

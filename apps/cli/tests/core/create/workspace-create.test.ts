@@ -7,7 +7,7 @@ import { assert, describe, it } from '@effect/vitest'
 import { Effect, Layer } from 'effect'
 import { makePackageName } from '@/brand/package-name'
 import { makeTargetDir } from '@/brand/target-dir'
-import { createProjectFromSpec } from '@/core/create'
+import { createProjectFromSpec, materializeWritePlan } from '@/core/create'
 import { FsLive } from '@/core/services/fs'
 
 const TestLayer = FsLive.pipe(
@@ -209,5 +209,76 @@ describe('workspace create pipeline', () => {
         ])
       }).pipe(Effect.provide(TestLayer)),
     )
+  })
+
+  it('merges typed workspace manifest surfaces and blocks workspace package manifest conflicts', async () => {
+    const workspacePlan = await Effect.runPromise(materializeWritePlan([
+      {
+        kind: 'workspaceManifest',
+        surfaceId: 'workspace-manifest:root',
+        owner: 'topology:workspace',
+        globs: ['apps/*', 'libs/*'],
+      },
+      {
+        kind: 'workspaceManifest',
+        surfaceId: 'workspace-manifest:root',
+        owner: 'capability:workspace-extra',
+        globs: ['apps/*'],
+      },
+    ]))
+
+    assert.deepStrictEqual(workspacePlan.operations, [
+      {
+        id: 'write-pnpm-workspace',
+        kind: 'writeGeneratedUserFile',
+        owner: 'materializer:workspace-manifest',
+        surfaceId: 'workspace-manifest:root',
+        path: 'pnpm-workspace.yaml',
+        authority: 'none',
+        content: `packages:
+  - apps/*
+  - libs/*
+
+catalog:
+  '@antfu/eslint-config': 8.2.0
+  '@types/node': 25.6.0
+  eslint: ^10.3.0
+  knip: ^6.12.0
+  taze: ^19.11.0
+  tsdown: ^0.21.10
+  typescript: 6.0.3
+`,
+      },
+    ])
+
+    const conflictResult = await Effect.runPromise(Effect.result(materializeWritePlan([
+      {
+        kind: 'packageManifest',
+        surfaceId: 'package-manifest:apps/api',
+        owner: 'capability:node-backend',
+        entries: {
+          scripts: {
+            build: 'tsdown --config tsdown.config.ts',
+          },
+        },
+      },
+      {
+        kind: 'packageManifest',
+        surfaceId: 'package-manifest:apps/api',
+        owner: 'capability:conflicting-builder',
+        entries: {
+          scripts: {
+            build: 'vite build',
+          },
+        },
+      },
+    ])))
+
+    assert.equal(conflictResult._tag, 'Failure')
+    if (conflictResult._tag === 'Failure') {
+      assert.include(conflictResult.failure.message, 'Conflicting package-manifest:apps/api contribution at /scripts/build')
+      assert.include(conflictResult.failure.message, 'capability:node-backend')
+      assert.include(conflictResult.failure.message, 'capability:conflicting-builder')
+    }
   })
 })

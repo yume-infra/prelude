@@ -140,6 +140,8 @@ export interface GeneratedUserFileContribution {
   readonly surfaceId: string
   readonly owner: string
   readonly path: string
+  readonly operationId?: string
+  readonly operationOwner?: string
   readonly content: string
 }
 
