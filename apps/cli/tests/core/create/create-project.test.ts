@@ -693,11 +693,11 @@ export default defineConfig({
         assert.equal(source, `import { NodeRuntime } from '@effect/platform-node'
 import { Console, Effect } from 'effect'
 
-const program = Effect.gen(function* () {
+const main = Effect.fn('main')(function* () {
   yield* Console.log("demo-worker ready")
 })
 
-NodeRuntime.runMain(program)
+NodeRuntime.runMain(main())
 `)
 
         const tsconfig = yield* Effect.promise(() => readJson(path.join(targetDir, 'tsconfig.json')))

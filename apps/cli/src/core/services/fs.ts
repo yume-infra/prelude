@@ -14,7 +14,7 @@ interface FsServiceShape {
   readonly ensureDir: (path: string) => Effect.Effect<void, FileIOError>
 }
 
-export class FsService extends Context.Service<FsService, FsServiceShape>()('FsService') {
+export class FsService extends Context.Service<FsService, FsServiceShape>()('@sayoriqwq/prelude/core/services/FsService') {
   static readonly Default = Layer.effect(
     FsService,
     Effect.gen(function* () {
@@ -61,7 +61,7 @@ export class FsService extends Context.Service<FsService, FsServiceShape>()('FsS
       const ensureDir: FsServiceShape['ensureDir'] = path =>
         makeDirectory(path, { recursive: true })
 
-      return { exists, readFileString, writeFileString, makeDirectory, ensureDir } satisfies FsServiceShape
+      return FsService.of({ exists, readFileString, writeFileString, makeDirectory, ensureDir } satisfies FsServiceShape)
     }),
   )
 }

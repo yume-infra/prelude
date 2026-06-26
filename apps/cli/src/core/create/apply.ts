@@ -11,10 +11,10 @@ function resolveTargetPath(baseDir: string, relativePath: string) {
   return path.join(baseDir, relativePath)
 }
 
-function writeOperation(fs: CreateFs, baseDir: string, operation: WriteOperation) {
-  const targetPath = resolveTargetPath(baseDir, operation.path)
+const writeOperation = Effect.fn('writeOperation')(
+  function* (fs: CreateFs, baseDir: string, operation: WriteOperation) {
+    const targetPath = resolveTargetPath(baseDir, operation.path)
 
-  return Effect.gen(function* () {
     yield* fs.ensureDir(path.dirname(targetPath))
 
     switch (operation.kind) {
@@ -27,8 +27,8 @@ function writeOperation(fs: CreateFs, baseDir: string, operation: WriteOperation
       case 'writeGeneratedUserFile':
         yield* fs.writeFileString(targetPath, operation.content)
     }
-  })
-}
+  },
+)
 
 export function applyWritePlan(fs: CreateFs, baseDir: string, plan: WritePlan) {
   return Effect.forEach(

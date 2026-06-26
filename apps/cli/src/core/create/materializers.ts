@@ -795,72 +795,72 @@ function materializeProviderArtifact(contribution: ProviderArtifactContribution)
   })
 }
 
-export function materializeWritePlan(contributions: readonly CapabilityContribution[]): Effect.Effect<WritePlan, SchemaContractError> {
-  const packageManifestContributions = contributions.filter(
-    (contribution): contribution is PackageManifestContribution => contribution.kind === 'packageManifest',
-  )
-  const workspaceManifestContributions = contributions.filter(
-    (contribution): contribution is WorkspaceManifestContribution => contribution.kind === 'workspaceManifest',
-  )
-  const eslintRootContributions = contributions.filter(
-    (contribution): contribution is EslintRootContribution => contribution.kind === 'eslintRoot',
-  )
-  const knipRootContributions = contributions.filter(
-    (contribution): contribution is KnipRootContribution => contribution.kind === 'knipRoot',
-  )
-  const sourceContributions = contributions.filter(
-    (contribution): contribution is GeneratedUserFileContribution => contribution.kind === 'generatedUserFile',
-  )
-  const frontendEntryContributions = contributions.filter(
-    (contribution): contribution is FrontendEntryContribution => contribution.kind === 'frontendEntry',
-  )
-  const viteConfigContributions = contributions.filter(
-    (contribution): contribution is ViteConfigContribution => contribution.kind === 'viteConfig',
-  )
-  const styleSheetContributions = contributions.filter(
-    (contribution): contribution is StyleSheetContribution => contribution.kind === 'styleSheet',
-  )
-  const reactAppShellContributions = contributions.filter(
-    (contribution): contribution is ReactAppShellContribution => contribution.kind === 'reactAppShell',
-  )
-  const vueAppShellContributions = contributions.filter(
-    (contribution): contribution is VueAppShellContribution => contribution.kind === 'vueAppShell',
-  )
-  const typeScriptConfigContributions = contributions.filter(
-    (contribution): contribution is TypeScriptConfigContribution => contribution.kind === 'typescriptConfig',
-  )
-  const tsdownConfigContributions = contributions.filter(
-    (contribution): contribution is TsdownConfigContribution => contribution.kind === 'tsdownConfig',
-  )
-  const providerArtifactContributions = contributions.filter(
-    (contribution): contribution is ProviderArtifactContribution => contribution.kind === 'providerArtifact',
-  )
-  const packageManifestSurfaces = new Map<string, readonly PackageManifestContribution[]>()
-  const frontendEntrySurfaces = new Map<string, readonly FrontendEntryContribution[]>()
-  const viteConfigSurfaces = new Map<string, readonly ViteConfigContribution[]>()
-  const styleSheetSurfaces = new Map<string, readonly StyleSheetContribution[]>()
+export const materializeWritePlan = Effect.fn('materializeWritePlan')(
+  function* (contributions: readonly CapabilityContribution[]): Effect.fn.Return<WritePlan, SchemaContractError> {
+    const packageManifestContributions = contributions.filter(
+      (contribution): contribution is PackageManifestContribution => contribution.kind === 'packageManifest',
+    )
+    const workspaceManifestContributions = contributions.filter(
+      (contribution): contribution is WorkspaceManifestContribution => contribution.kind === 'workspaceManifest',
+    )
+    const eslintRootContributions = contributions.filter(
+      (contribution): contribution is EslintRootContribution => contribution.kind === 'eslintRoot',
+    )
+    const knipRootContributions = contributions.filter(
+      (contribution): contribution is KnipRootContribution => contribution.kind === 'knipRoot',
+    )
+    const sourceContributions = contributions.filter(
+      (contribution): contribution is GeneratedUserFileContribution => contribution.kind === 'generatedUserFile',
+    )
+    const frontendEntryContributions = contributions.filter(
+      (contribution): contribution is FrontendEntryContribution => contribution.kind === 'frontendEntry',
+    )
+    const viteConfigContributions = contributions.filter(
+      (contribution): contribution is ViteConfigContribution => contribution.kind === 'viteConfig',
+    )
+    const styleSheetContributions = contributions.filter(
+      (contribution): contribution is StyleSheetContribution => contribution.kind === 'styleSheet',
+    )
+    const reactAppShellContributions = contributions.filter(
+      (contribution): contribution is ReactAppShellContribution => contribution.kind === 'reactAppShell',
+    )
+    const vueAppShellContributions = contributions.filter(
+      (contribution): contribution is VueAppShellContribution => contribution.kind === 'vueAppShell',
+    )
+    const typeScriptConfigContributions = contributions.filter(
+      (contribution): contribution is TypeScriptConfigContribution => contribution.kind === 'typescriptConfig',
+    )
+    const tsdownConfigContributions = contributions.filter(
+      (contribution): contribution is TsdownConfigContribution => contribution.kind === 'tsdownConfig',
+    )
+    const providerArtifactContributions = contributions.filter(
+      (contribution): contribution is ProviderArtifactContribution => contribution.kind === 'providerArtifact',
+    )
+    const packageManifestSurfaces = new Map<string, readonly PackageManifestContribution[]>()
+    const frontendEntrySurfaces = new Map<string, readonly FrontendEntryContribution[]>()
+    const viteConfigSurfaces = new Map<string, readonly ViteConfigContribution[]>()
+    const styleSheetSurfaces = new Map<string, readonly StyleSheetContribution[]>()
 
-  for (const contribution of packageManifestContributions) {
-    const existing = packageManifestSurfaces.get(contribution.surfaceId) ?? []
-    packageManifestSurfaces.set(contribution.surfaceId, [...existing, contribution])
-  }
+    for (const contribution of packageManifestContributions) {
+      const existing = packageManifestSurfaces.get(contribution.surfaceId) ?? []
+      packageManifestSurfaces.set(contribution.surfaceId, [...existing, contribution])
+    }
 
-  for (const contribution of frontendEntryContributions) {
-    const existing = frontendEntrySurfaces.get(contribution.surfaceId) ?? []
-    frontendEntrySurfaces.set(contribution.surfaceId, [...existing, contribution])
-  }
+    for (const contribution of frontendEntryContributions) {
+      const existing = frontendEntrySurfaces.get(contribution.surfaceId) ?? []
+      frontendEntrySurfaces.set(contribution.surfaceId, [...existing, contribution])
+    }
 
-  for (const contribution of viteConfigContributions) {
-    const existing = viteConfigSurfaces.get(contribution.surfaceId) ?? []
-    viteConfigSurfaces.set(contribution.surfaceId, [...existing, contribution])
-  }
+    for (const contribution of viteConfigContributions) {
+      const existing = viteConfigSurfaces.get(contribution.surfaceId) ?? []
+      viteConfigSurfaces.set(contribution.surfaceId, [...existing, contribution])
+    }
 
-  for (const contribution of styleSheetContributions) {
-    const existing = styleSheetSurfaces.get(contribution.surfaceId) ?? []
-    styleSheetSurfaces.set(contribution.surfaceId, [...existing, contribution])
-  }
+    for (const contribution of styleSheetContributions) {
+      const existing = styleSheetSurfaces.get(contribution.surfaceId) ?? []
+      styleSheetSurfaces.set(contribution.surfaceId, [...existing, contribution])
+    }
 
-  return Effect.gen(function* () {
     const packageJsonOperations = yield* Effect.all(
       [...packageManifestSurfaces.entries()].map(([surfaceId, surfaceContributions]) =>
         materializePackageJson(surfaceId, surfaceContributions)),
@@ -892,5 +892,5 @@ export function materializeWritePlan(contributions: readonly CapabilityContribut
         ...providerArtifactOperations,
       ],
     }
-  })
-}
+  },
+)

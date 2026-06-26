@@ -298,7 +298,7 @@ export const legacyCliIntentInventory = [
   {
     id: 'no-input',
     status: 'recover',
-    sourcePaths: ['apps/cli/src/index.ts', 'apps/cli/src/core/cli-args.ts'],
+    sourcePaths: ['apps/cli/src/index.ts', 'apps/cli/src/core/cli-command.ts'],
     notes: ['Noninteractive mode must not prompt and requires complete explicit input.'],
   },
   {
@@ -322,7 +322,7 @@ export const legacyCliIntentInventory = [
   {
     id: 'yes-flag-rejection',
     status: 'recover-rejection',
-    sourcePaths: ['apps/cli/src/core/cli-args.ts'],
+    sourcePaths: ['apps/cli/src/core/cli-command.ts'],
     notes: ['--yes/-y stays rejected; explicit preset or spec input is required.'],
   },
 ] as const
@@ -373,7 +373,7 @@ export const legacyGeneratedPackageContractInventory = [
     id: 'effect-cli-runtime-dependencies',
     intentAreas: ['cli', 'old-smoke-cases'],
     sourcePaths: ['apps/cli/src/core/owners/scaffold-family.ts', 'apps/cli/templates/fragments/cli/effect-index.ts.hbs', 'apps/cli/tests/support/generated-smoke-gate.ts'],
-    requirements: ['@effect/cli runtime dependency', '@effect/platform runtime dependency', '@effect/platform-node runtime dependency', '@effect/printer runtime dependency', '@effect/printer-ansi runtime dependency', 'effect runtime dependency'],
+    requirements: ['effect/unstable/cli runtime module', '@effect/platform-node runtime dependency', 'effect runtime dependency'],
   },
   {
     id: 'workspace-child-package-contract',
@@ -715,7 +715,7 @@ export const recoveredCreateSpecFixtures = [
       overrides: noOverrides,
     },
     expectations: [
-      'Effect CLI package keeps CLI bin behavior and adds @effect/cli runtime intent.',
+      'Effect CLI package keeps CLI bin behavior and adds effect/unstable/cli runtime intent.',
       'Smoke invokes the generated bin with --help.',
     ],
     recoveryNotes: [

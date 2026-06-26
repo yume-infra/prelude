@@ -51,11 +51,11 @@ function effectPackageSource(graph: ResolvedGraph) {
   return `import { NodeRuntime } from '@effect/platform-node'
 import { Console, Effect } from 'effect'
 
-const program = Effect.gen(function* () {
+const main = Effect.fn('main')(function* () {
   yield* Console.log(${JSON.stringify(`${graph.rootPackage.name} ready`)})
 })
 
-NodeRuntime.runMain(program)
+NodeRuntime.runMain(main())
 `
 }
 

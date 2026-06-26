@@ -57,9 +57,6 @@ catalogs:
     lint-staged:
       specifier: ^17.0.2
       version: 17.0.2
-    mri:
-      specifier: ^1.2.0
-      version: 1.2.0
     taze:
       specifier: ^19.11.0
       version: 19.11.0
@@ -153,9 +150,6 @@ importers:
       effect:
         specifier: 'catalog:'
         version: 4.0.0-beta.90
-      mri:
-        specifier: 'catalog:'
-        version: 1.2.0
     devDependencies:
       '@effect/language-service':
         specifier: 'catalog:'
@@ -2306,7 +2300,6 @@ packages:
   git-raw-commits@5.0.1:
     resolution: {integrity: sha512-Y+csSm2GD/PCSh6Isd/WiMjNAydu0VBiG9J7EdQsNA5P9uXvLayqjmTsNlK5Gs9IhblFZqOU0yid5Il5JPoLiQ==}
     engines: {node: '>=18'}
-    deprecated: Deprecated and no longer maintained. Use @conventional-changelog/git-client instead.
     hasBin: true
 
   github-slugger@2.0.0:

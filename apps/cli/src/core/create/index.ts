@@ -28,8 +28,8 @@ export type {
   WritePlan,
 } from './model'
 
-export function planCreateProjectFromSpec(spec: CreateProjectOptions['spec']): Effect.Effect<CreateProjectPlan, SchemaContractError> {
-  return Effect.gen(function* () {
+export const planCreateProjectFromSpec = Effect.fn('planCreateProjectFromSpec')(
+  function* (spec: CreateProjectOptions['spec']): Effect.fn.Return<CreateProjectPlan, SchemaContractError> {
     yield* validateCreateSpec(spec)
     const resolvedGraph = resolveCreateSpec(spec)
     const contributions = collectCapabilityContributions(resolvedGraph)
@@ -39,11 +39,11 @@ export function planCreateProjectFromSpec(spec: CreateProjectOptions['spec']): E
       resolvedGraph,
       writePlan,
     }
-  })
-}
+  },
+)
 
-export function createProjectFromSpec(options: CreateProjectOptions): Effect.Effect<CreateProjectResult, CreateProjectError, FsService> {
-  return Effect.gen(function* () {
+export const createProjectFromSpec = Effect.fn('createProjectFromSpec')(
+  function* (options: CreateProjectOptions): Effect.fn.Return<CreateProjectResult, CreateProjectError, FsService> {
     const fs = yield* FsService
     const { resolvedGraph, writePlan } = yield* planCreateProjectFromSpec(options.spec)
 
@@ -64,5 +64,5 @@ export function createProjectFromSpec(options: CreateProjectOptions): Effect.Eff
       verification,
       manifest,
     }
-  })
-}
+  },
+)
