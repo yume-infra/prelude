@@ -3,7 +3,7 @@ import assert from 'node:assert/strict'
 import { describe, it } from '@effect/vitest'
 import { Effect } from 'effect'
 import { makeTargetDir } from '@/brand/target-dir'
-import { reconcileManagedLogicalValue, runProviderLifecycleStatus, runProviderLifecycleUpdate, runProviderLifecycleVerify } from '@/core/lifecycle'
+import { effectHarnessLifecycleProvider, reconcileManagedLogicalValue, runProviderLifecycleStatus, runProviderLifecycleUpdate, runProviderLifecycleVerify } from '@/core/lifecycle'
 import { makeFsMockLayer } from '../../support/fs-mock'
 
 function manifestJson(overrides: Record<string, unknown> = {}) {
@@ -353,6 +353,37 @@ describe('provider lifecycle runtime', () => {
     })
     assert.deepEqual(calls, ['verify:effect-harness'])
     assert.deepEqual(writes, [])
+  })
+
+  it('effect-harness adapter returns declarative provider and managed-surface operations', async () => {
+    const status = await Effect.runPromise(effectHarnessLifecycleProvider.status(effectHarnessRecord))
+    const verify = await Effect.runPromise(effectHarnessLifecycleProvider.verify(effectHarnessRecord))
+    const plan = await Effect.runPromise(effectHarnessLifecycleProvider.planUpdate(effectHarnessRecord, { providerId: 'effect-harness' }))
+
+    assert.deepEqual(status, {
+      providerId: 'effect-harness',
+      status: 'changed',
+    })
+    assert.deepEqual(verify.status, 'failed')
+    assert.ok(plan.operations.some(operation =>
+      operation.kind === 'replaceProviderFile'
+      && operation.path === '.prelude/providers/effect-harness/provider.json'))
+    assert.ok(plan.operations.some(operation =>
+      operation.kind === 'replaceOwnedFile'
+      && operation.path === '.effect-harness.json'))
+    assert.ok(plan.operations.some(operation =>
+      operation.kind === 'replaceStructuredPointer'
+      && operation.path === 'package.json'
+      && operation.pointer === '/scripts/effect:verify'))
+    assert.deepEqual(plan.nextRecord?.lifecycleSurfaces, plan.operations.map((operation) => {
+      if (operation.kind === 'replaceProviderFile') {
+        return 'provider-artifact:effect-harness'
+      }
+      if (operation.kind === 'replaceOwnedFile') {
+        return `provider-managed-file:effect-harness:${operation.path}`
+      }
+      return operation.surfaceId
+    }))
   })
 
   it('blocks unsupported provider contract transitions without a declarative migration plan', async () => {

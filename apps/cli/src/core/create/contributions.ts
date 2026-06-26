@@ -40,6 +40,10 @@ function verifyScriptFor(graph: ResolvedGraph): string | undefined {
     commands.push('pnpm knip')
   }
 
+  if (hasEffectHarnessProvider(graph)) {
+    commands.push('pnpm effect:verify')
+  }
+
   return commands.length > 1 ? commands.join(' && ') : undefined
 }
 
@@ -72,7 +76,17 @@ const effectPackageTsconfig = `{
     "moduleResolution": "NodeNext",
     "strict": true,
     "skipLibCheck": true,
-    "types": ["node"]
+    "types": ["node"],
+    "plugins": [
+      {
+        "name": "@effect/language-service",
+        "options": {
+          "diagnosticSeverity": {
+            "floatingEffect": "error"
+          }
+        }
+      }
+    ]
   },
   "include": ["src/**/*.ts"]
 }

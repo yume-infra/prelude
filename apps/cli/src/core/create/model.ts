@@ -219,6 +219,16 @@ export interface ProviderArtifactContribution {
   readonly value: Record<string, JsonValue>
 }
 
+export interface ProviderManagedFileContribution {
+  readonly kind: 'providerManagedFile'
+  readonly surfaceId: string
+  readonly operationId: string
+  readonly owner: `provider:${ProviderId}`
+  readonly providerId: ProviderId
+  readonly path: string
+  readonly content: string
+}
+
 export type CapabilityContribution
   = | PackageManifestContribution
     | WorkspaceManifestContribution
@@ -233,6 +243,7 @@ export type CapabilityContribution
     | ViteConfigContribution
     | StyleSheetContribution
     | ProviderArtifactContribution
+    | ProviderManagedFileContribution
 
 export interface WriteStructuredFileOperation {
   readonly id: string

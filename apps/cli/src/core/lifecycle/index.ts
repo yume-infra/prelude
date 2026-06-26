@@ -3,6 +3,18 @@ import type { CreateFs, JsonValue, LifecycleProviderRecord, LifecycleSurfaceReco
 import type { FileIOError } from '@/core/errors'
 import * as path from 'node:path'
 import { Data, Effect } from 'effect'
+import {
+  effectHarnessArtifact,
+  effectHarnessContractVersion,
+  effectHarnessManagedFileArtifacts,
+  effectHarnessManagedFileSurfaceId,
+  effectHarnessPackageSurfaces,
+  effectHarnessProviderPath,
+  effectHarnessProviderSurfaceIds,
+  effectHarnessTsconfigSurfaces,
+  encodeJsonValue,
+  providerJsonValueForProjectedContext,
+} from '@/core/create/effect-harness-provider'
 import { FsService } from '@/core/services/fs'
 
 export class LifecycleCommandError extends Data.TaggedError('LifecycleCommandError')<{
@@ -63,6 +75,82 @@ export interface LifecycleProvider {
 }
 
 export type LifecycleProviderRegistry = Record<string, LifecycleProvider>
+
+function jsonMatches(left: unknown, right: unknown) {
+  return JSON.stringify(left) === JSON.stringify(right)
+}
+
+function missingEffectHarnessSurfaceIds(record: LifecycleProviderRecord) {
+  const expected = effectHarnessProviderSurfaceIds()
+  return expected.filter(surfaceId => !record.lifecycleSurfaces.includes(surfaceId))
+}
+
+function desiredEffectHarnessRecord(record: LifecycleProviderRecord): LifecycleProviderRecord {
+  return {
+    ...record,
+    contractVersion: effectHarnessContractVersion,
+    artifact: effectHarnessArtifact,
+    lifecycleSurfaces: effectHarnessProviderSurfaceIds(),
+  }
+}
+
+function desiredEffectHarnessOperations(record: LifecycleProviderRecord): readonly ProviderUpdateOperation[] {
+  return [
+    {
+      kind: 'replaceProviderFile',
+      path: effectHarnessProviderPath,
+      content: encodeJsonValue(providerJsonValueForProjectedContext(record.projectedContext)),
+    },
+    ...effectHarnessPackageSurfaces().map(surface => ({
+      kind: 'replaceStructuredPointer' as const,
+      surfaceId: surface.id,
+      path: 'package.json',
+      pointer: surface.pointer,
+      value: surface.value,
+    })),
+    ...effectHarnessTsconfigSurfaces().map(surface => ({
+      kind: 'replaceStructuredPointer' as const,
+      surfaceId: surface.id,
+      path: 'tsconfig.json',
+      pointer: surface.pointer,
+      value: surface.value,
+    })),
+    ...effectHarnessManagedFileArtifacts().map(artifact => ({
+      kind: 'replaceOwnedFile' as const,
+      surfaceId: effectHarnessManagedFileSurfaceId(artifact.path),
+      path: artifact.path,
+      content: artifact.content,
+    })),
+  ]
+}
+
+export const effectHarnessLifecycleProvider: LifecycleProvider = {
+  id: 'effect-harness',
+  contractVersion: effectHarnessContractVersion,
+  status: record => Effect.succeed({
+    providerId: record.id,
+    status: jsonMatches(record.artifact, effectHarnessArtifact) && missingEffectHarnessSurfaceIds(record).length === 0
+      ? 'ok'
+      : 'changed',
+  }),
+  verify: record => Effect.succeed(
+    record.contractVersion === effectHarnessContractVersion && missingEffectHarnessSurfaceIds(record).length === 0
+      ? {
+          providerId: record.id,
+          status: 'passed' as const,
+        }
+      : {
+          providerId: record.id,
+          status: 'failed' as const,
+          message: `effect-harness lifecycle provider record is missing managed surfaces: ${missingEffectHarnessSurfaceIds(record).join(', ')}`,
+        },
+  ),
+  planUpdate: record => Effect.succeed({
+    providerId: record.id,
+    operations: desiredEffectHarnessOperations(record),
+    nextRecord: desiredEffectHarnessRecord(record),
+  }),
+}
 
 export interface ProviderLifecycleCommandOptions {
   readonly targetDir: TargetDir

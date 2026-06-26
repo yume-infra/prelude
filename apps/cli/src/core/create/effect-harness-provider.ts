@@ -9,22 +9,26 @@ import type {
   ResolvedProvider,
   VerificationRecord,
 } from './model'
+import * as fs from 'node:fs'
+import * as path from 'node:path'
 
-const effectHarnessContractVersion = '1'
+export const effectHarnessContractVersion = '1'
 const effectHarnessArtifactVersion = '0.1.0'
-const effectHarnessProviderPath = '.prelude/providers/effect-harness/provider.json'
+export const effectHarnessProviderPath = '.prelude/providers/effect-harness/provider.json'
+const effectHarnessRoot = '/Users/sayori/Desktop/yume-infra/effect-harness'
 export const effectHarnessVerificationId = 'provider:effect-harness:create-contract'
-const effectHarnessSurfaceIds = [
-  'provider-artifact:effect-harness',
-  'package-manifest:root:/dependencies/effect',
-  'package-manifest:root:/dependencies/@effect~1platform-node',
-  'package-manifest:root:/devDependencies/@effect~1vitest',
-  'package-manifest:root:/devDependencies/@effect~1tsgo',
-  'package-manifest:root:/devDependencies/@effect~1language-service',
-  'package-manifest:root:/devDependencies/@typescript~1native-preview',
-] as const
+const effectHarnessProviderArtifactSurfaceId = 'provider-artifact:effect-harness'
+const effectHarnessRuntimeRoot = path.join(effectHarnessRoot, 'harness/runtime/codex')
+const effectHarnessTsgoPlugin = [{
+  name: '@effect/language-service',
+  options: {
+    diagnosticSeverity: {
+      floatingEffect: 'error',
+    },
+  },
+}] as const satisfies JsonValue
 
-const effectHarnessArtifact = {
+export const effectHarnessArtifact = {
   id: 'effect-harness',
   version: effectHarnessArtifactVersion,
   source: {
@@ -51,6 +55,28 @@ export function effectHarnessResolvedProvider(packageId: string): ResolvedProvid
   }
 }
 
+function effectHarnessTargetCommands() {
+  const builtCliPath = path.join(effectHarnessRoot, 'dist/bin/effect-harness.js')
+  const cliPath = fs.existsSync(builtCliPath)
+    ? builtCliPath
+    : path.join(effectHarnessRoot, 'bin/effect-harness.ts')
+
+  return {
+    status: `node "${cliPath}" status`,
+    verify: `node "${cliPath}" verify --target .`,
+    init: `node "${cliPath}" init --target . --harness "${effectHarnessRoot}"`,
+  } as const
+}
+
+function effectHarnessRoutes() {
+  return {
+    harness: path.join(effectHarnessRoot, 'HARNESS.md'),
+    agentContract: path.join(effectHarnessRoot, 'harness/index.md'),
+    targetContract: path.join(effectHarnessRoot, 'harness/target-agent-contract.md'),
+    officialGuide: path.join(effectHarnessRoot, 'repos/effect/LLMS.md'),
+  } as const
+}
+
 export function hasEffectHarnessProvider(graph: ResolvedGraph) {
   return graph.providers.some(provider => provider.id === 'effect-harness')
 }
@@ -64,8 +90,107 @@ function effectHarnessProjectedContext(graph: ResolvedGraph): ProviderProjectedC
   }
 }
 
-function effectHarnessProviderSurfaceIds(): readonly string[] {
-  return effectHarnessSurfaceIds
+function runtimeText(relativePath: string) {
+  return fs.readFileSync(path.join(effectHarnessRuntimeRoot, relativePath), 'utf8')
+    .replaceAll('__EFFECT_HARNESS_ROOT__', effectHarnessRoot)
+}
+
+function runtimeFilesUnder(directory: 'skills' | 'agents') {
+  const sourceRoot = path.join(effectHarnessRuntimeRoot, directory)
+  const targetRoot = `.codex/${directory}`
+  const files: Array<{ readonly path: string, readonly content: string }> = []
+
+  function visit(absoluteDirectory: string, relativeDirectory: string): void {
+    for (const entry of fs.readdirSync(absoluteDirectory, { withFileTypes: true })) {
+      const relativePath = relativeDirectory === '' ? entry.name : `${relativeDirectory}/${entry.name}`
+      const absolutePath = path.join(absoluteDirectory, entry.name)
+
+      if (entry.isDirectory()) {
+        visit(absolutePath, relativePath)
+        continue
+      }
+
+      files.push({
+        path: `${targetRoot}/${relativePath}`,
+        content: fs.readFileSync(absolutePath, 'utf8').replaceAll('__EFFECT_HARNESS_ROOT__', effectHarnessRoot),
+      })
+    }
+  }
+
+  visit(sourceRoot, '')
+  return files
+}
+
+function effectHarnessManifestValue(): Record<string, JsonValue> {
+  const commands = effectHarnessTargetCommands()
+  const routes = effectHarnessRoutes()
+
+  return {
+    schemaVersion: 1,
+    harnessRoot: effectHarnessRoot,
+    commands,
+    routes,
+    source: {
+      repository: effectHarnessArtifact.source.repository,
+      branch: effectHarnessArtifact.source.branch,
+      split: effectHarnessArtifact.source.split,
+    },
+    packageBaseline: effectHarnessArtifact.packageBaseline,
+  }
+}
+
+function managedAgentsBlock() {
+  const fragment = runtimeText('AGENTS.fragment.md').trim()
+  return `<!-- effect-harness:start -->\n${fragment}\n<!-- effect-harness:end -->\n`
+}
+
+function encodeManagedJson(value: Record<string, JsonValue>) {
+  return `${JSON.stringify(value, null, 2)}\n`
+}
+
+export function effectHarnessManagedFileArtifacts() {
+  return [
+    {
+      path: '.effect-harness.json',
+      content: encodeManagedJson(effectHarnessManifestValue()),
+    },
+    {
+      path: 'AGENTS.md',
+      content: managedAgentsBlock(),
+    },
+    ...runtimeFilesUnder('skills'),
+    ...runtimeFilesUnder('agents'),
+    {
+      path: '.codex/effect-feedback/.gitkeep',
+      content: '',
+    },
+  ] as const
+}
+
+export function effectHarnessManagedFileSurfaceId(filePath: string) {
+  return `provider-managed-file:effect-harness:${filePath}`
+}
+
+function managedFileOperationId(filePath: string) {
+  const slug = filePath.replace(/[^a-z0-9]+/giu, '-').replace(/^-|-$/gu, '')
+  return `write-effect-harness-${slug}`
+}
+
+function packagePointerSurfaceId(pointer: string) {
+  return `package-manifest:root:${pointer}`
+}
+
+function tsconfigPointerSurfaceId(pointer: string) {
+  return `tsconfig:root:${pointer}`
+}
+
+export function effectHarnessProviderSurfaceIds(): readonly string[] {
+  return [
+    effectHarnessProviderArtifactSurfaceId,
+    ...effectHarnessPackageSurfaces().map(surface => surface.id),
+    ...effectHarnessTsconfigSurfaces().map(surface => surface.id),
+    ...effectHarnessManagedFileArtifacts().map(artifact => effectHarnessManagedFileSurfaceId(artifact.path)),
+  ]
 }
 
 function lifecycleSurfaceMetadata(input: {
@@ -87,8 +212,74 @@ function lifecycleSurfaceMetadata(input: {
   } as const
 }
 
-function encodeJsonValue(value: Record<string, JsonValue>) {
+export function encodeJsonValue(value: Record<string, JsonValue>) {
   return `${JSON.stringify(value, null, 2)}\n`
+}
+
+function snapshotJsonValue(value: JsonValue) {
+  return typeof value === 'string' ? value : JSON.stringify(value)
+}
+
+export function effectHarnessPackageSurfaces() {
+  const commands = effectHarnessTargetCommands()
+
+  return [
+    {
+      id: packagePointerSurfaceId('/dependencies/effect'),
+      pointer: '/dependencies/effect',
+      value: effectHarnessArtifact.packageBaseline.effect,
+    },
+    {
+      id: packagePointerSurfaceId('/dependencies/@effect~1platform-node'),
+      pointer: '/dependencies/@effect~1platform-node',
+      value: effectHarnessArtifact.packageBaseline['@effect/platform-node'],
+    },
+    {
+      id: packagePointerSurfaceId('/devDependencies/@effect~1vitest'),
+      pointer: '/devDependencies/@effect~1vitest',
+      value: effectHarnessArtifact.packageBaseline['@effect/vitest'],
+    },
+    {
+      id: packagePointerSurfaceId('/devDependencies/@effect~1tsgo'),
+      pointer: '/devDependencies/@effect~1tsgo',
+      value: effectHarnessArtifact.packageBaseline['@effect/tsgo'],
+    },
+    {
+      id: packagePointerSurfaceId('/devDependencies/@effect~1language-service'),
+      pointer: '/devDependencies/@effect~1language-service',
+      value: effectHarnessArtifact.packageBaseline['@effect/language-service'],
+    },
+    {
+      id: packagePointerSurfaceId('/devDependencies/@typescript~1native-preview'),
+      pointer: '/devDependencies/@typescript~1native-preview',
+      value: effectHarnessArtifact.packageBaseline['@typescript/native-preview'],
+    },
+    {
+      id: packagePointerSurfaceId('/scripts/effect:status'),
+      pointer: '/scripts/effect:status',
+      value: commands.status,
+    },
+    {
+      id: packagePointerSurfaceId('/scripts/effect:verify'),
+      pointer: '/scripts/effect:verify',
+      value: commands.verify,
+    },
+    {
+      id: packagePointerSurfaceId('/scripts/typecheck'),
+      pointer: '/scripts/typecheck',
+      value: 'tsgo --noEmit --project tsconfig.json',
+    },
+  ] as const satisfies readonly { readonly id: string, readonly pointer: string, readonly value: JsonValue }[]
+}
+
+export function effectHarnessTsconfigSurfaces() {
+  return [
+    {
+      id: tsconfigPointerSurfaceId('/compilerOptions/plugins'),
+      pointer: '/compilerOptions/plugins',
+      value: effectHarnessTsgoPlugin,
+    },
+  ] as const satisfies readonly { readonly id: string, readonly pointer: string, readonly value: JsonValue }[]
 }
 
 export function effectHarnessLifecycleSurfaces(graph: ResolvedGraph): readonly LifecycleSurfaceRecord[] {
@@ -97,7 +288,7 @@ export function effectHarnessLifecycleSurfaces(graph: ResolvedGraph): readonly L
   return [
     {
       ...lifecycleSurfaceMetadata({
-        id: 'provider-artifact:effect-harness',
+        id: effectHarnessProviderArtifactSurfaceId,
         scope: 'file',
         locator: effectHarnessProviderPath,
         base: providerArtifactBase,
@@ -107,32 +298,72 @@ export function effectHarnessLifecycleSurfaces(graph: ResolvedGraph): readonly L
       path: effectHarnessProviderPath,
       operationId: 'write-effect-harness-provider-record',
     },
-    effectPackagePointer('/dependencies/effect', effectHarnessArtifact.packageBaseline.effect),
-    effectPackagePointer('/dependencies/@effect~1platform-node', effectHarnessArtifact.packageBaseline['@effect/platform-node']),
-    effectPackagePointer('/devDependencies/@effect~1vitest', effectHarnessArtifact.packageBaseline['@effect/vitest']),
-    effectPackagePointer('/devDependencies/@effect~1tsgo', effectHarnessArtifact.packageBaseline['@effect/tsgo']),
-    effectPackagePointer('/devDependencies/@effect~1language-service', effectHarnessArtifact.packageBaseline['@effect/language-service']),
-    effectPackagePointer('/devDependencies/@typescript~1native-preview', effectHarnessArtifact.packageBaseline['@typescript/native-preview']),
+    ...effectHarnessPackageSurfaces().map(surface =>
+      structuredPointerSurface({
+        surface,
+        path: 'package.json',
+        locator: `package.json#${surface.pointer}`,
+        operationId: 'write-package-json',
+      })),
+    ...effectHarnessTsconfigSurfaces().map(surface =>
+      structuredPointerSurface({
+        surface,
+        path: 'tsconfig.json',
+        locator: `tsconfig.json#${surface.pointer}`,
+        operationId: 'write-tsconfig',
+      })),
+    ...effectHarnessManagedFileArtifacts().map(artifact =>
+      ownedFileSurface({
+        id: effectHarnessManagedFileSurfaceId(artifact.path),
+        path: artifact.path,
+        base: artifact.content,
+        operationId: managedFileOperationId(artifact.path),
+      })),
   ]
 }
 
-function effectPackagePointer(pointer: string, snapshot: string): LifecycleSurfaceRecord {
-  const id = `package-manifest:root:${pointer}`
+function structuredPointerSurface(input: {
+  readonly surface: { readonly id: string, readonly pointer: string, readonly value: JsonValue }
+  readonly path: string
+  readonly locator: string
+  readonly operationId: string
+}): LifecycleSurfaceRecord {
+  const snapshot = snapshotJsonValue(input.surface.value)
 
   return {
     ...lifecycleSurfaceMetadata({
-      id,
+      id: input.surface.id,
       scope: 'entry',
-      locator: `package.json#${pointer}`,
+      locator: input.locator,
       base: snapshot,
     }),
     authority: 'bounded',
     kind: 'structuredPointer',
-    path: 'package.json',
-    pointer,
+    path: input.path,
+    pointer: input.surface.pointer,
     base: snapshot,
     snapshot,
-    operationId: 'write-package-json',
+    operationId: input.operationId,
+  }
+}
+
+function ownedFileSurface(input: {
+  readonly id: string
+  readonly path: string
+  readonly base: string
+  readonly operationId: string
+}): LifecycleSurfaceRecord {
+  return {
+    ...lifecycleSurfaceMetadata({
+      id: input.id,
+      scope: 'file',
+      locator: input.path,
+      base: input.base,
+    }),
+    authority: 'owner',
+    kind: 'ownedFile',
+    path: input.path,
+    operationId: input.operationId,
   }
 }
 
@@ -155,9 +386,7 @@ export function effectHarnessVerificationRecord(): VerificationRecord {
   }
 }
 
-function providerJsonValue(graph: ResolvedGraph): Record<string, JsonValue> {
-  const projectedContext = effectHarnessProjectedContext(graph)
-
+export function providerJsonValueForProjectedContext(projectedContext: ProviderProjectedContext): Record<string, JsonValue> {
   return {
     id: 'effect-harness',
     contractVersion: effectHarnessContractVersion,
@@ -186,12 +415,21 @@ function providerJsonValue(graph: ResolvedGraph): Record<string, JsonValue> {
         Object.entries(projectedContext.packageCapabilities).map(([packageId, capabilities]) => [packageId, [...capabilities]]),
       ),
     },
+    targetRuntime: {
+      commands: effectHarnessTargetCommands(),
+      routes: effectHarnessRoutes(),
+      files: effectHarnessManagedFileArtifacts().map(artifact => artifact.path),
+    },
     lifecycleSurfaces: effectHarnessProviderSurfaceIds(),
     verification: {
       id: effectHarnessVerificationId,
       status: 'passed',
     },
   }
+}
+
+function providerJsonValue(graph: ResolvedGraph): Record<string, JsonValue> {
+  return providerJsonValueForProjectedContext(effectHarnessProjectedContext(graph))
 }
 
 export function effectHarnessContributions(graph: ResolvedGraph): readonly CapabilityContribution[] {
@@ -201,6 +439,11 @@ export function effectHarnessContributions(graph: ResolvedGraph): readonly Capab
       surfaceId: 'package-manifest:root',
       owner: 'provider:effect-harness',
       entries: {
+        scripts: {
+          'effect:status': effectHarnessTargetCommands().status,
+          'effect:verify': effectHarnessTargetCommands().verify,
+          'typecheck': 'tsgo --noEmit --project tsconfig.json',
+        },
         dependencies: {
           '@effect/platform-node': effectHarnessArtifact.packageBaseline['@effect/platform-node'],
           'effect': effectHarnessArtifact.packageBaseline.effect,
@@ -222,5 +465,14 @@ export function effectHarnessContributions(graph: ResolvedGraph): readonly Capab
       path: effectHarnessProviderPath,
       value: providerJsonValue(graph),
     },
+    ...effectHarnessManagedFileArtifacts().map(artifact => ({
+      kind: 'providerManagedFile' as const,
+      surfaceId: effectHarnessManagedFileSurfaceId(artifact.path),
+      operationId: managedFileOperationId(artifact.path),
+      owner: 'provider:effect-harness' as const,
+      providerId: 'effect-harness' as const,
+      path: artifact.path,
+      content: artifact.content,
+    })),
   ]
 }

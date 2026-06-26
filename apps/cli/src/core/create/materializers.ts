@@ -7,6 +7,7 @@ import type {
   KnipRootContribution,
   PackageManifestContribution,
   ProviderArtifactContribution,
+  ProviderManagedFileContribution,
   ReactAppShellContribution,
   StyleSheetContribution,
   TsdownConfigContribution,
@@ -765,6 +766,14 @@ function providerArtifactPathError(contribution: ProviderArtifactContribution) {
   })
 }
 
+function providerManagedPathError(contribution: ProviderManagedFileContribution) {
+  return new SchemaContractError({
+    schema: contribution.surfaceId,
+    issueCount: 1,
+    message: `Provider ${contribution.providerId} declared unsupported managed path "${contribution.path}". Provider managed files must be safe relative paths.`,
+  })
+}
+
 function isProviderNamespacePath(providerId: string, artifactPath: string) {
   if (path.isAbsolute(artifactPath)) {
     return false
@@ -776,6 +785,20 @@ function isProviderNamespacePath(providerId: string, artifactPath: string) {
   return normalized === artifactPath
     && normalized.startsWith(providerRoot)
     && normalized.length > providerRoot.length
+    && !normalized.split('/').includes('..')
+}
+
+function isSafeRelativePath(relativePath: string) {
+  if (path.isAbsolute(relativePath)) {
+    return false
+  }
+
+  const normalized = path.posix.normalize(relativePath)
+
+  return normalized === relativePath
+    && normalized.length > 0
+    && normalized !== '.'
+    && !normalized.startsWith('../')
     && !normalized.split('/').includes('..')
 }
 
@@ -792,6 +815,22 @@ function materializeProviderArtifact(contribution: ProviderArtifactContribution)
     path: contribution.path,
     authority: 'owner',
     value: contribution.value,
+  })
+}
+
+function materializeProviderManagedFile(contribution: ProviderManagedFileContribution): Effect.Effect<WriteOperation, SchemaContractError> {
+  if (!isSafeRelativePath(contribution.path)) {
+    return Effect.fail(providerManagedPathError(contribution))
+  }
+
+  return Effect.succeed({
+    id: contribution.operationId,
+    kind: 'writeManagedFile',
+    owner: contribution.owner,
+    surfaceId: contribution.surfaceId,
+    path: contribution.path,
+    authority: 'owner',
+    content: contribution.content,
   })
 }
 
@@ -835,6 +874,9 @@ export function materializeWritePlan(contributions: readonly CapabilityContribut
   const providerArtifactContributions = contributions.filter(
     (contribution): contribution is ProviderArtifactContribution => contribution.kind === 'providerArtifact',
   )
+  const providerManagedFileContributions = contributions.filter(
+    (contribution): contribution is ProviderManagedFileContribution => contribution.kind === 'providerManagedFile',
+  )
   const packageManifestSurfaces = new Map<string, readonly PackageManifestContribution[]>()
   const frontendEntrySurfaces = new Map<string, readonly FrontendEntryContribution[]>()
   const viteConfigSurfaces = new Map<string, readonly ViteConfigContribution[]>()
@@ -872,6 +914,9 @@ export function materializeWritePlan(contributions: readonly CapabilityContribut
     const providerArtifactOperations = yield* Effect.all(
       providerArtifactContributions.map(materializeProviderArtifact),
     )
+    const providerManagedFileOperations = yield* Effect.all(
+      providerManagedFileContributions.map(materializeProviderManagedFile),
+    )
 
     return {
       operations: [
@@ -890,6 +935,7 @@ export function materializeWritePlan(contributions: readonly CapabilityContribut
         ...materializeReactAppShell(reactAppShellContributions),
         ...materializeVueAppShell(vueAppShellContributions),
         ...providerArtifactOperations,
+        ...providerManagedFileOperations,
       ],
     }
   })
