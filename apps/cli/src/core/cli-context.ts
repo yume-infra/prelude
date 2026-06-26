@@ -1,13 +1,26 @@
-import type { CliArgs } from '@/schema/cli-args'
+import type { ProjectName } from '@/brand/project-name'
 import { Context, Layer } from 'effect'
+
+export interface CliArgs {
+  readonly spec?: string
+  readonly name?: ProjectName
+  readonly preset?: string
+  readonly install?: boolean
+  readonly git?: boolean
+  readonly rollback?: boolean
+  readonly yes?: boolean
+  readonly noInput?: boolean
+  readonly dryRun?: boolean
+  readonly printSpec?: boolean
+}
 
 export interface CliContextShape {
   readonly args: CliArgs
   readonly isInteractive: boolean
 }
 
-export const CliContext = Context.Service<CliContextShape>('CliContext')
+export class CliContext extends Context.Service<CliContext, CliContextShape>()('@sayoriqwq/prelude/core/CliContext') {}
 
 export function CliContextLive(context: CliContextShape) {
-  return Layer.succeed(CliContext, context)
+  return Layer.succeed(CliContext, CliContext.of(context))
 }

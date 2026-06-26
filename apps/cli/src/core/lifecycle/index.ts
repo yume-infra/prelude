@@ -2,12 +2,12 @@ import type { TargetDir } from '@/brand/target-dir'
 import type { CreateFs, JsonValue, LifecycleProviderRecord, LifecycleSurfaceRecord, PreludeManifest } from '@/core/create'
 import type { FileIOError } from '@/core/errors'
 import * as path from 'node:path'
-import { Data, Effect } from 'effect'
+import { Effect, Schema } from 'effect'
 import { FsService } from '@/core/services/fs'
 
-export class LifecycleCommandError extends Data.TaggedError('LifecycleCommandError')<{
-  readonly message: string
-}> {}
+class LifecycleCommandError extends Schema.TaggedErrorClass<LifecycleCommandError>()('LifecycleCommandError', {
+  message: Schema.String,
+}) {}
 
 export interface ProviderStatus {
   readonly providerId: string
@@ -99,8 +99,8 @@ function manifestPath(targetDir: TargetDir) {
   return path.join(targetDir, manifestRelativePath)
 }
 
-function readManifest(targetDir: TargetDir): Effect.Effect<PreludeManifest, LifecycleCommandError | FileIOError, FsService> {
-  return Effect.gen(function* () {
+const readManifest = Effect.fn('readManifest')(
+  function* (targetDir: TargetDir): Effect.fn.Return<PreludeManifest, LifecycleCommandError | FileIOError, FsService> {
     const fs = yield* FsService
     const targetPath = manifestPath(targetDir)
     const exists = yield* fs.exists(targetPath)
@@ -132,8 +132,8 @@ function readManifest(targetDir: TargetDir): Effect.Effect<PreludeManifest, Life
     }
 
     return manifest
-  })
-}
+  },
+)
 
 function encodeManifest(manifest: PreludeManifest) {
   return `${JSON.stringify(manifest, null, 2)}\n`
@@ -220,8 +220,8 @@ function pointerParts(pointer: string): Effect.Effect<readonly string[], Lifecyc
   return Effect.succeed(pointer.slice(1).split('/').map(decodeJsonPointerSegment))
 }
 
-function readPointer(value: JsonValue, pointer: string): Effect.Effect<JsonValue | undefined, LifecycleCommandError> {
-  return Effect.gen(function* () {
+const readPointer = Effect.fn('readPointer')(
+  function* (value: JsonValue, pointer: string): Effect.fn.Return<JsonValue | undefined, LifecycleCommandError> {
     const parts = yield* pointerParts(pointer)
     let current: JsonValue | undefined = value
 
@@ -234,11 +234,11 @@ function readPointer(value: JsonValue, pointer: string): Effect.Effect<JsonValue
     }
 
     return current
-  })
-}
+  },
+)
 
-function writePointer(value: JsonValue, pointer: string, nextValue: JsonValue): Effect.Effect<JsonValue, LifecycleCommandError> {
-  return Effect.gen(function* () {
+const writePointer = Effect.fn('writePointer')(
+  function* (value: JsonValue, pointer: string, nextValue: JsonValue): Effect.fn.Return<JsonValue, LifecycleCommandError> {
     const parts = yield* pointerParts(pointer)
 
     if (parts.length === 0) {
@@ -271,8 +271,8 @@ function writePointer(value: JsonValue, pointer: string, nextValue: JsonValue): 
     current[parts[parts.length - 1]!] = nextValue
 
     return root
-  })
-}
+  },
+)
 
 function snapshotOf(value: JsonValue | undefined) {
   if (value === undefined) {
@@ -325,14 +325,14 @@ function findProviderNamespaceSurface(
   )
 }
 
-function preflightOperation(
-  fs: CreateFs,
-  targetDir: TargetDir,
-  manifest: PreludeManifest,
-  record: LifecycleProviderRecord,
-  operation: ProviderUpdateOperation,
-): Effect.Effect<Exclude<ManagedSurfaceReconcileResult, { readonly status: 'drift' }>, LifecycleCommandError | FileIOError> {
-  return Effect.gen(function* () {
+const preflightOperation = Effect.fn('preflightOperation')(
+  function* (
+    fs: CreateFs,
+    targetDir: TargetDir,
+    manifest: PreludeManifest,
+    record: LifecycleProviderRecord,
+    operation: ProviderUpdateOperation,
+  ): Effect.fn.Return<Exclude<ManagedSurfaceReconcileResult, { readonly status: 'drift' }>, LifecycleCommandError | FileIOError> {
     if (operation.kind === 'replaceProviderFile') {
       if (!isProviderNamespacePath(record.id, operation.path)) {
         return yield* new LifecycleCommandError({
@@ -414,15 +414,15 @@ function preflightOperation(
       current: currentSnapshot,
       desired: desiredSnapshot,
     })
-  })
-}
+  },
+)
 
-function applyOperation(
-  fs: CreateFs,
-  targetDir: TargetDir,
-  operation: ProviderUpdateOperation,
-): Effect.Effect<void, LifecycleCommandError | FileIOError> {
-  return Effect.gen(function* () {
+const applyOperation = Effect.fn('applyOperation')(
+  function* (
+    fs: CreateFs,
+    targetDir: TargetDir,
+    operation: ProviderUpdateOperation,
+  ): Effect.fn.Return<void, LifecycleCommandError | FileIOError> {
     if (operation.kind === 'replaceProviderFile' || operation.kind === 'replaceOwnedFile') {
       const pathToWrite = targetPath(targetDir, operation.path)
       yield* fs.ensureDir(path.dirname(pathToWrite))
@@ -442,8 +442,8 @@ function applyOperation(
     }
 
     yield* fs.writeFileString(pathToWrite, `${JSON.stringify(nextJson, null, 2)}\n`)
-  })
-}
+  },
+)
 
 function applyManifestUpdates(
   manifest: PreludeManifest,
@@ -554,10 +554,8 @@ function providerFor(
   return Effect.succeed(provider)
 }
 
-export function runProviderLifecycleStatus(
-  options: ProviderLifecycleCommandOptions,
-): Effect.Effect<ProviderLifecycleStatusResult, LifecycleCommandError | FileIOError, FsService> {
-  return Effect.gen(function* () {
+export const runProviderLifecycleStatus = Effect.fn('runProviderLifecycleStatus')(
+  function* (options: ProviderLifecycleCommandOptions): Effect.fn.Return<ProviderLifecycleStatusResult, LifecycleCommandError | FileIOError, FsService> {
     const manifest = yield* readManifest(options.targetDir)
     const records = yield* selectProviderRecords(manifest, options.provider)
 
@@ -580,13 +578,11 @@ export function runProviderLifecycleStatus(
       status: 'completed',
       providers,
     }
-  })
-}
+  },
+)
 
-export function runProviderLifecycleVerify(
-  options: ProviderLifecycleCommandOptions,
-): Effect.Effect<ProviderLifecycleVerifyResult, LifecycleCommandError | FileIOError, FsService> {
-  return Effect.gen(function* () {
+export const runProviderLifecycleVerify = Effect.fn('runProviderLifecycleVerify')(
+  function* (options: ProviderLifecycleCommandOptions): Effect.fn.Return<ProviderLifecycleVerifyResult, LifecycleCommandError | FileIOError, FsService> {
     const manifest = yield* readManifest(options.targetDir)
     const records = yield* selectProviderRecords(manifest, options.provider)
 
@@ -609,13 +605,11 @@ export function runProviderLifecycleVerify(
       status: 'completed',
       providers,
     }
-  })
-}
+  },
+)
 
-export function runProviderLifecycleUpdate(
-  options: ProviderLifecycleCommandOptions,
-): Effect.Effect<ProviderLifecycleUpdateResult, LifecycleCommandError | FileIOError, FsService> {
-  return Effect.gen(function* () {
+export const runProviderLifecycleUpdate = Effect.fn('runProviderLifecycleUpdate')(
+  function* (options: ProviderLifecycleCommandOptions): Effect.fn.Return<ProviderLifecycleUpdateResult, LifecycleCommandError | FileIOError, FsService> {
     const fs = yield* FsService
     const manifest = yield* readManifest(options.targetDir)
     const records = yield* selectProviderRecords(manifest, options.provider)
@@ -684,5 +678,5 @@ export function runProviderLifecycleUpdate(
       status: 'completed',
       providers,
     }
-  })
-}
+  },
+)

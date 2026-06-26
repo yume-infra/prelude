@@ -3,13 +3,10 @@
 import { readFileSync } from 'node:fs'
 import process from 'node:process'
 import { NodeRuntime, NodeServices } from '@effect/platform-node'
-import { Effect, Layer, Logger, References, Result } from 'effect'
+import { Effect, Layer, Logger, References } from 'effect'
 import { DevTools } from 'effect/unstable/devtools'
 import { AppConfig } from '@/config/app-config'
-import { parseCliArgs, parseRawCliArgs } from '@/core/cli-args'
-import { CliContextLive } from '@/core/cli-context'
-import { HELP_TEXT } from '@/core/cli-help'
-import { runCreateRoute } from '@/core/create-route'
+import { runPreludeCommand } from '@/core/cli-command'
 import { TracingLive } from '@/core/services/tracing'
 import { FsLive } from '~/fs'
 
@@ -48,43 +45,13 @@ const BaseLayer = Layer.mergeAll(
   FsLive,
 ).pipe(Layer.provideMerge(PlatformLayer))
 
-const rawCliArgs = parseRawCliArgs(process.argv.slice(2))
-
-if (rawCliArgs.help) {
-  console.log(HELP_TEXT)
-  process.exit(0)
-}
-
-if (rawCliArgs.version) {
-  console.log(readPackageVersion())
-  process.exit(0)
-}
-
-const decodedCliArgs = Effect.runSync(
-  Effect.result(parseCliArgs(process.argv.slice(2))),
-)
-
-if (Result.isFailure(decodedCliArgs)) {
-  console.error(decodedCliArgs.failure.message)
-  console.error()
-  console.error(HELP_TEXT)
-  process.exit(2)
-}
-
-const cliArgs = decodedCliArgs.success
-const canPrompt = process.stdin.isTTY === true && !cliArgs.noInput && cliArgs.spec === undefined
-
-const CliContextLayer = CliContextLive({
-  args: cliArgs,
-  isInteractive: canPrompt,
-})
-
-const main = runCreateRoute({
+const main = runPreludeCommand({
   preludeVersion: readPackageVersion(),
+  stdinIsTTY: process.stdin.isTTY === true,
 })
 
 const program = main.pipe(
-  Effect.provide(Layer.mergeAll(BaseLayer, CliContextLayer)),
+  Effect.provide(BaseLayer),
 )
 
 // https://effect.website/docs/platform/runtime/#running-your-main-program-with-runmain

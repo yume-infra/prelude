@@ -37,8 +37,7 @@
   "dependencies": {
     "@clack/prompts": "catalog:",
     "@effect/platform-node": "catalog:",
-    "effect": "catalog:",
-    "mri": "catalog:"
+    "effect": "catalog:"
   },
   "devDependencies": {
     "@effect/language-service": "catalog:",

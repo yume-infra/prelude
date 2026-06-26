@@ -3,7 +3,7 @@ import { formatSchemaError } from '@/schema/errors'
 
 const ProjectNamePattern = /^[\w-]+$/
 
-export const ProjectNameSchema = Schema.String.pipe(
+const ProjectNameSchema = Schema.String.pipe(
   Schema.check(Schema.isPattern(ProjectNamePattern)),
   Schema.brand('ProjectName'),
   Schema.annotate({

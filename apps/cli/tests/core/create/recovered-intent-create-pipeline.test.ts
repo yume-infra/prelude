@@ -193,7 +193,8 @@ describe('recovered main intent create pipeline', () => {
         assert.strictEqual(packageJson.devDependencies['@effect/vitest'], '4.0.0-beta.90')
 
         const sourceEntry = yield* Effect.promise(() => fs.readFile(path.join(targetDir, 'src/index.ts'), 'utf8'))
-        assert.match(sourceEntry, /NodeRuntime\.runMain\(program\)/u)
+        assert.match(sourceEntry, /Effect\.fn\('main'\)/u)
+        assert.match(sourceEntry, /NodeRuntime\.runMain\(main\(\)\)/u)
         assert.match(sourceEntry, /cli-effect-fixture ready/u)
 
         const providerArtifact = yield* Effect.promise(() =>

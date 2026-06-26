@@ -12,7 +12,7 @@ interface AppConfigShape {
 const DEFAULT_CONCURRENCY = 8
 const MAX_CONCURRENCY = 32
 
-export class AppConfig extends Context.Service<AppConfig, AppConfigShape>()('AppConfig') {
+export class AppConfig extends Context.Service<AppConfig, AppConfigShape>()('@sayoriqwq/prelude/config/AppConfig') {
   static readonly Default = Layer.effect(
     AppConfig,
     Config.all({
@@ -30,7 +30,7 @@ export class AppConfig extends Context.Service<AppConfig, AppConfigShape>()('App
       tracingEndpoint: Config.option(Config.redacted('OTEL_EXPORTER_OTLP_ENDPOINT')),
       debug: Config.boolean('DEBUG').pipe(Config.withDefault(false)),
     }).pipe(
-      Effect.map(config => config satisfies AppConfigShape),
+      Effect.map(config => AppConfig.of(config satisfies AppConfigShape)),
     ),
   )
 }

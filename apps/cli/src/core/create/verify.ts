@@ -53,13 +53,13 @@ function workspacePackagePaths(requiredPaths: readonly string[]) {
   )
 }
 
-export function verifyCreateOutputs(
-  fs: CreateFs,
-  baseDir: string,
-  graph: ResolvedGraph,
-  writePlan: WritePlan,
-): Effect.Effect<VerificationResult, never> {
-  return Effect.gen(function* () {
+export const verifyCreateOutputs = Effect.fn('verifyCreateOutputs')(
+  function* (
+    fs: CreateFs,
+    baseDir: string,
+    graph: ResolvedGraph,
+    writePlan: WritePlan,
+  ): Effect.fn.Return<VerificationResult, never> {
     const requiredPaths = requiredPathsFor(writePlan)
     const missingPaths: string[] = []
 
@@ -232,5 +232,5 @@ export function verifyCreateOutputs(
         ...providerRecords,
       ],
     }
-  })
-}
+  },
+)

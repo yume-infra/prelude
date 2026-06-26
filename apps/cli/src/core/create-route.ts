@@ -13,7 +13,7 @@ import { schemaIssueCount } from '@/schema/errors'
 import { ask } from './adapters/prompts'
 import { CliContext } from './cli-context'
 
-export interface CreateRouteOptions {
+interface CreateRouteOptions {
   readonly preludeVersion: string
   readonly targetDir?: TargetDir
 }
@@ -57,7 +57,7 @@ function decodeGuidedProjectName(input: string) {
   )
 }
 
-const askGuidedProjectName = Effect.gen(function* () {
+const askGuidedProjectName = Effect.fn('askGuidedProjectName')(function* () {
   const cli = yield* CliContext
 
   if (cli.args.name !== undefined) {
@@ -140,8 +140,8 @@ function emptyWritePlan(): WritePlan {
   return { operations: [] }
 }
 
-const collectGuidedCreateSpec = Effect.gen(function* () {
-  const name = yield* askGuidedProjectName
+const collectGuidedCreateSpec = Effect.fn('collectGuidedCreateSpec')(function* () {
+  const name = yield* askGuidedProjectName()
   const topology = yield* askTopology
   const capabilities = yield* askPackageCapabilities
   const rootCapabilities = yield* askRootCapabilities
@@ -174,7 +174,7 @@ const collectGuidedCreateSpec = Effect.gen(function* () {
   } satisfies CreateRouteSpecInput
 })
 
-const loadCreateRouteSpec = Effect.gen(function* () {
+const loadCreateRouteSpec = Effect.fn('loadCreateRouteSpec')(function* () {
   const cli = yield* CliContext
 
   if (cli.args.preset !== undefined) {
@@ -190,11 +190,11 @@ const loadCreateRouteSpec = Effect.gen(function* () {
     return yield* missingNonInteractiveInputError()
   }
 
-  return yield* collectGuidedCreateSpec
+  return yield* collectGuidedCreateSpec()
 })
 
-function resolveTargetDir(options: CreateRouteOptions, input: CreateRouteSpecInput) {
-  return Effect.gen(function* () {
+const resolveTargetDir = Effect.fn('resolveTargetDir')(
+  function* (options: CreateRouteOptions, input: CreateRouteSpecInput) {
     const cli = yield* CliContext
 
     if (options.targetDir !== undefined) {
@@ -210,14 +210,14 @@ function resolveTargetDir(options: CreateRouteOptions, input: CreateRouteSpecInp
     }
 
     return makeProjectTargetDir(cli.args.name)
-  })
-}
+  },
+)
 
-export function runCreateRoute(options: CreateRouteOptions) {
-  return Effect.gen(function* () {
+export const runCreateRoute = Effect.fn('runCreateRoute')(
+  function* (options: CreateRouteOptions) {
     const cli = yield* CliContext
 
-    const input = yield* loadCreateRouteSpec
+    const input = yield* loadCreateRouteSpec()
 
     if (cli.args.dryRun) {
       const planResult = yield* Effect.result(planCreateProjectFromSpec(input.spec))
@@ -257,5 +257,5 @@ export function runCreateRoute(options: CreateRouteOptions) {
       spec: input.spec,
       result,
     } as const
-  })
-}
+  },
+)
