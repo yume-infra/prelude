@@ -1,6 +1,6 @@
 import type { CapabilityId, JsonValue } from '../model'
 import type { PackageCapabilityDefinition, PackageManifestEntries } from './types'
-import { hasEffectHarnessProvider } from '../effect-harness-provider'
+import { effectHarnessTsgoPlugin, hasEffectHarnessProvider } from '../effect-harness-provider'
 import {
   sourceSurface,
   tsdownConfigSurface,
@@ -43,18 +43,20 @@ function effectPackageBuildScript(hasProvider: boolean) {
     : 'tsc --noEmit --project tsconfig.json'
 }
 
-const effectPackageTsconfig = `{
-  "compilerOptions": {
-    "target": "ES2022",
-    "module": "NodeNext",
-    "moduleResolution": "NodeNext",
-    "strict": true,
-    "skipLibCheck": true,
-    "types": ["node"]
-  },
-  "include": ["src/**/*.ts"]
+function effectPackageTsconfig(hasProvider: boolean) {
+  return `${JSON.stringify({
+    compilerOptions: {
+      target: 'ES2022',
+      module: 'NodeNext',
+      moduleResolution: 'NodeNext',
+      strict: true,
+      skipLibCheck: true,
+      types: ['node'],
+      ...(hasProvider ? { plugins: effectHarnessTsgoPlugin } : {}),
+    },
+    include: ['src/**/*.ts'],
+  }, null, 2)}\n`
 }
-`
 
 function distPackageManifestEntries(packageName: string, options: {
   readonly startScript: boolean
@@ -311,7 +313,7 @@ export const packageRuntimeCapabilityDefinitions: readonly PackageCapabilityDefi
           path: context.scopedPath('tsconfig.json'),
           operationId: 'write-tsconfig',
           operationOwner: 'capability:effect-package',
-          content: effectPackageTsconfig,
+          content: effectPackageTsconfig(hasProvider),
         },
       ]
     },

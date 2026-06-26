@@ -221,6 +221,28 @@ export interface ProviderArtifactContribution {
   readonly value: Record<string, JsonValue>
 }
 
+export interface ProviderManagedFileContribution {
+  readonly kind: 'providerManagedFile'
+  readonly surfaceId: string
+  readonly operationId: string
+  readonly owner: `provider:${ProviderId}`
+  readonly providerId: ProviderId
+  readonly path: string
+  readonly content: string
+}
+
+export interface ProviderManagedBlockContribution {
+  readonly kind: 'providerManagedBlock'
+  readonly surfaceId: string
+  readonly operationId: string
+  readonly owner: `provider:${ProviderId}`
+  readonly providerId: ProviderId
+  readonly path: string
+  readonly startMarker: string
+  readonly endMarker: string
+  readonly content: string
+}
+
 export type CapabilityContribution
   = | PackageManifestContribution
     | WorkspaceManifestContribution
@@ -235,6 +257,8 @@ export type CapabilityContribution
     | ViteConfigContribution
     | StyleSheetContribution
     | ProviderArtifactContribution
+    | ProviderManagedFileContribution
+    | ProviderManagedBlockContribution
 
 export interface WriteStructuredFileOperation {
   readonly id: string
@@ -256,6 +280,18 @@ export interface WriteManagedFileOperation {
   readonly content: string
 }
 
+export interface WriteManagedBlockOperation {
+  readonly id: string
+  readonly kind: 'writeManagedBlock'
+  readonly owner: string
+  readonly surfaceId: string
+  readonly path: string
+  readonly authority: 'bounded'
+  readonly startMarker: string
+  readonly endMarker: string
+  readonly content: string
+}
+
 export interface WriteGeneratedUserFileOperation {
   readonly id: string
   readonly kind: 'writeGeneratedUserFile'
@@ -266,7 +302,7 @@ export interface WriteGeneratedUserFileOperation {
   readonly content: string
 }
 
-export type WriteOperation = WriteStructuredFileOperation | WriteManagedFileOperation | WriteGeneratedUserFileOperation
+export type WriteOperation = WriteStructuredFileOperation | WriteManagedFileOperation | WriteManagedBlockOperation | WriteGeneratedUserFileOperation
 
 export interface WritePlan {
   readonly operations: readonly WriteOperation[]
@@ -345,7 +381,17 @@ interface StructuredPointerLifecycleSurfaceRecord extends LifecycleSurfaceMetada
   readonly snapshot: string
 }
 
-export type LifecycleSurfaceRecord = OwnedFileLifecycleSurfaceRecord | StructuredPointerLifecycleSurfaceRecord
+interface ManagedBlockLifecycleSurfaceRecord extends LifecycleSurfaceMetadata {
+  readonly authority: 'bounded'
+  readonly kind: 'managedBlock'
+  readonly path: string
+  readonly startMarker: string
+  readonly endMarker: string
+  readonly base: string
+  readonly snapshot: string
+}
+
+export type LifecycleSurfaceRecord = OwnedFileLifecycleSurfaceRecord | StructuredPointerLifecycleSurfaceRecord | ManagedBlockLifecycleSurfaceRecord
 
 export interface PreludeManifest {
   readonly schemaVersion: 1

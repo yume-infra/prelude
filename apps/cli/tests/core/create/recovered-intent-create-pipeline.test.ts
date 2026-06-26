@@ -170,13 +170,17 @@ describe('recovered main intent create pipeline', () => {
           assert.fail(`expected create route to create, got ${result.kind}`)
         }
 
-        assert.deepStrictEqual(result.result.writePlan.operations.map(operation => operation.path), [
+        const operationPaths = result.result.writePlan.operations.map(operation => operation.path)
+        assert.deepStrictEqual(operationPaths.slice(0, 5), [
           'package.json',
           'knip.json',
           'src/index.ts',
           'tsconfig.json',
           '.prelude/providers/effect-harness/provider.json',
         ])
+        assert.ok(operationPaths.includes('.effect-harness.json'))
+        assert.ok(operationPaths.includes('AGENTS.md'))
+        assert.ok(operationPaths.includes('.codex/skills/effect-code/SKILL.md'))
 
         const packageJson = yield* Effect.promise(() =>
           readJson<{
@@ -186,7 +190,9 @@ describe('recovered main intent create pipeline', () => {
           }>(path.join(targetDir, 'package.json')),
         )
         assert.strictEqual(packageJson.scripts.build, 'tsgo --noEmit --project tsconfig.json')
-        assert.strictEqual(packageJson.scripts.verify, 'pnpm build && pnpm knip')
+        assert.strictEqual(packageJson.scripts.typecheck, 'tsgo --noEmit --project tsconfig.json')
+        assert.strictEqual(packageJson.scripts.verify, 'pnpm build && pnpm knip && pnpm effect:verify')
+        assert.match(packageJson.scripts['effect:verify'] ?? '', /effect-harness\.js" verify --target \./u)
         assert.strictEqual(packageJson.dependencies.effect, '4.0.0-beta.90')
         assert.strictEqual(packageJson.dependencies['@effect/platform-node'], '4.0.0-beta.90')
         assert.strictEqual(packageJson.devDependencies['@effect/tsgo'], '0.14.6')

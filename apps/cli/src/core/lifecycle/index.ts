@@ -3,6 +3,21 @@ import type { CreateFs, JsonValue, LifecycleProviderRecord, LifecycleSurfaceReco
 import type { FileIOError } from '@/core/errors'
 import * as path from 'node:path'
 import { Effect, Schema } from 'effect'
+import {
+  effectHarnessArtifact,
+  effectHarnessContractVersion,
+  effectHarnessManagedBlockArtifact,
+  effectHarnessManagedBlockSurfaceId,
+  effectHarnessManagedFileArtifacts,
+  effectHarnessManagedFileSurfaceId,
+  effectHarnessPackageSurfaces,
+  effectHarnessProviderPath,
+  effectHarnessProviderSurfaceIds,
+  effectHarnessTsconfigSurfaces,
+  encodeJsonValue,
+  providerJsonValueForProjectedContext,
+} from '@/core/create/effect-harness-provider'
+import { extractManagedBlock, upsertManagedBlock } from '@/core/create/managed-block'
 import { FsService } from '@/core/services/fs'
 
 class LifecycleCommandError extends Schema.TaggedErrorClass<LifecycleCommandError>()('LifecycleCommandError', {
@@ -31,6 +46,14 @@ export type ProviderUpdateOperation
     readonly kind: 'replaceOwnedFile'
     readonly surfaceId: string
     readonly path: string
+    readonly content: string
+  }
+  | {
+    readonly kind: 'replaceManagedBlock'
+    readonly surfaceId: string
+    readonly path: string
+    readonly startMarker: string
+    readonly endMarker: string
     readonly content: string
   }
   | {
@@ -63,6 +86,90 @@ export interface LifecycleProvider {
 }
 
 export type LifecycleProviderRegistry = Record<string, LifecycleProvider>
+
+function jsonMatches(left: unknown, right: unknown) {
+  return JSON.stringify(left) === JSON.stringify(right)
+}
+
+function missingEffectHarnessSurfaceIds(record: LifecycleProviderRecord) {
+  const expected = effectHarnessProviderSurfaceIds()
+  return expected.filter(surfaceId => !record.lifecycleSurfaces.includes(surfaceId))
+}
+
+function desiredEffectHarnessRecord(record: LifecycleProviderRecord): LifecycleProviderRecord {
+  return {
+    ...record,
+    contractVersion: effectHarnessContractVersion,
+    artifact: effectHarnessArtifact,
+    lifecycleSurfaces: effectHarnessProviderSurfaceIds(),
+  }
+}
+
+function desiredEffectHarnessOperations(record: LifecycleProviderRecord): readonly ProviderUpdateOperation[] {
+  return [
+    {
+      kind: 'replaceProviderFile',
+      path: effectHarnessProviderPath,
+      content: encodeJsonValue(providerJsonValueForProjectedContext(record.projectedContext)),
+    },
+    ...effectHarnessPackageSurfaces().map(surface => ({
+      kind: 'replaceStructuredPointer' as const,
+      surfaceId: surface.id,
+      path: 'package.json',
+      pointer: surface.pointer,
+      value: surface.value,
+    })),
+    ...effectHarnessTsconfigSurfaces().map(surface => ({
+      kind: 'replaceStructuredPointer' as const,
+      surfaceId: surface.id,
+      path: 'tsconfig.json',
+      pointer: surface.pointer,
+      value: surface.value,
+    })),
+    ...effectHarnessManagedFileArtifacts().map(artifact => ({
+      kind: 'replaceOwnedFile' as const,
+      surfaceId: effectHarnessManagedFileSurfaceId(artifact.path),
+      path: artifact.path,
+      content: artifact.content,
+    })),
+    {
+      kind: 'replaceManagedBlock',
+      surfaceId: effectHarnessManagedBlockSurfaceId,
+      path: effectHarnessManagedBlockArtifact().path,
+      startMarker: effectHarnessManagedBlockArtifact().startMarker,
+      endMarker: effectHarnessManagedBlockArtifact().endMarker,
+      content: effectHarnessManagedBlockArtifact().content,
+    },
+  ]
+}
+
+export const effectHarnessLifecycleProvider: LifecycleProvider = {
+  id: 'effect-harness',
+  contractVersion: effectHarnessContractVersion,
+  status: record => Effect.succeed({
+    providerId: record.id,
+    status: jsonMatches(record.artifact, effectHarnessArtifact) && missingEffectHarnessSurfaceIds(record).length === 0
+      ? 'ok'
+      : 'changed',
+  }),
+  verify: record => Effect.succeed(
+    record.contractVersion === effectHarnessContractVersion && missingEffectHarnessSurfaceIds(record).length === 0
+      ? {
+          providerId: record.id,
+          status: 'passed' as const,
+        }
+      : {
+          providerId: record.id,
+          status: 'failed' as const,
+          message: `effect-harness lifecycle provider record is missing managed surfaces: ${missingEffectHarnessSurfaceIds(record).join(', ')}`,
+        },
+  ),
+  planUpdate: record => Effect.succeed({
+    providerId: record.id,
+    operations: desiredEffectHarnessOperations(record),
+    nextRecord: desiredEffectHarnessRecord(record),
+  }),
+}
 
 export interface ProviderLifecycleCommandOptions {
   readonly targetDir: TargetDir
@@ -388,6 +495,43 @@ const preflightOperation = Effect.fn('preflightOperation')(
       })
     }
 
+    if (operation.kind === 'replaceManagedBlock') {
+      if (
+        surface.kind !== 'managedBlock'
+        || surface.authority !== 'bounded'
+        || surface.path !== operation.path
+        || surface.startMarker !== operation.startMarker
+        || surface.endMarker !== operation.endMarker
+      ) {
+        return yield* new LifecycleCommandError({
+          message: `Provider ${record.id} update operation does not match declared managed block lifecycle surface ${operation.surfaceId}`,
+        })
+      }
+
+      const base = surfaceBase(surface)
+      if (base === undefined) {
+        return yield* new LifecycleCommandError({
+          message: `Provider ${record.id} managed block lifecycle surface ${operation.surfaceId} has no base snapshot`,
+        })
+      }
+
+      const currentFile = yield* fs.readFileString(targetPath(targetDir, operation.path))
+      const current = extractManagedBlock(currentFile, operation)
+      if (current === undefined) {
+        return yield* new LifecycleCommandError({
+          message: `Lifecycle surface ${operation.surfaceId} at ${operation.path} drifted; managed block markers are missing`,
+        })
+      }
+
+      return yield* reconcileOrBlock({
+        surface,
+        path: operation.path,
+        base,
+        current,
+        desired: operation.content,
+      })
+    }
+
     if (surface.kind !== 'structuredPointer' || surface.authority !== 'bounded' || surface.path !== operation.path || surface.pointer !== operation.pointer) {
       return yield* new LifecycleCommandError({
         message: `Provider ${record.id} update operation does not match declared structured lifecycle surface ${operation.surfaceId}`,
@@ -427,6 +571,14 @@ const applyOperation = Effect.fn('applyOperation')(
       const pathToWrite = targetPath(targetDir, operation.path)
       yield* fs.ensureDir(path.dirname(pathToWrite))
       yield* fs.writeFileString(pathToWrite, operation.content)
+      return
+    }
+
+    if (operation.kind === 'replaceManagedBlock') {
+      const pathToWrite = targetPath(targetDir, operation.path)
+      const current = yield* fs.readFileString(pathToWrite)
+      yield* fs.ensureDir(path.dirname(pathToWrite))
+      yield* fs.writeFileString(pathToWrite, upsertManagedBlock(current, operation, operation.content))
       return
     }
 
@@ -484,6 +636,17 @@ function applyManifestUpdates(
             ...surfaces[surfaceIndex]!,
             base: snapshot,
             snapshot,
+          }
+        }
+      }
+
+      if (operation.kind === 'replaceManagedBlock') {
+        const surfaceIndex = surfaces.findIndex(surface => surface.id === operation.surfaceId)
+        if (surfaceIndex >= 0 && surfaces[surfaceIndex]!.kind === 'managedBlock') {
+          surfaces[surfaceIndex] = {
+            ...surfaces[surfaceIndex]!,
+            base: operation.content,
+            snapshot: operation.content,
           }
         }
       }
@@ -554,6 +717,65 @@ function providerFor(
   return Effect.succeed(provider)
 }
 
+function errorMessage(error: unknown) {
+  return error instanceof Error ? error.message : String(error)
+}
+
+function operationLocator(operation: ProviderUpdateOperation) {
+  if (operation.kind === 'replaceStructuredPointer') {
+    return `${operation.path}#${operation.pointer}`
+  }
+
+  return operation.path
+}
+
+const verifyProviderCurrentState = Effect.fn('verifyProviderCurrentState')(
+  function* (
+    fs: CreateFs,
+    targetDir: TargetDir,
+    manifest: PreludeManifest,
+    record: LifecycleProviderRecord,
+    provider: LifecycleProvider,
+  ): Effect.fn.Return<ProviderVerifyResult, LifecycleCommandError | FileIOError> {
+    const providerResult = yield* provider.verify(record)
+
+    if (providerResult.status === 'failed') {
+      return providerResult
+    }
+
+    const plan = yield* provider.planUpdate(record, { providerId: record.id })
+    const preflightResults = yield* Effect.forEach(
+      plan.operations,
+      operation =>
+        preflightOperation(fs, targetDir, manifest, record, operation).pipe(
+          Effect.result,
+          Effect.map(result => ({ operation, result })),
+        ),
+      { concurrency: 1 },
+    )
+
+    for (const preflightResult of preflightResults) {
+      if (preflightResult.result._tag === 'Failure') {
+        return {
+          providerId: record.id,
+          status: 'failed',
+          message: errorMessage(preflightResult.result.failure),
+        }
+      }
+
+      if (preflightResult.result.success.status === 'apply') {
+        return {
+          providerId: record.id,
+          status: 'failed',
+          message: `Provider ${record.id} lifecycle surface ${operationLocator(preflightResult.operation)} is not up to date`,
+        }
+      }
+    }
+
+    return providerResult
+  },
+)
+
 export const runProviderLifecycleStatus = Effect.fn('runProviderLifecycleStatus')(
   function* (options: ProviderLifecycleCommandOptions): Effect.fn.Return<ProviderLifecycleStatusResult, LifecycleCommandError | FileIOError, FsService> {
     const manifest = yield* readManifest(options.targetDir)
@@ -583,6 +805,7 @@ export const runProviderLifecycleStatus = Effect.fn('runProviderLifecycleStatus'
 
 export const runProviderLifecycleVerify = Effect.fn('runProviderLifecycleVerify')(
   function* (options: ProviderLifecycleCommandOptions): Effect.fn.Return<ProviderLifecycleVerifyResult, LifecycleCommandError | FileIOError, FsService> {
+    const fs = yield* FsService
     const manifest = yield* readManifest(options.targetDir)
     const records = yield* selectProviderRecords(manifest, options.provider)
 
@@ -597,7 +820,7 @@ export const runProviderLifecycleVerify = Effect.fn('runProviderLifecycleVerify'
     const providers = yield* Effect.forEach(records, record =>
       Effect.gen(function* () {
         const provider = yield* providerFor(options.providers, record)
-        return yield* provider.verify(record)
+        return yield* verifyProviderCurrentState(fs, options.targetDir, manifest, record, provider)
       }))
 
     return {

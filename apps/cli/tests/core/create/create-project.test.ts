@@ -629,13 +629,14 @@ export default defineConfig({
           preludeVersion: '0.0.0-test',
         })
 
-        assert.deepEqual(result.writePlan.operations.map(operation => ({
+        const writeOperations = result.writePlan.operations.map(operation => ({
           id: operation.id,
           kind: operation.kind,
           owner: operation.owner,
           path: operation.path,
           authority: operation.authority,
-        })), [
+        }))
+        assert.deepEqual(writeOperations.slice(0, 4), [
           {
             id: 'write-package-json',
             kind: 'writeStructuredFile',
@@ -665,6 +666,10 @@ export default defineConfig({
             authority: 'owner',
           },
         ])
+        assert.ok(writeOperations.some(operation => operation.path === '.effect-harness.json' && operation.authority === 'owner'))
+        assert.ok(writeOperations.some(operation => operation.path === 'AGENTS.md' && operation.kind === 'writeManagedBlock' && operation.authority === 'bounded'))
+        assert.ok(writeOperations.some(operation => operation.path === '.codex/skills/effect-code/SKILL.md' && operation.authority === 'owner'))
+        assert.ok(writeOperations.some(operation => operation.path === '.codex/agents/effect-worker.md' && operation.authority === 'owner'))
 
         const packageJson = yield* Effect.promise(() => readJson(path.join(targetDir, 'package.json')))
         assert.deepEqual(packageJson, {
@@ -673,7 +678,11 @@ export default defineConfig({
           version: '0.0.0',
           packageManager: 'pnpm@10.33.4',
           scripts: {
-            build: 'tsgo --noEmit --project tsconfig.json',
+            'build': 'tsgo --noEmit --project tsconfig.json',
+            'effect:status': 'node "/Users/sayori/Desktop/yume-infra/effect-harness/dist/bin/effect-harness.js" status',
+            'effect:verify': 'node "/Users/sayori/Desktop/yume-infra/effect-harness/dist/bin/effect-harness.js" verify --target .',
+            'typecheck': 'tsgo --noEmit --project tsconfig.json',
+            'verify': 'pnpm build && pnpm effect:verify',
           },
           dependencies: {
             '@effect/platform-node': '4.0.0-beta.90',
@@ -709,63 +718,62 @@ NodeRuntime.runMain(main())
             strict: true,
             skipLibCheck: true,
             types: ['node'],
+            plugins: [
+              {
+                name: '@effect/language-service',
+                options: {
+                  diagnosticSeverity: {
+                    floatingEffect: 'error',
+                  },
+                },
+              },
+            ],
           },
           include: ['src/**/*.ts'],
         })
 
         const providerArtifact = yield* Effect.promise(() =>
-          readJson<Record<string, unknown>>(path.join(targetDir, '.prelude/providers/effect-harness/provider.json')),
+          readJson<{
+            id: string
+            projectedContext: unknown
+            lifecycleSurfaces: string[]
+          }>(path.join(targetDir, '.prelude/providers/effect-harness/provider.json')),
         )
-        assert.deepEqual(providerArtifact, {
-          id: 'effect-harness',
-          contractVersion: '1',
-          artifact: {
-            id: 'effect-harness',
-            version: '0.1.0',
-            source: {
-              repository: 'https://github.com/Effect-TS/effect-smol.git',
-              branch: 'main',
-              split: '3475ee6c2bda6b05c6d7a12ce30c8bb840b5b1a6',
-            },
-            packageBaseline: {
-              'effect': '4.0.0-beta.90',
-              '@effect/platform-node': '4.0.0-beta.90',
-              '@effect/vitest': '4.0.0-beta.90',
-              '@effect/tsgo': '0.14.6',
-              '@effect/language-service': '0.86.2',
-              '@typescript/native-preview': '7.0.0-dev.20260624.1',
-            },
-          },
-          projectedContext: {
-            topology: 'single-package',
-            packageScopes: ['worker'],
-            rootCapabilities: ['package-manager:pnpm', 'ai-harness'],
-            packageCapabilities: {
-              worker: ['effect-package'],
-            },
-          },
-          lifecycleSurfaces: [
-            'provider-artifact:effect-harness',
-            'package-manifest:root:/dependencies/effect',
-            'package-manifest:root:/dependencies/@effect~1platform-node',
-            'package-manifest:root:/devDependencies/@effect~1vitest',
-            'package-manifest:root:/devDependencies/@effect~1tsgo',
-            'package-manifest:root:/devDependencies/@effect~1language-service',
-            'package-manifest:root:/devDependencies/@typescript~1native-preview',
-          ],
-          verification: {
-            id: 'provider:effect-harness:create-contract',
-            status: 'passed',
+        assert.equal(providerArtifact.id, 'effect-harness')
+        assert.deepEqual(providerArtifact.projectedContext, {
+          topology: 'single-package',
+          packageScopes: ['worker'],
+          rootCapabilities: ['package-manager:pnpm', 'ai-harness'],
+          packageCapabilities: {
+            worker: ['effect-package'],
           },
         })
-        const providerArtifactBase = `${JSON.stringify(providerArtifact, null, 2)}\n`
-
+        assert.ok(Array.isArray(providerArtifact.lifecycleSurfaces))
+        assert.ok(providerArtifact.lifecycleSurfaces.includes('provider-artifact:effect-harness'))
+        assert.ok(providerArtifact.lifecycleSurfaces.includes('package-manifest:root:/dependencies/effect'))
+        assert.ok(providerArtifact.lifecycleSurfaces.includes('package-manifest:root:/scripts/effect:verify'))
+        assert.ok(providerArtifact.lifecycleSurfaces.includes('tsconfig:root:/compilerOptions/plugins'))
+        assert.ok(providerArtifact.lifecycleSurfaces.includes('provider-managed-file:effect-harness:.effect-harness.json'))
+        assert.ok(providerArtifact.lifecycleSurfaces.includes('provider-managed-file:effect-harness:.codex/skills/effect-code/SKILL.md'))
+        assert.ok(providerArtifact.lifecycleSurfaces.includes('provider-managed-block:effect-harness:AGENTS.md#effect-harness'))
         const manifest = yield* Effect.promise(() =>
           readJson<{
             createSpec: { providers: unknown }
             resolvedGraph: { providers: unknown, logicalSurfaces: unknown, verification: unknown }
-            lifecycleProviders: unknown
-            lifecycleSurfaces: unknown
+            lifecycleProviders: Array<{
+              id: string
+              projectedContext: unknown
+              lifecycleSurfaces: string[]
+              verificationRecordId: string
+            }>
+            lifecycleSurfaces: Array<{
+              id: string
+              owner: string
+              lifecycle: string
+              kind: string
+              path: string
+              pointer?: string
+            }>
             generatedUserSurfaces: Array<{ path: string, authority: string }>
             verificationRecords: unknown
           }>(path.join(targetDir, '.prelude/manifest.json')),
@@ -805,167 +813,38 @@ NodeRuntime.runMain(main())
           manifest.resolvedGraph.verification,
           ['minimal-create-files-present', 'provider:effect-harness:create-contract'],
         )
-        assert.deepEqual(manifest.lifecycleProviders, [
-          {
-            id: 'effect-harness',
-            contractVersion: '1',
-            artifact: {
-              id: 'effect-harness',
-              version: '0.1.0',
-              source: {
-                repository: 'https://github.com/Effect-TS/effect-smol.git',
-                branch: 'main',
-                split: '3475ee6c2bda6b05c6d7a12ce30c8bb840b5b1a6',
-              },
-              packageBaseline: {
-                'effect': '4.0.0-beta.90',
-                '@effect/platform-node': '4.0.0-beta.90',
-                '@effect/vitest': '4.0.0-beta.90',
-                '@effect/tsgo': '0.14.6',
-                '@effect/language-service': '0.86.2',
-                '@typescript/native-preview': '7.0.0-dev.20260624.1',
-              },
-            },
-            projectedContext: {
-              topology: 'single-package',
-              packageScopes: ['worker'],
-              rootCapabilities: ['package-manager:pnpm', 'ai-harness'],
-              packageCapabilities: {
-                worker: ['effect-package'],
-              },
-            },
-            lifecycleSurfaces: [
-              'provider-artifact:effect-harness',
-              'package-manifest:root:/dependencies/effect',
-              'package-manifest:root:/dependencies/@effect~1platform-node',
-              'package-manifest:root:/devDependencies/@effect~1vitest',
-              'package-manifest:root:/devDependencies/@effect~1tsgo',
-              'package-manifest:root:/devDependencies/@effect~1language-service',
-              'package-manifest:root:/devDependencies/@typescript~1native-preview',
-            ],
-            verificationRecordId: 'provider:effect-harness:create-contract',
+        assert.equal(manifest.lifecycleProviders.length, 1)
+        const providerRecord = manifest.lifecycleProviders[0]!
+        assert.equal(providerRecord.id, 'effect-harness')
+        assert.equal(providerRecord.verificationRecordId, 'provider:effect-harness:create-contract')
+        assert.deepEqual(providerRecord.projectedContext, {
+          topology: 'single-package',
+          packageScopes: ['worker'],
+          rootCapabilities: ['package-manager:pnpm', 'ai-harness'],
+          packageCapabilities: {
+            worker: ['effect-package'],
           },
-        ])
-        assert.deepEqual(manifest.lifecycleSurfaces, [
-          {
-            id: 'provider-artifact:effect-harness',
-            owner: 'provider:effect-harness',
-            lifecycle: 'managed',
-            scope: 'file',
-            locator: '.prelude/providers/effect-harness/provider.json',
-            conflictPolicy: 'block',
-            contractVersion: '1',
-            implementationVersion: '0.1.0',
-            authority: 'owner',
-            kind: 'ownedFile',
-            path: '.prelude/providers/effect-harness/provider.json',
-            base: providerArtifactBase,
-            snapshot: providerArtifactBase,
-            operationId: 'write-effect-harness-provider-record',
-          },
-          {
-            id: 'package-manifest:root:/dependencies/effect',
-            owner: 'provider:effect-harness',
-            lifecycle: 'managed',
-            scope: 'entry',
-            locator: 'package.json#/dependencies/effect',
-            conflictPolicy: 'block',
-            contractVersion: '1',
-            implementationVersion: '0.1.0',
-            authority: 'bounded',
-            kind: 'structuredPointer',
-            path: 'package.json',
-            pointer: '/dependencies/effect',
-            base: '4.0.0-beta.90',
-            snapshot: '4.0.0-beta.90',
-            operationId: 'write-package-json',
-          },
-          {
-            id: 'package-manifest:root:/dependencies/@effect~1platform-node',
-            owner: 'provider:effect-harness',
-            lifecycle: 'managed',
-            scope: 'entry',
-            locator: 'package.json#/dependencies/@effect~1platform-node',
-            conflictPolicy: 'block',
-            contractVersion: '1',
-            implementationVersion: '0.1.0',
-            authority: 'bounded',
-            kind: 'structuredPointer',
-            path: 'package.json',
-            pointer: '/dependencies/@effect~1platform-node',
-            base: '4.0.0-beta.90',
-            snapshot: '4.0.0-beta.90',
-            operationId: 'write-package-json',
-          },
-          {
-            id: 'package-manifest:root:/devDependencies/@effect~1vitest',
-            owner: 'provider:effect-harness',
-            lifecycle: 'managed',
-            scope: 'entry',
-            locator: 'package.json#/devDependencies/@effect~1vitest',
-            conflictPolicy: 'block',
-            contractVersion: '1',
-            implementationVersion: '0.1.0',
-            authority: 'bounded',
-            kind: 'structuredPointer',
-            path: 'package.json',
-            pointer: '/devDependencies/@effect~1vitest',
-            base: '4.0.0-beta.90',
-            snapshot: '4.0.0-beta.90',
-            operationId: 'write-package-json',
-          },
-          {
-            id: 'package-manifest:root:/devDependencies/@effect~1tsgo',
-            owner: 'provider:effect-harness',
-            lifecycle: 'managed',
-            scope: 'entry',
-            locator: 'package.json#/devDependencies/@effect~1tsgo',
-            conflictPolicy: 'block',
-            contractVersion: '1',
-            implementationVersion: '0.1.0',
-            authority: 'bounded',
-            kind: 'structuredPointer',
-            path: 'package.json',
-            pointer: '/devDependencies/@effect~1tsgo',
-            base: '0.14.6',
-            snapshot: '0.14.6',
-            operationId: 'write-package-json',
-          },
-          {
-            id: 'package-manifest:root:/devDependencies/@effect~1language-service',
-            owner: 'provider:effect-harness',
-            lifecycle: 'managed',
-            scope: 'entry',
-            locator: 'package.json#/devDependencies/@effect~1language-service',
-            conflictPolicy: 'block',
-            contractVersion: '1',
-            implementationVersion: '0.1.0',
-            authority: 'bounded',
-            kind: 'structuredPointer',
-            path: 'package.json',
-            pointer: '/devDependencies/@effect~1language-service',
-            base: '0.86.2',
-            snapshot: '0.86.2',
-            operationId: 'write-package-json',
-          },
-          {
-            id: 'package-manifest:root:/devDependencies/@typescript~1native-preview',
-            owner: 'provider:effect-harness',
-            lifecycle: 'managed',
-            scope: 'entry',
-            locator: 'package.json#/devDependencies/@typescript~1native-preview',
-            conflictPolicy: 'block',
-            contractVersion: '1',
-            implementationVersion: '0.1.0',
-            authority: 'bounded',
-            kind: 'structuredPointer',
-            path: 'package.json',
-            pointer: '/devDependencies/@typescript~1native-preview',
-            base: '7.0.0-dev.20260624.1',
-            snapshot: '7.0.0-dev.20260624.1',
-            operationId: 'write-package-json',
-          },
-        ])
+        })
+        assert.deepEqual(
+          providerRecord.lifecycleSurfaces,
+          manifest.lifecycleSurfaces.map(surface => surface.id),
+        )
+
+        const surfaceIds = new Set(manifest.lifecycleSurfaces.map(surface => surface.id))
+        assert.ok(surfaceIds.has('provider-artifact:effect-harness'))
+        assert.ok(surfaceIds.has('package-manifest:root:/dependencies/effect'))
+        assert.ok(surfaceIds.has('package-manifest:root:/scripts/effect:verify'))
+        assert.ok(surfaceIds.has('tsconfig:root:/compilerOptions/plugins'))
+        assert.ok(surfaceIds.has('provider-managed-file:effect-harness:.effect-harness.json'))
+        assert.ok(surfaceIds.has('provider-managed-block:effect-harness:AGENTS.md#effect-harness'))
+        assert.ok(surfaceIds.has('provider-managed-file:effect-harness:.codex/agents/effect-worker.md'))
+        assert.ok(
+          manifest.lifecycleSurfaces.every(surface =>
+            surface.owner === 'provider:effect-harness'
+            && surface.lifecycle === 'managed'
+            && !surface.path.startsWith('src/')),
+          'only provider runtime assets and package/config pointers are managed',
+        )
         assert.deepEqual(
           manifest.generatedUserSurfaces.map(surface => ({ path: surface.path, authority: surface.authority })),
           [

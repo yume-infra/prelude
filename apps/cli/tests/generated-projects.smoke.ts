@@ -189,7 +189,7 @@ const smokeCoverageCases = [
     targetName: smokeTargetName(workerSpec),
     spec: workerSpec,
     intentAreas: ['harness', 'engineering-baseline'],
-    externalChecks: ['build', 'provider-contract'],
+    externalChecks: ['install', 'build', 'verify', 'provider-contract'],
   },
   {
     targetName: smokeTargetName(reactSpec),
@@ -350,7 +350,7 @@ const workerPackageJson = await readJson<{
 }>(path.join(workerDir, 'package.json'))
 const workerSource = await readFile(path.join(workerDir, 'src/index.ts'), 'utf8')
 const workerTsconfig = await readJson<{
-  compilerOptions: { types: readonly string[] }
+  compilerOptions: { types: readonly string[], plugins: readonly { name: string }[] }
   include: readonly string[]
 }>(path.join(workerDir, 'tsconfig.json'))
 const workerManifest = await readJson<{
@@ -360,7 +360,7 @@ const workerManifest = await readJson<{
   generatedUserSurfaces: Array<{ path: string, authority: string }>
   verificationRecords: Array<{ id: string, checkedPaths: readonly string[] }>
 }>(path.join(workerDir, '.prelude/manifest.json'))
-const providerArtifact = await readJson<{ id: string }>(
+const providerArtifact = await readJson<{ id: string, lifecycleSurfaces: readonly string[] }>(
   path.join(workerDir, '.prelude/providers/effect-harness/provider.json'),
 )
 
@@ -368,16 +368,21 @@ assert.equal(workerPackageJson.name, workerSpec.package.name)
 assert.equal(workerPackageJson.scripts.build, 'tsgo --noEmit --project tsconfig.json')
 assert.equal(workerPackageJson.scripts.lint, 'eslint .')
 assert.equal(workerPackageJson.scripts.knip, 'knip')
-assert.equal(workerPackageJson.scripts.verify, 'pnpm build && pnpm lint && pnpm knip')
+assert.equal(workerPackageJson.scripts.typecheck, 'tsgo --noEmit --project tsconfig.json')
+assert.equal(workerPackageJson.scripts.verify, 'pnpm build && pnpm lint && pnpm knip && pnpm effect:verify')
+assert.match(workerPackageJson.scripts['effect:verify'] ?? '', /effect-harness\.js" verify --target \./u)
 assert.equal(workerPackageJson.devDependencies['@effect/tsgo'], '0.14.6')
 assert.match(workerSource, /Effect\.fn\('main'\)/u)
 assert.match(workerSource, /NodeRuntime\.runMain\(main\(\)\)/u)
 assert.match(workerSource, /canonical-worker ready/u)
 assert.deepEqual(workerTsconfig.compilerOptions.types, ['node'])
+assert.equal(workerTsconfig.compilerOptions.plugins[0]?.name, '@effect/language-service')
 assert.deepEqual(workerTsconfig.include, ['src/**/*.ts'])
 assert.equal(workerManifest.createSpec.package.capabilities[0], 'effect-package')
 assert.deepEqual(workerManifest.lifecycleProviders.map(provider => provider.id), ['effect-harness'])
 assert.equal(providerArtifact.id, 'effect-harness')
+assert.ok(providerArtifact.lifecycleSurfaces.includes('provider-managed-file:effect-harness:.effect-harness.json'))
+assert.ok(providerArtifact.lifecycleSurfaces.includes('tsconfig:root:/compilerOptions/plugins'))
 assert.deepEqual(
   workerManifest.lifecycleProviders[0]?.lifecycleSurfaces,
   workerManifest.lifecycleSurfaces.map(surface => surface.id),
@@ -676,6 +681,11 @@ await execa('pnpm', ['install'], {
   timeout: 120_000,
 })
 await execa('pnpm', ['--filter', workerSpec.package.name, 'build'], {
+  cwd: generatedRoot,
+  stdio: 'inherit',
+  timeout: 120_000,
+})
+await execa('pnpm', ['--filter', workerSpec.package.name, 'effect:verify'], {
   cwd: generatedRoot,
   stdio: 'inherit',
   timeout: 120_000,

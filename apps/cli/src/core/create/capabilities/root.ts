@@ -12,6 +12,10 @@ function verifyScriptFor(graph: ResolvedGraph): string | undefined {
     commands.push('pnpm knip')
   }
 
+  if (graph.providers.some(provider => provider.id === 'effect-harness')) {
+    commands.push('pnpm effect:verify')
+  }
+
   return commands.length > 1 ? commands.join(' && ') : undefined
 }
 

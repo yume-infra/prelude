@@ -6,6 +6,8 @@ import type {
   KnipRootContribution,
   PackageManifestContribution,
   ProviderArtifactContribution,
+  ProviderManagedBlockContribution,
+  ProviderManagedFileContribution,
   ReactAppShellContribution,
   StyleSheetContribution,
   TsdownConfigContribution,
@@ -21,6 +23,8 @@ import { materializeFrontendEntry } from './materializers/frontend-entry'
 import { materializeGeneratedUserFile } from './materializers/generated-user-file'
 import { materializePackageJson } from './materializers/package-manifest'
 import { materializeProviderArtifact } from './materializers/provider-artifact'
+import { materializeProviderManagedBlock } from './materializers/provider-managed-block'
+import { materializeProviderManagedFile } from './materializers/provider-managed-file'
 import { materializeReactAppShell } from './materializers/react-app-shell'
 import { materializeEslintRoot, materializeKnipRoot } from './materializers/root-engineering'
 import { materializeStyleSheet } from './materializers/stylesheet'
@@ -81,6 +85,12 @@ export const materializeWritePlan = Effect.fn('materializeWritePlan')(
     const providerArtifactContributions = contributions.filter(
       (contribution): contribution is ProviderArtifactContribution => contribution.kind === 'providerArtifact',
     )
+    const providerManagedFileContributions = contributions.filter(
+      (contribution): contribution is ProviderManagedFileContribution => contribution.kind === 'providerManagedFile',
+    )
+    const providerManagedBlockContributions = contributions.filter(
+      (contribution): contribution is ProviderManagedBlockContribution => contribution.kind === 'providerManagedBlock',
+    )
 
     const packageManifestSurfaces = groupBySurface(packageManifestContributions)
     const workspaceManifestSurfaces = groupBySurface(workspaceManifestContributions)
@@ -98,6 +108,12 @@ export const materializeWritePlan = Effect.fn('materializeWritePlan')(
     )
     const providerArtifactOperations = yield* Effect.all(
       providerArtifactContributions.map(materializeProviderArtifact),
+    )
+    const providerManagedFileOperations = yield* Effect.all(
+      providerManagedFileContributions.map(materializeProviderManagedFile),
+    )
+    const providerManagedBlockOperations = yield* Effect.all(
+      providerManagedBlockContributions.map(materializeProviderManagedBlock),
     )
 
     return {
@@ -118,6 +134,8 @@ export const materializeWritePlan = Effect.fn('materializeWritePlan')(
         ...materializeReactAppShell(reactAppShellContributions),
         ...materializeVueAppShell(vueAppShellContributions),
         ...providerArtifactOperations,
+        ...providerManagedFileOperations,
+        ...providerManagedBlockOperations,
       ],
     }
   },
