@@ -68,9 +68,16 @@ export function rootVerifyContribution(graph: ResolvedGraph): PackageManifestEnt
       }
 }
 
-function knipRootConfig(): Record<string, JsonValue> {
+function knipRootConfig(graph: ResolvedGraph): Record<string, JsonValue> {
+  const ignoredProviderDependencies = graph.providers.some(provider => provider.id === 'effect-harness')
+    ? ['@effect/tsgo', '@effect/vitest']
+    : []
+
   return {
     $schema: 'https://unpkg.com/knip@6/schema.json',
+    ...(ignoredProviderDependencies.length === 0
+      ? {}
+      : { ignoreDependencies: ignoredProviderDependencies }),
   }
 }
 
@@ -139,7 +146,7 @@ export const rootCapabilityDefinitions: readonly RootCapabilityDefinition[] = [
         owner: 'capability:knip',
       },
     ],
-    contribute: () => [
+    contribute: ({ graph }) => [
       {
         kind: 'packageManifest',
         surfaceId: 'package-manifest:root',
@@ -157,7 +164,7 @@ export const rootCapabilityDefinitions: readonly RootCapabilityDefinition[] = [
         kind: 'knipRoot',
         surfaceId: 'knip-root',
         owner: 'capability:knip',
-        config: knipRootConfig(),
+        config: knipRootConfig(graph),
       },
     ],
   },

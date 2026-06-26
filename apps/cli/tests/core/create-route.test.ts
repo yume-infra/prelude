@@ -136,6 +136,194 @@ describe('canonical create CLI route', () => {
     }
   })
 
+  const guidedSinglePackageScenarios = [
+    {
+      label: 'React',
+      projectName: 'guided-react-app',
+      capabilities: ['react-app', 'css:less', 'css:tailwind', 'router:react-router', 'state:jotai'],
+      rootCapabilities: ['package-manager:pnpm', 'linting', 'knip'],
+      providers: [],
+    },
+    {
+      label: 'Vue',
+      projectName: 'guided-vue-app',
+      capabilities: ['vue-app', 'css:less', 'css:tailwind', 'router:vue-router', 'state:pinia'],
+      rootCapabilities: ['package-manager:pnpm', 'linting', 'knip'],
+      providers: [],
+    },
+    {
+      label: 'Node backend',
+      projectName: 'guided-node-backend',
+      capabilities: ['node-backend'],
+      rootCapabilities: ['package-manager:pnpm', 'linting', 'knip'],
+      providers: [],
+    },
+    {
+      label: 'library',
+      projectName: 'guided-library',
+      capabilities: ['library'],
+      rootCapabilities: ['package-manager:pnpm'],
+      providers: [],
+    },
+    {
+      label: 'CLI',
+      projectName: 'guided-cli',
+      capabilities: ['cli-tool'],
+      rootCapabilities: ['package-manager:pnpm'],
+      providers: [],
+    },
+    {
+      label: 'Effect',
+      projectName: 'guided-effect-worker',
+      capabilities: ['effect-package'],
+      rootCapabilities: ['package-manager:pnpm', 'ai-harness'],
+      providers: ['effect-harness'],
+    },
+  ] as const
+
+  for (const scenario of guidedSinglePackageScenarios) {
+    it(`prints guided ${scenario.label} CreateSpec without writing files`, async () => {
+      const targetDir = await makeTempProjectDir()
+      const lines: string[] = []
+      const originalLog = console.log
+      prompts.text.mockResolvedValue(scenario.projectName)
+      prompts.select.mockResolvedValue('single-package')
+      prompts.multiselect
+        .mockResolvedValueOnce([...scenario.capabilities])
+        .mockResolvedValueOnce([...scenario.rootCapabilities])
+
+      try {
+        console.log = (line?: unknown) => {
+          lines.push(String(line))
+        }
+
+        const result = await Effect.runPromise(
+          runCreateRoute({
+            preludeVersion: '0.0.0-test',
+            targetDir: makeTargetDir(targetDir),
+          }).pipe(
+            Effect.provide(
+              Layer.mergeAll(
+                TestLayer,
+                CliContextLive({
+                  args: {
+                    printSpec: true,
+                  },
+                  isInteractive: true,
+                }),
+              ),
+            ),
+          ),
+        )
+
+        const spec = JSON.parse(lines.join('\n')) as {
+          topology: string
+          package: { id: string, name: string, capabilities: readonly string[] }
+          rootCapabilities: readonly string[]
+          providers: readonly string[]
+        }
+
+        assert.equal(result.kind, 'printed-spec')
+        assert.equal(spec.topology, 'single-package')
+        assert.deepEqual(spec.package, {
+          id: 'app',
+          name: scenario.projectName,
+          capabilities: scenario.capabilities,
+        })
+        assert.deepEqual(spec.rootCapabilities, scenario.rootCapabilities)
+        assert.deepEqual(spec.providers, scenario.providers)
+        await assert.rejects(fs.access(path.join(targetDir, '.prelude/manifest.json')))
+      }
+      finally {
+        console.log = originalLog
+      }
+    })
+  }
+
+  it('prints guided workspace CreateSpec with explicit package graph and internal dependencies', async () => {
+    const targetDir = await makeTempProjectDir()
+    const lines: string[] = []
+    const originalLog = console.log
+    prompts.text.mockResolvedValue('guided-workspace')
+    prompts.select
+      .mockResolvedValueOnce('workspace')
+      .mockResolvedValueOnce('fullstack-react')
+    prompts.multiselect.mockResolvedValueOnce(['package-manager:pnpm', 'linting', 'knip'])
+
+    try {
+      console.log = (line?: unknown) => {
+        lines.push(String(line))
+      }
+
+      const result = await Effect.runPromise(
+        runCreateRoute({
+          preludeVersion: '0.0.0-test',
+          targetDir: makeTargetDir(targetDir),
+        }).pipe(
+          Effect.provide(
+            Layer.mergeAll(
+              TestLayer,
+              CliContextLive({
+                args: {
+                  printSpec: true,
+                },
+                isInteractive: true,
+              }),
+            ),
+          ),
+        ),
+      )
+
+      const spec = JSON.parse(lines.join('\n')) as {
+        topology: string
+        packages: Array<{
+          id: string
+          name: string
+          capabilities: readonly string[]
+          internalDependencies: Array<{ target: { by: string, value: string } }>
+        }>
+        rootCapabilities: readonly string[]
+        providers: readonly string[]
+      }
+
+      assert.equal(result.kind, 'printed-spec')
+      assert.equal(spec.topology, 'workspace')
+      assert.deepEqual(spec.rootCapabilities, ['package-manager:pnpm', 'linting', 'knip'])
+      assert.deepEqual(spec.providers, [])
+      assert.deepEqual(spec.packages.map(pkg => ({ id: pkg.id, name: pkg.name, capabilities: pkg.capabilities })), [
+        {
+          id: 'web',
+          name: '@guided-workspace/web',
+          capabilities: ['react-app', 'css:less', 'css:tailwind', 'router:react-router', 'state:jotai'],
+        },
+        {
+          id: 'api',
+          name: '@guided-workspace/api',
+          capabilities: ['node-backend'],
+        },
+        {
+          id: 'shared',
+          name: '@guided-workspace/shared',
+          capabilities: ['library'],
+        },
+      ])
+      assert.deepEqual(spec.packages[0]!.internalDependencies, [
+        {
+          target: { by: 'id', value: 'shared' },
+        },
+      ])
+      assert.deepEqual(spec.packages[1]!.internalDependencies, [
+        {
+          target: { by: 'name', value: '@guided-workspace/shared' },
+        },
+      ])
+      await assert.rejects(fs.access(path.join(targetDir, '.prelude/manifest.json')))
+    }
+    finally {
+      console.log = originalLog
+    }
+  })
+
   it('prints the canonical --spec without creating files', async () => {
     const targetDir = await makeTempProjectDir()
     const spec = {

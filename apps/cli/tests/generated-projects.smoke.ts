@@ -310,6 +310,58 @@ async function assertGeneratedSmokeTargetsRemainInspectable() {
   }
 }
 
+async function assertPathDoesNotExist(filePath: string) {
+  try {
+    await stat(filePath)
+  }
+  catch {
+    return
+  }
+
+  assert.fail(`${filePath} should not be written during dry-run smoke`)
+}
+
+async function assertDryRunDoesNotWrite(spec: SmokeSpec) {
+  const targetName = 'dry-run-no-write'
+  const dryRunDir = path.join(generatedRoot, targetName)
+
+  await rm(dryRunDir, { recursive: true, force: true })
+
+  const result = await execa('node', [
+    cliEntry,
+    '--spec',
+    JSON.stringify(spec),
+    '--name',
+    targetName,
+    '--no-input',
+    '--dry-run',
+  ], {
+    cwd: generatedRoot,
+    env: {
+      ...process.env,
+      CI: '1',
+      FORCE_COLOR: '0',
+    },
+    timeout: 120_000,
+  })
+  const output = JSON.parse(result.stdout) as {
+    readonly operations: readonly { readonly path: string, readonly kind: string }[]
+    readonly blockers: readonly unknown[]
+  }
+
+  assert.deepEqual(output.blockers, [])
+  assert.ok(output.operations.some(operation => operation.path === 'package.json' && operation.kind === 'writeStructuredFile'))
+  assert.ok(output.operations.some(operation => operation.path === 'src/index.ts' && operation.kind === 'writeGeneratedUserFile'))
+  assert.match(result.stdout, /"operations"/u)
+  assert.match(result.stdout, /"blockers"/u)
+  assert.match(result.stdout, /package\.json/u)
+  await assertPathDoesNotExist(dryRunDir)
+  await assertPathDoesNotExist(path.join(dryRunDir, 'package.json'))
+  await assertPathDoesNotExist(path.join(dryRunDir, '.prelude/manifest.json'))
+
+  console.log(`Generated dry-run smoke target (not written): ${dryRunDir}`)
+}
+
 async function createFromSpec(spec: SmokeSpec) {
   const targetName = smokeTargetName(spec)
   const generatedDir = path.join(generatedRoot, targetName)
@@ -341,6 +393,7 @@ async function createFromSpec(spec: SmokeSpec) {
 assertSmokeCoverageContract()
 await mkdir(generatedRoot, { recursive: true })
 await writeFile(path.join(generatedRoot, 'pnpm-workspace.yaml'), generatedWorkspace)
+await assertDryRunDoesNotWrite(workerSpec)
 
 const workerDir = await createFromSpec(workerSpec)
 const workerPackageJson = await readJson<{
@@ -348,6 +401,9 @@ const workerPackageJson = await readJson<{
   scripts: Record<string, string>
   devDependencies: Record<string, string>
 }>(path.join(workerDir, 'package.json'))
+const workerKnipConfig = await readJson<{
+  ignoreDependencies?: readonly string[]
+}>(path.join(workerDir, 'knip.json'))
 const workerSource = await readFile(path.join(workerDir, 'src/index.ts'), 'utf8')
 const workerTsconfig = await readJson<{
   compilerOptions: { types: readonly string[], plugins: readonly { name: string }[] }
@@ -372,6 +428,7 @@ assert.equal(workerPackageJson.scripts.typecheck, 'tsgo --noEmit --project tscon
 assert.equal(workerPackageJson.scripts.verify, 'pnpm build && pnpm typecheck && pnpm lint && pnpm knip && pnpm effect:verify')
 assert.match(workerPackageJson.scripts['effect:verify'] ?? '', /effect-harness\.js" verify --target \./u)
 assert.equal(workerPackageJson.devDependencies['@effect/tsgo'], '0.14.6')
+assert.deepEqual(workerKnipConfig.ignoreDependencies, ['@effect/tsgo', '@effect/vitest'])
 assert.match(workerSource, /Effect\.fn\('main'\)/u)
 assert.match(workerSource, /NodeRuntime\.runMain\(main\(\)\)/u)
 assert.match(workerSource, /canonical-worker ready/u)

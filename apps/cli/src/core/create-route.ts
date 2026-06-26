@@ -100,26 +100,154 @@ const askPackageCapabilities = ask(() =>
       { value: 'minimal-node-package', label: 'Minimal Node package' },
       { value: 'react-app', label: 'React app' },
       { value: 'react-counter', label: 'React counter demo' },
+      { value: 'vue-app', label: 'Vue app' },
+      { value: 'node-backend', label: 'Node backend' },
+      { value: 'library', label: 'Library package' },
+      { value: 'cli-tool', label: 'CLI tool' },
       { value: 'effect-package', label: 'Effect package' },
+      { value: 'css:less', label: 'Less stylesheet' },
+      { value: 'css:tailwind', label: 'Tailwind CSS' },
+      { value: 'router:react-router', label: 'React Router' },
+      { value: 'router:vue-router', label: 'Vue Router' },
+      { value: 'state:jotai', label: 'Jotai state' },
+      { value: 'state:pinia', label: 'Pinia state' },
     ],
   }),
 )
 
-const askRootCapabilities = ask(() =>
-  multiselect<string>({
-    message: 'Root capabilities:',
-    required: false,
+type GuidedWorkspaceGraph = 'cli-library' | 'fullstack-react' | 'fullstack-vue' | 'web-tool-shared'
+
+const askWorkspaceGraph = ask(() =>
+  select<GuidedWorkspaceGraph>({
+    message: 'Workspace package graph:',
     options: [
-      { value: 'package-manager:pnpm', label: 'pnpm package manager' },
-      { value: 'linting', label: 'Linting' },
-      { value: 'knip', label: 'Knip' },
-      { value: 'ai-harness', label: 'AI harness provider' },
+      { value: 'cli-library', label: 'CLI and shared library' },
+      { value: 'fullstack-react', label: 'React web, Node API, shared library' },
+      { value: 'fullstack-vue', label: 'Vue web, Node API, shared library' },
+      { value: 'web-tool-shared', label: 'Vue web, CLI tool, shared library' },
     ],
   }),
 )
+
+function askRootCapabilities(topology: CreateSpec['topology']) {
+  return ask(() =>
+    multiselect<string>({
+      message: 'Root capabilities:',
+      required: false,
+      options: [
+        { value: 'package-manager:pnpm', label: 'pnpm package manager' },
+        { value: 'linting', label: 'Linting' },
+        { value: 'knip', label: 'Knip' },
+        ...(topology === 'single-package' ? [{ value: 'ai-harness', label: 'AI harness provider' }] : []),
+      ],
+    }),
+  )
+}
 
 function providersForRootCapabilities(rootCapabilities: readonly string[]) {
   return rootCapabilities.includes('ai-harness') ? ['effect-harness'] : []
+}
+
+function scopedPackageName(projectName: ProjectName, packageId: string) {
+  return makePackageName(`@${String(projectName)}/${packageId}`)
+}
+
+function guidedWorkspacePackages(projectName: ProjectName, graph: GuidedWorkspaceGraph) {
+  const shared = {
+    id: 'shared',
+    name: scopedPackageName(projectName, 'shared'),
+    capabilities: ['library'],
+    internalDependencies: [],
+  } as const
+
+  switch (graph) {
+    case 'cli-library':
+      return [
+        {
+          id: 'tool',
+          name: scopedPackageName(projectName, 'tool'),
+          capabilities: ['cli-tool'],
+          internalDependencies: [
+            {
+              target: { by: 'id', value: 'shared' },
+            },
+          ],
+        },
+        shared,
+      ] satisfies Extract<CreateSpec, { topology: 'workspace' }>['packages']
+    case 'fullstack-react':
+      return [
+        {
+          id: 'web',
+          name: scopedPackageName(projectName, 'web'),
+          capabilities: ['react-app', 'css:less', 'css:tailwind', 'router:react-router', 'state:jotai'],
+          internalDependencies: [
+            {
+              target: { by: 'id', value: 'shared' },
+            },
+          ],
+        },
+        {
+          id: 'api',
+          name: scopedPackageName(projectName, 'api'),
+          capabilities: ['node-backend'],
+          internalDependencies: [
+            {
+              target: { by: 'name', value: String(scopedPackageName(projectName, 'shared')) },
+            },
+          ],
+        },
+        shared,
+      ] satisfies Extract<CreateSpec, { topology: 'workspace' }>['packages']
+    case 'fullstack-vue':
+      return [
+        {
+          id: 'web',
+          name: scopedPackageName(projectName, 'web'),
+          capabilities: ['vue-app', 'css:less', 'css:tailwind', 'router:vue-router', 'state:pinia'],
+          internalDependencies: [
+            {
+              target: { by: 'id', value: 'shared' },
+            },
+          ],
+        },
+        {
+          id: 'api',
+          name: scopedPackageName(projectName, 'api'),
+          capabilities: ['node-backend'],
+          internalDependencies: [
+            {
+              target: { by: 'name', value: String(scopedPackageName(projectName, 'shared')) },
+            },
+          ],
+        },
+        shared,
+      ] satisfies Extract<CreateSpec, { topology: 'workspace' }>['packages']
+    case 'web-tool-shared':
+      return [
+        {
+          id: 'web',
+          name: scopedPackageName(projectName, 'web'),
+          capabilities: ['vue-app', 'css:less'],
+          internalDependencies: [
+            {
+              target: { by: 'id', value: 'shared' },
+            },
+          ],
+        },
+        {
+          id: 'tool',
+          name: scopedPackageName(projectName, 'tool'),
+          capabilities: ['cli-tool'],
+          internalDependencies: [
+            {
+              target: { by: 'name', value: String(scopedPackageName(projectName, 'shared')) },
+            },
+          ],
+        },
+        shared,
+      ] satisfies Extract<CreateSpec, { topology: 'workspace' }>['packages']
+  }
 }
 
 function formatDryRunOutput(options: {
@@ -143,8 +271,9 @@ function emptyWritePlan(): WritePlan {
 const collectGuidedCreateSpec = Effect.fn('collectGuidedCreateSpec')(function* () {
   const name = yield* askGuidedProjectName()
   const topology = yield* askTopology
-  const capabilities = yield* askPackageCapabilities
-  const rootCapabilities = yield* askRootCapabilities
+  const workspaceGraph = topology === 'workspace' ? yield* askWorkspaceGraph : undefined
+  const capabilities = topology === 'single-package' ? yield* askPackageCapabilities : []
+  const rootCapabilities = yield* askRootCapabilities(topology)
   const packageSpec = {
     id: 'app',
     name: makePackageName(String(name)),
@@ -155,10 +284,7 @@ const collectGuidedCreateSpec = Effect.fn('collectGuidedCreateSpec')(function* (
     spec: topology === 'workspace'
       ? {
           topology,
-          packages: [{
-            ...packageSpec,
-            internalDependencies: [],
-          }],
+          packages: guidedWorkspacePackages(name, workspaceGraph ?? 'cli-library'),
           rootCapabilities,
           providers: [],
           overrides: {},

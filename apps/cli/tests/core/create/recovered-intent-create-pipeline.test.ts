@@ -198,6 +198,13 @@ describe('recovered main intent create pipeline', () => {
         assert.strictEqual(packageJson.devDependencies['@effect/tsgo'], '0.14.6')
         assert.strictEqual(packageJson.devDependencies['@effect/vitest'], '4.0.0-beta.90')
 
+        const knipConfig = yield* Effect.promise(() =>
+          readJson<{
+            ignoreDependencies?: readonly string[]
+          }>(path.join(targetDir, 'knip.json')),
+        )
+        assert.deepStrictEqual(knipConfig.ignoreDependencies, ['@effect/tsgo', '@effect/vitest'])
+
         const sourceEntry = yield* Effect.promise(() => fs.readFile(path.join(targetDir, 'src/index.ts'), 'utf8'))
         assert.match(sourceEntry, /Effect\.fn\('main'\)/u)
         assert.match(sourceEntry, /NodeRuntime\.runMain\(main\(\)\)/u)
