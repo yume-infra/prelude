@@ -14,14 +14,17 @@ states, compatibility adapters, or old baselines as durable architecture.
    - The target architecture after the rebuild is complete.
 3. [`prelude-rebuild-plan.md`](./prelude-rebuild-plan.md)
    - What to delete, what to build, and how to know the rebuild is aligned.
-4. [`manifest-materialization-architecture.md`](./manifest-materialization-architecture.md)
+4. [`prelude-rebuild-acceptance-matrix.md`](./prelude-rebuild-acceptance-matrix.md)
+   - Acceptance gates for the rebuild, including Effect v4, provider lifecycle,
+     generated-project parity, and smoke verification seams.
+5. [`manifest-materialization-architecture.md`](./manifest-materialization-architecture.md)
    - The composition, logical surface, materializer, write plan, manifest, and
      managed-surface reconciliation model.
-5. [`provider-lifecycle-architecture.md`](./provider-lifecycle-architecture.md)
+6. [`provider-lifecycle-architecture.md`](./provider-lifecycle-architecture.md)
    - The lifecycle provider contract, status/verify/update semantics,
      contribution-level lifecycle, centralized provider state, and post-create
      write rules.
-6. [`agents/`](./agents/)
+7. [`agents/`](./agents/)
    - Repo-local configuration for issue tracking, triage labels, and domain-doc
      reading rules.
 
@@ -30,6 +33,7 @@ states, compatibility adapters, or old baselines as durable architecture.
 - Product direction: [`prelude-goal.md`](./prelude-goal.md)
 - Target architecture: [`prelude-final-state.md`](./prelude-final-state.md)
 - Rebuild execution: [`prelude-rebuild-plan.md`](./prelude-rebuild-plan.md)
+- Rebuild acceptance gates: [`prelude-rebuild-acceptance-matrix.md`](./prelude-rebuild-acceptance-matrix.md)
 - Materialization model: [`manifest-materialization-architecture.md`](./manifest-materialization-architecture.md)
 - Provider lifecycle model: [`provider-lifecycle-architecture.md`](./provider-lifecycle-architecture.md)
 - Agent workflow configuration: [`agents/`](./agents/)

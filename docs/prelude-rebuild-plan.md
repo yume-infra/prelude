@@ -252,7 +252,9 @@ Template rules:
 
 ## Acceptance Criteria
 
-The rebuild is aligned when:
+The detailed validation contract is recorded in
+[`prelude-rebuild-acceptance-matrix.md`](./prelude-rebuild-acceptance-matrix.md).
+At minimum, the rebuild is aligned when:
 
 - every creation path emits or accepts a canonical `CreateSpec`
 - the resolver produces the complete `ResolvedGraph`
