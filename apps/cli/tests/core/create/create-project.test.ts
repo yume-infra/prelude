@@ -438,7 +438,7 @@ export default defineConfig({
           },
           {
             id: 'react-app-static:app/index.html',
-            materializer: 'generated-user-file',
+            materializer: 'react-app-static',
             owner: 'capability:react-app',
           },
           {
@@ -453,7 +453,7 @@ export default defineConfig({
           },
           {
             id: 'vite-config:app',
-            materializer: 'generated-user-file',
+            materializer: 'vite-config',
             owner: 'capability:react-app',
           },
           {
@@ -1107,6 +1107,36 @@ NodeRuntime.runMain(main())
         error instanceof Error
         && error.message.includes('Unsupported CreateSpec for the minimal creation path')
         && error.message.includes('ai-harness requires provider: effect-harness'),
+    )
+  })
+
+  it('blocks package capabilities whose registry requirements are not selected', async () => {
+    await assert.rejects(
+      Effect.runPromise(
+        Effect.gen(function* () {
+          const targetDir = yield* Effect.promise(makeTempProjectDir)
+
+          yield* createProjectFromSpec({
+            spec: {
+              topology: 'single-package',
+              package: {
+                id: 'app',
+                name: makePackageName('demo-app'),
+                capabilities: ['minimal-node-package', 'state:jotai'],
+              },
+              rootCapabilities: [],
+              providers: [],
+              overrides: {},
+            },
+            targetDir: makeTargetDir(targetDir),
+            preludeVersion: '0.0.0-test',
+          })
+        }).pipe(Effect.provide(TestLayer)),
+      ),
+      error =>
+        error instanceof Error
+        && error.message.includes('Unsupported CreateSpec for the minimal creation path')
+        && error.message.includes('state:jotai requires react-app for app'),
     )
   })
 
