@@ -12,7 +12,7 @@ function providerArtifactPathError(contribution: ProviderArtifactContribution) {
 }
 
 function isProviderNamespacePath(providerId: string, artifactPath: string) {
-  if (path.isAbsolute(artifactPath)) {
+  if (path.isAbsolute(artifactPath) || artifactPath.includes('\\')) {
     return false
   }
 
@@ -25,18 +25,20 @@ function isProviderNamespacePath(providerId: string, artifactPath: string) {
     && !normalized.split('/').includes('..')
 }
 
-export function materializeProviderArtifact(contribution: ProviderArtifactContribution): Effect.Effect<WriteOperation, SchemaContractError> {
-  if (!isProviderNamespacePath(contribution.providerId, contribution.path)) {
-    return Effect.fail(providerArtifactPathError(contribution))
-  }
+export const materializeProviderArtifact = Effect.fn('materializeProviderArtifact')(
+  function* (contribution: ProviderArtifactContribution): Effect.fn.Return<WriteOperation, SchemaContractError> {
+    if (!isProviderNamespacePath(contribution.providerId, contribution.path)) {
+      return yield* providerArtifactPathError(contribution)
+    }
 
-  return Effect.succeed({
-    id: 'write-effect-harness-provider-record',
-    kind: 'writeStructuredFile',
-    owner: 'materializer:provider-artifact',
-    surfaceId: contribution.surfaceId,
-    path: contribution.path,
-    authority: 'owner',
-    value: contribution.value,
-  })
-}
+    return {
+      id: 'write-effect-harness-provider-record',
+      kind: 'writeStructuredFile',
+      owner: 'materializer:provider-artifact',
+      surfaceId: contribution.surfaceId,
+      path: contribution.path,
+      authority: 'owner',
+      value: contribution.value,
+    }
+  },
+)

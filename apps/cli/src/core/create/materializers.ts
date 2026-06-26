@@ -17,8 +17,8 @@ import type {
   WorkspaceManifestContribution,
   WritePlan,
 } from './model'
-import type { SchemaContractError } from '@/core/errors'
 import { Effect } from 'effect'
+import { SchemaContractError } from '@/core/errors'
 import { materializeFrontendEntry } from './materializers/frontend-entry'
 import { materializeGeneratedUserFile } from './materializers/generated-user-file'
 import { materializePackageJson } from './materializers/package-manifest'
@@ -43,6 +43,53 @@ function groupBySurface<T extends { readonly surfaceId: string }>(contributions:
 
   return surfaces
 }
+
+function providerManagedConflictError(input: {
+  readonly surfaceId: string
+  readonly target: string
+}) {
+  return new SchemaContractError({
+    schema: input.surfaceId,
+    issueCount: 1,
+    message: `Conflicting provider-managed contribution for ${input.target}. Provider-managed files and blocks must have one writer.`,
+  })
+}
+
+const ensureUniqueProviderManagedTargets = Effect.fn('ensureUniqueProviderManagedTargets')(
+  function* (
+    fileContributions: readonly ProviderManagedFileContribution[],
+    blockContributions: readonly ProviderManagedBlockContribution[],
+  ): Effect.fn.Return<void, SchemaContractError> {
+    const surfaceIds = new Set<string>()
+    const filePaths = new Set<string>()
+    const blockTargets = new Set<string>()
+
+    for (const contribution of fileContributions) {
+      if (surfaceIds.has(contribution.surfaceId) || filePaths.has(contribution.path)) {
+        return yield* providerManagedConflictError({
+          surfaceId: contribution.surfaceId,
+          target: contribution.path,
+        })
+      }
+
+      surfaceIds.add(contribution.surfaceId)
+      filePaths.add(contribution.path)
+    }
+
+    for (const contribution of blockContributions) {
+      const blockTarget = `${contribution.path}#${contribution.startMarker}..${contribution.endMarker}`
+      if (surfaceIds.has(contribution.surfaceId) || filePaths.has(contribution.path) || blockTargets.has(blockTarget)) {
+        return yield* providerManagedConflictError({
+          surfaceId: contribution.surfaceId,
+          target: blockTarget,
+        })
+      }
+
+      surfaceIds.add(contribution.surfaceId)
+      blockTargets.add(blockTarget)
+    }
+  },
+)
 
 export const materializeWritePlan = Effect.fn('materializeWritePlan')(
   function* (contributions: readonly CapabilityContribution[]): Effect.fn.Return<WritePlan, SchemaContractError> {
@@ -97,6 +144,8 @@ export const materializeWritePlan = Effect.fn('materializeWritePlan')(
     const frontendEntrySurfaces = groupBySurface(frontendEntryContributions)
     const viteConfigSurfaces = groupBySurface(viteConfigContributions)
     const styleSheetSurfaces = groupBySurface(styleSheetContributions)
+
+    yield* ensureUniqueProviderManagedTargets(providerManagedFileContributions, providerManagedBlockContributions)
 
     const packageJsonOperations = yield* Effect.all(
       [...packageManifestSurfaces.entries()].map(([surfaceId, surfaceContributions]) =>

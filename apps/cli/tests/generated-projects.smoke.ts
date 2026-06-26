@@ -369,7 +369,7 @@ assert.equal(workerPackageJson.scripts.build, 'tsgo --noEmit --project tsconfig.
 assert.equal(workerPackageJson.scripts.lint, 'eslint .')
 assert.equal(workerPackageJson.scripts.knip, 'knip')
 assert.equal(workerPackageJson.scripts.typecheck, 'tsgo --noEmit --project tsconfig.json')
-assert.equal(workerPackageJson.scripts.verify, 'pnpm build && pnpm lint && pnpm knip && pnpm effect:verify')
+assert.equal(workerPackageJson.scripts.verify, 'pnpm build && pnpm typecheck && pnpm lint && pnpm knip && pnpm effect:verify')
 assert.match(workerPackageJson.scripts['effect:verify'] ?? '', /effect-harness\.js" verify --target \./u)
 assert.equal(workerPackageJson.devDependencies['@effect/tsgo'], '0.14.6')
 assert.match(workerSource, /Effect\.fn\('main'\)/u)
@@ -680,12 +680,7 @@ await execa('pnpm', ['install'], {
   stdio: 'inherit',
   timeout: 120_000,
 })
-await execa('pnpm', ['--filter', workerSpec.package.name, 'build'], {
-  cwd: generatedRoot,
-  stdio: 'inherit',
-  timeout: 120_000,
-})
-await execa('pnpm', ['--filter', workerSpec.package.name, 'effect:verify'], {
+await execa('pnpm', ['--filter', workerSpec.package.name, 'verify'], {
   cwd: generatedRoot,
   stdio: 'inherit',
   timeout: 120_000,

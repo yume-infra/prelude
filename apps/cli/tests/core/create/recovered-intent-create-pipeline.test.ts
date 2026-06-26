@@ -191,7 +191,7 @@ describe('recovered main intent create pipeline', () => {
         )
         assert.strictEqual(packageJson.scripts.build, 'tsgo --noEmit --project tsconfig.json')
         assert.strictEqual(packageJson.scripts.typecheck, 'tsgo --noEmit --project tsconfig.json')
-        assert.strictEqual(packageJson.scripts.verify, 'pnpm build && pnpm knip && pnpm effect:verify')
+        assert.strictEqual(packageJson.scripts.verify, 'pnpm build && pnpm typecheck && pnpm knip && pnpm effect:verify')
         assert.match(packageJson.scripts['effect:verify'] ?? '', /effect-harness\.js" verify --target \./u)
         assert.strictEqual(packageJson.dependencies.effect, '4.0.0-beta.90')
         assert.strictEqual(packageJson.dependencies['@effect/platform-node'], '4.0.0-beta.90')

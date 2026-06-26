@@ -4,6 +4,10 @@ import type { PackageManifestEntries, RootCapabilityDefinition } from './types'
 function verifyScriptFor(graph: ResolvedGraph): string | undefined {
   const commands = ['pnpm build']
 
+  if (graph.providers.some(provider => provider.id === 'effect-harness')) {
+    commands.push('pnpm typecheck')
+  }
+
   if (graph.rootCapabilities.includes('linting')) {
     commands.push('pnpm lint')
   }

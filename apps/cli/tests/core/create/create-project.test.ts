@@ -1,9 +1,8 @@
-import assert from 'node:assert/strict'
 import * as fs from 'node:fs/promises'
 import * as os from 'node:os'
 import * as path from 'node:path'
 import { NodeServices } from '@effect/platform-node'
-import { describe, it } from '@effect/vitest'
+import { assert, describe, it } from '@effect/vitest'
 import { Effect, Layer } from 'effect'
 import { makePackageName } from '@/brand/package-name'
 import { makeTargetDir } from '@/brand/target-dir'
@@ -69,7 +68,7 @@ describe('create spec creation path', () => {
         const source = yield* Effect.promise(() => fs.readFile(path.join(targetDir, 'src/index.ts'), 'utf8'))
         assert.equal(source, 'export {}\n')
 
-        const manifest = yield* Effect.promise(() => readJson<{ resolvedGraph: { rootCapabilities: unknown, logicalSurfaces: unknown }, generatedUserSurfaces: Array<{ path: string, authority: string }> }>(path.join(targetDir, '.prelude/manifest.json')))
+        const manifest = yield* Effect.promise(() => readJson(path.join(targetDir, '.prelude/manifest.json')))
         assert.deepEqual(manifest, {
           schemaVersion: 1,
           preludeVersion: '0.0.0-test',
@@ -682,7 +681,7 @@ export default defineConfig({
             'effect:status': 'node "/Users/sayori/Desktop/yume-infra/effect-harness/dist/bin/effect-harness.js" status',
             'effect:verify': 'node "/Users/sayori/Desktop/yume-infra/effect-harness/dist/bin/effect-harness.js" verify --target .',
             'typecheck': 'tsgo --noEmit --project tsconfig.json',
-            'verify': 'pnpm build && pnpm effect:verify',
+            'verify': 'pnpm build && pnpm typecheck && pnpm effect:verify',
           },
           dependencies: {
             '@effect/platform-node': '4.0.0-beta.90',
@@ -869,46 +868,46 @@ NodeRuntime.runMain(main())
     )
   })
 
-  it('dedupes equal structured package keys and blocks incompatible values before writes', async () => {
-    const dedupedPlan = await Effect.runPromise(materializeWritePlan([
-      {
-        kind: 'packageManifest',
+  it.effect('dedupes equal structured package keys and blocks incompatible values before writes', () =>
+    Effect.gen(function* () {
+      const dedupedPlan = yield* materializeWritePlan([
+        {
+          kind: 'packageManifest',
+          surfaceId: 'package-manifest:root',
+          owner: 'capability:alpha-linting',
+          entries: {
+            scripts: {
+              lint: 'eslint .',
+            },
+          },
+        },
+        {
+          kind: 'packageManifest',
+          surfaceId: 'package-manifest:root',
+          owner: 'capability:beta-linting',
+          entries: {
+            scripts: {
+              lint: 'eslint .',
+            },
+          },
+        },
+      ])
+
+      assert.deepEqual(dedupedPlan.operations[0], {
+        id: 'write-package-json',
+        kind: 'writeStructuredFile',
+        owner: 'materializer:package-json',
         surfaceId: 'package-manifest:root',
-        owner: 'capability:alpha-linting',
-        entries: {
+        path: 'package.json',
+        authority: 'none',
+        value: {
           scripts: {
             lint: 'eslint .',
           },
         },
-      },
-      {
-        kind: 'packageManifest',
-        surfaceId: 'package-manifest:root',
-        owner: 'capability:beta-linting',
-        entries: {
-          scripts: {
-            lint: 'eslint .',
-          },
-        },
-      },
-    ]))
+      })
 
-    assert.deepEqual(dedupedPlan.operations[0], {
-      id: 'write-package-json',
-      kind: 'writeStructuredFile',
-      owner: 'materializer:package-json',
-      surfaceId: 'package-manifest:root',
-      path: 'package.json',
-      authority: 'none',
-      value: {
-        scripts: {
-          lint: 'eslint .',
-        },
-      },
-    })
-
-    await assert.rejects(
-      Effect.runPromise(materializeWritePlan([
+      const conflictResult = yield* Effect.result(materializeWritePlan([
         {
           kind: 'packageManifest',
           surfaceId: 'package-manifest:root',
@@ -929,18 +928,19 @@ NodeRuntime.runMain(main())
             },
           },
         },
-      ])),
-      error =>
-        error instanceof Error
-        && error.message.includes('Conflicting package-manifest:root contribution at /scripts/lint')
-        && error.message.includes('capability:alpha-linting')
-        && error.message.includes('capability:beta-linting'),
-    )
-  })
+      ]))
 
-  it('blocks provider artifact operations outside the provider namespace before writes', async () => {
-    await assert.rejects(
-      Effect.runPromise(materializeWritePlan([
+      assert.equal(conflictResult._tag, 'Failure')
+      if (conflictResult._tag === 'Failure') {
+        assert.include(conflictResult.failure.message, 'Conflicting package-manifest:root contribution at /scripts/lint')
+        assert.include(conflictResult.failure.message, 'capability:alpha-linting')
+        assert.include(conflictResult.failure.message, 'capability:beta-linting')
+      }
+    }))
+
+  it.effect('blocks provider artifact operations outside the provider namespace before writes', () =>
+    Effect.gen(function* () {
+      const result = yield* Effect.result(materializeWritePlan([
         {
           kind: 'providerArtifact',
           surfaceId: 'provider:effect-harness',
@@ -951,98 +951,192 @@ NodeRuntime.runMain(main())
             id: 'effect-harness',
           },
         },
-      ])),
-      error =>
-        error instanceof Error
-        && error.message.includes('Provider effect-harness declared unsupported artifact path "package.json"')
-        && error.message.includes('Provider artifacts must stay under .prelude/providers/effect-harness/'),
-    )
-  })
+      ]))
 
-  it('blocks ai-harness when the selected provider is missing', async () => {
-    await assert.rejects(
-      Effect.runPromise(
-        Effect.gen(function* () {
-          const targetDir = yield* Effect.promise(makeTempProjectDir)
+      assert.equal(result._tag, 'Failure')
+      if (result._tag === 'Failure') {
+        assert.include(result.failure.message, 'Provider effect-harness declared unsupported artifact path "package.json"')
+        assert.include(result.failure.message, 'Provider artifacts must stay under .prelude/providers/effect-harness/')
+      }
+    }))
 
-          yield* createProjectFromSpec({
-            spec: {
-              topology: 'single-package',
-              package: {
-                id: 'worker',
-                name: makePackageName('demo-worker'),
-                capabilities: ['effect-package'],
-              },
-              rootCapabilities: ['ai-harness'],
-              providers: [],
-              overrides: {},
+  it.effect('blocks provider-managed paths with Windows separators before writes', () =>
+    Effect.gen(function* () {
+      const result = yield* Effect.result(materializeWritePlan([
+        {
+          kind: 'providerManagedFile',
+          surfaceId: 'provider-managed-file:effect-harness:..\\outside.txt',
+          operationId: 'write-effect-harness-outside',
+          owner: 'provider:effect-harness',
+          providerId: 'effect-harness',
+          path: '..\\outside.txt',
+          content: '',
+        },
+      ]))
+
+      assert.equal(result._tag, 'Failure')
+      if (result._tag === 'Failure') {
+        assert.include(result.failure.message, 'unsupported managed file path')
+      }
+    }))
+
+  it.effect('blocks duplicate provider-managed targets before writes', () =>
+    Effect.gen(function* () {
+      const result = yield* Effect.result(materializeWritePlan([
+        {
+          kind: 'providerManagedBlock',
+          surfaceId: 'provider-managed-block:effect-harness:AGENTS.md#one',
+          operationId: 'write-effect-harness-agents-one',
+          owner: 'provider:effect-harness',
+          providerId: 'effect-harness',
+          path: 'AGENTS.md',
+          startMarker: '<!-- effect-harness:start -->',
+          endMarker: '<!-- effect-harness:end -->',
+          content: '<!-- effect-harness:start -->\none\n<!-- effect-harness:end -->\n',
+        },
+        {
+          kind: 'providerManagedBlock',
+          surfaceId: 'provider-managed-block:effect-harness:AGENTS.md#two',
+          operationId: 'write-effect-harness-agents-two',
+          owner: 'provider:effect-harness',
+          providerId: 'effect-harness',
+          path: 'AGENTS.md',
+          startMarker: '<!-- effect-harness:start -->',
+          endMarker: '<!-- effect-harness:end -->',
+          content: '<!-- effect-harness:start -->\ntwo\n<!-- effect-harness:end -->\n',
+        },
+      ]))
+
+      assert.equal(result._tag, 'Failure')
+      if (result._tag === 'Failure') {
+        assert.include(result.failure.message, 'Conflicting provider-managed contribution')
+      }
+    }))
+
+  it.effect('keeps provider-managed write operations aligned with manifest lifecycle surfaces', () =>
+    Effect.gen(function* () {
+      const targetDir = yield* Effect.promise(makeTempProjectDir)
+
+      const result = yield* createProjectFromSpec({
+        spec: {
+          topology: 'single-package',
+          package: {
+            id: 'worker',
+            name: makePackageName('demo-worker'),
+            capabilities: ['effect-package'],
+          },
+          rootCapabilities: ['package-manager:pnpm', 'ai-harness'],
+          providers: ['effect-harness'],
+          overrides: {},
+        },
+        targetDir: makeTargetDir(targetDir),
+        preludeVersion: '0.0.0-test',
+      })
+
+      const manifest = yield* Effect.promise(() =>
+        readJson<{
+          lifecycleSurfaces: Array<{ id: string, operationId: string }>
+        }>(path.join(targetDir, '.prelude/manifest.json')),
+      )
+      const managedOperations = result.writePlan.operations
+        .filter(operation => operation.owner === 'provider:effect-harness')
+        .map(operation => ({
+          id: operation.surfaceId,
+          operationId: operation.id,
+        }))
+        .sort((left, right) => left.id.localeCompare(right.id))
+      const managedSurfaces = manifest.lifecycleSurfaces
+        .filter(surface => surface.id.startsWith('provider-managed-'))
+        .map(surface => ({
+          id: surface.id,
+          operationId: surface.operationId,
+        }))
+        .sort((left, right) => left.id.localeCompare(right.id))
+
+      assert.deepEqual(managedOperations, managedSurfaces)
+    }).pipe(Effect.provide(TestLayer)))
+
+  it.effect('blocks ai-harness when the selected provider is missing', () =>
+    Effect.gen(function* () {
+      const targetDir = yield* Effect.promise(makeTempProjectDir)
+
+      const result = yield* Effect.result(
+        createProjectFromSpec({
+          spec: {
+            topology: 'single-package',
+            package: {
+              id: 'worker',
+              name: makePackageName('demo-worker'),
+              capabilities: ['effect-package'],
             },
-            targetDir: makeTargetDir(targetDir),
-            preludeVersion: '0.0.0-test',
-          })
-        }).pipe(Effect.provide(TestLayer)),
-      ),
-      error =>
-        error instanceof Error
-        && error.message.includes('Unsupported CreateSpec for the minimal creation path')
-        && error.message.includes('ai-harness requires provider: effect-harness'),
-    )
-  })
+            rootCapabilities: ['ai-harness'],
+            providers: [],
+            overrides: {},
+          },
+          targetDir: makeTargetDir(targetDir),
+          preludeVersion: '0.0.0-test',
+        }),
+      )
 
-  it('blocks package capabilities whose registry requirements are not selected', async () => {
-    await assert.rejects(
-      Effect.runPromise(
-        Effect.gen(function* () {
-          const targetDir = yield* Effect.promise(makeTempProjectDir)
+      assert.equal(result._tag, 'Failure')
+      if (result._tag === 'Failure') {
+        assert.include(result.failure.message, 'Unsupported CreateSpec for the minimal creation path')
+        assert.include(result.failure.message, 'ai-harness requires provider: effect-harness')
+      }
+    }).pipe(Effect.provide(TestLayer)))
 
-          yield* createProjectFromSpec({
-            spec: {
-              topology: 'single-package',
-              package: {
-                id: 'app',
-                name: makePackageName('demo-app'),
-                capabilities: ['minimal-node-package', 'state:jotai'],
-              },
-              rootCapabilities: [],
-              providers: [],
-              overrides: {},
+  it.effect('blocks package capabilities whose registry requirements are not selected', () =>
+    Effect.gen(function* () {
+      const targetDir = yield* Effect.promise(makeTempProjectDir)
+
+      const result = yield* Effect.result(
+        createProjectFromSpec({
+          spec: {
+            topology: 'single-package',
+            package: {
+              id: 'app',
+              name: makePackageName('demo-app'),
+              capabilities: ['minimal-node-package', 'state:jotai'],
             },
-            targetDir: makeTargetDir(targetDir),
-            preludeVersion: '0.0.0-test',
-          })
-        }).pipe(Effect.provide(TestLayer)),
-      ),
-      error =>
-        error instanceof Error
-        && error.message.includes('Unsupported CreateSpec for the minimal creation path')
-        && error.message.includes('state:jotai requires react-app for app'),
-    )
-  })
+            rootCapabilities: [],
+            providers: [],
+            overrides: {},
+          },
+          targetDir: makeTargetDir(targetDir),
+          preludeVersion: '0.0.0-test',
+        }),
+      )
 
-  it('blocks unsupported spec branches instead of silently dropping them', async () => {
-    await assert.rejects(
-      Effect.runPromise(
-        Effect.gen(function* () {
-          const targetDir = yield* Effect.promise(makeTempProjectDir)
+      assert.equal(result._tag, 'Failure')
+      if (result._tag === 'Failure') {
+        assert.include(result.failure.message, 'Unsupported CreateSpec for the minimal creation path')
+        assert.include(result.failure.message, 'state:jotai requires react-app for app')
+      }
+    }).pipe(Effect.provide(TestLayer)))
 
-          yield* createProjectFromSpec({
-            spec: {
-              topology: 'workspace',
-              rootCapabilities: ['unsupported-root-capability'],
-              providers: ['effect-harness'],
-              overrides: {},
-            } as never,
-            targetDir: makeTargetDir(targetDir),
-            preludeVersion: '0.0.0-test',
-          })
-        }).pipe(Effect.provide(TestLayer)),
-      ),
-      error =>
-        error instanceof Error
-        && error.message.includes('Unsupported CreateSpec for the minimal creation path')
-        && error.message.includes('workspace topology requires packages')
-        && error.message.includes('unsupported root capabilities: unsupported-root-capability')
-        && error.message.includes('workspace provider orchestration is handled by the ai-harness slice and is not supported here'),
-    )
-  })
+  it.effect('blocks unsupported spec branches instead of silently dropping them', () =>
+    Effect.gen(function* () {
+      const targetDir = yield* Effect.promise(makeTempProjectDir)
+
+      const result = yield* Effect.result(
+        createProjectFromSpec({
+          spec: {
+            topology: 'workspace',
+            rootCapabilities: ['unsupported-root-capability'],
+            providers: ['effect-harness'],
+            overrides: {},
+          } as never,
+          targetDir: makeTargetDir(targetDir),
+          preludeVersion: '0.0.0-test',
+        }),
+      )
+
+      assert.equal(result._tag, 'Failure')
+      if (result._tag === 'Failure') {
+        assert.include(result.failure.message, 'Unsupported CreateSpec for the minimal creation path')
+        assert.include(result.failure.message, 'workspace topology requires packages')
+        assert.include(result.failure.message, 'unsupported root capabilities: unsupported-root-capability')
+        assert.include(result.failure.message, 'workspace provider orchestration is handled by the ai-harness slice and is not supported here')
+      }
+    }).pipe(Effect.provide(TestLayer)))
 })

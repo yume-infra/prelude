@@ -12,7 +12,7 @@ function providerManagedBlockPathError(contribution: ProviderManagedBlockContrib
 }
 
 function isSafeRelativePath(filePath: string) {
-  if (path.isAbsolute(filePath)) {
+  if (path.isAbsolute(filePath) || filePath.includes('\\')) {
     return false
   }
 

@@ -23,6 +23,31 @@ export function extractManagedBlock(
   return content.slice(startIndex, trailingNewlineEnd)
 }
 
+export function managedBlockCount(
+  content: string,
+  markers: ManagedBlockMarkers,
+) {
+  let count = 0
+  let offset = 0
+
+  while (offset < content.length) {
+    const startIndex = content.indexOf(markers.startMarker, offset)
+    if (startIndex < 0) {
+      return count
+    }
+
+    const endIndex = content.indexOf(markers.endMarker, startIndex + markers.startMarker.length)
+    if (endIndex < 0) {
+      return count + 1
+    }
+
+    count += 1
+    offset = endIndex + markers.endMarker.length
+  }
+
+  return count
+}
+
 export function upsertManagedBlock(
   content: string,
   markers: ManagedBlockMarkers,
