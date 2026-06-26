@@ -1,26 +1,27 @@
-import { ParseResult, Schema } from 'effect'
+import { Schema } from 'effect'
 import { ProjectNameSchema } from '../brand/project-name'
+import { formatSchemaError } from './errors'
 
 const CliArgsSchema = Schema.Struct({
-  _: Schema.optionalWith(Schema.Array(Schema.String), { exact: true }),
-  preset: Schema.optionalWith(Schema.String, { exact: true }),
-  spec: Schema.optionalWith(Schema.String, { exact: true }),
-  name: Schema.optionalWith(ProjectNameSchema, { exact: true }),
-  install: Schema.optionalWith(Schema.Boolean, { exact: true }),
-  git: Schema.optionalWith(Schema.Boolean, { exact: true }),
-  help: Schema.optionalWith(Schema.Boolean, { exact: true }),
-  version: Schema.optionalWith(Schema.Boolean, { exact: true }),
-  rollback: Schema.optionalWith(Schema.Boolean, { exact: true }),
-  dryRun: Schema.optionalWith(Schema.Boolean, { exact: true }),
-  noInput: Schema.optionalWith(Schema.Boolean, { exact: true }),
-  printSpec: Schema.optionalWith(Schema.Boolean, { exact: true }),
-}).annotations({
+  _: Schema.optionalKey(Schema.Array(Schema.String)),
+  preset: Schema.optionalKey(Schema.String),
+  spec: Schema.optionalKey(Schema.String),
+  name: Schema.optionalKey(ProjectNameSchema),
+  install: Schema.optionalKey(Schema.Boolean),
+  git: Schema.optionalKey(Schema.Boolean),
+  help: Schema.optionalKey(Schema.Boolean),
+  version: Schema.optionalKey(Schema.Boolean),
+  rollback: Schema.optionalKey(Schema.Boolean),
+  dryRun: Schema.optionalKey(Schema.Boolean),
+  noInput: Schema.optionalKey(Schema.Boolean),
+  printSpec: Schema.optionalKey(Schema.Boolean),
+}).annotate({
   identifier: 'CliArgs',
   title: 'CliArgs',
 })
 
 export type CliArgs = Schema.Schema.Type<typeof CliArgsSchema>
 
-export const decodeCliArgs = Schema.decodeUnknown(CliArgsSchema, { errors: 'all' })
+export const decodeCliArgs = Schema.decodeUnknownEffect(CliArgsSchema, { errors: 'all' })
 
-export const formatCliArgsError = ParseResult.TreeFormatter.formatErrorSync
+export const formatCliArgsError = formatSchemaError

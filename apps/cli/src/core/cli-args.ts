@@ -1,8 +1,9 @@
 import type { CliArgs } from '@/schema/cli-args'
-import { Effect, ParseResult } from 'effect'
+import { Effect } from 'effect'
 import mri from 'mri'
 import { SchemaContractError } from '@/core/errors'
 import { decodeCliArgs, formatCliArgsError } from '@/schema/cli-args'
+import { schemaIssueCount } from '@/schema/errors'
 
 export interface RawCliArgs {
   readonly _: string[]
@@ -84,10 +85,6 @@ function validateCliArgs(args: CliArgs) {
     return Effect.fail(removedFlagError('--preset', 'Reusable shapes are complete canonical CreateSpec files passed with --spec.'))
   }
 
-  if (args.dryRun !== undefined) {
-    return Effect.fail(removedFlagError('--dry-run', 'Use --print-spec to inspect canonical CreateSpec input.'))
-  }
-
   if (args.install !== undefined) {
     return Effect.fail(removedFlagError('--install/--no-install', 'Dependency installation is not part of the canonical create route.'))
   }
@@ -118,10 +115,6 @@ export function parseCliArgs(argv: string[]) {
     return Effect.fail(removedFlagError('--preset', 'Reusable shapes are complete canonical CreateSpec files passed with --spec.'))
   }
 
-  if (rawArgs.dryRun !== undefined) {
-    return Effect.fail(removedFlagError('--dry-run', 'Use --print-spec to inspect canonical CreateSpec input.'))
-  }
-
   if (rawArgs.install !== undefined) {
     return Effect.fail(removedFlagError('--install/--no-install', 'Dependency installation is not part of the canonical create route.'))
   }
@@ -137,8 +130,8 @@ export function parseCliArgs(argv: string[]) {
   return decodeCliArgs(rawArgs).pipe(
     Effect.mapError(error => new SchemaContractError({
       schema: 'CliArgs',
-      message: formatCliArgsError(error),
-      issueCount: ParseResult.ArrayFormatter.formatErrorSync(error).length,
+      message: `CliArgs: ${formatCliArgsError(error)}`,
+      issueCount: schemaIssueCount(error),
     })),
     Effect.flatMap(validateCliArgs),
   )

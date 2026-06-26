@@ -4,13 +4,21 @@ import type { TargetDir } from '@/brand/target-dir'
 import type { FileIOError, SchemaContractError } from '@/core/errors'
 
 export type Topology = 'single-package' | 'workspace'
-export type CapabilityId = 'minimal-node-package' | 'react-app' | 'react-counter' | 'effect-package'
-export type RootCapabilityId = 'package-manager:pnpm' | 'linting' | 'knip' | 'ai-harness'
+export type CapabilityId = 'minimal-node-package' | 'react-app' | 'react-counter' | 'vue-app' | 'effect-package' | 'node-backend' | 'library' | 'cli-tool' | 'router:react-router' | 'router:vue-router' | 'state:jotai' | 'state:pinia' | 'css:less' | 'css:tailwind'
+export type RootCapabilityId = 'package-manager:pnpm' | 'linting' | 'knip' | 'dependency-update:taze' | 'ai-harness'
 export type ProviderId = 'effect-harness'
 export type PackageManifestSurfaceId = `package-manifest:${string}`
+export type WorkspaceManifestSurfaceId = 'workspace-manifest:root'
 export type ReactAppShellSurfaceId = `react-app-shell:${string}`
+export type VueAppShellSurfaceId = `vue-app-shell:${string}`
+export type ReactAppEntrySurfaceId = `react-app-entry:${string}`
+export type VueAppEntrySurfaceId = `vue-app-entry:${string}`
+export type ViteConfigSurfaceId = `vite-config:${string}`
+export type StyleSheetSurfaceId = `stylesheet:${string}/${string}`
 type ProviderSurfaceId = `provider:${ProviderId}`
 type SurfaceAuthority = 'none' | 'owner' | 'bounded'
+type LifecycleConflictPolicy = 'block'
+type LifecycleScope = 'entry' | 'file'
 
 export interface CreateSpecPackage {
   readonly id: string
@@ -18,13 +26,35 @@ export interface CreateSpecPackage {
   readonly capabilities: readonly CapabilityId[]
 }
 
-export interface CreateSpec {
-  readonly topology: Topology
+export interface CreateSpecInternalDependency {
+  readonly target: {
+    readonly by: 'id' | 'name'
+    readonly value: string
+  }
+  readonly alias?: PackageName
+}
+
+export interface CreateSpecWorkspacePackage extends CreateSpecPackage {
+  readonly internalDependencies: readonly CreateSpecInternalDependency[]
+}
+
+export interface SinglePackageCreateSpec {
+  readonly topology: 'single-package'
   readonly package: CreateSpecPackage
   readonly rootCapabilities: readonly string[]
   readonly providers: readonly string[]
   readonly overrides: Record<string, never>
 }
+
+export interface WorkspaceCreateSpec {
+  readonly topology: 'workspace'
+  readonly packages: readonly CreateSpecWorkspacePackage[]
+  readonly rootCapabilities: readonly string[]
+  readonly providers: readonly string[]
+  readonly overrides: Record<string, never>
+}
+
+export type CreateSpec = SinglePackageCreateSpec | WorkspaceCreateSpec
 
 export interface CreateProjectOptions {
   readonly spec: CreateSpec
@@ -32,17 +62,30 @@ export interface CreateProjectOptions {
   readonly preludeVersion: string
 }
 
+export interface CreateProjectPlan {
+  readonly resolvedGraph: ResolvedGraph
+  readonly writePlan: WritePlan
+}
+
 export interface ResolvedPackage {
   readonly id: string
   readonly name: string
-  readonly path: '.'
+  readonly path: string
   readonly capabilities: readonly CapabilityId[]
+  readonly internalDependencies?: readonly ResolvedInternalDependency[]
+}
+
+export interface ResolvedInternalDependency {
+  readonly targetPackageId: string
+  readonly targetPackageName: string
+  readonly dependencyName: string
+  readonly range: string
 }
 
 export interface ResolvedGraph {
-  readonly topology: 'single-package'
+  readonly topology: Topology
   readonly rootPackage: ResolvedPackage
-  readonly packages: readonly []
+  readonly packages: readonly ResolvedPackage[]
   readonly rootCapabilities: readonly RootCapabilityId[]
   readonly packageCapabilities: Record<string, readonly CapabilityId[]>
   readonly providers: readonly ResolvedProvider[]
@@ -72,6 +115,13 @@ export interface PackageManifestContribution {
   readonly entries: Record<string, JsonValue>
 }
 
+export interface WorkspaceManifestContribution {
+  readonly kind: 'workspaceManifest'
+  readonly surfaceId: WorkspaceManifestSurfaceId
+  readonly owner: string
+  readonly globs: readonly string[]
+}
+
 export interface EslintRootContribution {
   readonly kind: 'eslintRoot'
   readonly surfaceId: 'eslint-root'
@@ -93,13 +143,71 @@ export interface GeneratedUserFileContribution {
   readonly content: string
 }
 
+export interface TypeScriptConfigContribution {
+  readonly kind: 'typescriptConfig'
+  readonly surfaceId: string
+  readonly owner: string
+  readonly value: Record<string, JsonValue>
+}
+
+export interface TsdownConfigContribution {
+  readonly kind: 'tsdownConfig'
+  readonly surfaceId: string
+  readonly owner: string
+}
+
 export interface ReactAppShellContribution {
   readonly kind: 'reactAppShell'
   readonly surfaceId: ReactAppShellSurfaceId
   readonly owner: string
+  readonly path: string
+  readonly imports: readonly string[]
+  readonly moduleDeclarations: readonly string[]
+  readonly componentDeclarations: readonly string[]
+  readonly content: readonly string[]
+  readonly mainClassNameTokens: readonly string[]
+  readonly routing: readonly 'react-router'[]
+}
+
+export interface VueAppShellContribution {
+  readonly kind: 'vueAppShell'
+  readonly surfaceId: VueAppShellSurfaceId
+  readonly owner: string
+  readonly path: string
+  readonly scriptImports: readonly string[]
+  readonly scriptSetup: readonly string[]
+  readonly templateContent: readonly string[]
+  readonly mainClassNameTokens: readonly string[]
+  readonly routing: readonly 'vue-router'[]
+}
+
+export interface FrontendEntryContribution {
+  readonly kind: 'frontendEntry'
+  readonly surfaceId: ReactAppEntrySurfaceId | VueAppEntrySurfaceId
+  readonly owner: string
+  readonly path: string
+  readonly framework?: 'react' | 'vue'
   readonly imports: readonly string[]
   readonly declarations: readonly string[]
-  readonly body: readonly string[]
+  readonly appUse: readonly string[]
+  readonly styleImports: readonly string[]
+}
+
+export interface ViteConfigContribution {
+  readonly kind: 'viteConfig'
+  readonly surfaceId: ViteConfigSurfaceId
+  readonly owner: string
+  readonly path: string
+  readonly imports: readonly string[]
+  readonly plugins: readonly string[]
+}
+
+export interface StyleSheetContribution {
+  readonly kind: 'styleSheet'
+  readonly surfaceId: StyleSheetSurfaceId
+  readonly owner: string
+  readonly path: string
+  readonly content: readonly string[]
 }
 
 export interface ProviderArtifactContribution {
@@ -113,10 +221,17 @@ export interface ProviderArtifactContribution {
 
 export type CapabilityContribution
   = | PackageManifestContribution
+    | WorkspaceManifestContribution
     | EslintRootContribution
     | KnipRootContribution
     | GeneratedUserFileContribution
+    | TypeScriptConfigContribution
+    | TsdownConfigContribution
     | ReactAppShellContribution
+    | VueAppShellContribution
+    | FrontendEntryContribution
+    | ViteConfigContribution
+    | StyleSheetContribution
     | ProviderArtifactContribution
 
 export interface WriteStructuredFileOperation {
@@ -184,7 +299,7 @@ export interface ProviderArtifactRecord {
 }
 
 export interface ProviderProjectedContext {
-  readonly topology: 'single-package'
+  readonly topology: Topology
   readonly packageScopes: readonly string[]
   readonly rootCapabilities: readonly RootCapabilityId[]
   readonly packageCapabilities: Record<string, readonly CapabilityId[]>
@@ -199,25 +314,33 @@ export interface LifecycleProviderRecord {
   readonly verificationRecordId: string
 }
 
-interface OwnedFileLifecycleSurfaceRecord {
+interface LifecycleSurfaceMetadata {
   readonly id: string
   readonly owner: `provider:${ProviderId}`
-  readonly authority: 'owner'
-  readonly kind: 'ownedFile'
-  readonly path: string
+  readonly lifecycle: 'managed'
+  readonly scope: LifecycleScope
+  readonly locator: string
+  readonly conflictPolicy: LifecycleConflictPolicy
+  readonly contractVersion: string
+  readonly implementationVersion: string
+  readonly base?: string
   readonly snapshot?: string
   readonly operationId: string
 }
 
-interface StructuredPointerLifecycleSurfaceRecord {
-  readonly id: string
-  readonly owner: `provider:${ProviderId}`
+interface OwnedFileLifecycleSurfaceRecord extends LifecycleSurfaceMetadata {
+  readonly authority: 'owner'
+  readonly kind: 'ownedFile'
+  readonly path: string
+}
+
+interface StructuredPointerLifecycleSurfaceRecord extends LifecycleSurfaceMetadata {
   readonly authority: 'bounded'
   readonly kind: 'structuredPointer'
   readonly path: string
   readonly pointer: string
+  readonly base: string
   readonly snapshot: string
-  readonly operationId: string
 }
 
 export type LifecycleSurfaceRecord = OwnedFileLifecycleSurfaceRecord | StructuredPointerLifecycleSurfaceRecord
@@ -259,10 +382,32 @@ export interface JsonCreateSpecPackage {
   readonly capabilities: readonly CapabilityId[]
 }
 
-export interface JsonCreateSpec {
-  readonly topology: Topology
+export interface JsonCreateSpecInternalDependency {
+  readonly target: {
+    readonly by: 'id' | 'name'
+    readonly value: string
+  }
+  readonly alias?: string
+}
+
+export interface JsonCreateSpecWorkspacePackage extends JsonCreateSpecPackage {
+  readonly internalDependencies: readonly JsonCreateSpecInternalDependency[]
+}
+
+export interface JsonSinglePackageCreateSpec {
+  readonly topology: 'single-package'
   readonly package: JsonCreateSpecPackage
   readonly rootCapabilities: readonly string[]
   readonly providers: readonly string[]
   readonly overrides: Record<string, never>
 }
+
+export interface JsonWorkspaceCreateSpec {
+  readonly topology: 'workspace'
+  readonly packages: readonly JsonCreateSpecWorkspacePackage[]
+  readonly rootCapabilities: readonly string[]
+  readonly providers: readonly string[]
+  readonly overrides: Record<string, never>
+}
+
+export type JsonCreateSpec = JsonSinglePackageCreateSpec | JsonWorkspaceCreateSpec

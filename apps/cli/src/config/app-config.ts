@@ -1,7 +1,6 @@
 import type * as LogLevel from 'effect/LogLevel'
-import type * as Option from 'effect/Option'
 import type * as Redacted from 'effect/Redacted'
-import { Config, Effect, LogLevel as LogLevelValues } from 'effect'
+import { Config, Context, Effect, Layer, Option, Schema, SchemaIssue } from 'effect'
 
 interface AppConfigShape {
   readonly logLevel: LogLevel.LogLevel
@@ -13,18 +12,25 @@ interface AppConfigShape {
 const DEFAULT_CONCURRENCY = 8
 const MAX_CONCURRENCY = 32
 
-export class AppConfig extends Effect.Service<AppConfig>()('AppConfig', {
-  effect: Config.all({
-    logLevel: Config.withDefault(LogLevelValues.Debug)(Config.logLevel('LOG_LEVEL')),
-    defaultConcurrency: Config.withDefault(DEFAULT_CONCURRENCY)(Config.integer('DEFAULT_CONCURRENCY')).pipe(
-      Config.validate({
-        message: `Expected DEFAULT_CONCURRENCY to be between 1 and ${MAX_CONCURRENCY}`,
-        validation: value => value >= 1 && value <= MAX_CONCURRENCY,
-      }),
+export class AppConfig extends Context.Service<AppConfig, AppConfigShape>()('AppConfig') {
+  static readonly Default = Layer.effect(
+    AppConfig,
+    Config.all({
+      logLevel: Config.logLevel('LOG_LEVEL').pipe(Config.withDefault('Debug')),
+      defaultConcurrency: Config.int('DEFAULT_CONCURRENCY').pipe(
+        Config.withDefault(DEFAULT_CONCURRENCY),
+        Config.mapOrFail(value =>
+          value >= 1 && value <= MAX_CONCURRENCY
+            ? Effect.succeed(value)
+            : Effect.fail(new Config.ConfigError(new Schema.SchemaError(new SchemaIssue.InvalidValue(
+                Option.some(value),
+                { message: `Expected DEFAULT_CONCURRENCY to be between 1 and ${MAX_CONCURRENCY}` },
+              ))))),
+      ),
+      tracingEndpoint: Config.option(Config.redacted('OTEL_EXPORTER_OTLP_ENDPOINT')),
+      debug: Config.boolean('DEBUG').pipe(Config.withDefault(false)),
+    }).pipe(
+      Effect.map(config => config satisfies AppConfigShape),
     ),
-    tracingEndpoint: Config.option(Config.redacted('OTEL_EXPORTER_OTLP_ENDPOINT')),
-    debug: Config.withDefault(false)(Config.boolean('DEBUG')),
-  }).pipe(
-    Effect.map(config => config satisfies AppConfigShape),
-  ),
-}) {}
+  )
+}

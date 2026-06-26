@@ -1,12 +1,19 @@
 import type {
   CapabilityContribution,
   EslintRootContribution,
+  FrontendEntryContribution,
   GeneratedUserFileContribution,
   JsonValue,
   KnipRootContribution,
   PackageManifestContribution,
   ProviderArtifactContribution,
   ReactAppShellContribution,
+  StyleSheetContribution,
+  TsdownConfigContribution,
+  TypeScriptConfigContribution,
+  ViteConfigContribution,
+  VueAppShellContribution,
+  WorkspaceManifestContribution,
   WriteOperation,
   WritePlan,
 } from './model'
@@ -161,7 +168,21 @@ function mergeStructuredValue(options: {
 
 function orderPackageManifest(manifest: Record<string, JsonValue>) {
   const ordered: Record<string, JsonValue> = {}
-  const preferredKeys = ['name', 'type', 'version', 'packageManager', 'scripts', 'dependencies', 'devDependencies'] as const
+  const preferredKeys = [
+    'name',
+    'private',
+    'type',
+    'version',
+    'packageManager',
+    'main',
+    'types',
+    'exports',
+    'files',
+    'bin',
+    'scripts',
+    'dependencies',
+    'devDependencies',
+  ] as const
 
   for (const key of preferredKeys) {
     if (Object.hasOwn(manifest, key)) {
@@ -204,16 +225,58 @@ function mergePackageManifestContributions(contributions: readonly PackageManife
   return Effect.succeed(orderPackageManifest(manifest))
 }
 
+function surfaceSuffix(surfaceId: string, prefix: string) {
+  return surfaceId.startsWith(prefix) ? surfaceId.slice(prefix.length) : 'root'
+}
+
+function scopedPathFromSurface(surfaceId: string, prefix: string, filePath: string) {
+  const scope = surfaceSuffix(surfaceId, prefix)
+  return scope === 'root' ? filePath : `${scope}/${filePath}`
+}
+
+function scopedOperationId(baseId: string, targetPath: string) {
+  return targetPath.includes('/') && !targetPath.startsWith('src/') && !targetPath.startsWith('scripts/')
+    ? `${baseId}:${path.posix.dirname(targetPath)}`
+    : baseId
+}
+
 function materializePackageJson(surfaceId: string, contributions: readonly PackageManifestContribution[]) {
+  const targetPath = scopedPathFromSurface(surfaceId, 'package-manifest:', 'package.json')
+
   return Effect.map(mergePackageManifestContributions(contributions), value => ({
-    id: 'write-package-json',
+    id: scopedOperationId('write-package-json', targetPath),
     kind: 'writeStructuredFile',
     owner: 'materializer:package-json',
     surfaceId,
-    path: 'package.json',
+    path: targetPath,
     authority: 'none',
     value,
   } satisfies WriteOperation))
+}
+
+function materializeWorkspaceManifest(contribution: WorkspaceManifestContribution): WriteOperation {
+  const globLines = contribution.globs.map(glob => `  - ${glob}`)
+
+  return {
+    id: 'write-pnpm-workspace',
+    kind: 'writeGeneratedUserFile',
+    owner: 'materializer:workspace-manifest',
+    surfaceId: contribution.surfaceId,
+    path: 'pnpm-workspace.yaml',
+    authority: 'none',
+    content: `packages:
+${globLines.join('\n')}
+
+catalog:
+  '@antfu/eslint-config': 8.2.0
+  '@types/node': 25.6.0
+  eslint: ^10.3.0
+  knip: ^6.12.0
+  taze: ^19.11.0
+  tsdown: ^0.21.10
+  typescript: 6.0.3
+`,
+  }
 }
 
 function materializeEslintRoot(contributions: readonly EslintRootContribution[]): WriteOperation[] {
@@ -224,7 +287,24 @@ function materializeEslintRoot(contributions: readonly EslintRootContribution[])
     surfaceId: contribution.surfaceId,
     path: 'eslint.config.mjs',
     authority: 'none',
-    content: 'import antfu from \'@antfu/eslint-config\'\n\nexport default antfu()\n',
+    content: `import antfu from '@antfu/eslint-config'
+
+export default antfu(
+  {
+    ignores: ['.prelude/**', 'dist/**'],
+  },
+  {
+    rules: {
+      'jsonc/sort-keys': 'off',
+      'no-console': 'off',
+      'node/prefer-global/process': 'off',
+      'pnpm/json-enforce-catalog': 'off',
+      'style/quotes': 'off',
+      'style/jsx-one-expression-per-line': 'off',
+    },
+  },
+)
+`,
   }))
 }
 
@@ -241,7 +321,55 @@ function materializeKnipRoot(contributions: readonly KnipRootContribution[]): Wr
 }
 
 function materializeGeneratedUserFile(contribution: GeneratedUserFileContribution): WriteOperation {
-  if (contribution.surfaceId.includes('/index.html')) {
+  if (contribution.surfaceId === 'source:node-backend/src/index.ts') {
+    return {
+      id: 'write-node-backend-source',
+      kind: 'writeGeneratedUserFile',
+      owner: 'materializer:node-backend-source',
+      surfaceId: contribution.surfaceId,
+      path: contribution.path,
+      authority: 'none',
+      content: contribution.content,
+    }
+  }
+
+  if (contribution.surfaceId === 'source:library/src/index.ts') {
+    return {
+      id: 'write-library-source',
+      kind: 'writeGeneratedUserFile',
+      owner: 'materializer:library-source',
+      surfaceId: contribution.surfaceId,
+      path: contribution.path,
+      authority: 'none',
+      content: contribution.content,
+    }
+  }
+
+  if (contribution.surfaceId === 'source:cli-tool/src/index.ts') {
+    return {
+      id: 'write-cli-tool-source',
+      kind: 'writeGeneratedUserFile',
+      owner: 'materializer:cli-tool-source',
+      surfaceId: contribution.surfaceId,
+      path: contribution.path,
+      authority: 'none',
+      content: contribution.content,
+    }
+  }
+
+  if (contribution.surfaceId === 'cli-tool-support:scripts/ensure-shebang.mjs') {
+    return {
+      id: 'write-cli-tool-ensure-shebang',
+      kind: 'writeGeneratedUserFile',
+      owner: 'materializer:cli-tool-support',
+      surfaceId: contribution.surfaceId,
+      path: contribution.path,
+      authority: 'none',
+      content: contribution.content,
+    }
+  }
+
+  if (contribution.surfaceId.startsWith('react-app-static:') && contribution.surfaceId.endsWith('/index.html')) {
     return {
       id: 'write-react-index-html',
       kind: 'writeGeneratedUserFile',
@@ -253,11 +381,59 @@ function materializeGeneratedUserFile(contribution: GeneratedUserFileContributio
     }
   }
 
-  if (contribution.surfaceId.includes('/src/main.tsx')) {
+  if (contribution.surfaceId.startsWith('react-app-static:') && contribution.surfaceId.endsWith('/src/main.tsx')) {
     return {
       id: 'write-react-main',
       kind: 'writeGeneratedUserFile',
       owner: 'materializer:react-app-static',
+      surfaceId: contribution.surfaceId,
+      path: contribution.path,
+      authority: 'none',
+      content: contribution.content,
+    }
+  }
+
+  if (contribution.surfaceId.startsWith('vue-app-static:') && contribution.surfaceId.endsWith('/index.html')) {
+    return {
+      id: 'write-vue-index-html',
+      kind: 'writeGeneratedUserFile',
+      owner: 'materializer:vue-app-static',
+      surfaceId: contribution.surfaceId,
+      path: contribution.path,
+      authority: 'none',
+      content: contribution.content,
+    }
+  }
+
+  if (contribution.surfaceId.startsWith('vue-app-static:') && contribution.surfaceId.endsWith('/src/main.ts')) {
+    return {
+      id: 'write-vue-main',
+      kind: 'writeGeneratedUserFile',
+      owner: 'materializer:vue-app-static',
+      surfaceId: contribution.surfaceId,
+      path: contribution.path,
+      authority: 'none',
+      content: contribution.content,
+    }
+  }
+
+  if (contribution.surfaceId.startsWith('vue-app-shell:')) {
+    return {
+      id: 'write-vue-app-shell',
+      kind: 'writeGeneratedUserFile',
+      owner: 'materializer:vue-app-shell',
+      surfaceId: contribution.surfaceId,
+      path: contribution.path,
+      authority: 'none',
+      content: contribution.content,
+    }
+  }
+
+  if (contribution.surfaceId.startsWith('vite-config:')) {
+    return {
+      id: 'write-vite-config',
+      kind: 'writeGeneratedUserFile',
+      owner: 'materializer:vite-config',
       surfaceId: contribution.surfaceId,
       path: contribution.path,
       authority: 'none',
@@ -288,8 +464,173 @@ function materializeGeneratedUserFile(contribution: GeneratedUserFileContributio
   }
 }
 
+function materializeTypeScriptConfig(contribution: TypeScriptConfigContribution): WriteOperation {
+  const targetPath = scopedPathFromSurface(contribution.surfaceId, 'typescript-config:', 'tsconfig.json')
+
+  return {
+    id: scopedOperationId('write-tsconfig', targetPath),
+    kind: 'writeStructuredFile',
+    owner: 'materializer:typescript-config',
+    surfaceId: contribution.surfaceId,
+    path: targetPath,
+    authority: 'none',
+    value: contribution.value,
+  }
+}
+
+function materializeTsdownConfig(contribution: TsdownConfigContribution): WriteOperation {
+  const targetPath = scopedPathFromSurface(contribution.surfaceId, 'tsdown-config:', 'tsdown.config.ts')
+
+  return {
+    id: scopedOperationId('write-tsdown-config', targetPath),
+    kind: 'writeGeneratedUserFile',
+    owner: 'materializer:tsdown-config',
+    surfaceId: contribution.surfaceId,
+    path: targetPath,
+    authority: 'none',
+    content: `import { defineConfig } from 'tsdown'
+
+export default defineConfig({
+  entry: 'src/index.ts',
+  outDir: 'dist',
+  format: 'esm',
+  fixedExtension: false,
+  dts: true,
+})
+`,
+  }
+}
+
 function unique(values: readonly string[]) {
   return [...new Set(values)]
+}
+
+function importSource(importLine: string) {
+  const match = /(?:from|import) '([^']+)'/u.exec(importLine)
+  return match?.[1] ?? importLine
+}
+
+function sortImportLines(imports: readonly string[]) {
+  return unique(imports).sort((left, right) =>
+    importSource(left).localeCompare(importSource(right)) || left.localeCompare(right),
+  )
+}
+
+function indentJsx(lines: readonly string[], spaces: number) {
+  const prefix = ' '.repeat(spaces)
+  return lines.map((line) => {
+    const content = line.startsWith('      ') ? line.slice(6) : line.trimStart()
+    return `${prefix}${content}`
+  })
+}
+
+function classAttribute(kind: 'class' | 'className', tokens: readonly string[]) {
+  return tokens.length > 0 ? ` ${kind}="${tokens.join(' ')}"` : ''
+}
+
+function materializeFrontendEntry(surfaceId: string, contributions: readonly FrontendEntryContribution[]): Effect.Effect<WriteOperation, SchemaContractError> {
+  const base = contributions.find(contribution => contribution.framework !== undefined)
+
+  if (!base?.framework) {
+    return Effect.fail(new SchemaContractError({
+      schema: surfaceId,
+      issueCount: 1,
+      message: `Frontend entry surface ${surfaceId} is missing a framework owner contribution.`,
+    }))
+  }
+
+  const imports = sortImportLines(contributions.flatMap(contribution => contribution.imports))
+  const declarations = contributions.flatMap(contribution => contribution.declarations)
+  const appUse = unique(contributions.flatMap(contribution => contribution.appUse))
+  const styleImports = unique(contributions.flatMap(contribution => contribution.styleImports))
+  const styleImportLines = styleImports.map(importPath => `import '${importPath}'`)
+
+  if (base.framework === 'react') {
+    return Effect.succeed({
+      id: 'write-react-main',
+      kind: 'writeGeneratedUserFile',
+      owner: 'materializer:frontend-entry',
+      surfaceId,
+      path: base.path,
+      authority: 'none',
+      content: `${[
+        'import { StrictMode } from \'react\'',
+        'import { createRoot } from \'react-dom/client\'',
+        'import { App } from \'./App\'',
+        ...imports,
+        ...styleImportLines,
+      ].join('\n')}
+
+createRoot(document.getElementById('root')!).render(
+  <StrictMode>
+    <App />
+  </StrictMode>,
+)
+`,
+    })
+  }
+
+  const appFactory = ['createApp(App)', ...appUse.map(use => `use(${use})`)].join('.')
+
+  return Effect.succeed({
+    id: 'write-vue-main',
+    kind: 'writeGeneratedUserFile',
+    owner: 'materializer:frontend-entry',
+    surfaceId,
+    path: base.path,
+    authority: 'none',
+    content: `${[
+      'import { createApp } from \'vue\'',
+      ...imports,
+      'import App from \'./App.vue\'',
+      ...styleImportLines,
+    ].join('\n')}
+${declarations.length > 0 ? `\n${declarations.join('\n')}\n` : ''}
+${appFactory}.mount('#app')
+`,
+  })
+}
+
+function materializeViteConfig(surfaceId: string, contributions: readonly ViteConfigContribution[]): WriteOperation {
+  const firstContribution = contributions[0]!
+  const imports = sortImportLines(contributions.flatMap(contribution => contribution.imports))
+  const plugins = unique(contributions.flatMap(contribution => contribution.plugins))
+  const pluginList = plugins.length === 1
+    ? plugins[0]!
+    : `\n${plugins.map(plugin => `    ${plugin}`).join(',\n')},\n  `
+
+  return {
+    id: 'write-vite-config',
+    kind: 'writeGeneratedUserFile',
+    owner: 'materializer:vite-config',
+    surfaceId,
+    path: firstContribution.path,
+    authority: 'none',
+    content: `${[
+      ...imports,
+      'import { defineConfig } from \'vite\'',
+    ].join('\n')}
+
+export default defineConfig({
+  plugins: [${pluginList}],
+})
+`,
+  }
+}
+
+function materializeStyleSheet(surfaceId: string, contributions: readonly StyleSheetContribution[]): WriteOperation {
+  const firstContribution = contributions[0]!
+  const content = contributions.flatMap(contribution => contribution.content).join('\n')
+
+  return {
+    id: firstContribution.path.endsWith('.less') ? 'write-less-stylesheet' : 'write-css-stylesheet',
+    kind: 'writeGeneratedUserFile',
+    owner: 'materializer:stylesheet',
+    surfaceId,
+    path: firstContribution.path,
+    authority: 'none',
+    content: `${content}\n`,
+  }
 }
 
 function materializeReactAppShell(contributions: readonly ReactAppShellContribution[]): WriteOperation[] {
@@ -298,26 +639,120 @@ function materializeReactAppShell(contributions: readonly ReactAppShellContribut
   }
 
   const surfaceId = contributions[0]!.surfaceId
-  const imports = unique(contributions.flatMap(contribution => contribution.imports))
-  const declarations = contributions.flatMap(contribution => contribution.declarations)
-  const bodyContribution = contributions.find(contribution => contribution.owner !== 'capability:react-app')
-    ?? contributions[0]!
-  const body = bodyContribution.body.join('\n')
+  const shellPath = contributions[0]!.path
+  const imports = sortImportLines(contributions.flatMap(contribution => contribution.imports))
+  const moduleDeclarations = unique(contributions.flatMap(contribution => contribution.moduleDeclarations))
+  const componentDeclarations = contributions.flatMap(contribution => contribution.componentDeclarations)
+  const featureContent = contributions
+    .filter(contribution => contribution.owner !== 'capability:react-app')
+    .flatMap(contribution => contribution.content)
+  const baseContent = contributions
+    .filter(contribution => contribution.owner === 'capability:react-app')
+    .flatMap(contribution => contribution.content)
+  const content = featureContent.length > 0 ? featureContent : baseContent
+  const mainClassNameTokens = unique(contributions.flatMap(contribution => contribution.mainClassNameTokens))
+  const routing = unique(contributions.flatMap(contribution => contribution.routing))
   const importBlock = imports.length > 0 ? `${imports.join('\n')}\n\n` : ''
-  const declarationBlock = declarations.length > 0 ? `\n${declarations.join('\n')}\n` : ''
+  const moduleDeclarationBlock = moduleDeclarations.length > 0 ? `${moduleDeclarations.join('\n')}\n\n` : ''
+  const declarationBlock = componentDeclarations.length > 0 ? `\n${componentDeclarations.join('\n')}\n` : ''
+  const mainOpen = `<main${classAttribute('className', mainClassNameTokens)}>`
+  const mainBlock = [
+    `    ${mainOpen}`,
+    ...indentJsx(content, 6),
+    '    </main>',
+  ]
+  const body = routing.includes('react-router')
+    ? [
+        '    <BrowserRouter>',
+        '      <nav>',
+        '        <Link to="/">Home</Link>',
+        '      </nav>',
+        '      <Routes>',
+        '        <Route',
+        '          path="/"',
+        '          element={(',
+        `            ${mainOpen}`,
+        ...indentJsx(content, 14),
+        '            </main>',
+        '          )}',
+        '        />',
+        '      </Routes>',
+        '    </BrowserRouter>',
+      ].join('\n')
+    : mainBlock.join('\n')
 
   return [{
     id: 'write-react-app-shell',
     kind: 'writeGeneratedUserFile',
     owner: 'materializer:react-app-shell',
     surfaceId,
-    path: 'src/App.tsx',
+    path: shellPath,
     authority: 'none',
-    content: `${importBlock}export function App() {${declarationBlock}
+    content: `${importBlock}${moduleDeclarationBlock}export function App() {${declarationBlock}
   return (
 ${body}
   )
 }
+`,
+  }]
+}
+
+function materializeVueAppShell(contributions: readonly VueAppShellContribution[]): WriteOperation[] {
+  if (contributions.length === 0) {
+    return []
+  }
+
+  const surfaceId = contributions[0]!.surfaceId
+  const shellPath = contributions[0]!.path
+  const imports = unique(contributions.flatMap(contribution => contribution.scriptImports))
+  const scriptSetup = contributions.flatMap(contribution => contribution.scriptSetup)
+  const templateContent = contributions.flatMap(contribution => contribution.templateContent)
+  const mainClassNameTokens = unique(contributions.flatMap(contribution => contribution.mainClassNameTokens))
+  const hasTailwindClasses = mainClassNameTokens.length > 0
+  const scriptLines = [...imports, ...scriptSetup]
+  const scopedStyle = hasTailwindClasses
+    ? ''
+    : `
+
+<style scoped>
+main {
+  min-height: 100vh;
+  display: grid;
+  place-content: center;
+  gap: 1rem;
+  margin: 0;
+  font-family:
+    Inter,
+    ui-sans-serif,
+    system-ui,
+    sans-serif;
+  color: #1f2937;
+  background: #f8fafc;
+}
+
+h1,
+p {
+  margin: 0;
+}
+</style>
+`
+
+  return [{
+    id: 'write-vue-app-shell',
+    kind: 'writeGeneratedUserFile',
+    owner: 'materializer:vue-app-shell',
+    surfaceId,
+    path: shellPath,
+    authority: 'none',
+    content: `<script setup lang="ts">
+${scriptLines.join('\n')}
+</script>
+
+<template>
+  <main${classAttribute('class', mainClassNameTokens)}>
+${templateContent.join('\n')}
+  </main>
+</template>${scopedStyle}
 `,
   }]
 }
@@ -364,6 +799,9 @@ export function materializeWritePlan(contributions: readonly CapabilityContribut
   const packageManifestContributions = contributions.filter(
     (contribution): contribution is PackageManifestContribution => contribution.kind === 'packageManifest',
   )
+  const workspaceManifestContributions = contributions.filter(
+    (contribution): contribution is WorkspaceManifestContribution => contribution.kind === 'workspaceManifest',
+  )
   const eslintRootContributions = contributions.filter(
     (contribution): contribution is EslintRootContribution => contribution.kind === 'eslintRoot',
   )
@@ -373,23 +811,63 @@ export function materializeWritePlan(contributions: readonly CapabilityContribut
   const sourceContributions = contributions.filter(
     (contribution): contribution is GeneratedUserFileContribution => contribution.kind === 'generatedUserFile',
   )
+  const frontendEntryContributions = contributions.filter(
+    (contribution): contribution is FrontendEntryContribution => contribution.kind === 'frontendEntry',
+  )
+  const viteConfigContributions = contributions.filter(
+    (contribution): contribution is ViteConfigContribution => contribution.kind === 'viteConfig',
+  )
+  const styleSheetContributions = contributions.filter(
+    (contribution): contribution is StyleSheetContribution => contribution.kind === 'styleSheet',
+  )
   const reactAppShellContributions = contributions.filter(
     (contribution): contribution is ReactAppShellContribution => contribution.kind === 'reactAppShell',
+  )
+  const vueAppShellContributions = contributions.filter(
+    (contribution): contribution is VueAppShellContribution => contribution.kind === 'vueAppShell',
+  )
+  const typeScriptConfigContributions = contributions.filter(
+    (contribution): contribution is TypeScriptConfigContribution => contribution.kind === 'typescriptConfig',
+  )
+  const tsdownConfigContributions = contributions.filter(
+    (contribution): contribution is TsdownConfigContribution => contribution.kind === 'tsdownConfig',
   )
   const providerArtifactContributions = contributions.filter(
     (contribution): contribution is ProviderArtifactContribution => contribution.kind === 'providerArtifact',
   )
   const packageManifestSurfaces = new Map<string, readonly PackageManifestContribution[]>()
+  const frontendEntrySurfaces = new Map<string, readonly FrontendEntryContribution[]>()
+  const viteConfigSurfaces = new Map<string, readonly ViteConfigContribution[]>()
+  const styleSheetSurfaces = new Map<string, readonly StyleSheetContribution[]>()
 
   for (const contribution of packageManifestContributions) {
     const existing = packageManifestSurfaces.get(contribution.surfaceId) ?? []
     packageManifestSurfaces.set(contribution.surfaceId, [...existing, contribution])
   }
 
+  for (const contribution of frontendEntryContributions) {
+    const existing = frontendEntrySurfaces.get(contribution.surfaceId) ?? []
+    frontendEntrySurfaces.set(contribution.surfaceId, [...existing, contribution])
+  }
+
+  for (const contribution of viteConfigContributions) {
+    const existing = viteConfigSurfaces.get(contribution.surfaceId) ?? []
+    viteConfigSurfaces.set(contribution.surfaceId, [...existing, contribution])
+  }
+
+  for (const contribution of styleSheetContributions) {
+    const existing = styleSheetSurfaces.get(contribution.surfaceId) ?? []
+    styleSheetSurfaces.set(contribution.surfaceId, [...existing, contribution])
+  }
+
   return Effect.gen(function* () {
     const packageJsonOperations = yield* Effect.all(
       [...packageManifestSurfaces.entries()].map(([surfaceId, surfaceContributions]) =>
         materializePackageJson(surfaceId, surfaceContributions)),
+    )
+    const frontendEntryOperations = yield* Effect.all(
+      [...frontendEntrySurfaces.entries()].map(([surfaceId, surfaceContributions]) =>
+        materializeFrontendEntry(surfaceId, surfaceContributions)),
     )
     const providerArtifactOperations = yield* Effect.all(
       providerArtifactContributions.map(materializeProviderArtifact),
@@ -398,10 +876,19 @@ export function materializeWritePlan(contributions: readonly CapabilityContribut
     return {
       operations: [
         ...packageJsonOperations,
+        ...workspaceManifestContributions.map(materializeWorkspaceManifest),
         ...materializeEslintRoot(eslintRootContributions),
         ...materializeKnipRoot(knipRootContributions),
         ...sourceContributions.map(materializeGeneratedUserFile),
+        ...frontendEntryOperations,
+        ...[...viteConfigSurfaces.entries()].map(([surfaceId, surfaceContributions]) =>
+          materializeViteConfig(surfaceId, surfaceContributions)),
+        ...[...styleSheetSurfaces.entries()].map(([surfaceId, surfaceContributions]) =>
+          materializeStyleSheet(surfaceId, surfaceContributions)),
+        ...typeScriptConfigContributions.map(materializeTypeScriptConfig),
+        ...tsdownConfigContributions.map(materializeTsdownConfig),
         ...materializeReactAppShell(reactAppShellContributions),
+        ...materializeVueAppShell(vueAppShellContributions),
         ...providerArtifactOperations,
       ],
     }

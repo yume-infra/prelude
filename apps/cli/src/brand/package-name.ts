@@ -2,7 +2,7 @@ import { Schema } from 'effect'
 
 export const PackageNameSchema = Schema.String.pipe(
   Schema.brand('PackageName'),
-  Schema.annotations({
+  Schema.annotate({
     identifier: 'PackageName',
     title: 'PackageName',
   }),
@@ -10,4 +10,4 @@ export const PackageNameSchema = Schema.String.pipe(
 
 export type PackageName = Schema.Schema.Type<typeof PackageNameSchema>
 
-export const makePackageName = (value: string): PackageName => PackageNameSchema.make(value)
+export const makePackageName = (value: string): PackageName => Schema.decodeUnknownSync(PackageNameSchema)(value)

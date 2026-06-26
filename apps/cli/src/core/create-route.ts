@@ -1,14 +1,15 @@
 import type { ProjectName } from '@/brand/project-name'
 import type { TargetDir } from '@/brand/target-dir'
-import type { CreateSpec } from '@/core/create'
+import type { CapabilityId, CreateSpec, WritePlan } from '@/core/create'
 import { multiselect, select, text } from '@clack/prompts'
-import { Effect, ParseResult } from 'effect'
+import { Effect, Result } from 'effect'
 import { makePackageName } from '@/brand/package-name'
 import { decodeProjectName, formatProjectNameError } from '@/brand/project-name'
 import { makeProjectTargetDir } from '@/brand/target-dir'
-import { createProjectFromSpec } from '@/core/create'
+import { createProjectFromSpec, planCreateProjectFromSpec } from '@/core/create'
 import { formatCanonicalCreateSpecJson, loadCreateSpecFromInput } from '@/core/create-spec-input'
 import { SchemaContractError } from '@/core/errors'
+import { schemaIssueCount } from '@/schema/errors'
 import { ask } from './adapters/prompts'
 import { CliContext } from './cli-context'
 
@@ -26,14 +27,6 @@ function unsupportedPresetError() {
   return new SchemaContractError({
     schema: 'CliArgs',
     message: 'CliArgs: --preset has been removed from the active create API. Reusable shapes are complete canonical CreateSpec files passed with --spec.',
-    issueCount: 1,
-  })
-}
-
-function unsupportedDryRunError() {
-  return new SchemaContractError({
-    schema: 'CliArgs',
-    message: 'CliArgs: --dry-run has been removed. Use --print-spec to inspect canonical CreateSpec input.',
     issueCount: 1,
   })
 }
@@ -59,7 +52,7 @@ function decodeGuidedProjectName(input: string) {
     Effect.mapError(error => new SchemaContractError({
       schema: 'ProjectName',
       message: formatProjectNameError(error),
-      issueCount: ParseResult.ArrayFormatter.formatErrorSync(error).length,
+      issueCount: schemaIssueCount(error),
     })),
   )
 }
@@ -100,7 +93,7 @@ const askTopology = ask(() =>
 )
 
 const askPackageCapabilities = ask(() =>
-  multiselect<CreateSpec['package']['capabilities'][number]>({
+  multiselect<CapabilityId>({
     message: 'Package capabilities:',
     required: true,
     options: [
@@ -129,24 +122,54 @@ function providersForRootCapabilities(rootCapabilities: readonly string[]) {
   return rootCapabilities.includes('ai-harness') ? ['effect-harness'] : []
 }
 
+function formatDryRunOutput(options: {
+  readonly writePlan: WritePlan
+  readonly blockers: readonly SchemaContractError[]
+}) {
+  return `${JSON.stringify({
+    operations: options.writePlan.operations,
+    blockers: options.blockers.map(blocker => ({
+      schema: blocker.schema,
+      message: blocker.message,
+      issueCount: blocker.issueCount,
+    })),
+  }, null, 2)}\n`
+}
+
+function emptyWritePlan(): WritePlan {
+  return { operations: [] }
+}
+
 const collectGuidedCreateSpec = Effect.gen(function* () {
   const name = yield* askGuidedProjectName
   const topology = yield* askTopology
   const capabilities = yield* askPackageCapabilities
   const rootCapabilities = yield* askRootCapabilities
+  const packageSpec = {
+    id: 'app',
+    name: makePackageName(String(name)),
+    capabilities,
+  }
 
   return {
-    spec: {
-      topology,
-      package: {
-        id: 'app',
-        name: makePackageName(String(name)),
-        capabilities,
-      },
-      rootCapabilities,
-      providers: providersForRootCapabilities(rootCapabilities),
-      overrides: {},
-    },
+    spec: topology === 'workspace'
+      ? {
+          topology,
+          packages: [{
+            ...packageSpec,
+            internalDependencies: [],
+          }],
+          rootCapabilities,
+          providers: [],
+          overrides: {},
+        }
+      : {
+          topology,
+          package: packageSpec,
+          rootCapabilities,
+          providers: providersForRootCapabilities(rootCapabilities),
+          overrides: {},
+        },
     targetName: name,
   } satisfies CreateRouteSpecInput
 })
@@ -194,13 +217,25 @@ export function runCreateRoute(options: CreateRouteOptions) {
   return Effect.gen(function* () {
     const cli = yield* CliContext
 
-    if (cli.args.dryRun) {
-      return yield* unsupportedDryRunError()
-    }
-
     const input = yield* loadCreateRouteSpec
 
+    if (cli.args.dryRun) {
+      const planResult = yield* Effect.result(planCreateProjectFromSpec(input.spec))
+      const writePlan = Result.isSuccess(planResult) ? planResult.success.writePlan : emptyWritePlan()
+      const blockers = Result.isFailure(planResult) ? [planResult.failure] : []
+      const output = formatDryRunOutput({ writePlan, blockers })
+      yield* Effect.sync(() => console.log(output.trimEnd()))
+      return {
+        kind: 'dry-run',
+        spec: input.spec,
+        writePlan,
+        blockers,
+        output,
+      } as const
+    }
+
     if (cli.args.printSpec) {
+      yield* planCreateProjectFromSpec(input.spec)
       const output = formatCanonicalCreateSpecJson(input.spec)
       yield* Effect.sync(() => console.log(output.trimEnd()))
       return {

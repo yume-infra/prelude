@@ -2,9 +2,9 @@
 
 import { readFileSync } from 'node:fs'
 import process from 'node:process'
-import { DevTools } from '@effect/experimental'
-import { NodeContext, NodeFileSystem, NodeRuntime } from '@effect/platform-node'
-import { Effect, Either, Layer, Logger } from 'effect'
+import { NodeRuntime, NodeServices } from '@effect/platform-node'
+import { Effect, Layer, Logger, References, Result } from 'effect'
+import { DevTools } from 'effect/unstable/devtools'
 import { AppConfig } from '@/config/app-config'
 import { parseCliArgs, parseRawCliArgs } from '@/core/cli-args'
 import { CliContextLive } from '@/core/cli-context'
@@ -21,17 +21,22 @@ function readPackageVersion() {
   return packageJson.version ?? '0.0.0'
 }
 
-const DevToolsLive = Layer.unwrapEffect(
-  Effect.map(AppConfig, config => (config.debug ? DevTools.layer() : Layer.empty)),
+const DevToolsLive = Layer.unwrap(
+  Effect.gen(function* () {
+    const config = yield* AppConfig
+    return config.debug ? DevTools.layer() : Layer.empty
+  }),
 )
 
-const LoggerLevelLive = Layer.unwrapEffect(
-  Effect.map(AppConfig, config => Logger.minimumLogLevel(config.logLevel)),
+const LoggerLevelLive = Layer.unwrap(
+  Effect.gen(function* () {
+    const config = yield* AppConfig
+    return Layer.succeed(References.MinimumLogLevel, config.logLevel)
+  }),
 )
 
 const PlatformLayer = Layer.mergeAll(
-  NodeFileSystem.layer,
-  NodeContext.layer,
+  NodeServices.layer,
   AppConfig.Default,
 )
 
@@ -39,7 +44,7 @@ const BaseLayer = Layer.mergeAll(
   DevToolsLive,
   TracingLive,
   LoggerLevelLive,
-  Logger.pretty,
+  Logger.layer([Logger.consolePretty()]),
   FsLive,
 ).pipe(Layer.provideMerge(PlatformLayer))
 
@@ -56,17 +61,17 @@ if (rawCliArgs.version) {
 }
 
 const decodedCliArgs = Effect.runSync(
-  Effect.either(parseCliArgs(process.argv.slice(2))),
+  Effect.result(parseCliArgs(process.argv.slice(2))),
 )
 
-if (Either.isLeft(decodedCliArgs)) {
-  console.error(decodedCliArgs.left.message)
+if (Result.isFailure(decodedCliArgs)) {
+  console.error(decodedCliArgs.failure.message)
   console.error()
   console.error(HELP_TEXT)
   process.exit(2)
 }
 
-const cliArgs = decodedCliArgs.right
+const cliArgs = decodedCliArgs.success
 const canPrompt = process.stdin.isTTY === true && !cliArgs.noInput && cliArgs.spec === undefined
 
 const CliContextLayer = CliContextLive({

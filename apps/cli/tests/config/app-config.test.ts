@@ -3,22 +3,22 @@ import { describe, expect, it } from 'vitest'
 import { AppConfig } from '../../src/config/app-config'
 
 describe('appConfig', () => {
-  it('reads runtime settings from ConfigProvider.fromMap', async () => {
-    const provider = ConfigProvider.fromMap(new Map([
-      ['LOG_LEVEL', 'Info'],
-      ['DEFAULT_CONCURRENCY', '4'],
-      ['OTEL_EXPORTER_OTLP_ENDPOINT', 'https://collector.example'],
-      ['DEBUG', 'true'],
-    ]))
+  it('reads runtime settings from ConfigProvider.fromUnknown', async () => {
+    const provider = ConfigProvider.fromUnknown({
+      LOG_LEVEL: 'Info',
+      DEFAULT_CONCURRENCY: '4',
+      OTEL_EXPORTER_OTLP_ENDPOINT: 'https://collector.example',
+      DEBUG: 'true',
+    })
 
     const config = await Effect.runPromise(
-      AppConfig.pipe(
+      Effect.service(AppConfig).pipe(
         Effect.provide(AppConfig.Default),
-        Effect.withConfigProvider(provider),
+        Effect.provide(ConfigProvider.layer(provider)),
       ),
     )
 
-    expect(config.logLevel._tag).toBe('Info')
+    expect(config.logLevel).toBe('Info')
     expect(config.defaultConcurrency).toBe(4)
     expect(config.debug).toBe(true)
     expect(Option.isSome(config.tracingEndpoint)).toBe(true)
@@ -32,27 +32,27 @@ describe('appConfig', () => {
 
   it('falls back to defaults when config values are missing', async () => {
     const config = await Effect.runPromise(
-      AppConfig.pipe(
+      Effect.service(AppConfig).pipe(
         Effect.provide(AppConfig.Default),
-        Effect.withConfigProvider(ConfigProvider.fromMap(new Map())),
+        Effect.provide(ConfigProvider.layer(ConfigProvider.fromUnknown({}))),
       ),
     )
 
-    expect(config.logLevel._tag).toBe('Debug')
+    expect(config.logLevel).toBe('Debug')
     expect(config.defaultConcurrency).toBe(8)
     expect(config.debug).toBe(false)
     expect(Option.isNone(config.tracingEndpoint)).toBe(true)
   })
 
   it('rejects non-positive concurrency at the config boundary', async () => {
-    const provider = ConfigProvider.fromMap(new Map([
-      ['DEFAULT_CONCURRENCY', '0'],
-    ]))
+    const provider = ConfigProvider.fromUnknown({
+      DEFAULT_CONCURRENCY: '0',
+    })
 
     const exit = await Effect.runPromiseExit(
-      AppConfig.pipe(
+      Effect.service(AppConfig).pipe(
         Effect.provide(AppConfig.Default),
-        Effect.withConfigProvider(provider),
+        Effect.provide(ConfigProvider.layer(provider)),
       ),
     )
 

@@ -88,6 +88,11 @@ export interface ProviderLifecycleUpdateResult {
   readonly providers: readonly ProviderVerifyResult[]
 }
 
+export type ManagedSurfaceReconcileResult
+  = | { readonly status: 'alreadyApplied' }
+    | { readonly status: 'apply' }
+    | { readonly status: 'drift' }
+
 const manifestRelativePath = '.prelude/manifest.json'
 
 function manifestPath(targetDir: TargetDir) {
@@ -153,8 +158,28 @@ function isProviderNamespacePath(providerId: string, relativePath: string) {
   return !normalizedPath.startsWith('../') && normalizedPath.startsWith(providerPrefix)
 }
 
+export function reconcileManagedLogicalValue(input: {
+  readonly base: string
+  readonly current: string
+  readonly desired: string
+}): ManagedSurfaceReconcileResult {
+  if (input.current === input.desired) {
+    return { status: 'alreadyApplied' }
+  }
+
+  if (input.current === input.base) {
+    return { status: 'apply' }
+  }
+
+  return { status: 'drift' }
+}
+
 function providerOwner(providerId: string) {
   return `provider:${providerId}`
+}
+
+function surfaceBase(surface: LifecycleSurfaceRecord) {
+  return surface.base ?? surface.snapshot
 }
 
 function findDeclaredSurface(
@@ -250,6 +275,10 @@ function writePointer(value: JsonValue, pointer: string, nextValue: JsonValue): 
 }
 
 function snapshotOf(value: JsonValue | undefined) {
+  if (value === undefined) {
+    return undefined
+  }
+
   return typeof value === 'string' ? value : JSON.stringify(value)
 }
 
@@ -265,13 +294,44 @@ function parseJsonFile(content: string, relativePath: string): Effect.Effect<Jso
   }
 }
 
+function reconcileOrBlock(input: {
+  readonly surface: LifecycleSurfaceRecord
+  readonly path: string
+  readonly base: string
+  readonly current: string
+  readonly desired: string
+}): Effect.Effect<Exclude<ManagedSurfaceReconcileResult, { readonly status: 'drift' }>, LifecycleCommandError> {
+  const decision = reconcileManagedLogicalValue(input)
+
+  if (decision.status === 'drift') {
+    return Effect.fail(new LifecycleCommandError({
+      message: `Lifecycle surface ${input.surface.id} at ${input.path} drifted; current differs from manifest base and desired value`,
+    }))
+  }
+
+  return Effect.succeed(decision)
+}
+
+function findProviderNamespaceSurface(
+  manifest: PreludeManifest,
+  record: LifecycleProviderRecord,
+  relativePath: string,
+) {
+  return manifest.lifecycleSurfaces.find(surface =>
+    surface.kind === 'ownedFile'
+    && surface.path === relativePath
+    && surface.owner === providerOwner(record.id)
+    && record.lifecycleSurfaces.includes(surface.id),
+  )
+}
+
 function preflightOperation(
   fs: CreateFs,
   targetDir: TargetDir,
   manifest: PreludeManifest,
   record: LifecycleProviderRecord,
   operation: ProviderUpdateOperation,
-): Effect.Effect<void, LifecycleCommandError | FileIOError> {
+): Effect.Effect<Exclude<ManagedSurfaceReconcileResult, { readonly status: 'drift' }>, LifecycleCommandError | FileIOError> {
   return Effect.gen(function* () {
     if (operation.kind === 'replaceProviderFile') {
       if (!isProviderNamespacePath(record.id, operation.path)) {
@@ -279,7 +339,27 @@ function preflightOperation(
           message: `Provider ${record.id} update targets unsupported provider path ${operation.path}; provider writes must stay under .prelude/providers/${record.id}/`,
         })
       }
-      return
+
+      const surface = findProviderNamespaceSurface(manifest, record, operation.path)
+      if (surface === undefined) {
+        return { status: 'apply' as const }
+      }
+
+      const base = surfaceBase(surface)
+      if (base === undefined) {
+        return yield* new LifecycleCommandError({
+          message: `Provider ${record.id} provider lifecycle surface ${surface.id} has no base snapshot`,
+        })
+      }
+
+      const current = yield* fs.readFileString(targetPath(targetDir, operation.path))
+      return yield* reconcileOrBlock({
+        surface,
+        path: operation.path,
+        base,
+        current,
+        desired: operation.content,
+      })
     }
 
     const surface = yield* findDeclaredSurface(manifest, record, operation)
@@ -291,20 +371,21 @@ function preflightOperation(
         })
       }
 
-      const snapshot = 'snapshot' in surface ? surface.snapshot : undefined
-      if (snapshot === undefined) {
+      const base = surfaceBase(surface)
+      if (base === undefined) {
         return yield* new LifecycleCommandError({
-          message: `Provider ${record.id} owned lifecycle surface ${operation.surfaceId} has no snapshot`,
+          message: `Provider ${record.id} owned lifecycle surface ${operation.surfaceId} has no base snapshot`,
         })
       }
 
       const current = yield* fs.readFileString(targetPath(targetDir, operation.path))
-      if (current !== snapshot) {
-        return yield* new LifecycleCommandError({
-          message: `Lifecycle surface ${operation.surfaceId} at ${operation.path} drifted`,
-        })
-      }
-      return
+      return yield* reconcileOrBlock({
+        surface,
+        path: operation.path,
+        base,
+        current,
+        desired: operation.content,
+      })
     }
 
     if (surface.kind !== 'structuredPointer' || surface.authority !== 'bounded' || surface.path !== operation.path || surface.pointer !== operation.pointer) {
@@ -316,12 +397,23 @@ function preflightOperation(
     const content = yield* fs.readFileString(targetPath(targetDir, operation.path))
     const json = yield* parseJsonFile(content, operation.path)
     const current = yield* readPointer(json, operation.pointer)
+    const currentSnapshot = snapshotOf(current)
+    const desiredSnapshot = snapshotOf(operation.value)
+    const base = surfaceBase(surface)
 
-    if (snapshotOf(current) !== surface.snapshot) {
+    if (base === undefined || currentSnapshot === undefined || desiredSnapshot === undefined) {
       return yield* new LifecycleCommandError({
-        message: `Lifecycle surface ${operation.surfaceId} at ${operation.path} drifted`,
+        message: `Lifecycle surface ${operation.surfaceId} at ${operation.path} cannot be reconciled because the logical value is missing`,
       })
     }
+
+    return yield* reconcileOrBlock({
+      surface,
+      path: operation.path,
+      base,
+      current: currentSnapshot,
+      desired: desiredSnapshot,
+    })
   })
 }
 
@@ -378,6 +470,7 @@ function applyManifestUpdates(
         if (surfaceIndex >= 0 && surfaces[surfaceIndex]!.kind === 'ownedFile') {
           surfaces[surfaceIndex] = {
             ...surfaces[surfaceIndex]!,
+            base: operation.content,
             snapshot: operation.content,
           }
         }
@@ -386,9 +479,27 @@ function applyManifestUpdates(
       if (operation.kind === 'replaceStructuredPointer') {
         const surfaceIndex = surfaces.findIndex(surface => surface.id === operation.surfaceId)
         if (surfaceIndex >= 0 && surfaces[surfaceIndex]!.kind === 'structuredPointer') {
+          const snapshot = snapshotOf(operation.value)!
           surfaces[surfaceIndex] = {
             ...surfaces[surfaceIndex]!,
-            snapshot: snapshotOf(operation.value),
+            base: snapshot,
+            snapshot,
+          }
+        }
+      }
+
+      if (operation.kind === 'replaceProviderFile') {
+        const surfaceIndex = surfaces.findIndex(surface =>
+          surface.kind === 'ownedFile'
+          && surface.owner === providerOwner(update.record.id)
+          && surface.path === operation.path
+          && update.record.lifecycleSurfaces.includes(surface.id),
+        )
+        if (surfaceIndex >= 0) {
+          surfaces[surfaceIndex] = {
+            ...surfaces[surfaceIndex]!,
+            base: operation.content,
+            snapshot: operation.content,
           }
         }
       }
@@ -436,7 +547,7 @@ function providerFor(
 
   if (provider.contractVersion !== record.contractVersion) {
     return Effect.fail(new LifecycleCommandError({
-      message: `Lifecycle provider ${record.id} contract ${record.contractVersion} is not supported`,
+      message: `Lifecycle provider ${record.id} contract transition ${record.contractVersion} -> ${provider.contractVersion} is unsupported; no declarative migration plan is registered`,
     }))
   }
 
@@ -525,23 +636,33 @@ export function runProviderLifecycleUpdate(
         return { provider, record, plan }
       }), { concurrency: 1 })
 
-    yield* Effect.forEach(
+    const preflightedUpdates = yield* Effect.forEach(
       plannedUpdates,
       update =>
-        Effect.forEach(
-          update.plan.operations,
-          operation => preflightOperation(fs, options.targetDir, manifest, update.record, operation),
-          { concurrency: 1, discard: true },
-        ),
-      { concurrency: 1, discard: true },
+        Effect.gen(function* () {
+          const operations = yield* Effect.forEach(
+            update.plan.operations,
+            operation =>
+              preflightOperation(fs, options.targetDir, manifest, update.record, operation).pipe(
+                Effect.map(decision => ({ decision, operation })),
+              ),
+            { concurrency: 1 },
+          )
+
+          return {
+            ...update,
+            operations,
+          }
+        }),
+      { concurrency: 1 },
     )
 
     yield* Effect.forEach(
-      plannedUpdates,
+      preflightedUpdates,
       update =>
         Effect.forEach(
-          update.plan.operations,
-          operation => applyOperation(fs, options.targetDir, operation),
+          update.operations.filter(operation => operation.decision.status === 'apply'),
+          operation => applyOperation(fs, options.targetDir, operation.operation),
           { concurrency: 1, discard: true },
         ),
       { concurrency: 1, discard: true },

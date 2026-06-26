@@ -3,7 +3,7 @@ import { Schema } from 'effect'
 
 const TargetDirSchema = Schema.String.pipe(
   Schema.brand('TargetDir'),
-  Schema.annotations({
+  Schema.annotate({
     identifier: 'TargetDir',
     title: 'TargetDir',
   }),
@@ -11,6 +11,6 @@ const TargetDirSchema = Schema.String.pipe(
 
 export type TargetDir = Schema.Schema.Type<typeof TargetDirSchema>
 
-export const makeTargetDir = (value: string): TargetDir => TargetDirSchema.make(value)
+export const makeTargetDir = (value: string): TargetDir => Schema.decodeUnknownSync(TargetDirSchema)(value)
 
 export const makeProjectTargetDir = (name: ProjectName): TargetDir => makeTargetDir(`./${name}`)

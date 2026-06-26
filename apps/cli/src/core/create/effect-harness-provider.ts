@@ -14,6 +14,15 @@ const effectHarnessContractVersion = '1'
 const effectHarnessArtifactVersion = '0.1.0'
 export const effectHarnessProviderPath = '.prelude/providers/effect-harness/provider.json'
 export const effectHarnessVerificationId = 'provider:effect-harness:create-contract'
+const effectHarnessSurfaceIds = [
+  'provider-artifact:effect-harness',
+  'package-manifest:root:/dependencies/effect',
+  'package-manifest:root:/dependencies/@effect~1platform-node',
+  'package-manifest:root:/devDependencies/@effect~1vitest',
+  'package-manifest:root:/devDependencies/@effect~1tsgo',
+  'package-manifest:root:/devDependencies/@effect~1language-service',
+  'package-manifest:root:/devDependencies/@typescript~1native-preview',
+] as const
 
 const effectHarnessArtifact = {
   id: 'effect-harness',
@@ -56,14 +65,43 @@ function effectHarnessProjectedContext(graph: ResolvedGraph): ProviderProjectedC
 }
 
 function effectHarnessProviderSurfaceIds(): readonly string[] {
-  return effectHarnessLifecycleSurfaces().map(surface => surface.id)
+  return effectHarnessSurfaceIds
 }
 
-export function effectHarnessLifecycleSurfaces(): readonly LifecycleSurfaceRecord[] {
+function lifecycleSurfaceMetadata(input: {
+  readonly id: string
+  readonly scope: 'entry' | 'file'
+  readonly locator: string
+  readonly base?: string
+}) {
+  return {
+    id: input.id,
+    owner: 'provider:effect-harness',
+    lifecycle: 'managed',
+    scope: input.scope,
+    locator: input.locator,
+    conflictPolicy: 'block',
+    contractVersion: effectHarnessContractVersion,
+    implementationVersion: effectHarnessArtifactVersion,
+    ...(input.base === undefined ? {} : { base: input.base, snapshot: input.base }),
+  } as const
+}
+
+function encodeJsonValue(value: Record<string, JsonValue>) {
+  return `${JSON.stringify(value, null, 2)}\n`
+}
+
+export function effectHarnessLifecycleSurfaces(graph: ResolvedGraph): readonly LifecycleSurfaceRecord[] {
+  const providerArtifactBase = encodeJsonValue(providerJsonValue(graph))
+
   return [
     {
-      id: 'provider-artifact:effect-harness',
-      owner: 'provider:effect-harness',
+      ...lifecycleSurfaceMetadata({
+        id: 'provider-artifact:effect-harness',
+        scope: 'file',
+        locator: effectHarnessProviderPath,
+        base: providerArtifactBase,
+      }),
       authority: 'owner',
       kind: 'ownedFile',
       path: effectHarnessProviderPath,
@@ -79,13 +117,20 @@ export function effectHarnessLifecycleSurfaces(): readonly LifecycleSurfaceRecor
 }
 
 function effectPackagePointer(pointer: string, snapshot: string): LifecycleSurfaceRecord {
+  const id = `package-manifest:root:${pointer}`
+
   return {
-    id: `package-manifest:root:${pointer}`,
-    owner: 'provider:effect-harness',
+    ...lifecycleSurfaceMetadata({
+      id,
+      scope: 'entry',
+      locator: `package.json#${pointer}`,
+      base: snapshot,
+    }),
     authority: 'bounded',
     kind: 'structuredPointer',
     path: 'package.json',
     pointer,
+    base: snapshot,
     snapshot,
     operationId: 'write-package-json',
   }

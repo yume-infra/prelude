@@ -58,7 +58,7 @@ function lifecycleSurfacesFor(graph: ResolvedGraph): readonly LifecycleSurfaceRe
     return []
   }
 
-  return effectHarnessLifecycleSurfaces()
+  return effectHarnessLifecycleSurfaces(graph)
 }
 
 export function buildManifest(input: {

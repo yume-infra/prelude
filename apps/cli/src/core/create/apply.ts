@@ -42,6 +42,6 @@ export function writeManifest(fs: CreateFs, baseDir: string, content: string) {
   const manifestPath = resolveTargetPath(baseDir, '.prelude/manifest.json')
 
   return fs.ensureDir(path.dirname(manifestPath)).pipe(
-    Effect.zipRight(fs.writeFileString(makeTargetDir(manifestPath), content)),
+    Effect.andThen(fs.writeFileString(makeTargetDir(manifestPath), content)),
   )
 }

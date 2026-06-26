@@ -1,9 +1,9 @@
-import type { LifecycleProviderRegistry } from '@/core/lifecycle'
+import type { LifecycleProviderRegistry, ProviderUpdateOperation } from '@/core/lifecycle'
 import assert from 'node:assert/strict'
 import { Effect } from 'effect'
 import { describe, it } from 'vitest'
 import { makeTargetDir } from '@/brand/target-dir'
-import { runProviderLifecycleStatus, runProviderLifecycleUpdate, runProviderLifecycleVerify } from '@/core/lifecycle'
+import { reconcileManagedLogicalValue, runProviderLifecycleStatus, runProviderLifecycleUpdate, runProviderLifecycleVerify } from '@/core/lifecycle'
 import { makeFsMockLayer } from '../../support/fs-mock'
 
 function manifestJson(overrides: Record<string, unknown> = {}) {
@@ -77,14 +77,102 @@ const effectHarnessRecord = {
   verificationRecordId: 'provider:effect-harness:create-contract',
 } as const
 
+const tsgoSurfaceId = 'package-manifest:root:/devDependencies/@effect~1tsgo'
+const tsgoPointer = '/devDependencies/@effect~1tsgo'
+
+function structuredPointerSurface(overrides: Record<string, unknown> = {}) {
+  return {
+    id: tsgoSurfaceId,
+    owner: 'provider:effect-harness',
+    lifecycle: 'managed',
+    scope: 'entry',
+    locator: `package.json#${tsgoPointer}`,
+    conflictPolicy: 'block',
+    contractVersion: '1',
+    implementationVersion: '0.1.0',
+    authority: 'bounded',
+    kind: 'structuredPointer',
+    path: 'package.json',
+    pointer: tsgoPointer,
+    base: '0.14.6',
+    snapshot: '0.14.6',
+    operationId: 'write-package-json',
+    ...overrides,
+  }
+}
+
+function ownedFileSurface(overrides: Record<string, unknown> = {}) {
+  return {
+    id: 'agents-provider-block',
+    owner: 'provider:effect-harness',
+    lifecycle: 'managed',
+    scope: 'file',
+    locator: 'AGENTS.md',
+    conflictPolicy: 'block',
+    contractVersion: '1',
+    implementationVersion: '0.1.0',
+    authority: 'owner',
+    kind: 'ownedFile',
+    path: 'AGENTS.md',
+    base: 'original provider instructions\n',
+    snapshot: 'original provider instructions\n',
+    operationId: 'write-agents-provider-block',
+    ...overrides,
+  }
+}
+
+function replaceTsgoOperation(value: string): ProviderUpdateOperation {
+  return {
+    kind: 'replaceStructuredPointer',
+    surfaceId: tsgoSurfaceId,
+    path: 'package.json',
+    pointer: tsgoPointer,
+    value,
+  }
+}
+
+function registryWithOperations(operations: readonly ProviderUpdateOperation[]) {
+  return {
+    'effect-harness': {
+      id: 'effect-harness',
+      contractVersion: '1',
+      status: record => Effect.succeed({ providerId: record.id, status: 'changed' as const }),
+      verify: record => Effect.succeed({ providerId: record.id, status: 'passed' as const }),
+      planUpdate: record => Effect.succeed({
+        providerId: record.id,
+        operations,
+      }),
+    },
+  } satisfies LifecycleProviderRegistry
+}
+
 describe('provider lifecycle runtime', () => {
+  it('classifies managed logical values with strict desired/base/current reconciliation', () => {
+    assert.deepEqual(
+      reconcileManagedLogicalValue({ base: 'base', current: 'desired', desired: 'desired' }),
+      { status: 'alreadyApplied' },
+    )
+    assert.deepEqual(
+      reconcileManagedLogicalValue({ base: 'base', current: 'base', desired: 'desired' }),
+      { status: 'apply' },
+    )
+    assert.deepEqual(
+      reconcileManagedLogicalValue({ base: 'base', current: 'manual', desired: 'desired' }),
+      { status: 'drift' },
+    )
+    assert.deepEqual(
+      reconcileManagedLogicalValue({ base: 'base', current: 'manual', desired: 'base' }),
+      { status: 'drift' },
+    )
+  })
+
   it('blocks when no prelude manifest exists', async () => {
     const fsLayer = makeFsMockLayer({
       exists: () => Effect.succeed(false),
     })
 
     const result = await Effect.runPromise(
-      Effect.either(
+      Effect.result(
         runProviderLifecycleStatus({
           targetDir: makeTargetDir('/project'),
           providers: {},
@@ -92,10 +180,10 @@ describe('provider lifecycle runtime', () => {
       ),
     )
 
-    assert.strictEqual(result._tag, 'Left')
-    if (result._tag === 'Left') {
-      assert.match(result.left.message, /No prelude manifest found/)
-      assert.match(result.left.message, /\.prelude\/manifest\.json/)
+    assert.strictEqual(result._tag, 'Failure')
+    if (result._tag === 'Failure') {
+      assert.match(result.failure.message, /No prelude manifest found/)
+      assert.match(result.failure.message, /\.prelude\/manifest\.json/)
     }
   })
 
@@ -131,7 +219,7 @@ describe('provider lifecycle runtime', () => {
     })
 
     const result = await Effect.runPromise(
-      Effect.either(
+      Effect.result(
         runProviderLifecycleStatus({
           targetDir: makeTargetDir('/project'),
           provider: 'effect-harness',
@@ -140,10 +228,10 @@ describe('provider lifecycle runtime', () => {
       ),
     )
 
-    assert.strictEqual(result._tag, 'Left')
-    if (result._tag === 'Left') {
-      assert.match(result.left.message, /No active lifecycle provider/)
-      assert.match(result.left.message, /effect-harness/)
+    assert.strictEqual(result._tag, 'Failure')
+    if (result._tag === 'Failure') {
+      assert.match(result.failure.message, /No active lifecycle provider/)
+      assert.match(result.failure.message, /effect-harness/)
     }
   })
 
@@ -267,6 +355,49 @@ describe('provider lifecycle runtime', () => {
     assert.deepEqual(writes, [])
   })
 
+  it('blocks unsupported provider contract transitions without a declarative migration plan', async () => {
+    const calls: string[] = []
+    const fsLayer = makeFsMockLayer({
+      exists: () => Effect.succeed(true),
+      readFileString: () => Effect.succeed(manifestJson({
+        lifecycleProviders: [effectHarnessRecord],
+      })),
+    })
+
+    const result = await Effect.runPromise(
+      Effect.result(
+        runProviderLifecycleUpdate({
+          targetDir: makeTargetDir('/project'),
+          providers: {
+            'effect-harness': {
+              id: 'effect-harness',
+              contractVersion: '2',
+              status: record => Effect.sync(() => {
+                calls.push(`status:${record.id}`)
+                return { providerId: record.id, status: 'changed' as const }
+              }),
+              verify: record => Effect.sync(() => {
+                calls.push(`verify:${record.id}`)
+                return { providerId: record.id, status: 'passed' as const }
+              }),
+              planUpdate: record => Effect.sync(() => {
+                calls.push(`planUpdate:${record.id}`)
+                return { providerId: record.id, operations: [] }
+              }),
+            },
+          },
+        }).pipe(Effect.provide(fsLayer)),
+      ),
+    )
+
+    assert.strictEqual(result._tag, 'Failure')
+    if (result._tag === 'Failure') {
+      assert.match(result.failure.message, /contract transition 1 -> 2 is unsupported/)
+      assert.match(result.failure.message, /declarative migration plan/)
+    }
+    assert.deepEqual(calls, [])
+  })
+
   it('blocks update plans that target undeclared external writes', async () => {
     const fsLayer = makeFsMockLayer({
       exists: () => Effect.succeed(true),
@@ -287,7 +418,7 @@ describe('provider lifecycle runtime', () => {
     })
 
     const result = await Effect.runPromise(
-      Effect.either(
+      Effect.result(
         runProviderLifecycleUpdate({
           targetDir: makeTargetDir('/project'),
           providers: {
@@ -314,10 +445,10 @@ describe('provider lifecycle runtime', () => {
       ),
     )
 
-    assert.strictEqual(result._tag, 'Left')
-    if (result._tag === 'Left') {
-      assert.match(result.left.message, /undeclared external lifecycle surface/)
-      assert.match(result.left.message, /package\.json/)
+    assert.strictEqual(result._tag, 'Failure')
+    if (result._tag === 'Failure') {
+      assert.match(result.failure.message, /undeclared external lifecycle surface/)
+      assert.match(result.failure.message, /package\.json/)
     }
   })
 
@@ -397,6 +528,92 @@ describe('provider lifecycle runtime', () => {
     assert.match(writes[1]!.content, /"lifecycleProviders"/)
   })
 
+  it('succeeds without rewriting a structured pointer when current already equals desired', async () => {
+    const writes: Array<{ path: string, content: string }> = []
+    const fsLayer = makeFsMockLayer({
+      exists: () => Effect.succeed(true),
+      readFileString: path =>
+        Effect.succeed(path.endsWith('manifest.json')
+          ? manifestJson({
+              lifecycleProviders: [{
+                ...effectHarnessRecord,
+                lifecycleSurfaces: [tsgoSurfaceId],
+              }],
+              lifecycleSurfaces: [
+                structuredPointerSurface(),
+              ],
+            })
+          : '{ "devDependencies": { "@effect/tsgo": "0.15.0" } }\n'),
+      writeFileString: (path, content) => Effect.sync(() => {
+        writes.push({ path, content })
+      }),
+    })
+
+    const result = await Effect.runPromise(
+      runProviderLifecycleUpdate({
+        targetDir: makeTargetDir('/project'),
+        providers: registryWithOperations([
+          replaceTsgoOperation('0.15.0'),
+        ]),
+      }).pipe(Effect.provide(fsLayer)),
+    )
+
+    assert.deepEqual(result, {
+      command: 'update',
+      status: 'completed',
+      providers: [
+        {
+          providerId: 'effect-harness',
+          status: 'passed',
+        },
+      ],
+    })
+    assert.deepEqual(writes.map(write => write.path), [
+      '/project/.prelude/manifest.json',
+    ])
+    assert.match(writes[0]!.content, /"base": "0\.15\.0"/)
+    assert.match(writes[0]!.content, /"snapshot": "0\.15\.0"/)
+  })
+
+  it('applies desired structured pointer value when current still equals manifest base', async () => {
+    const writes: Array<{ path: string, content: string }> = []
+    const fsLayer = makeFsMockLayer({
+      exists: () => Effect.succeed(true),
+      readFileString: path =>
+        Effect.succeed(path.endsWith('manifest.json')
+          ? manifestJson({
+              lifecycleProviders: [{
+                ...effectHarnessRecord,
+                lifecycleSurfaces: [tsgoSurfaceId],
+              }],
+              lifecycleSurfaces: [
+                structuredPointerSurface(),
+              ],
+            })
+          : '{ "devDependencies": { "@effect/tsgo": "0.14.6" } }\n'),
+      writeFileString: (path, content) => Effect.sync(() => {
+        writes.push({ path, content })
+      }),
+    })
+
+    const result = await Effect.runPromise(
+      runProviderLifecycleUpdate({
+        targetDir: makeTargetDir('/project'),
+        providers: registryWithOperations([
+          replaceTsgoOperation('0.15.0'),
+        ]),
+      }).pipe(Effect.provide(fsLayer)),
+    )
+
+    assert.deepEqual(result.status, 'completed')
+    assert.deepEqual(writes.map(write => write.path), [
+      '/project/package.json',
+      '/project/.prelude/manifest.json',
+    ])
+    assert.match(writes[0]!.content, /"@effect\/tsgo": "0\.15\.0"/)
+    assert.match(writes[1]!.content, /"base": "0\.15\.0"/)
+  })
+
   it('blocks update when a bounded structured pointer drifted', async () => {
     const fsLayer = makeFsMockLayer({
       exists: () => Effect.succeed(true),
@@ -405,26 +622,17 @@ describe('provider lifecycle runtime', () => {
           ? manifestJson({
               lifecycleProviders: [{
                 ...effectHarnessRecord,
-                lifecycleSurfaces: ['package-manifest:root:/devDependencies/@effect~1tsgo'],
+                lifecycleSurfaces: [tsgoSurfaceId],
               }],
               lifecycleSurfaces: [
-                {
-                  id: 'package-manifest:root:/devDependencies/@effect~1tsgo',
-                  owner: 'provider:effect-harness',
-                  authority: 'bounded',
-                  kind: 'structuredPointer',
-                  path: 'package.json',
-                  pointer: '/devDependencies/@effect~1tsgo',
-                  snapshot: '0.14.6',
-                  operationId: 'write-package-json',
-                },
+                structuredPointerSurface(),
               ],
             })
           : '{ "devDependencies": { "@effect/tsgo": "manual-change" } }\n'),
     })
 
     const result = await Effect.runPromise(
-      Effect.either(
+      Effect.result(
         runProviderLifecycleUpdate({
           targetDir: makeTargetDir('/project'),
           providers: {
@@ -436,13 +644,7 @@ describe('provider lifecycle runtime', () => {
               planUpdate: record => Effect.succeed({
                 providerId: record.id,
                 operations: [
-                  {
-                    kind: 'replaceStructuredPointer',
-                    surfaceId: 'package-manifest:root:/devDependencies/@effect~1tsgo',
-                    path: 'package.json',
-                    pointer: '/devDependencies/@effect~1tsgo',
-                    value: '0.15.0',
-                  },
+                  replaceTsgoOperation('0.15.0'),
                 ],
               }),
             },
@@ -451,10 +653,45 @@ describe('provider lifecycle runtime', () => {
       ),
     )
 
-    assert.strictEqual(result._tag, 'Left')
-    if (result._tag === 'Left') {
-      assert.match(result.left.message, /drifted/)
-      assert.match(result.left.message, /@effect~1tsgo/)
+    assert.strictEqual(result._tag, 'Failure')
+    if (result._tag === 'Failure') {
+      assert.match(result.failure.message, /drifted/)
+      assert.match(result.failure.message, /@effect~1tsgo/)
+    }
+  })
+
+  it('blocks structured pointer drift even when desired still equals manifest base', async () => {
+    const fsLayer = makeFsMockLayer({
+      exists: () => Effect.succeed(true),
+      readFileString: path =>
+        Effect.succeed(path.endsWith('manifest.json')
+          ? manifestJson({
+              lifecycleProviders: [{
+                ...effectHarnessRecord,
+                lifecycleSurfaces: [tsgoSurfaceId],
+              }],
+              lifecycleSurfaces: [
+                structuredPointerSurface(),
+              ],
+            })
+          : '{ "devDependencies": { "@effect/tsgo": "manual-change" } }\n'),
+    })
+
+    const result = await Effect.runPromise(
+      Effect.result(
+        runProviderLifecycleUpdate({
+          targetDir: makeTargetDir('/project'),
+          providers: registryWithOperations([
+            replaceTsgoOperation('0.14.6'),
+          ]),
+        }).pipe(Effect.provide(fsLayer)),
+      ),
+    )
+
+    assert.strictEqual(result._tag, 'Failure')
+    if (result._tag === 'Failure') {
+      assert.match(result.failure.message, /drifted/)
+      assert.match(result.failure.message, /current differs from manifest base and desired value/)
     }
   })
 
@@ -469,22 +706,14 @@ describe('provider lifecycle runtime', () => {
                 lifecycleSurfaces: ['agents-provider-block'],
               }],
               lifecycleSurfaces: [
-                {
-                  id: 'agents-provider-block',
-                  owner: 'provider:effect-harness',
-                  authority: 'owner',
-                  kind: 'ownedFile',
-                  path: 'AGENTS.md',
-                  snapshot: 'original provider instructions\n',
-                  operationId: 'write-agents-provider-block',
-                },
+                ownedFileSurface(),
               ],
             })
           : 'manual change\n'),
     })
 
     const result = await Effect.runPromise(
-      Effect.either(
+      Effect.result(
         runProviderLifecycleUpdate({
           targetDir: makeTargetDir('/project'),
           providers: {
@@ -510,10 +739,10 @@ describe('provider lifecycle runtime', () => {
       ),
     )
 
-    assert.strictEqual(result._tag, 'Left')
-    if (result._tag === 'Left') {
-      assert.match(result.left.message, /drifted/)
-      assert.match(result.left.message, /AGENTS\.md/)
+    assert.strictEqual(result._tag, 'Failure')
+    if (result._tag === 'Failure') {
+      assert.match(result.failure.message, /drifted/)
+      assert.match(result.failure.message, /AGENTS\.md/)
     }
   })
 

@@ -8,7 +8,7 @@ describe('test clock support', () => {
       withTestClock(Effect.gen(function* () {
         const fiber = yield* Effect.sleep('1 minute').pipe(
           Effect.as('done'),
-          Effect.fork,
+          Effect.forkChild,
         )
 
         yield* adjustTestClock('1 minute')

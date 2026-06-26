@@ -1,11 +1,12 @@
-import { ParseResult, Schema } from 'effect'
+import { Schema } from 'effect'
+import { formatSchemaError } from '@/schema/errors'
 
 const ProjectNamePattern = /^[\w-]+$/
 
 export const ProjectNameSchema = Schema.String.pipe(
-  Schema.pattern(ProjectNamePattern),
+  Schema.check(Schema.isPattern(ProjectNamePattern)),
   Schema.brand('ProjectName'),
-  Schema.annotations({
+  Schema.annotate({
     identifier: 'ProjectName',
     title: 'ProjectName',
   }),
@@ -13,8 +14,8 @@ export const ProjectNameSchema = Schema.String.pipe(
 
 export type ProjectName = Schema.Schema.Type<typeof ProjectNameSchema>
 
-export const decodeProjectName = Schema.decodeUnknown(ProjectNameSchema, { errors: 'all' })
+export const decodeProjectName = Schema.decodeUnknownEffect(ProjectNameSchema, { errors: 'all' })
 
-export const formatProjectNameError = ParseResult.TreeFormatter.formatErrorSync
+export const formatProjectNameError = formatSchemaError
 
 export const makeProjectName = (value: string): ProjectName => Schema.decodeUnknownSync(ProjectNameSchema)(value)

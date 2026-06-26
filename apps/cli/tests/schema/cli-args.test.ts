@@ -1,25 +1,27 @@
-import { Effect, Either } from 'effect'
-import { describe, expect, it } from 'vitest'
+import { Effect, Result } from 'effect'
+import { assert, describe, it } from 'vitest'
 import { decodeCliArgs } from '../../src/schema/cli-args'
 
 describe('cliArgsSchema', () => {
   it('decodes canonical spec and no-input flags', async () => {
     const result = await Effect.runPromise(
-      Effect.either(
+      Effect.result(
         decodeCliArgs({
           spec: 'prelude.json',
           name: 'demo-workspace',
           noInput: true,
           printSpec: true,
+          dryRun: true,
         }),
       ),
     )
 
-    expect(Either.isRight(result)).toBe(true)
-    if (Either.isRight(result)) {
-      expect(result.right.spec).toBe('prelude.json')
-      expect(result.right.noInput).toBe(true)
-      expect(result.right.printSpec).toBe(true)
+    assert.equal(Result.isSuccess(result), true)
+    if (Result.isSuccess(result)) {
+      assert.equal(result.success.spec, 'prelude.json')
+      assert.equal(result.success.noInput, true)
+      assert.equal(result.success.printSpec, true)
+      assert.equal(result.success.dryRun, true)
     }
   })
 
@@ -27,16 +29,14 @@ describe('cliArgsSchema', () => {
     const result = await Effect.runPromise(
       decodeCliArgs({
         preset: 'any-removed-preset-name',
-        dryRun: true,
         install: false,
         git: false,
         rollback: false,
       }),
     )
 
-    expect(result).toEqual({
+    assert.deepStrictEqual(result, {
       preset: 'any-removed-preset-name',
-      dryRun: true,
       install: false,
       git: false,
       rollback: false,

@@ -1,50 +1,66 @@
-import type { CreateFs, ResolvedGraph, VerificationResult } from './model'
+import type { CreateFs, ResolvedGraph, VerificationResult, WritePlan } from './model'
 import * as path from 'node:path'
 import { Effect } from 'effect'
 import {
-  effectHarnessProviderPath,
   effectHarnessVerificationRecord,
   hasEffectHarnessProvider,
 } from './effect-harness-provider'
 
-function requiredPathsFor(graph: ResolvedGraph): readonly string[] {
-  const paths = graph.logicalSurfaces.flatMap((surface) => {
-    switch (surface.id) {
-      case 'package-manifest:root':
-        return ['package.json']
-      case 'eslint-root':
-        return ['eslint.config.mjs']
-      case 'knip-root':
-        return ['knip.json']
-      case 'source:root/src/index.ts':
-        return ['src/index.ts']
-      case 'tsconfig:root':
-        return ['tsconfig.json']
-      case 'provider:effect-harness':
-        return [effectHarnessProviderPath]
-      default:
-        if (surface.id.startsWith('package-manifest:')) {
-          return ['package.json']
-        }
-        if (surface.id.includes('/index.html')) {
-          return ['index.html']
-        }
-        if (surface.id.includes('/src/main.tsx')) {
-          return ['src/main.tsx']
-        }
-        if (surface.id.startsWith('react-app-shell:')) {
-          return ['src/App.tsx']
-        }
-        return []
-    }
-  })
-
-  return [...new Set(paths)]
+function requiredPathsFor(writePlan: WritePlan): readonly string[] {
+  return [...new Set(writePlan.operations.map(operation => operation.path))]
 }
 
-export function verifyCreateOutputs(fs: CreateFs, baseDir: string, graph: ResolvedGraph): Effect.Effect<VerificationResult, never> {
+function workspaceRootPaths(requiredPaths: readonly string[]) {
+  return requiredPaths.filter(requiredPath =>
+    requiredPath === 'package.json'
+    || requiredPath === 'pnpm-workspace.yaml',
+  )
+}
+
+function rootEngineeringPaths(requiredPaths: readonly string[]) {
+  return requiredPaths.filter(requiredPath =>
+    requiredPath === 'eslint.config.mjs'
+    || requiredPath === 'knip.json',
+  )
+}
+
+function singleRootPackagePaths(requiredPaths: readonly string[]) {
+  return requiredPaths.filter(requiredPath =>
+    requiredPath === 'package.json'
+    || requiredPath === 'index.html'
+    || requiredPath === 'src/main.tsx'
+    || requiredPath === 'src/main.ts'
+    || requiredPath === 'src/App.tsx'
+    || requiredPath === 'src/App.vue'
+    || requiredPath === 'src/index.ts'
+    || requiredPath === 'scripts/ensure-shebang.mjs'
+    || requiredPath === 'vite.config.ts'
+    || requiredPath === 'tsconfig.json'
+    || requiredPath === 'tsdown.config.ts'
+    || requiredPath === 'src/styles.css'
+    || requiredPath === 'src/styles.less',
+  )
+}
+
+function orderedPresent(requiredPaths: readonly string[], orderedPaths: readonly string[]) {
+  return orderedPaths.filter(requiredPath => requiredPaths.includes(requiredPath))
+}
+
+function workspacePackagePaths(requiredPaths: readonly string[]) {
+  return requiredPaths.filter(requiredPath =>
+    requiredPath.startsWith('apps/')
+    || requiredPath.startsWith('libs/'),
+  )
+}
+
+export function verifyCreateOutputs(
+  fs: CreateFs,
+  baseDir: string,
+  graph: ResolvedGraph,
+  writePlan: WritePlan,
+): Effect.Effect<VerificationResult, never> {
   return Effect.gen(function* () {
-    const requiredPaths = requiredPathsFor(graph)
+    const requiredPaths = requiredPathsFor(writePlan)
     const missingPaths: string[] = []
 
     for (const requiredPath of requiredPaths) {
@@ -61,25 +77,133 @@ export function verifyCreateOutputs(fs: CreateFs, baseDir: string, graph: Resolv
     const providerRecords = hasEffectHarnessProvider(graph) ? [effectHarnessVerificationRecord()] : []
     const hasRootEngineeringFiles = graph.rootCapabilities.includes('linting') || graph.rootCapabilities.includes('knip')
 
+    if (graph.topology === 'workspace') {
+      return {
+        records: [
+          {
+            id: 'workspace-root-files-present',
+            status: 'passed',
+            checkedPaths: workspaceRootPaths(requiredPaths),
+          },
+          {
+            id: 'workspace-package-files-present',
+            status: 'passed',
+            checkedPaths: workspacePackagePaths(requiredPaths),
+          },
+          ...(hasRootEngineeringFiles
+            ? [{
+                id: 'root-engineering-files-present',
+                status: 'passed' as const,
+                checkedPaths: rootEngineeringPaths(requiredPaths),
+              }]
+            : []),
+          ...providerRecords,
+        ],
+      }
+    }
+
     if (graph.rootPackage.capabilities.includes('react-app')) {
       return {
         records: [
           {
             id: 'react-app-files-present',
             status: 'passed',
-            checkedPaths: requiredPaths.filter(requiredPath =>
-              requiredPath === 'package.json'
-              || requiredPath === 'index.html'
-              || requiredPath === 'src/main.tsx'
-              || requiredPath === 'src/App.tsx'),
+            checkedPaths: orderedPresent(singleRootPackagePaths(requiredPaths), [
+              'package.json',
+              'index.html',
+              'src/main.tsx',
+              'src/App.tsx',
+              'vite.config.ts',
+              'tsconfig.json',
+              'src/styles.css',
+              'src/styles.less',
+            ]),
           },
           ...(hasRootEngineeringFiles
             ? [{
                 id: 'root-engineering-files-present',
                 status: 'passed' as const,
-                checkedPaths: requiredPaths.filter(requiredPath =>
-                  requiredPath === 'eslint.config.mjs'
-                  || requiredPath === 'knip.json'),
+                checkedPaths: rootEngineeringPaths(requiredPaths),
+              }]
+            : []),
+          ...providerRecords,
+        ],
+      }
+    }
+
+    if (graph.rootPackage.capabilities.includes('vue-app')) {
+      return {
+        records: [
+          {
+            id: 'vue-app-files-present',
+            status: 'passed',
+            checkedPaths: orderedPresent(singleRootPackagePaths(requiredPaths), [
+              'package.json',
+              'index.html',
+              'src/main.ts',
+              'src/App.vue',
+              'vite.config.ts',
+              'tsconfig.json',
+              'src/styles.css',
+              'src/styles.less',
+            ]),
+          },
+          ...(hasRootEngineeringFiles
+            ? [{
+                id: 'root-engineering-files-present',
+                status: 'passed' as const,
+                checkedPaths: rootEngineeringPaths(requiredPaths),
+              }]
+            : []),
+          ...providerRecords,
+        ],
+      }
+    }
+
+    if (graph.rootPackage.capabilities.includes('cli-tool')) {
+      return {
+        records: [
+          {
+            id: 'cli-tool-files-present',
+            status: 'passed',
+            checkedPaths: orderedPresent(singleRootPackagePaths(requiredPaths), [
+              'package.json',
+              'src/index.ts',
+              'scripts/ensure-shebang.mjs',
+              'tsconfig.json',
+              'tsdown.config.ts',
+            ]),
+          },
+          ...(hasRootEngineeringFiles
+            ? [{
+                id: 'root-engineering-files-present',
+                status: 'passed' as const,
+                checkedPaths: rootEngineeringPaths(requiredPaths),
+              }]
+            : []),
+          ...providerRecords,
+        ],
+      }
+    }
+
+    if (graph.rootPackage.capabilities.includes('node-backend') || graph.rootPackage.capabilities.includes('library')) {
+      return {
+        records: [
+          {
+            id: 'node-package-files-present',
+            status: 'passed',
+            checkedPaths: orderedPresent(singleRootPackagePaths(requiredPaths), [
+              'package.json',
+              'src/index.ts',
+              'tsconfig.json',
+              'tsdown.config.ts',
+            ]),
+          },
+          ...(hasRootEngineeringFiles
+            ? [{
+                id: 'root-engineering-files-present',
+                status: 'passed' as const,
+                checkedPaths: rootEngineeringPaths(requiredPaths),
               }]
             : []),
           ...providerRecords,
@@ -92,19 +216,17 @@ export function verifyCreateOutputs(fs: CreateFs, baseDir: string, graph: Resolv
         {
           id: 'minimal-create-files-present',
           status: 'passed',
-          checkedPaths: requiredPaths.filter(requiredPath =>
-            requiredPath === 'package.json'
-            || requiredPath === 'src/index.ts'
-            || requiredPath === 'tsconfig.json'),
+          checkedPaths: orderedPresent(singleRootPackagePaths(requiredPaths), [
+            'package.json',
+            'src/index.ts',
+            'tsconfig.json',
+          ]),
         },
         ...(hasRootEngineeringFiles
           ? [{
               id: 'root-engineering-files-present',
               status: 'passed' as const,
-              checkedPaths: requiredPaths.filter(requiredPath =>
-                requiredPath !== 'package.json'
-                && requiredPath !== 'src/index.ts'
-                && requiredPath !== 'tsconfig.json'),
+              checkedPaths: rootEngineeringPaths(requiredPaths),
             }]
           : []),
         ...providerRecords,

@@ -2,7 +2,7 @@ import assert from 'node:assert/strict'
 import * as fs from 'node:fs/promises'
 import * as os from 'node:os'
 import * as path from 'node:path'
-import { NodeContext, NodeFileSystem } from '@effect/platform-node'
+import { NodeServices } from '@effect/platform-node'
 import { Effect, Layer } from 'effect'
 import { describe, it } from 'vitest'
 import { makePackageName } from '@/brand/package-name'
@@ -19,8 +19,7 @@ async function readJson<T = unknown>(filePath: string) {
 }
 
 const TestLayer = FsLive.pipe(
-  Layer.provideMerge(NodeFileSystem.layer),
-  Layer.provideMerge(NodeContext.layer),
+  Layer.provideMerge(NodeServices.layer),
 )
 
 describe('create spec creation path', () => {
@@ -158,7 +157,7 @@ describe('create spec creation path', () => {
               name: makePackageName('demo-app'),
               capabilities: ['minimal-node-package'],
             },
-            rootCapabilities: ['package-manager:pnpm', 'linting', 'knip'],
+            rootCapabilities: ['package-manager:pnpm', 'linting', 'knip', 'dependency-update:taze'],
             providers: [],
             overrides: {},
           },
@@ -180,21 +179,40 @@ describe('create spec creation path', () => {
           version: '0.0.0',
           packageManager: 'pnpm@10.33.4',
           scripts: {
-            build: 'tsc --noEmit',
-            lint: 'eslint .',
-            knip: 'knip',
-            verify: 'pnpm build && pnpm lint && pnpm knip',
+            'build': 'tsc --noEmit',
+            'lint': 'eslint .',
+            'knip': 'knip',
+            'deps:check': 'taze -r',
+            'verify': 'pnpm build && pnpm lint && pnpm knip',
           },
           devDependencies: {
             '@antfu/eslint-config': 'catalog:',
             'eslint': 'catalog:',
             'knip': 'catalog:',
+            'taze': 'catalog:',
             'typescript': 'catalog:',
           },
         })
 
         const eslintConfig = yield* Effect.promise(() => fs.readFile(path.join(targetDir, 'eslint.config.mjs'), 'utf8'))
-        assert.equal(eslintConfig, 'import antfu from \'@antfu/eslint-config\'\n\nexport default antfu()\n')
+        assert.equal(eslintConfig, `import antfu from '@antfu/eslint-config'
+
+export default antfu(
+  {
+    ignores: ['.prelude/**', 'dist/**'],
+  },
+  {
+    rules: {
+      'jsonc/sort-keys': 'off',
+      'no-console': 'off',
+      'node/prefer-global/process': 'off',
+      'pnpm/json-enforce-catalog': 'off',
+      'style/quotes': 'off',
+      'style/jsx-one-expression-per-line': 'off',
+    },
+  },
+)
+`)
 
         const knipConfig = yield* Effect.promise(() => readJson(path.join(targetDir, 'knip.json')))
         assert.deepEqual(knipConfig, {
@@ -210,7 +228,7 @@ describe('create spec creation path', () => {
             generatedUserSurfaces: Array<{ path: string, authority: string }>
           }>(path.join(targetDir, '.prelude/manifest.json')),
         )
-        assert.deepEqual(manifest.resolvedGraph.rootCapabilities, ['package-manager:pnpm', 'linting', 'knip'])
+        assert.deepEqual(manifest.resolvedGraph.rootCapabilities, ['package-manager:pnpm', 'linting', 'knip', 'dependency-update:taze'])
         assert.deepEqual(manifest.resolvedGraph.logicalSurfaces, [
           {
             id: 'package-manifest:root',
@@ -297,9 +315,25 @@ describe('create spec creation path', () => {
           {
             id: 'write-react-main',
             kind: 'writeGeneratedUserFile',
-            owner: 'materializer:react-app-static',
-            surfaceId: 'react-app-static:app/src/main.tsx',
+            owner: 'materializer:frontend-entry',
+            surfaceId: 'react-app-entry:app',
             path: 'src/main.tsx',
+            authority: 'none',
+          },
+          {
+            id: 'write-vite-config',
+            kind: 'writeGeneratedUserFile',
+            owner: 'materializer:vite-config',
+            surfaceId: 'vite-config:app',
+            path: 'vite.config.ts',
+            authority: 'none',
+          },
+          {
+            id: 'write-tsconfig',
+            kind: 'writeStructuredFile',
+            owner: 'materializer:typescript-config',
+            surfaceId: 'typescript-config:root',
+            path: 'tsconfig.json',
             authority: 'none',
           },
           {
@@ -364,6 +398,25 @@ createRoot(document.getElementById('root')!).render(
 )
 `)
 
+        const viteConfig = yield* Effect.promise(() => fs.readFile(path.join(targetDir, 'vite.config.ts'), 'utf8'))
+        assert.equal(viteConfig, `import react from '@vitejs/plugin-react'
+import { defineConfig } from 'vite'
+
+export default defineConfig({
+  plugins: [react()],
+})
+`)
+
+        const tsconfig = yield* Effect.promise(() =>
+          readJson<{
+            compilerOptions: { jsx: string, types: readonly string[] }
+            include: readonly string[]
+          }>(path.join(targetDir, 'tsconfig.json')),
+        )
+        assert.equal(tsconfig.compilerOptions.jsx, 'react-jsx')
+        assert.deepEqual(tsconfig.compilerOptions.types, ['vite/client'])
+        assert.deepEqual(tsconfig.include, ['src/**/*.ts', 'src/**/*.tsx', 'vite.config.ts'])
+
         const manifest = yield* Effect.promise(() =>
           readJson<{
             resolvedGraph: {
@@ -389,14 +442,24 @@ createRoot(document.getElementById('root')!).render(
             owner: 'capability:react-app',
           },
           {
-            id: 'react-app-static:app/src/main.tsx',
-            materializer: 'generated-user-file',
+            id: 'react-app-entry:app',
+            materializer: 'frontend-entry',
             owner: 'capability:react-app',
           },
           {
             id: 'react-app-shell:app',
             materializer: 'react-app-shell',
             owner: 'capability:react-app',
+          },
+          {
+            id: 'vite-config:app',
+            materializer: 'generated-user-file',
+            owner: 'capability:react-app',
+          },
+          {
+            id: 'typescript-config:root',
+            materializer: 'typescript-config',
+            owner: 'prelude',
           },
         ])
         assert.deepEqual(manifest.generatedUserSurfaces, [
@@ -414,9 +477,21 @@ createRoot(document.getElementById('root')!).render(
           },
           {
             path: 'src/main.tsx',
-            creator: 'materializer:react-app-static',
+            creator: 'materializer:frontend-entry',
             authority: 'none',
             operationId: 'write-react-main',
+          },
+          {
+            path: 'vite.config.ts',
+            creator: 'materializer:vite-config',
+            authority: 'none',
+            operationId: 'write-vite-config',
+          },
+          {
+            path: 'tsconfig.json',
+            creator: 'materializer:typescript-config',
+            authority: 'none',
+            operationId: 'write-tsconfig',
           },
           {
             path: 'src/App.tsx',
@@ -429,7 +504,7 @@ createRoot(document.getElementById('root')!).render(
           {
             id: 'react-app-files-present',
             status: 'passed',
-            checkedPaths: ['package.json', 'index.html', 'src/main.tsx', 'src/App.tsx'],
+            checkedPaths: ['package.json', 'index.html', 'src/main.tsx', 'src/App.tsx', 'vite.config.ts', 'tsconfig.json'],
           },
         ])
       }).pipe(Effect.provide(TestLayer)),
@@ -463,6 +538,8 @@ createRoot(document.getElementById('root')!).render(
           'knip.json',
           'index.html',
           'src/main.tsx',
+          'vite.config.ts',
+          'tsconfig.json',
           'src/App.tsx',
         ])
 
@@ -506,7 +583,7 @@ createRoot(document.getElementById('root')!).render(
           {
             id: 'react-app-files-present',
             status: 'passed',
-            checkedPaths: ['package.json', 'index.html', 'src/main.tsx', 'src/App.tsx'],
+            checkedPaths: ['package.json', 'index.html', 'src/main.tsx', 'src/App.tsx', 'vite.config.ts', 'tsconfig.json'],
           },
           {
             id: 'root-engineering-files-present',
@@ -522,6 +599,8 @@ createRoot(document.getElementById('root')!).render(
             { path: 'knip.json', authority: 'none' },
             { path: 'index.html', authority: 'none' },
             { path: 'src/main.tsx', authority: 'none' },
+            { path: 'vite.config.ts', authority: 'none' },
+            { path: 'tsconfig.json', authority: 'none' },
             { path: 'src/App.tsx', authority: 'none' },
           ],
         )
@@ -615,7 +694,7 @@ createRoot(document.getElementById('root')!).render(
 import { Console, Effect } from 'effect'
 
 const program = Effect.gen(function* () {
-  yield* Console.log('canonical-worker ready')
+  yield* Console.log("demo-worker ready")
 })
 
 NodeRuntime.runMain(program)
@@ -679,6 +758,7 @@ NodeRuntime.runMain(program)
             status: 'passed',
           },
         })
+        const providerArtifactBase = `${JSON.stringify(providerArtifact, null, 2)}\n`
 
         const manifest = yield* Effect.promise(() =>
           readJson<{
@@ -770,68 +850,118 @@ NodeRuntime.runMain(program)
           {
             id: 'provider-artifact:effect-harness',
             owner: 'provider:effect-harness',
+            lifecycle: 'managed',
+            scope: 'file',
+            locator: '.prelude/providers/effect-harness/provider.json',
+            conflictPolicy: 'block',
+            contractVersion: '1',
+            implementationVersion: '0.1.0',
             authority: 'owner',
             kind: 'ownedFile',
             path: '.prelude/providers/effect-harness/provider.json',
+            base: providerArtifactBase,
+            snapshot: providerArtifactBase,
             operationId: 'write-effect-harness-provider-record',
           },
           {
             id: 'package-manifest:root:/dependencies/effect',
             owner: 'provider:effect-harness',
+            lifecycle: 'managed',
+            scope: 'entry',
+            locator: 'package.json#/dependencies/effect',
+            conflictPolicy: 'block',
+            contractVersion: '1',
+            implementationVersion: '0.1.0',
             authority: 'bounded',
             kind: 'structuredPointer',
             path: 'package.json',
             pointer: '/dependencies/effect',
+            base: '4.0.0-beta.90',
             snapshot: '4.0.0-beta.90',
             operationId: 'write-package-json',
           },
           {
             id: 'package-manifest:root:/dependencies/@effect~1platform-node',
             owner: 'provider:effect-harness',
+            lifecycle: 'managed',
+            scope: 'entry',
+            locator: 'package.json#/dependencies/@effect~1platform-node',
+            conflictPolicy: 'block',
+            contractVersion: '1',
+            implementationVersion: '0.1.0',
             authority: 'bounded',
             kind: 'structuredPointer',
             path: 'package.json',
             pointer: '/dependencies/@effect~1platform-node',
+            base: '4.0.0-beta.90',
             snapshot: '4.0.0-beta.90',
             operationId: 'write-package-json',
           },
           {
             id: 'package-manifest:root:/devDependencies/@effect~1vitest',
             owner: 'provider:effect-harness',
+            lifecycle: 'managed',
+            scope: 'entry',
+            locator: 'package.json#/devDependencies/@effect~1vitest',
+            conflictPolicy: 'block',
+            contractVersion: '1',
+            implementationVersion: '0.1.0',
             authority: 'bounded',
             kind: 'structuredPointer',
             path: 'package.json',
             pointer: '/devDependencies/@effect~1vitest',
+            base: '4.0.0-beta.90',
             snapshot: '4.0.0-beta.90',
             operationId: 'write-package-json',
           },
           {
             id: 'package-manifest:root:/devDependencies/@effect~1tsgo',
             owner: 'provider:effect-harness',
+            lifecycle: 'managed',
+            scope: 'entry',
+            locator: 'package.json#/devDependencies/@effect~1tsgo',
+            conflictPolicy: 'block',
+            contractVersion: '1',
+            implementationVersion: '0.1.0',
             authority: 'bounded',
             kind: 'structuredPointer',
             path: 'package.json',
             pointer: '/devDependencies/@effect~1tsgo',
+            base: '0.14.6',
             snapshot: '0.14.6',
             operationId: 'write-package-json',
           },
           {
             id: 'package-manifest:root:/devDependencies/@effect~1language-service',
             owner: 'provider:effect-harness',
+            lifecycle: 'managed',
+            scope: 'entry',
+            locator: 'package.json#/devDependencies/@effect~1language-service',
+            conflictPolicy: 'block',
+            contractVersion: '1',
+            implementationVersion: '0.1.0',
             authority: 'bounded',
             kind: 'structuredPointer',
             path: 'package.json',
             pointer: '/devDependencies/@effect~1language-service',
+            base: '0.86.2',
             snapshot: '0.86.2',
             operationId: 'write-package-json',
           },
           {
             id: 'package-manifest:root:/devDependencies/@typescript~1native-preview',
             owner: 'provider:effect-harness',
+            lifecycle: 'managed',
+            scope: 'entry',
+            locator: 'package.json#/devDependencies/@typescript~1native-preview',
+            conflictPolicy: 'block',
+            contractVersion: '1',
+            implementationVersion: '0.1.0',
             authority: 'bounded',
             kind: 'structuredPointer',
             path: 'package.json',
             pointer: '/devDependencies/@typescript~1native-preview',
+            base: '7.0.0-dev.20260624.1',
             snapshot: '7.0.0-dev.20260624.1',
             operationId: 'write-package-json',
           },
@@ -989,15 +1119,10 @@ NodeRuntime.runMain(program)
           yield* createProjectFromSpec({
             spec: {
               topology: 'workspace',
-              package: {
-                id: 'app',
-                name: makePackageName('demo-app'),
-                capabilities: ['minimal-node-package'],
-              },
               rootCapabilities: ['unsupported-root-capability'],
               providers: ['effect-harness'],
               overrides: {},
-            },
+            } as never,
             targetDir: makeTargetDir(targetDir),
             preludeVersion: '0.0.0-test',
           })
@@ -1006,10 +1131,9 @@ NodeRuntime.runMain(program)
       error =>
         error instanceof Error
         && error.message.includes('Unsupported CreateSpec for the minimal creation path')
-        && error.message.includes('unsupported topology "workspace"')
+        && error.message.includes('workspace topology requires packages')
         && error.message.includes('unsupported root capabilities: unsupported-root-capability')
-        && error.message.includes('providers require root capability: ai-harness')
-        && error.message.includes('effect-harness requires effect-package'),
+        && error.message.includes('workspace provider orchestration is handled by the ai-harness slice and is not supported here'),
     )
   })
 })

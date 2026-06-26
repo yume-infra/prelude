@@ -4,7 +4,7 @@ import { FsService } from '../../src/core/services/fs'
 export function makeFsMockLayer(
   overrides: Partial<typeof FsService.Service> = {},
 ) {
-  return Layer.succeed(FsService, FsService.make({
+  return Layer.succeed(FsService, FsService.of({
     exists: () => Effect.succeed(false),
     readFileString: () => Effect.succeed(''),
     writeFileString: () => Effect.void,

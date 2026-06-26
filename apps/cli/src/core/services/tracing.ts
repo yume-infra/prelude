@@ -1,10 +1,9 @@
-import * as NodeSdk from '@effect/opentelemetry/NodeSdk'
-import { OTLPTraceExporter } from '@opentelemetry/exporter-trace-otlp-http'
-import { BatchSpanProcessor } from '@opentelemetry/sdk-trace-base'
 import { Effect, Layer, Option, Redacted } from 'effect'
+import { FetchHttpClient } from 'effect/unstable/http'
+import { OtlpSerialization, OtlpTracer } from 'effect/unstable/observability'
 import { AppConfig } from '@/config/app-config'
 
-export const TracingLive = Layer.unwrapEffect(
+export const TracingLive = Layer.unwrap(
   Effect.gen(function* () {
     const config = yield* AppConfig
 
@@ -13,15 +12,14 @@ export const TracingLive = Layer.unwrapEffect(
 
     const endpoint = Redacted.value(config.tracingEndpoint.value)
 
-    return NodeSdk.layer(() => ({
+    return OtlpTracer.layer({
+      url: `${endpoint.replace(/\/$/, '')}/v1/traces`,
       resource: {
         serviceName: '@sayoriqwq/prelude',
       },
-      spanProcessor: new BatchSpanProcessor(
-        new OTLPTraceExporter({
-          url: `${endpoint.replace(/\/$/, '')}/v1/traces`,
-        }),
-      ),
-    }))
+    }).pipe(
+      Layer.provide(OtlpSerialization.layerJson),
+      Layer.provide(FetchHttpClient.layer),
+    )
   }),
 )
