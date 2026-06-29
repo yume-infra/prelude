@@ -6,10 +6,14 @@ Engineering skills should consume project knowledge in this order:
 
 1. Read `docs/README.md`.
 2. Read `docs/prelude-goal.md` for product intent.
-3. Read `docs/prelude-final-state.md` for the target architecture.
-4. Read `docs/manifest-materialization-architecture.md` for generation,
-   materialization, manifest, and update semantics.
-5. Read ADRs under `docs/adr/` if they are introduced later and touch the area
+3. Read `docs/create-maintain-architecture.md` for the two mainlines and their
+   association point.
+4. Read `docs/prelude-final-state.md` for the target architecture.
+5. Read `docs/create-materialization-architecture.md` for create generation,
+   materialization, surfaces, and handoff semantics.
+6. Read `docs/maintain-architecture.md` for manifest, managed claims, drift
+   checks, and update semantics.
+7. Read ADRs under `docs/adr/` if they are introduced later and touch the area
    being changed.
 
 If these files do not exist, proceed silently. Do not create them upfront unless

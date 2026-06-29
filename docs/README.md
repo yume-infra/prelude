@@ -1,56 +1,69 @@
+---
+audience: [agent, human]
+authors:
+  - codex
+reviewed_by:
+  - sayori
+purpose: 作为 docs 目录的入口，声明当前 active 文档、读取顺序和文档职责边界。
+status: active
+sources: []
+updated: 2026-06-29
+---
+
 # Prelude Docs
 
-This directory is the active knowledge source for the `prelude` rebuild.
+## Scope
 
-The docs describe the final architecture directly. Do not record migration
-states, compatibility adapters, or old baselines as durable architecture.
+`docs/` 是 `prelude` 当前唯一 active project knowledge source。
+
+本目录描述最终架构，不记录迁移状态作为 durable architecture。
+
+旧 `main` 和旧 create-yume 只能作为 ability intent baseline。
+
+旧 `main` 和旧 create-yume MUST NOT become implementation baseline.
 
 ## Read Order
 
 1. [`prelude-goal.md`](./prelude-goal.md)
-   - Product goal, first user, non-goals, ownership model, and lifecycle update
-     boundary.
-2. [`prelude-final-state.md`](./prelude-final-state.md)
-   - The target architecture after the rebuild is complete.
-3. [`prelude-rebuild-plan.md`](./prelude-rebuild-plan.md)
-   - What to delete, what to build, and how to know the rebuild is aligned.
-4. [`prelude-rebuild-acceptance-matrix.md`](./prelude-rebuild-acceptance-matrix.md)
-   - Acceptance gates for the rebuild, including Effect v4, provider lifecycle,
-     generated-project parity, and smoke verification seams.
-5. [`manifest-materialization-architecture.md`](./manifest-materialization-architecture.md)
-   - The composition, logical surface, materializer, write plan, manifest, and
-     managed-surface reconciliation model.
-6. [`provider-lifecycle-architecture.md`](./provider-lifecycle-architecture.md)
-   - The lifecycle provider contract, status/verify/update semantics,
-     contribution-level lifecycle, centralized provider state, and post-create
-     write rules.
-7. [`agents/`](./agents/)
-   - Repo-local configuration for issue tracking, triage labels, and domain-doc
-     reading rules.
+   - 产品北极星、第一用户、取舍和非目标。
+2. [`create-maintain-architecture.md`](./create-maintain-architecture.md)
+   - `create` 和 `maintain` 两条主线、关联点和最小设计边界。
+3. [`prelude-final-state.md`](./prelude-final-state.md)
+   - 重建完成后的最终架构状态。
+4. [`prelude-rebuild-plan.md`](./prelude-rebuild-plan.md)
+   - 需要删除、需要建设和如何判断重建对齐。
+5. [`prelude-rebuild-acceptance-matrix.md`](./prelude-rebuild-acceptance-matrix.md)
+   - 重建验收门禁、能力恢复、Effect v4、create/maintain 和 generated smoke。
+6. [`create-materialization-architecture.md`](./create-materialization-architecture.md)
+   - create materialization、create surfaces、WritePlan、handoff 和 maintain initialization。
+7. [`maintain-architecture.md`](./maintain-architecture.md)
+   - maintain 主线、manifest、managed claims、drift check 和 maintain domains。
+8. [`agents/`](./agents/)
+   - GitHub Issues、triage labels 和 agent domain reading 配置。
 
 ## Current Contract
 
 - Product direction: [`prelude-goal.md`](./prelude-goal.md)
+- Two-mainline architecture: [`create-maintain-architecture.md`](./create-maintain-architecture.md)
 - Target architecture: [`prelude-final-state.md`](./prelude-final-state.md)
 - Rebuild execution: [`prelude-rebuild-plan.md`](./prelude-rebuild-plan.md)
 - Rebuild acceptance gates: [`prelude-rebuild-acceptance-matrix.md`](./prelude-rebuild-acceptance-matrix.md)
-- Materialization model: [`manifest-materialization-architecture.md`](./manifest-materialization-architecture.md)
-- Provider lifecycle model: [`provider-lifecycle-architecture.md`](./provider-lifecycle-architecture.md)
+- Create materialization: [`create-materialization-architecture.md`](./create-materialization-architecture.md)
+- Maintain model: [`maintain-architecture.md`](./maintain-architecture.md)
 - Agent workflow configuration: [`agents/`](./agents/)
 
-## Documentation Policy
+## Policy
 
-Keep docs organized by purpose:
+Goal documents explain why the product exists.
 
-- Goal documents explain why the product exists.
-- Final-state architecture documents explain what the finished system must look
-  like.
-- Rebuild plans name deletion targets, construction targets, and acceptance
-  criteria.
-- Materialization documents explain how resolved intent becomes files and a
-  manifest base for reconciliation.
-- Provider lifecycle documents explain what may still evolve after create.
-- Agent docs explain how external engineering skills should operate in this
-  repo.
+Architecture documents explain what the finished system must look like.
 
-Temporary implementation stages do not belong in durable architecture docs.
+Rebuild plans name deletion targets, construction targets, and acceptance criteria.
+
+Create materialization documents explain how resolved create intent becomes files.
+
+Maintain documents explain how managed surfaces evolve after create.
+
+Agent docs explain how external engineering skills should operate in this repo.
+
+Temporary implementation stages MUST NOT be recorded as durable architecture.

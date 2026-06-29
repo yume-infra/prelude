@@ -1,72 +1,77 @@
+---
+audience: [agent, human]
+authors:
+  - codex
+reviewed_by:
+  - sayori
+purpose: 定义 prelude 重建验收门禁和每个门禁的验证 seam。
+status: active
+sources:
+  - docs/create-maintain-architecture.md
+  - docs/prelude-final-state.md
+updated: 2026-06-29
+---
+
 # Prelude Rebuild Acceptance Matrix
 
-This document defines the acceptance gates for the `prelude` rebuild.
+## Scope
 
-It is a validation contract, not a target architecture document and not a
-migration plan. The target architecture remains `prelude-final-state.md`; this
-matrix says how agents and reviewers know the implementation is converging on
-that target.
+This module is a validation contract.
 
-## Evidence Sources
+This module is not target architecture and not a transitional plan.
+
+Target architecture remains [`prelude-final-state.md`](./prelude-final-state.md).
+
+## Evidence
 
 Use these sources in this order when judging acceptance:
 
 1. Active docs under `docs/`.
-2. The current Effect harness pin and official Effect v4 documentation mirrored
-   by the harness.
-3. The effect-harness provider contract and runtime projection rules.
-4. The old `main` create-yume implementation as an ability baseline only.
+2. Current Effect harness pin and official Effect v4 documentation mirrored by the harness.
+3. Current maintain-domain contract rules.
+4. Historical `main` create-yume implementation as ability baseline only.
 
-The old `main` implementation is not an architecture baseline. It may prove that
-an ability existed, but it must not reintroduce presets, `ProjectConfig`, Plan /
-PlanSpec creation truth, Handlebars rendering, global template inheritance, or
-ordinary scaffold lifecycle update.
+Historical `main` MAY prove that an ability existed.
 
-## Acceptance Gates
+Historical `main` MUST NOT reintroduce presets, `ProjectConfig`, Plan/PlanSpec creation truth, Handlebars rendering, global template inheritance, or ordinary scaffold lifecycle update.
+
+## Gates
 
 | Priority | Gate | Acceptance signal | Verification seam |
 | --- | --- | --- | --- |
-| 1 | Canonical creation path | Guided CLI and direct spec creation both enter the same `CreateSpec -> ResolvedGraph -> Capability Contributions -> Surface Materializers -> WritePlan -> Files + manifest` path. No prompt branch or reusable shape bypasses resolution. | Route-level tests and generated smoke runs inspect emitted specs, write plans, manifest records, and generated targets. |
-| 2 | Provider boundary | `effect-harness` is integrated as a provider artifact / adapter. Provider semantics, package baseline, runtime files, guardrails, lifecycle surfaces, and verification rules are owned by the provider; `prelude` validates and applies provider-declared operations through its write boundary. | Provider create contract tests, provider lifecycle status/verify/update tests, and generated harness smoke targets. |
-| 3 | Capability registry | User-understandable abilities are represented as scoped capabilities with declared requirements, conflicts, typed contributions, lifecycle claims, and verification requirements. Adding an ability does not require editing unrelated materializers or route branches. | Resolver and contribution tests assert capability selection, defaults, conflicts, provider dependencies, and package/root scoping. |
-| 4 | Logical surfaces and materializers | Each physical file or managed block has one owner materializer. Capabilities contribute typed data to logical surfaces instead of writing shared files directly. Conflicts are rejected before writes. | Materializer tests cover merge, dedupe, conflict, ownership, lifecycle snapshot, and operation emission behavior. |
-| 5 | Template and source emission boundary | Complete local templates or source emitters live under owning deep modules. Template reuse uses complete file copy, small explicit variables, or local helpers only. No global template engine, cross-capability textual includes, or capability-list conditionals are needed. | Source-emission tests assert generated app, package, config, and provider artifacts through public create/generation seams. |
-| 6 | Effect v4 native implementation | Effect-returning functions use official v4 patterns such as `Effect.fn`; services use `Context.Service`; domain errors use schema-backed tagged errors where they cross boundaries; CLI parsing/routing uses Effect CLI modules; tests use `@effect/vitest` and `it.effect` for Effect programs. | Typecheck with the harness baseline, targeted unit tests, route tests, and Effect official-pattern grep checks where useful. |
-| 7 | Generated project parity | The new model restores the useful ability surface from create-yume: React, Vue, Node backend, library, CLI, Effect package, workspace root, workspace CLI/library, workspace fullstack, routing, state, CSS, linting, Knip, dependency update intent, dry-run, print-spec, and inspectable generated examples. | Generated smoke matrix installs, builds, typechecks, lints, runs, and inspects representative targets. |
-| 8 | Lifecycle update boundary | Post-create update is scoped to explicit managed contributions. Ordinary scaffold output is handed off. Update compares desired/base/current logical values and blocks on drift, undeclared external surfaces, incompatible contract transitions, or provider namespace violations. | Provider lifecycle tests and managed-surface reconciliation tests cover already-applied, safe-update, drift, undeclared-surface, and contract-mismatch cases. |
-| 9 | Manifest ledger | The manifest records creation provenance, resolved graph debug context, prelude-owned pins, lifecycle provider records, managed claims/surfaces, generated-user surfaces, and verification records after successful apply and verification. It is not desired truth. | Manifest integration tests inspect successful create output and lifecycle update output. |
-| 10 | Generated smoke gate | Generated smoke output remains inspectable under the repo-local generated examples area. Smoke includes at least one provider/harness target and one renderable app target, and it exercises install, build, typecheck, lint, run, verify, provider contract, and dry-run no-write behavior. | Generated smoke scripts and smoke-gate tests define the required intent areas and external checks. |
+| 1 | Create mainline | Guided CLI, direct spec, and CreateSpec recipes enter the same `CreateSpec -> resolved create graph -> capability modules -> create surfaces -> create WritePlan -> files -> create verification -> handoff` path. | Route tests, resolver tests, materializer tests, and generated smoke inspect emitted specs, plans, files, and verified targets. |
+| 2 | Maintain mainline | Maintain owns manifest, managed claims, status, verify, update, drift check, maintain WritePlan, and manifest base refresh. Ordinary scaffold is not maintain state. | Maintain tests cover manifest absence, managed claim selection, status, verify, update, drift, and base refresh. |
+| 3 | Create-maintain association | Create initializes maintain only when selected. The association transfers managed intent, not ordinary scaffold ownership or full create resolved graph update authority. | Integration tests inspect initial managed claims and verify ordinary generated files are not maintain claims. |
+| 4 | Capability modules | User-understandable abilities are represented as scoped capability modules with requirements, conflicts, create surfaces, contributions, and create verification expectations. Adding an ability does not require editing unrelated materializers or route branches. | Capability registry and resolver tests assert selection, defaults, conflicts, and package/root scoping. |
+| 5 | Create surfaces | Each shared semantic resource has one create surface and one materializer. Capabilities contribute typed data to surfaces instead of writing shared files directly. Conflicts are rejected before writes. | Surface/materializer tests cover merge, dedupe, conflict, path ownership, and operation emission. |
+| 6 | Template boundary | Complete local templates or source emitters live under owning deep modules. Template reuse uses complete file copy, small explicit variables, or local helpers only. Global renderer, cross-capability textual includes, and hidden capability-list conditionals are absent. | Source-emission tests assert generated app, package, config, and maintain initialization artifacts through public create seams. |
+| 7 | Effect v4 native implementation | Effect-returning functions use official v4 patterns such as `Effect.fn`; services use `Context.Service`; domain errors use schema-backed tagged errors where they cross boundaries; CLI parsing/routing uses Effect CLI modules; tests use `@effect/vitest` and `it.effect` for Effect programs. | Typecheck with the harness baseline, targeted unit tests, route tests, and Effect official-pattern checks where useful. |
+| 8 | Generated ability parity | The new model restores useful create-yume ability intent through the new architecture: React, Vue, Node backend, library, CLI, Effect package, workspace roots, workspace starters, routing, state, CSS, linting, Knip, create-time dependency policy, dry-run, print-spec, and inspectable generated examples. | Generated smoke installs, builds, typechecks, lints, runs, and inspects representative targets. |
+| 9 | Maintain drift boundary | Maintain update compares desired/base/current logical values and blocks on drift, undeclared surfaces, incompatible contract transitions, and namespace violations. | Maintain reconciliation tests cover already-applied, safe-update, drift, undeclared-surface, and contract-mismatch cases. |
+| 10 | Generated smoke gate | Generated smoke output remains inspectable under the repo-local generated examples area. Smoke includes at least one renderable app target and at least one maintain-domain target. | Generated smoke scripts and smoke-gate tests define required intent areas and external checks. |
 
-## Main Ability Baseline
+## Ability Baseline
 
-The old create-yume implementation proves these abilities should be recovered in
-the new model unless a current doc explicitly rejects them:
+The historical create-yume implementation proves these abilities should be recovered in the new model unless active docs explicitly reject them:
 
 - Guided creation for unclear direction.
 - Direct spec creation for repeatable generation.
-- React and Vue applications with minimal and full variants expressed as
-  complete reusable `CreateSpec` files, not presets.
+- React and Vue applications with minimal and full variants expressed through CreateSpec recipes.
 - Node backend, library, CLI, and Effect package targets.
-- Workspace roots and composed workspace layouts, including CLI/library and
-  fullstack web/API/shared shapes.
-- CSS, router, and state choices modeled as scoped capabilities when they own
-  dependencies, source slots, verification, or conflict rules.
-- Linting, Knip, dependency update intent, package manager baseline, and
-  generated examples as first-class acceptance surfaces.
-- Dry-run and print-spec behavior that proves the plan without writing ordinary
-  scaffold output.
+- Workspace roots and composed workspace layouts, including CLI/library and fullstack web/API/shared shapes.
+- CSS, router, and state choices modeled as scoped capabilities when they own dependencies, source slots, verification, or conflicts.
+- Linting, Knip, create-time dependency policy, package manager baseline, and generated examples as first-class create acceptance surfaces.
+- Dry-run and print-spec behavior that proves create planning without writing ordinary scaffold output.
 
-## PRD Ordering
+## Ordering
 
-The remaining rebuild work should be tracked in this order:
+Remaining rebuild work SHOULD be tracked in this order:
 
-1. Integrate `effect-harness` as a provider artifact and lifecycle adapter.
-2. Split create into deep modules for capability registry, logical surfaces,
-   templates/source emission, and materializers.
-3. Refactor core implementation and tests to native Effect v4 patterns.
-4. Recover the useful generated-project ability surface from create-yume through
-   the new model.
-5. Expand generated smoke and contract gates so regressions are caught at the
-   generated project boundary.
+1. Deepen capability modules so historical ability semantics can be imported without scattering CLI/schema/verification knowledge.
+2. Deepen create surfaces and materializer dispatch so new semantics do not expand central switches.
+3. Move create verification expectations closer to capability modules and surfaces.
+4. Establish CreateSpec recipes and semantic import classification for historical template intent.
+5. Recover useful generated-project ability surface from create-yume through the new model.
+6. Expand generated smoke and maintain contract gates so regressions are caught at generated project and managed lifecycle boundaries.
 
-Each PRD should point back to this matrix and prove which gates it advances.
+Each PRD SHOULD point back to this matrix and prove which gates it advances.

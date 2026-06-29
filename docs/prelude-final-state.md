@@ -1,661 +1,220 @@
+---
+audience: [agent, human]
+authors:
+  - codex
+reviewed_by:
+  - sayori
+purpose: 定义 prelude 重建后的最终架构状态和不可破坏的主线边界。
+status: active
+sources:
+  - docs/create-maintain-architecture.md
+updated: 2026-06-29
+---
+
 # Prelude Final State
 
-This document describes the final architecture `prelude` should converge on.
-The point is to state what the system looks like when the design is correct.
+## Sentence
 
-## One Sentence
+`prelude` 是 Sayori-first 的 project genesis system。
 
-`prelude` is a project genesis system that turns a canonical `CreateSpec` into
-an agent-ready, provider-aware workspace through one composition pipeline, then
-hands off ordinary scaffold output while keeping explicitly managed
-contributions updatable.
+`prelude` 把 canonical `CreateSpec` materialize 成真实可用、agent-ready、可验证的项目起点。
 
-## Final Product Shape
+`prelude` 通过 maintain 主线维护少数明确 managed 的 surfaces。
 
-`prelude` has one internal creation input: `CreateSpec`.
+## Mainlines
 
-There are two supported ways to produce a `CreateSpec`:
+最终架构有两条主线。
 
-- Guided CLI: asks questions when direction is unclear, then emits a canonical
-  `CreateSpec`.
-- Direct spec: accepts a canonical, complete, diffable `CreateSpec` from the
-  user, an agent, CI, or a script.
+```text
+create   = 一次性 genesis
+maintain = 有状态 lifecycle
+```
 
-Reusable project shapes are ordinary `CreateSpec` files. There is no preset
-product concept in the final architecture.
+`create` 和 `maintain` 的详细口径记录在
+[`create-maintain-architecture.md`](./create-maintain-architecture.md)。
 
-Every creation path enters the same resolver:
+## Create Line
+
+`create` 主线的职责是生成项目起点。
 
 ```text
 CreateSpec
-  -> resolved graph
-  -> capability contributions
-  -> logical surfaces
-  -> materializers
-  -> operation plan
-  -> apply
-  -> verify
-  -> manifest
+  -> create resolver
+  -> resolved create graph
+  -> capability modules
+  -> create contributions
+  -> create surfaces
+  -> create WritePlan
+  -> apply files
+  -> create verification
+  -> handoff
 ```
 
-No prompt branch, reusable spec file, or input adapter may bypass this path.
+Guided CLI、direct spec 和 CreateSpec recipe MUST enter the same create resolver.
 
-Input source is provenance only. A generated manifest may record whether the
-`CreateSpec` came from guided CLI, direct file input, an agent, or CI, but
-lifecycle update semantics come from managed contributions and their recorded
-claims.
+`create` MUST NOT use a separate prompt branch, preset branch, or template branch as generation truth.
 
-## Core Runtime Model
+`create` MUST NOT create long-term update authority over ordinary scaffold.
 
-### CreateSpec
+`create` MAY initialize maintain when the selected project shape includes maintain behavior.
 
-`CreateSpec` records the confirmed project creation specification before pins,
-provider versions, and materialization choices are applied.
+## Maintain Line
 
-It contains:
+`maintain` 主线的职责是维护明确 managed 的 surfaces。
 
-- topology choice
-- package list
-- root capability choices
-- package capability choices
-- provider choices
-- explicit user overrides
+```text
+maintain config
+  -> maintain resolver
+  -> managed claims
+  -> maintain manifest
+  -> status | verify | update
+  -> desired/base/current reconcile
+  -> maintain WritePlan
+  -> apply managed changes
+  -> refresh manifest base
+```
 
-`CreateSpec` is declarative input. It may omit defaults. The resolver applies
-current capability defaults, pins, and provider contracts to produce a complete
-`ResolvedGraph`.
+`maintain` owns the manifest.
 
-Defaults may prefill `CreateSpec`, but the resolver must not invent unrecorded
-capabilities. If guided CLI defaults to `ai-harness`, that selection must be
-written into the emitted `CreateSpec`.
+The maintain manifest is reconciliation base, not create provenance.
 
-`CreateSpec` is closed. It does not support include, import, extends, or remote
-references. Reuse happens by copying, editing, or agent-generating a complete
-spec. Composition belongs to capabilities and the resolver, not to spec files.
+`maintain` MUST NOT update ordinary scaffold.
 
-`CreateSpec` is durable creation provenance. Lifecycle providers may use it as
-context, but it is not a promise that `prelude` will reapply the full scaffold to
-the project forever.
+`maintain` MUST NOT derive desired state from manifest base claims.
 
-### Resolved Graph
+## Association
 
-Resolved graph is the concrete generation answer.
+The create-to-maintain association is maintain initialization.
 
-It contains:
+```text
+create selected maintain behavior
+  -> initialize maintain config
+  -> write initial managed surfaces
+  -> record maintain manifest base
+```
 
-- topology
-- root package
-- workspace packages
-- capability graph
-- package scopes
-- provider selections
-- prelude-owned pins
-- provider artifact and contract versions
-- logical surfaces
-- selected materializers
-- verification surface
+This association MUST be narrow.
 
-The resolved graph is deterministic for a fixed `prelude` version, pin set, and
-provider artifact set.
+Maintain initialization MUST NOT transfer ordinary scaffold ownership.
 
-Default policy changes are not generated-project updates. If the same
-`CreateSpec` resolves to a different `ResolvedGraph` because `prelude` changed a
-default choice, that is a creation policy change or scaffold redesign task, not
-something lifecycle update silently applies to an existing project.
+Maintain initialization MUST NOT transfer the full create resolved graph as update authority.
 
-### Capability
+## CreateSpec
 
-A capability is a scoped unit of project behavior.
+`CreateSpec` is the canonical create input.
 
-Examples:
+`CreateSpec` records topology, package scopes, selected create capabilities, selected maintain behavior, and explicit overrides.
 
-- React app capability
-- Vue app capability
-- Node runtime capability
-- CLI capability
-- library capability
-- linting capability
-- Knip capability
-- dependency update capability
-- AI harness capability
+`CreateSpec` is closed.
 
-A capability declares:
+`CreateSpec` MUST NOT support include, import, extends, or remote references.
 
-- id
+Reusable shapes are complete CreateSpec recipes.
+
+CreateSpec recipes MUST NOT become a preset product model.
+
+## Capability
+
+A capability is a scoped create ability.
+
+Capabilities are user-understandable abilities, not raw files, dependencies, or template fragments.
+
+Capability modules SHOULD be deep enough to carry:
+
+- id and label
 - root or package scope
-- supported topology
-- required inputs
-- default inputs
-- prelude-owned pins it consumes
-- provider dependencies, if any
-- logical surface contributions
-- contribution lifecycle choices
-- conflict rules
-- verification requirements
+- requirements and conflicts
+- create surfaces
+- create contributions
+- create verification expectations
+- guided visibility when relevant
 
-A capability does not write shared files directly.
+Core create flow SHOULD remain closed to ordinary capability additions.
 
-Capability granularity follows user-understandable project ability, not files,
-dependencies, or source fragments. `react-app` is a capability. `add react to
-dependencies` is not. Source imports, source slots, and package manifest entries
-are contributions behind a capability.
+## Surface
 
-The boundary between a capability and an option is ownership. If a choice has
-its own dependencies, logical surface contributions, lifecycle surfaces,
-verification requirements, conflict rules, or update policy, model it as a
-capability. If it only tunes behavior inside one owner without separate
-ownership, model it as that capability's option.
+A create surface is a semantic merge point with one materializer.
 
-### Topology
+Capabilities contribute typed data to create surfaces.
 
-Topology is resolved before framework selection.
+Capabilities MUST NOT patch shared physical files directly.
 
-Supported topology shapes:
+One physical path MUST have one writer.
 
-- single package
-- workspace
+If two capabilities need the same physical file, they MUST meet at one typed surface or generation blocks.
 
-Root-level capabilities manage root surfaces. Package-level capabilities manage
-package-local surfaces.
+Logical surface depth is more important than template reuse.
 
-Workspace root surfaces and package runtime surfaces are separate scopes. Root
-Knip, root `AGENTS.md`, provider manifests, workspace scripts, and workspace
-verification are not mixed with React, Vue, Node, CLI, or library package
-surfaces.
+## Materialization
 
-## Logical Surfaces
+Materializers turn create surfaces into write operations.
 
-A logical surface is a named merge point with an owner and write rules.
+Materializers MAY use complete local templates, small explicit variables, or local helper functions.
 
-Examples:
+Materializers MUST NOT use a global template engine.
 
-- `package-manifest:root`
-- `package-manifest:packages/web`
-- `workspace-manifest:root`
-- `agents-root-instructions`
-- `react-app-shell:packages/web`
-- `provider:effect-harness`
+Materializers MUST NOT use cross-capability textual includes.
 
-Capabilities contribute typed slots to logical surfaces when a semantic boundary
-exists. They do not patch physical files.
+Materializers MUST NOT use hidden capability-list conditionals inside shared templates.
 
-Examples:
+Text duplication is acceptable when it preserves open/closed extension and local reasoning.
 
-```text
-react capability
-  -> package-manifest:packages/web dependencies.react
-  -> package-manifest:packages/web scripts.dev
+## Verification
 
-jotai capability
-  -> package-manifest:packages/web dependencies.jotai
-  -> react-app-shell:packages/web providerWrappers.state
+Create verification proves the generated project works at creation time.
 
-knip capability
-  -> package-manifest:root devDependencies.knip
-  -> package-manifest:root scripts.knip
-  -> managed-file:root knip.json
-```
+Create verification SHOULD come from capability or surface expectations rather than a central family switch.
 
-One logical surface has one merge policy and one materializer. One physical file
-or managed block has one writer.
+Generated smoke is an external gate.
 
-Typed surfaces and long-term management are orthogonal. A typed surface may be
-used only during create and then handed off. A complete provider template may be
-copied as an opaque artifact and still be managed when it is under an owned
-provider namespace.
+Generated smoke SHOULD install, build, typecheck, lint, run, or verify representative generated targets.
 
-Promote an output to a typed logical surface only when at least one of these is
-true:
+Generated smoke MUST NOT become the only source of acceptance knowledge.
 
-- multiple capabilities express opinions about the same semantic resource
-- the resource needs independent add, remove, or update behavior
-- the resource needs stable identity for reconciliation
-- conflicts must be detected and explained before writing
+Maintain verification is separate from create verification.
 
-Otherwise prefer a complete, local, readable template or opaque artifact.
+## Maintain Manifest
 
-## Materializers
+The maintain manifest records managed lifecycle state.
 
-A materializer owns the physical write for one logical surface.
-
-Examples:
-
-- package manifest materializer writes `package.json`
-- workspace manifest materializer writes `pnpm-workspace.yaml`
-- managed block materializer writes a marked block in `AGENTS.md`
-- generated-user materializer creates user-owned source files
-- provider materializer invokes a provider adapter
-
-Materializers produce operations. They also define how surfaces are snapshotted
-when contributions on those surfaces declare managed lifecycle.
-
-## Operations
-
-Operations are the only side-effect layer.
-
-Operation kinds:
-
-- `writeStructuredField`
-- `writeManagedFile`
-- `writeManagedBlock`
-- `writeGeneratedUserFile`
-- `writeSourceFile`
-- `callProviderStatus`
-- `callProviderVerify`
-- `callProviderPlanUpdate`
-- `runCommand`
-
-Every operation declares:
-
-- operation id
-- owner
-- logical surface
-- target path or provider target
-- contribution lifecycle claim, when relevant
-- create behavior
-- lifecycle update behavior, when any
-- snapshot rule
-- verification rule
-
-Structured serialization, source emission, copying files, and running commands
-are implementation details behind operations. There is no Handlebars operation
-and no global template-rendering layer.
-
-## Template Boundary
-
-`prelude` does not pursue text-level DRY. It pursues semantic single authority.
-
-Semantic authority belongs to:
-
-- user intent in `prelude.config.*` or the accepted `CreateSpec`
-- pins and bundle versions in `prelude.lock`
-- capability and provider contracts
-- logical surface schemas and merge rules
-- managed claims and observed base in the manifest
-- current observed bytes and structured values on disk
-
-Text output may be duplicated when that makes templates easier for humans and
-agents to read. Template reuse is local to one materializer.
-
-Allowed template mechanisms:
-
-- complete file copy
-- small explicit variable substitution
-- local helper functions inside one materializer
-
-Forbidden template mechanisms:
-
-- cross-capability template inheritance
-- cross-capability textual includes
-- global capability-list conditionals inside templates
-- last-writer-wins file output
-
-If two contributions target the same physical path, generation blocks unless
-they enter the same logical surface and materializer.
-
-## Contribution Lifecycle
-
-Every contribution declares lifecycle:
-
-```text
-handoff | managed
-```
-
-Lifecycle belongs to a contribution, not to an entire provider.
-
-`handoff` means the contribution is applied during create and then handed to the
-project owner. Manifest records are provenance only.
-
-`managed` means the contribution participates in post-create reconciliation, but
-only if its logical surface has a stable reconcile contract.
-
-Managed claims declare:
-
-- owner or owners
-- lifecycle
-- scope: `field`, `entry`, `block`, `file`, or `namespace`
-- locator
-- conflict policy, defaulting to `block`
-- contract version and implementation version
-
-The managed reconcile rule compares logical values, not whole files unless the
-claim scope is `file`:
-
-```text
-current == desired
-  -> already applied, success
-current == base
-  -> safe to apply desired
-otherwise
-  -> drift, block
-```
-
-`desired == base` with `current != base` blocks. User edits inside a managed
-locator are not accepted silently as the new base.
-
-Stable locator forms for v1:
-
-- managed block marker
-- structured pointer for JSON, YAML, and TOML
-- whole file
-- provider namespace
-
-V1 does not support line ranges, regex ranges, AST nodes, semantic source
-regions, or arbitrary codemods as managed locators.
-
-Provider runtime files under `.prelude/providers/<id>/**` are normally managed
-namespace or file claims. Provider demos and examples are ordinary handoff
-contributions unless they explicitly declare managed lifecycle.
-
-## Manifest
-
-Every `prelude`-generated project has one root manifest:
-
-```text
-.prelude/manifest.json
-```
-
-The manifest is the ledger for creation provenance and lifecycle provider state.
-It is reconciliation base, not desired truth. It is not a generator input, and
-it is not a claim that `prelude` owns the whole project after day one. It is
-written after successful apply and verification for every generated project.
-
-Update state is derived as:
-
-```text
-desired = prelude config + prelude lock + current capability/provider implementation
-base    = manifest
-current = filesystem
-```
-
-The manifest must not be used to derive new desired state.
-
-Manifest contents:
+The maintain manifest SHOULD include:
 
 - schema version
-- `prelude` version
-- create spec
-- resolved graph
-- prelude-owned pins
-- provider records
-- managed claims and surfaces
-- handed-off scaffold surfaces
-- generated-user surfaces
-- verification records
+- maintain domains
+- managed claims
+- managed locators
+- base snapshots
+- domain contract identity
+- maintain verification records
 
-Managed surface records include:
+The maintain manifest SHOULD NOT include ordinary scaffold provenance records.
 
-- surface id
-- owner or owners
-- lifecycle
-- scope
-- locator
-- base value or hash
-- contract version
-- implementation version
-- snapshot value or hash
-- operation id that last wrote it
-- provider report id, when provider-owned
+The maintain manifest MAY include minimal create context only when a maintain domain needs it.
 
-Handoff surface records include provenance such as path, creator, template
-bundle version, and initial hash. They do not grant lifecycle update authority.
+## Maintain Domains
 
-The manifest is written last. A failed apply or failed verification must not
-record a successful generated state.
+Maintain domain modules belong to maintain when they provide managed domain semantics.
 
-## Lifecycle Update
+Maintain domain modules are not create capabilities.
 
-Lifecycle update is deterministic and managed-surface scoped. In v1, most active
-managed surfaces are produced by lifecycle providers.
+Maintain domain modules MUST NOT write project files directly.
 
-```text
-read manifest as base
-  -> validate manifest schema
-  -> recompute desired managed contributions from config, lock, and current implementations
-  -> validate provider contract schemas and migration paths
-  -> read current logical values from the filesystem
-  -> reconcile base/current/desired for managed claims
-  -> validate operations against provider namespace or declared managed surfaces
-  -> dry-run or apply
-  -> provider or surface verification
-  -> write manifest
-```
+Maintain core validates domain-declared desired changes, drift checks them, and applies managed changes through maintain WritePlan.
 
-Lifecycle update blocks when:
+`effect-harness` is the first maintain domain.
 
-- no manifest exists
-- no active managed contribution exists
-- manifest schema is unsupported
-- provider contract schema is unsupported
-- a managed surface drifted
-- handed-off scaffold surface would need to change
-- update plan has no deterministic resolution
-- update plan targets an undeclared external surface
-- contract transition cannot prove identity, ownership topology, and semantic
-  continuity
+`prelude` SHOULD NOT build a generic domain platform before multiple maintain domains justify that seam.
 
-Lifecycle drift blocks. Lifecycle update does not repair, reconcile, or
-reinterpret drift.
+## Rejections
 
-Default `prelude update` updates all active managed providers. With
-`--provider <id>`, it selects managed contributions from that provider only.
+The final architecture MUST NOT restore historical create-yume implementation models.
 
-`prelude status` is read-only provider lifecycle inspection. `prelude verify`
-executes provider lifecycle checks. Create acceptance verification stays inside
-the create flow and is separate from post-create lifecycle verification.
+The final architecture MUST NOT restore:
 
-## Providers
-
-Providers own domain semantics that should not live in `prelude`.
-
-Providers are not capabilities. Capabilities are selectable project abilities.
-Providers are selected implementations for provider-owned domains.
-
-`ai-harness` is a root orchestration capability with target package scopes. It
-owns root-level orchestration surfaces such as agent instructions, provider
-records, and verification aggregation, while the selected provider owns
-provider-specific target package surfaces.
-
-`prelude` owns:
-
-- provider selection
-- provider artifact pin
-- provider contract version
-- provider invocation
-- provider status integration
-- provider record in the manifest
-- provider write boundary
-
-Provider owns:
-
-- domain package baselines
-- domain runtime files
-- domain agent routes
-- domain guardrails
-- provider-owned managed surfaces
-- provider update policy
-- provider verification
-- provider lifecycle records
-
-Provider adapter shape:
-
-```text
-status(lifecycleProviderRecord)
-verify(lifecycleProviderRecord)
-planUpdate(lifecycleProviderRecord, options)
-```
-
-`effect-harness` is one provider adapter. A shared harness core only exists when
-multiple real providers prove the same interface.
-
-Providers do not receive the full manifest or the full resolved graph as
-post-create input. They receive only their lifecycle provider record and
-explicitly projected context. Providers do not write project files directly and
-do not run side-effect commands directly. They declare managed contributions,
-lifecycle operations, or migration plans; `prelude` validates and applies them.
-
-A selected capability or provider is required. If a selected provider is missing,
-unavailable, or contract-unsupported, create and lifecycle update must block.
-`prelude` must not silently degrade by generating the project without the
-selected provider-owned behavior.
-
-Provider lifecycle state is centralized under:
-
-```text
-.prelude/providers/<provider-id>/**
-```
-
-For `effect-harness`, the required provider namespace is:
-
-```text
-.prelude/providers/effect-harness/**
-```
-
-There is no dual path such as `.effect-harness/**` in v1.
-
-## Version Ownership
-
-Version ownership follows content ownership.
-
-`prelude` owns pins for content it emits:
-
-- React scaffold dependencies
-- Vue scaffold dependencies
-- Node scaffold dependencies
-- linting dependencies
-- Knip/Taze tooling
-- package manager baseline
-- scaffold defaults
-
-Those pins are creation inputs and repository maintenance inputs. They do not
-make existing generated projects part of a general `prelude` update surface.
-
-Providers own pins for content they emit:
-
-- Effect package baseline inside `effect-harness`
-- provider runtime files
-- provider verifier dependencies
-- provider internal source pins
-
-Contract drift blocks lifecycle update whenever identity, ownership topology, or
-semantic continuity cannot be explicitly proven. Semver major drift is only one
-possible signal.
-
-## Final CLI Shape
-
-The CLI presents topology first:
-
-```text
-What are you creating?
-  single package
-  workspace
-```
-
-Then it asks for scoped capabilities:
-
-```text
-Root capabilities:
-  linting
-  knip
-  dependency update tooling
-  AI harness provider
-
-Package capabilities:
-  React app
-  Vue app
-  Node runtime
-  CLI
-  library
-  Effect package
-```
-
-The guided CLI emits the same canonical `CreateSpec` accepted by direct spec
-input. Direct spec input must round-trip behavior that the resolver can
-generate.
-
-## Example Final Project
-
-CreateSpec:
-
-```text
-workspace
-root: linting, knip, dependency update tooling, ai harness
-packages:
-  web: React app, Jotai
-  worker: Effect package with effect-harness provider
-```
-
-Resolved graph:
-
-```text
-topology: workspace
-root capabilities:
-  linting
-  knip
-  dependency-update
-  ai-harness(effect-harness)
-packages:
-  packages/web:
-    react-app
-    state:jotai
-  packages/worker:
-    effect-package
-providers:
-  effect-harness
-```
-
-Materialization:
-
-```text
-package-manifest:root
-  -> root package.json
-
-package-manifest:packages/web
-  -> packages/web/package.json
-
-package-manifest:packages/worker
-  -> packages/worker/package.json
-
-agents-root-instructions
-  -> AGENTS.md managed block
-
-provider:effect-harness
-  -> call effect-harness adapter
-  -> record provider lifecycle state
-  -> write provider artifacts under .prelude/providers/effect-harness/**
-
-generated-user source surfaces
-  -> packages/web/src/*
-  -> packages/worker/src/*
-```
-
-Update behavior:
-
-- ordinary scaffold files and package manifest entries are handed off after
-  create unless a contribution declares managed lifecycle on a stable surface.
-- provider-owned managed surfaces update only through provider-declared plans
-  applied by `prelude`.
-- provider internal artifacts stay under `.prelude/providers/<id>/**`.
-- user source files are not rewritten.
-- manual edits to managed surfaces block.
-
-## Invariants
-
-- One canonical creation input: `CreateSpec`.
-- One resolver for guided CLI output and direct spec input.
-- One manifest per generated project.
-- Manifest is reconciliation base, not desired truth.
-- One lifecycle declaration per contribution.
-- One merge policy for each logical surface.
-- One materializer for each physical write.
-- No capability directly patches shared files.
-- No lifecycle update without manifest and active managed contributions.
-- No lifecycle update across unsupported schema versions.
-- No lifecycle update across contract drift that cannot prove continuity.
-- No provider internals inside `prelude`.
-- No provider direct project writes.
-- No post-create external writes except declared managed surfaces.
-- No arbitrary patch or git diff lifecycle contract.
-- No template inheritance or cross-capability textual includes.
-- No last-writer-wins file output.
-- No generated-user source rewrite during lifecycle update.
+- `ProjectConfig` as creation truth
+- Plan or PlanSpec as write model
+- Handlebars as global renderer
+- preset as product model
+- whole-project lifecycle update
+- manifest-as-desired-truth
+- ordinary scaffold update authority

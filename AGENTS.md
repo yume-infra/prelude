@@ -10,10 +10,11 @@ Start with:
 
 1. `docs/README.md`
 2. `docs/prelude-goal.md`
-3. `docs/prelude-final-state.md`
-4. `docs/prelude-rebuild-plan.md`
-5. `docs/manifest-materialization-architecture.md`
-6. `docs/provider-lifecycle-architecture.md`
+3. `docs/create-maintain-architecture.md`
+4. `docs/prelude-final-state.md`
+5. `docs/prelude-rebuild-plan.md`
+6. `docs/create-materialization-architecture.md`
+7. `docs/maintain-architecture.md`
 
 There is no active Trellis workflow in this repository and no project-local
 skill baseline to maintain. Do not recreate `.trellis/` or `.agents/skills/`
@@ -21,21 +22,35 @@ unless the user explicitly asks for a new system with that exact shape.
 
 ## Architecture Stance
 
-The rebuild target is the final architecture, not a migration state.
+The rebuild target is the final architecture, not a transitional state.
 
-The core pipeline is:
+The core architecture has two mainlines:
 
 ```text
+create:
 CreateSpec
-  -> Resolver
-  -> ResolvedGraph
-  -> Capability Contributions
-  -> Surface Materializers
-  -> WritePlan
-  -> Files + .prelude/manifest.json
+  -> create resolver
+  -> resolved create graph
+  -> capability modules
+  -> create surfaces
+  -> create WritePlan
+  -> files
+  -> create verification
+  -> handoff
+
+maintain:
+maintain config
+  -> maintain resolver
+  -> managed claims
+  -> maintain manifest
+  -> status | verify | update
+  -> desired/base/current reconcile
+  -> maintain WritePlan
+  -> managed surface updates
+  -> refreshed manifest base
 ```
 
-Do not preserve old concepts as target architecture:
+Do not preserve rejected concepts as target architecture:
 
 - no preset product model; reusable shapes are saved `CreateSpec` files
 - no `ProjectConfig` creation truth
@@ -44,7 +59,7 @@ Do not preserve old concepts as target architecture:
 - no capability-owned direct file writes
 - no general generated-project update surface
 
-If old code blocks the final model, prefer deleting it over building a
+If rejected implementation code blocks the final model, prefer deleting it over building a
 compatibility layer.
 
 ## Project Notes
