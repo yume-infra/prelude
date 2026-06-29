@@ -7,6 +7,7 @@ import { formatSchemaError, schemaIssueCount } from '@/schema/errors'
 
 const CapabilityIdSchema = Schema.Literals([
   'minimal-node-package',
+  'node-app',
   'react-app',
   'react-counter',
   'vue-app',

@@ -169,7 +169,7 @@ export const materializeWritePlan = Effect.fn('materializeWritePlan')(
       operations: [
         ...packageJsonOperations,
         ...[...workspaceManifestSurfaces.entries()].map(([surfaceId, surfaceContributions]) =>
-          materializeWorkspaceManifest(surfaceId, surfaceContributions)),
+          materializeWorkspaceManifest(surfaceId, surfaceContributions, packageManifestContributions)),
         ...materializeEslintRoot(eslintRootContributions),
         ...materializeKnipRoot(knipRootContributions),
         ...sourceContributions.map(materializeGeneratedUserFile),

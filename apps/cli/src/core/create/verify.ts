@@ -76,6 +76,7 @@ export const verifyCreateOutputs = Effect.fn('verifyCreateOutputs')(
 
     const providerRecords = hasEffectHarnessProvider(graph) ? [effectHarnessVerificationRecord()] : []
     const hasRootEngineeringFiles = graph.rootCapabilities.includes('linting') || graph.rootCapabilities.includes('knip')
+    const workspacePackageCheckedPaths = workspacePackagePaths(requiredPaths)
 
     if (graph.topology === 'workspace') {
       return {
@@ -85,11 +86,13 @@ export const verifyCreateOutputs = Effect.fn('verifyCreateOutputs')(
             status: 'passed',
             checkedPaths: workspaceRootPaths(requiredPaths),
           },
-          {
-            id: 'workspace-package-files-present',
-            status: 'passed',
-            checkedPaths: workspacePackagePaths(requiredPaths),
-          },
+          ...(workspacePackageCheckedPaths.length === 0
+            ? []
+            : [{
+                id: 'workspace-package-files-present',
+                status: 'passed' as const,
+                checkedPaths: workspacePackageCheckedPaths,
+              }]),
           ...(hasRootEngineeringFiles
             ? [{
                 id: 'root-engineering-files-present',
@@ -186,7 +189,7 @@ export const verifyCreateOutputs = Effect.fn('verifyCreateOutputs')(
       }
     }
 
-    if (graph.rootPackage.capabilities.includes('node-backend') || graph.rootPackage.capabilities.includes('library')) {
+    if (graph.rootPackage.capabilities.includes('node-app') || graph.rootPackage.capabilities.includes('node-backend') || graph.rootPackage.capabilities.includes('library')) {
       return {
         records: [
           {

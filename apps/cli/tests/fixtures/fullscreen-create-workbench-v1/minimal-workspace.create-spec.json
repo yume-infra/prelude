@@ -1,0 +1,7 @@
+{
+  "topology": "workspace",
+  "packages": [],
+  "rootCapabilities": ["package-manager:pnpm"],
+  "providers": [],
+  "overrides": {}
+}

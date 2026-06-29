@@ -1,0 +1,14 @@
+{
+  "topology": "workspace",
+  "packages": [
+    {
+      "id": "tool",
+      "name": "@workbench/tool",
+      "capabilities": ["cli-tool"],
+      "internalDependencies": []
+    }
+  ],
+  "rootCapabilities": ["package-manager:pnpm"],
+  "providers": [],
+  "overrides": {}
+}

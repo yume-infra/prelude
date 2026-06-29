@@ -10,10 +10,10 @@ import {
   effectHarnessManagedBlockSurfaceId,
   effectHarnessManagedFileArtifacts,
   effectHarnessManagedFileSurfaceId,
-  effectHarnessPackageSurfaces,
+  effectHarnessPackageSurfacesForProjectedContext,
   effectHarnessProviderPath,
-  effectHarnessProviderSurfaceIds,
-  effectHarnessTsconfigSurfaces,
+  effectHarnessProviderSurfaceIdsForProjectedContext,
+  effectHarnessTsconfigSurfacesForProjectedContext,
   encodeJsonValue,
   providerJsonValueForProjectedContext,
 } from '@/core/create/effect-harness-provider'
@@ -92,7 +92,7 @@ function jsonMatches(left: unknown, right: unknown) {
 }
 
 function missingEffectHarnessSurfaceIds(record: LifecycleProviderRecord) {
-  const expected = effectHarnessProviderSurfaceIds()
+  const expected = effectHarnessProviderSurfaceIdsForProjectedContext(record.projectedContext)
   return expected.filter(surfaceId => !record.lifecycleSurfaces.includes(surfaceId))
 }
 
@@ -101,7 +101,7 @@ function desiredEffectHarnessRecord(record: LifecycleProviderRecord): LifecycleP
     ...record,
     contractVersion: effectHarnessContractVersion,
     artifact: effectHarnessArtifact,
-    lifecycleSurfaces: effectHarnessProviderSurfaceIds(),
+    lifecycleSurfaces: effectHarnessProviderSurfaceIdsForProjectedContext(record.projectedContext),
   }
 }
 
@@ -112,14 +112,14 @@ function desiredEffectHarnessOperations(record: LifecycleProviderRecord): readon
       path: effectHarnessProviderPath,
       content: encodeJsonValue(providerJsonValueForProjectedContext(record.projectedContext)),
     },
-    ...effectHarnessPackageSurfaces().map(surface => ({
+    ...effectHarnessPackageSurfacesForProjectedContext(record.projectedContext).map(surface => ({
       kind: 'replaceStructuredPointer' as const,
       surfaceId: surface.id,
       path: 'package.json',
       pointer: surface.pointer,
       value: surface.value,
     })),
-    ...effectHarnessTsconfigSurfaces().map(surface => ({
+    ...effectHarnessTsconfigSurfacesForProjectedContext(record.projectedContext).map(surface => ({
       kind: 'replaceStructuredPointer' as const,
       surfaceId: surface.id,
       path: 'tsconfig.json',

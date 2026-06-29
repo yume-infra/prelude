@@ -24,6 +24,10 @@ function verifyScriptFor(graph: ResolvedGraph): string | undefined {
 }
 
 export function workspaceGlobs(packages: ResolvedGraph['packages']) {
+  if (packages.length === 0) {
+    return ['apps/*', 'libs/*']
+  }
+
   const globs: string[] = []
 
   for (const pkg of packages) {
@@ -40,10 +44,13 @@ export function workspaceGlobs(packages: ResolvedGraph['packages']) {
 }
 
 export function workspaceRootPackageEntries(graph: ResolvedGraph): PackageManifestEntries {
-  const scripts: Record<string, JsonValue> = {
-    build: 'pnpm -r --if-present build',
-    typecheck: 'pnpm -r --if-present typecheck',
-  }
+  const hasTurbo = graph.rootCapabilities.includes('task-runner:turbo')
+  const scripts: Record<string, JsonValue> = graph.packages.length === 0
+    ? {}
+    : {
+        build: hasTurbo ? 'turbo run build' : 'pnpm -r --if-present build',
+        typecheck: hasTurbo ? 'turbo run typecheck' : 'pnpm -r --if-present typecheck',
+      }
   const verifyScript = verifyScriptFor(graph)
 
   if (verifyScript) {
@@ -52,7 +59,7 @@ export function workspaceRootPackageEntries(graph: ResolvedGraph): PackageManife
 
   return {
     private: true,
-    scripts,
+    ...(Object.keys(scripts).length === 0 ? {} : { scripts }),
   }
 }
 
@@ -96,6 +103,58 @@ export const rootCapabilityDefinitions: readonly RootCapabilityDefinition[] = [
         entries: {
           packageManager: 'pnpm@10.33.4',
         },
+      },
+    ],
+  },
+  {
+    id: 'task-runner:turbo',
+    scope: 'root',
+    requirements: [],
+    conflicts: [],
+    logicalSurfaces: () => [
+      {
+        id: 'turbo-config:root',
+        materializer: 'generated-user-file',
+        owner: 'capability:task-runner:turbo',
+      },
+    ],
+    contribute: () => [
+      {
+        kind: 'packageManifest',
+        surfaceId: 'package-manifest:root',
+        owner: 'capability:task-runner:turbo',
+        entries: {
+          devDependencies: {
+            turbo: 'catalog:',
+          },
+        },
+      },
+      {
+        kind: 'generatedUserFile',
+        surfaceId: 'turbo-config:root',
+        owner: 'capability:task-runner:turbo',
+        path: 'turbo.json',
+        operationId: 'write-turbo-config',
+        operationOwner: 'capability:task-runner:turbo',
+        content: `${JSON.stringify({
+          $schema: 'https://turbo.build/schema.json',
+          tasks: {
+            build: {
+              dependsOn: ['^build'],
+              outputs: ['dist/**'],
+            },
+            typecheck: {
+              dependsOn: ['^typecheck'],
+              outputs: [],
+            },
+            lint: {
+              outputs: [],
+            },
+            knip: {
+              outputs: [],
+            },
+          },
+        }, null, 2)}\n`,
       },
     ],
   },

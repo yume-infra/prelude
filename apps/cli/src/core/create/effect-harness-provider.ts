@@ -49,12 +49,12 @@ export const effectHarnessArtifact = {
   },
 } as const satisfies ProviderArtifactRecord
 
-export function effectHarnessResolvedProvider(packageId: string): ResolvedProvider {
+export function effectHarnessResolvedProvider(packageScopes: string | readonly string[]): ResolvedProvider {
   return {
     id: 'effect-harness',
     contractVersion: effectHarnessContractVersion,
     artifactVersion: effectHarnessArtifactVersion,
-    packageScopes: [packageId],
+    packageScopes: typeof packageScopes === 'string' ? [packageScopes] : [...packageScopes],
   }
 }
 
@@ -197,11 +197,23 @@ function tsconfigPointerSurfaceId(pointer: string) {
   return `tsconfig:root:${pointer}`
 }
 
-export function effectHarnessProviderSurfaceIds(): readonly string[] {
+export function effectHarnessPackageSurfacesForProjectedContext(projectedContext: ProviderProjectedContext) {
+  return projectedContext.topology === 'workspace'
+    ? effectHarnessPackageSurfaces().filter(surface => surface.pointer !== '/scripts/typecheck')
+    : effectHarnessPackageSurfaces()
+}
+
+export function effectHarnessTsconfigSurfacesForProjectedContext(projectedContext: ProviderProjectedContext) {
+  return projectedContext.topology === 'workspace'
+    ? []
+    : effectHarnessTsconfigSurfaces()
+}
+
+export function effectHarnessProviderSurfaceIdsForProjectedContext(projectedContext: ProviderProjectedContext): readonly string[] {
   return [
     effectHarnessProviderArtifactSurfaceId,
-    ...effectHarnessPackageSurfaces().map(surface => surface.id),
-    ...effectHarnessTsconfigSurfaces().map(surface => surface.id),
+    ...effectHarnessPackageSurfacesForProjectedContext(projectedContext).map(surface => surface.id),
+    ...effectHarnessTsconfigSurfacesForProjectedContext(projectedContext).map(surface => surface.id),
     ...effectHarnessManagedFileArtifacts().map(artifact => effectHarnessManagedFileSurfaceId(artifact.path)),
     effectHarnessManagedBlockSurfaceId,
   ]
@@ -234,7 +246,7 @@ function snapshotJsonValue(value: JsonValue) {
   return typeof value === 'string' ? value : JSON.stringify(value)
 }
 
-export function effectHarnessPackageSurfaces() {
+function effectHarnessPackageSurfaces() {
   const commands = effectHarnessTargetCommands()
 
   return [
@@ -286,7 +298,7 @@ export function effectHarnessPackageSurfaces() {
   ] as const satisfies readonly { readonly id: string, readonly pointer: string, readonly value: JsonValue }[]
 }
 
-export function effectHarnessTsconfigSurfaces() {
+function effectHarnessTsconfigSurfaces() {
   return [
     {
       id: tsconfigPointerSurfaceId('/compilerOptions/plugins'),
@@ -298,6 +310,7 @@ export function effectHarnessTsconfigSurfaces() {
 
 export function effectHarnessLifecycleSurfaces(graph: ResolvedGraph): readonly LifecycleSurfaceRecord[] {
   const providerArtifactBase = encodeJsonValue(providerJsonValue(graph))
+  const projectedContext = effectHarnessProjectedContext(graph)
 
   return [
     {
@@ -312,14 +325,14 @@ export function effectHarnessLifecycleSurfaces(graph: ResolvedGraph): readonly L
       path: effectHarnessProviderPath,
       operationId: 'write-effect-harness-provider-record',
     },
-    ...effectHarnessPackageSurfaces().map(surface =>
+    ...effectHarnessPackageSurfacesForProjectedContext(projectedContext).map(surface =>
       structuredPointerSurface({
         surface,
         path: 'package.json',
         locator: `package.json#${surface.pointer}`,
         operationId: 'write-package-json',
       })),
-    ...effectHarnessTsconfigSurfaces().map(surface =>
+    ...effectHarnessTsconfigSurfacesForProjectedContext(projectedContext).map(surface =>
       structuredPointerSurface({
         surface,
         path: 'tsconfig.json',
@@ -410,12 +423,14 @@ function managedBlockSurface(input: {
 }
 
 export function effectHarnessLifecycleProviderRecord(graph: ResolvedGraph): LifecycleProviderRecord {
+  const projectedContext = effectHarnessProjectedContext(graph)
+
   return {
     id: 'effect-harness',
     contractVersion: effectHarnessContractVersion,
     artifact: effectHarnessArtifact,
-    projectedContext: effectHarnessProjectedContext(graph),
-    lifecycleSurfaces: effectHarnessProviderSurfaceIds(),
+    projectedContext,
+    lifecycleSurfaces: effectHarnessProviderSurfaceIdsForProjectedContext(projectedContext),
     verificationRecordId: effectHarnessVerificationId,
   }
 }
@@ -465,7 +480,7 @@ export function providerJsonValueForProjectedContext(projectedContext: ProviderP
         effectHarnessManagedBlockArtifact().path,
       ],
     },
-    lifecycleSurfaces: effectHarnessProviderSurfaceIds(),
+    lifecycleSurfaces: effectHarnessProviderSurfaceIdsForProjectedContext(projectedContext),
     verification: {
       id: effectHarnessVerificationId,
       status: 'passed',
@@ -478,17 +493,19 @@ function providerJsonValue(graph: ResolvedGraph): Record<string, JsonValue> {
 }
 
 export function effectHarnessContributions(graph: ResolvedGraph): readonly CapabilityContribution[] {
+  const scripts: Record<string, JsonValue> = {
+    'effect:status': effectHarnessTargetCommands().status,
+    'effect:verify': effectHarnessTargetCommands().verify,
+    ...(graph.topology === 'workspace' ? {} : { typecheck: 'tsgo --noEmit --project tsconfig.json' }),
+  }
+
   return [
     {
       kind: 'packageManifest',
       surfaceId: 'package-manifest:root',
       owner: 'provider:effect-harness',
       entries: {
-        scripts: {
-          'effect:status': effectHarnessTargetCommands().status,
-          'effect:verify': effectHarnessTargetCommands().verify,
-          'typecheck': 'tsgo --noEmit --project tsconfig.json',
-        },
+        scripts,
         dependencies: {
           '@effect/platform-node': effectHarnessArtifact.packageBaseline['@effect/platform-node'],
           'effect': effectHarnessArtifact.packageBaseline.effect,

@@ -77,14 +77,13 @@ function resolveRootCapabilities(spec: CreateSpec): readonly RootCapabilityId[] 
 }
 
 function resolveProviders(spec: CreateSpec, rootCapabilities: readonly RootCapabilityId[]): readonly ResolvedProvider[] {
-  if (spec.topology !== 'single-package') {
-    return []
-  }
   if (!rootCapabilities.includes('ai-harness') || !spec.providers.includes('effect-harness')) {
     return []
   }
 
-  return [effectHarnessResolvedProvider(spec.package.id)]
+  return spec.topology === 'workspace'
+    ? [effectHarnessResolvedProvider(spec.packages.map(pkg => pkg.id))]
+    : [effectHarnessResolvedProvider(spec.package.id)]
 }
 
 function logicalSurfacesForPackage(graph: ResolvedGraph, pkg: ResolvedPackage): readonly LogicalSurface[] {
@@ -97,21 +96,20 @@ function logicalSurfacesForPackage(graph: ResolvedGraph, pkg: ResolvedPackage): 
 function logicalSurfacesFor(
   graph: Omit<ResolvedGraph, 'logicalSurfaces'>,
 ): readonly LogicalSurface[] {
-  if (graph.packages.length === 0 && graph.rootPackage.path === '.') {
-    return [
-      packageManifestLogicalSurface,
-      ...rootCapabilitySurfaces(graph.rootCapabilities),
-      ...(graph.providers.some(provider => provider.id === 'effect-harness') ? [effectHarnessLogicalSurface] : []),
-      ...logicalSurfacesForPackageCapabilities(graph as ResolvedGraph, graph.rootPackage),
-    ]
-  }
-
-  return [
-    packageManifestLogicalSurface,
-    workspaceManifestLogicalSurface,
-    ...rootCapabilitySurfaces(graph.rootCapabilities),
-    ...graph.packages.flatMap(pkg => logicalSurfacesForPackage(graph as ResolvedGraph, pkg)),
-  ]
+  return graph.topology === 'workspace'
+    ? [
+        packageManifestLogicalSurface,
+        workspaceManifestLogicalSurface,
+        ...rootCapabilitySurfaces(graph.rootCapabilities),
+        ...(graph.providers.some(provider => provider.id === 'effect-harness') ? [effectHarnessLogicalSurface] : []),
+        ...graph.packages.flatMap(pkg => logicalSurfacesForPackage(graph as ResolvedGraph, pkg)),
+      ]
+    : [
+        packageManifestLogicalSurface,
+        ...rootCapabilitySurfaces(graph.rootCapabilities),
+        ...(graph.providers.some(provider => provider.id === 'effect-harness') ? [effectHarnessLogicalSurface] : []),
+        ...logicalSurfacesForPackageCapabilities(graph as ResolvedGraph, graph.rootPackage),
+      ]
 }
 
 function verificationFor(
@@ -125,9 +123,14 @@ function verificationFor(
     : []
 
   if (spec.topology === 'workspace') {
-    return hasRootEngineeringFiles
-      ? ['workspace-root-files-present', 'workspace-package-files-present', 'root-engineering-files-present']
-      : ['workspace-root-files-present', 'workspace-package-files-present']
+    const packageVerification = spec.packages.length === 0 ? [] : ['workspace-package-files-present']
+
+    return [
+      'workspace-root-files-present',
+      ...packageVerification,
+      ...(hasRootEngineeringFiles ? ['root-engineering-files-present'] : []),
+      ...providerVerification,
+    ]
   }
 
   if (spec.package.capabilities.includes('react-app')) {
@@ -142,7 +145,7 @@ function verificationFor(
       : ['vue-app-files-present', ...providerVerification]
   }
 
-  if (spec.package.capabilities.includes('node-backend') || spec.package.capabilities.includes('library')) {
+  if (spec.package.capabilities.includes('node-app') || spec.package.capabilities.includes('node-backend') || spec.package.capabilities.includes('library')) {
     return hasRootEngineeringFiles
       ? ['node-package-files-present', 'root-engineering-files-present', ...providerVerification]
       : ['node-package-files-present', ...providerVerification]
@@ -240,7 +243,7 @@ function validatePackageCapabilities(pkg: CreateSpecPackage, issues: string[]) {
 
   const selectedRuntimes = selectedRuntimeCapabilities(pkg)
   if (selectedRuntimes.length === 0) {
-    issues.push(`one package runtime capability is required for ${pkg.id}: minimal-node-package, react-app, vue-app, effect-package, node-backend, library, or cli-tool`)
+    issues.push(`one package runtime capability is required for ${pkg.id}: minimal-node-package, node-app, react-app, vue-app, effect-package, node-backend, library, or cli-tool`)
   }
   if (selectedRuntimes.length > 1) {
     issues.push(`only one package runtime capability is supported for ${pkg.id}: ${selectedRuntimes.join(', ')}`)
@@ -312,8 +315,17 @@ export function validateCreateSpec(spec: CreateSpec): Effect.Effect<void, Schema
       validatePackageCapabilities(pkg, issues)
     }
     validateWorkspacePackageGraph(workspacePackages, issues)
-    if (spec.providers.length > 0 || spec.rootCapabilities.includes('ai-harness')) {
-      issues.push('workspace provider orchestration is handled by the ai-harness slice and is not supported here')
+    if (spec.providers.length > 0 && !spec.rootCapabilities.includes('ai-harness')) {
+      issues.push('providers require root capability: ai-harness')
+    }
+    if (spec.rootCapabilities.includes('ai-harness') && spec.providers.length === 0) {
+      issues.push('ai-harness requires provider: effect-harness')
+    }
+    if (spec.rootCapabilities.includes('ai-harness') && spec.providers.length > 1) {
+      issues.push(`only one ai-harness provider is supported: ${spec.providers.join(', ')}`)
+    }
+    if (spec.providers.includes('effect-harness') && workspacePackages.length === 0) {
+      issues.push('workspace effect-harness requires at least one package scope')
     }
   }
   else {

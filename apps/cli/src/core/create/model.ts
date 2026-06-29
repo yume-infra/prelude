@@ -4,8 +4,8 @@ import type { TargetDir } from '@/brand/target-dir'
 import type { FileIOError, SchemaContractError } from '@/core/errors'
 
 export type Topology = 'single-package' | 'workspace'
-export type CapabilityId = 'minimal-node-package' | 'react-app' | 'react-counter' | 'vue-app' | 'effect-package' | 'node-backend' | 'library' | 'cli-tool' | 'router:react-router' | 'router:vue-router' | 'state:jotai' | 'state:pinia' | 'css:less' | 'css:tailwind'
-export type RootCapabilityId = 'package-manager:pnpm' | 'linting' | 'knip' | 'dependency-update:taze' | 'ai-harness'
+export type CapabilityId = 'minimal-node-package' | 'node-app' | 'react-app' | 'react-counter' | 'vue-app' | 'effect-package' | 'node-backend' | 'library' | 'cli-tool' | 'router:react-router' | 'router:vue-router' | 'state:jotai' | 'state:pinia' | 'css:less' | 'css:tailwind'
+export type RootCapabilityId = 'package-manager:pnpm' | 'task-runner:turbo' | 'linting' | 'knip' | 'dependency-update:taze' | 'ai-harness'
 export type ProviderId = 'effect-harness'
 export type PackageManifestSurfaceId = `package-manifest:${string}`
 export type WorkspaceManifestSurfaceId = 'workspace-manifest:root'

@@ -238,15 +238,6 @@ describe('workspace create pipeline', () => {
         content: `packages:
   - apps/*
   - libs/*
-
-catalog:
-  '@antfu/eslint-config': 8.2.0
-  '@types/node': 25.6.0
-  eslint: ^10.3.0
-  knip: ^6.12.0
-  taze: ^19.11.0
-  tsdown: ^0.21.10
-  typescript: 6.0.3
 `,
       },
     ])

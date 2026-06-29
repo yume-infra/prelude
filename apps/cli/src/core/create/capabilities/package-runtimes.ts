@@ -9,6 +9,7 @@ import {
 
 const runtimeCapabilityIds = [
   'minimal-node-package',
+  'node-app',
   'react-app',
   'vue-app',
   'effect-package',
@@ -115,6 +116,17 @@ function typeScriptPackageTsconfig(options: { readonly nodeTypes: boolean }): Re
       ...(options.nodeTypes ? { types: ['node'] } : {}),
     },
     include: ['src/**/*.ts'],
+  }
+}
+
+function nodeAppManifestEntries(packageName: string): PackageManifestEntries {
+  return {
+    ...distPackageManifestEntries(packageName, { startScript: false }),
+    devDependencies: {
+      '@types/node': 'catalog:',
+      'tsdown': 'catalog:',
+      'typescript': 'catalog:',
+    },
   }
 }
 
@@ -244,6 +256,48 @@ export const packageRuntimeCapabilityDefinitions: readonly PackageCapabilityDefi
         operationId: 'write-root-source',
         operationOwner: 'capability:minimal-node-package',
         content: 'export {}\n',
+      },
+    ],
+  },
+  {
+    id: 'node-app',
+    scope: 'package',
+    runtime: true,
+    requirements: [],
+    conflicts: runtimeConflicts('node-app'),
+    logicalSurfaces: context => [
+      sourceSurface(context.pkg.path === '.' ? 'root' : context.sourceScope, 'node-app', 'src/index.ts', 'generated-user-file'),
+      typeScriptConfigSurface(context.packageManifestScope),
+      tsdownConfigSurface(context.packageManifestScope),
+    ],
+    contribute: context => [
+      {
+        kind: 'packageManifest',
+        surfaceId: context.packageManifestSurfaceId,
+        owner: 'capability:node-app',
+        entries: nodeAppManifestEntries(context.packageName),
+      },
+      {
+        kind: 'generatedUserFile',
+        surfaceId: context.pkg.path === '.'
+          ? 'source:root/src/index.ts'
+          : `source:${context.pkg.path}/src/index.ts`,
+        owner: 'capability:node-app',
+        path: context.scopedPath('src/index.ts'),
+        operationId: 'write-node-app-source',
+        operationOwner: 'capability:node-app',
+        content: 'export {}\n',
+      },
+      {
+        kind: 'typescriptConfig',
+        surfaceId: context.scopedTypeScriptConfigSurfaceId,
+        owner: 'capability:node-app',
+        value: typeScriptPackageTsconfig({ nodeTypes: true }),
+      },
+      {
+        kind: 'tsdownConfig',
+        surfaceId: context.scopedTsdownConfigSurfaceId,
+        owner: 'capability:node-app',
       },
     ],
   },

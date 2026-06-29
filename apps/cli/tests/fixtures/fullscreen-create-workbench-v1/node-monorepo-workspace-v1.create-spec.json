@@ -1,0 +1,14 @@
+{
+  "topology": "workspace",
+  "packages": [
+    {
+      "id": "node",
+      "name": "@workbench/node",
+      "capabilities": ["node-app"],
+      "internalDependencies": []
+    }
+  ],
+  "rootCapabilities": ["package-manager:pnpm", "task-runner:turbo", "linting", "knip", "ai-harness"],
+  "providers": ["effect-harness"],
+  "overrides": {}
+}

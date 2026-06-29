@@ -16,7 +16,10 @@ const TestLayer = FsLive.pipe(
 
 const fixtureRoot = fileURLToPath(new URL('../fixtures/fullscreen-create-workbench-v1/', import.meta.url))
 const effectHarnessEquivalentSpecPath = path.join(fixtureRoot, 'effect-harness-current-equivalent.create-spec.json')
-const workspaceCliEquivalentSpecPath = path.join(fixtureRoot, 'workspace-cli-current-equivalent.create-spec.json')
+const minimalWorkspaceSpecPath = path.join(fixtureRoot, 'minimal-workspace.create-spec.json')
+const nodeMonorepoWorkspaceV1SpecPath = path.join(fixtureRoot, 'node-monorepo-workspace-v1.create-spec.json')
+const workspaceCliAbilitySpecPath = path.join(fixtureRoot, 'workspace-cli-ability.create-spec.json')
+const workspaceCliQualityEnabledSpecPath = path.join(fixtureRoot, 'workspace-cli-quality-enabled.create-spec.json')
 
 function makeTempProjectDir() {
   return Effect.promise(() => fs.mkdtemp(path.join(os.tmpdir(), 'prelude-workbench-v1-')))
@@ -129,12 +132,141 @@ describe('fullscreen create workbench v1 acceptance fixtures', () => {
       assert.equal(yield* pathExists(path.join(targetDir, '.prelude/manifest.json')), false)
     }))
 
-  it.effect('prints the current workspace CLI equivalent through direct --spec without writing files', () =>
+  it.effect('dry-runs the default minimal workspace intent without package abilities', () =>
     Effect.gen(function* () {
       const targetDir = yield* makeTempProjectDir()
-      const fixture = yield* readJsonFile<unknown>(workspaceCliEquivalentSpecPath)
       const result = yield* withCapturedStdout(runCreateRouteWithArgs({
-        spec: workspaceCliEquivalentSpecPath,
+        spec: minimalWorkspaceSpecPath,
+        dryRun: true,
+        noInput: true,
+      }, targetDir))
+
+      assert.equal(result.value.kind, 'dry-run')
+
+      const output = JSON.parse(result.output) as {
+        operations: Array<{
+          content?: string
+          path: string
+          value?: {
+            scripts?: Record<string, string>
+            devDependencies?: Record<string, string>
+          }
+        }>
+        blockers: unknown[]
+      }
+      const paths = output.operations.map(operation => operation.path)
+      const rootPackageJsonOperation = output.operations.find(operation => operation.path === 'package.json')
+      const workspaceManifestOperation = output.operations.find(operation => operation.path === 'pnpm-workspace.yaml')
+
+      assert.deepStrictEqual(output.blockers, [])
+      assert.deepStrictEqual(paths, ['package.json', 'pnpm-workspace.yaml'])
+      assert.equal(rootPackageJsonOperation?.value?.scripts, undefined)
+      assert.equal(rootPackageJsonOperation?.value?.devDependencies, undefined)
+      assert.match(workspaceManifestOperation?.content ?? '', / {2}- apps\/\*/u)
+      assert.match(workspaceManifestOperation?.content ?? '', / {2}- libs\/\*/u)
+      assert.equal(workspaceManifestOperation?.content?.includes('catalog:'), false)
+      assert.equal(yield* pathExists(path.join(targetDir, 'package.json')), false)
+      assert.equal(yield* pathExists(path.join(targetDir, '.prelude/manifest.json')), false)
+    }))
+
+  it.effect('dry-runs the explicit workspace CLI ability without hidden linting surfaces', () =>
+    Effect.gen(function* () {
+      const targetDir = yield* makeTempProjectDir()
+      const result = yield* withCapturedStdout(runCreateRouteWithArgs({
+        spec: workspaceCliAbilitySpecPath,
+        dryRun: true,
+        noInput: true,
+      }, targetDir))
+
+      assert.equal(result.value.kind, 'dry-run')
+
+      const output = JSON.parse(result.output) as {
+        operations: Array<{
+          content?: string
+          path: string
+          value?: {
+            scripts?: Record<string, string>
+            devDependencies?: Record<string, string>
+          }
+        }>
+        blockers: unknown[]
+      }
+      const paths = output.operations.map(operation => operation.path)
+      const rootPackageJsonOperation = output.operations.find(operation => operation.path === 'package.json')
+      const workspaceManifestOperation = output.operations.find(operation => operation.path === 'pnpm-workspace.yaml')
+
+      assert.deepStrictEqual(output.blockers, [])
+      assert.ok(paths.includes('package.json'))
+      assert.ok(paths.includes('pnpm-workspace.yaml'))
+      assert.ok(paths.includes('apps/tool/package.json'))
+      assert.ok(paths.includes('apps/tool/src/index.ts'))
+      assert.ok(paths.includes('apps/tool/tsconfig.json'))
+      assert.ok(paths.includes('apps/tool/tsdown.config.ts'))
+      assert.equal(paths.includes('eslint.config.mjs'), false)
+      assert.equal(paths.includes('knip.json'), false)
+      assert.equal(rootPackageJsonOperation?.value?.scripts?.lint, undefined)
+      assert.equal(rootPackageJsonOperation?.value?.scripts?.knip, undefined)
+      assert.equal(rootPackageJsonOperation?.value?.scripts?.verify, undefined)
+      assert.equal(rootPackageJsonOperation?.value?.devDependencies?.['@antfu/eslint-config'], undefined)
+      assert.equal(rootPackageJsonOperation?.value?.devDependencies?.eslint, undefined)
+      assert.equal(rootPackageJsonOperation?.value?.devDependencies?.knip, undefined)
+      assert.match(workspaceManifestOperation?.content ?? '', /typescript: 6\.0\.3/u)
+      assert.match(workspaceManifestOperation?.content ?? '', /tsdown: \^0\.21\.10/u)
+      assert.equal(workspaceManifestOperation?.content?.includes('@antfu/eslint-config'), false)
+      assert.equal(workspaceManifestOperation?.content?.includes('eslint: ^10.3.0'), false)
+      assert.equal(workspaceManifestOperation?.content?.includes('knip: ^6.12.0'), false)
+      assert.equal(yield* pathExists(path.join(targetDir, 'package.json')), false)
+      assert.equal(yield* pathExists(path.join(targetDir, '.prelude/manifest.json')), false)
+    }))
+
+  it.effect('dry-runs an explicit quality-enabled workspace CLI equivalent with Antfu and Knip', () =>
+    Effect.gen(function* () {
+      const targetDir = yield* makeTempProjectDir()
+      const result = yield* withCapturedStdout(runCreateRouteWithArgs({
+        spec: workspaceCliQualityEnabledSpecPath,
+        dryRun: true,
+        noInput: true,
+      }, targetDir))
+
+      assert.equal(result.value.kind, 'dry-run')
+
+      const output = JSON.parse(result.output) as {
+        operations: Array<{
+          content?: string
+          path: string
+          value?: {
+            scripts?: Record<string, string>
+            devDependencies?: Record<string, string>
+          }
+        }>
+        blockers: unknown[]
+      }
+      const paths = output.operations.map(operation => operation.path)
+      const rootPackageJsonOperation = output.operations.find(operation => operation.path === 'package.json')
+      const workspaceManifestOperation = output.operations.find(operation => operation.path === 'pnpm-workspace.yaml')
+
+      assert.deepStrictEqual(output.blockers, [])
+      assert.ok(paths.includes('eslint.config.mjs'))
+      assert.ok(paths.includes('knip.json'))
+      assert.equal(rootPackageJsonOperation?.value?.scripts?.lint, 'eslint .')
+      assert.equal(rootPackageJsonOperation?.value?.scripts?.knip, 'knip')
+      assert.equal(rootPackageJsonOperation?.value?.scripts?.verify, 'pnpm build && pnpm lint && pnpm knip')
+      assert.equal(rootPackageJsonOperation?.value?.devDependencies?.['@antfu/eslint-config'], 'catalog:')
+      assert.equal(rootPackageJsonOperation?.value?.devDependencies?.eslint, 'catalog:')
+      assert.equal(rootPackageJsonOperation?.value?.devDependencies?.knip, 'catalog:')
+      assert.match(workspaceManifestOperation?.content ?? '', /'@antfu\/eslint-config': 8\.2\.0/u)
+      assert.match(workspaceManifestOperation?.content ?? '', /eslint: \^10\.3\.0/u)
+      assert.match(workspaceManifestOperation?.content ?? '', /knip: \^6\.12\.0/u)
+      assert.equal(yield* pathExists(path.join(targetDir, 'package.json')), false)
+      assert.equal(yield* pathExists(path.join(targetDir, '.prelude/manifest.json')), false)
+    }))
+
+  it.effect('prints the default minimal workspace intent through direct --spec without writing files', () =>
+    Effect.gen(function* () {
+      const targetDir = yield* makeTempProjectDir()
+      const fixture = yield* readJsonFile<unknown>(minimalWorkspaceSpecPath)
+      const result = yield* withCapturedStdout(runCreateRouteWithArgs({
+        spec: minimalWorkspaceSpecPath,
         printSpec: true,
         noInput: true,
       }, targetDir))
@@ -145,25 +277,11 @@ describe('fullscreen create workbench v1 acceptance fixtures', () => {
       assert.equal(yield* pathExists(path.join(targetDir, '.prelude/manifest.json')), false)
     }))
 
-  it.effect('keeps the combined v1 target as an explicit resolver gap instead of dropping provider intent', () =>
+  it.effect('dry-runs the node monorepo workspace v1 ability with turbo, quality, and effect-harness maintain', () =>
     Effect.gen(function* () {
       const targetDir = yield* makeTempProjectDir()
-      const desiredCombinedV1Spec = {
-        topology: 'workspace',
-        packages: [
-          {
-            id: 'tool',
-            name: '@workbench/effect-tool',
-            capabilities: ['effect-package'],
-            internalDependencies: [],
-          },
-        ],
-        rootCapabilities: ['package-manager:pnpm', 'linting', 'knip', 'ai-harness'],
-        providers: ['effect-harness'],
-        overrides: {},
-      }
       const result = yield* withCapturedStdout(runCreateRouteWithArgs({
-        spec: JSON.stringify(desiredCombinedV1Spec),
+        spec: nodeMonorepoWorkspaceV1SpecPath,
         dryRun: true,
         noInput: true,
       }, targetDir))
@@ -171,13 +289,57 @@ describe('fullscreen create workbench v1 acceptance fixtures', () => {
       assert.equal(result.value.kind, 'dry-run')
 
       const output = JSON.parse(result.output) as {
-        operations: unknown[]
-        blockers: Array<{ schema: string, message: string }>
+        operations: Array<{
+          kind: string
+          path: string
+          authority: string
+          content?: string
+          value?: {
+            scripts?: Record<string, string>
+            dependencies?: Record<string, string>
+            devDependencies?: Record<string, string>
+            projectedContext?: {
+              topology: string
+              packageScopes: readonly string[]
+            }
+            lifecycleSurfaces?: readonly string[]
+          }
+        }>
+        blockers: unknown[]
       }
+      const paths = output.operations.map(operation => operation.path)
+      const rootPackageJsonOperation = output.operations.find(operation => operation.path === 'package.json')
+      const workspaceManifestOperation = output.operations.find(operation => operation.path === 'pnpm-workspace.yaml')
+      const providerOperation = output.operations.find(operation => operation.path === '.prelude/providers/effect-harness/provider.json')
 
-      assert.deepStrictEqual(output.operations, [])
-      assert.equal(output.blockers[0]?.schema, 'CreateSpec')
-      assert.match(output.blockers[0]?.message ?? '', /workspace provider orchestration is handled by the ai-harness slice and is not supported here/u)
+      assert.deepStrictEqual(output.blockers, [])
+      assert.ok(paths.includes('package.json'))
+      assert.ok(paths.includes('pnpm-workspace.yaml'))
+      assert.ok(paths.includes('turbo.json'))
+      assert.ok(paths.includes('eslint.config.mjs'))
+      assert.ok(paths.includes('knip.json'))
+      assert.ok(paths.includes('apps/node/package.json'))
+      assert.ok(paths.includes('apps/node/src/index.ts'))
+      assert.ok(paths.includes('apps/node/tsconfig.json'))
+      assert.ok(paths.includes('apps/node/tsdown.config.ts'))
+      assert.ok(paths.includes('.prelude/providers/effect-harness/provider.json'))
+      assert.ok(paths.includes('.effect-harness.json'))
+      assert.ok(paths.includes('AGENTS.md'))
+      assert.equal(rootPackageJsonOperation?.value?.scripts?.build, 'turbo run build')
+      assert.equal(rootPackageJsonOperation?.value?.scripts?.typecheck, 'turbo run typecheck')
+      assert.equal(rootPackageJsonOperation?.value?.scripts?.lint, 'eslint .')
+      assert.equal(rootPackageJsonOperation?.value?.scripts?.knip, 'knip')
+      assert.equal(rootPackageJsonOperation?.value?.scripts?.['effect:verify']?.includes('effect-harness'), true)
+      assert.equal(rootPackageJsonOperation?.value?.scripts?.verify, 'pnpm build && pnpm typecheck && pnpm lint && pnpm knip && pnpm effect:verify')
+      assert.equal(rootPackageJsonOperation?.value?.dependencies?.effect, '4.0.0-beta.90')
+      assert.equal(rootPackageJsonOperation?.value?.devDependencies?.turbo, 'catalog:')
+      assert.equal(rootPackageJsonOperation?.value?.devDependencies?.['@effect/tsgo'], '0.14.6')
+      assert.match(workspaceManifestOperation?.content ?? '', / {2}- apps\/\*/u)
+      assert.match(workspaceManifestOperation?.content ?? '', /turbo: \^2\.9\.9/u)
+      assert.match(workspaceManifestOperation?.content ?? '', /'@types\/node': 25\.6\.0/u)
+      assert.equal(providerOperation?.value?.projectedContext?.topology, 'workspace')
+      assert.deepStrictEqual(providerOperation?.value?.projectedContext?.packageScopes, ['node'])
+      assert.equal(providerOperation?.value?.lifecycleSurfaces?.some(surface => surface.startsWith('tsconfig:root:')), false)
       assert.equal(yield* pathExists(path.join(targetDir, '.prelude/manifest.json')), false)
     }))
 })
