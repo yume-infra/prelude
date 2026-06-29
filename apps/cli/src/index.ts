@@ -6,7 +6,7 @@ import { NodeRuntime, NodeServices } from '@effect/platform-node'
 import { Console, Effect, Layer, Logger, References } from 'effect'
 import { DevTools } from 'effect/unstable/devtools'
 import { AppConfig } from '@/config/app-config'
-import { formatPreludeCommandError, printPreludeCommandHelp, runPreludeCommand } from '@/core/cli-command'
+import { formatPreludeCommandError, printPreludeCommandHelp, runPreludeCommand, shouldPrintPreludeCommandHelp } from '@/core/cli-command'
 import { TracingLive } from '@/core/services/tracing'
 import { FsLive } from '~/fs'
 
@@ -56,10 +56,12 @@ const program = main.pipe(
   Effect.catch((error: unknown) =>
     Effect.gen(function* () {
       yield* Console.error(formatPreludeCommandError(error))
-      yield* Console.error('')
-      yield* printPreludeCommandHelp(commandOptions)
+      if (shouldPrintPreludeCommandHelp(error)) {
+        yield* Console.error('')
+        yield* printPreludeCommandHelp(commandOptions)
+      }
       yield* Effect.sync(() => {
-        process.exitCode = 2
+        process.exitCode = shouldPrintPreludeCommandHelp(error) ? 2 : 0
       })
     })),
   Effect.provide(BaseLayer),

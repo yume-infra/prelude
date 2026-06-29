@@ -152,8 +152,8 @@ function handlePreludeCommand(options: PreludeCommandOptions) {
       const args = yield* cliArgsFromCommandInput(input)
       const isInteractive = options.stdinIsTTY && !args.noInput && args.spec === undefined
       const routeOptions = options.targetDir === undefined
-        ? { preludeVersion: options.preludeVersion }
-        : { preludeVersion: options.preludeVersion, targetDir: options.targetDir }
+        ? { preludeVersion: options.preludeVersion, preferWorkbench: isInteractive }
+        : { preludeVersion: options.preludeVersion, targetDir: options.targetDir, preferWorkbench: isInteractive }
 
       yield* runCreateRoute(routeOptions).pipe(
         Effect.provide(CliContextLive({ args, isInteractive })),
@@ -188,6 +188,10 @@ export function makePreludeCommand(options: PreludeCommandOptions) {
 
 export function formatPreludeCommandError(error: unknown) {
   return error instanceof Error ? error.message : String(error)
+}
+
+export function shouldPrintPreludeCommandHelp(error: unknown) {
+  return !(error instanceof SchemaContractError && error.schema === 'CreateWorkbench')
 }
 
 export const printPreludeCommandHelp = Effect.fn('printPreludeCommandHelp')(

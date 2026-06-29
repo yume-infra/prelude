@@ -8,6 +8,7 @@ import { decodeProjectName, formatProjectNameError } from '@/brand/project-name'
 import { makeProjectTargetDir } from '@/brand/target-dir'
 import { createProjectFromSpec, planCreateProjectFromSpec } from '@/core/create'
 import { formatCanonicalCreateSpecJson, loadCreateSpecFromInput } from '@/core/create-spec-input'
+import { runCreateWorkbench } from '@/core/create-workbench'
 import { SchemaContractError } from '@/core/errors'
 import { schemaIssueCount } from '@/schema/errors'
 import { ask } from './adapters/prompts'
@@ -16,6 +17,7 @@ import { CliContext } from './cli-context'
 interface CreateRouteOptions {
   readonly preludeVersion: string
   readonly targetDir?: TargetDir
+  readonly preferWorkbench?: boolean
 }
 
 interface CreateRouteSpecInput {
@@ -55,6 +57,18 @@ function decodeGuidedProjectName(input: string) {
       issueCount: schemaIssueCount(error),
     })),
   )
+}
+
+function cancelledCreateWorkbenchError() {
+  return new SchemaContractError({
+    schema: 'CreateWorkbench',
+    message: 'CreateWorkbench: creation cancelled.',
+    issueCount: 1,
+  })
+}
+
+function formatUnknownError(error: unknown) {
+  return error instanceof Error ? error.message : String(error)
 }
 
 const askGuidedProjectName = Effect.fn('askGuidedProjectName')(function* () {
@@ -300,7 +314,32 @@ const collectGuidedCreateSpec = Effect.fn('collectGuidedCreateSpec')(function* (
   } satisfies CreateRouteSpecInput
 })
 
-const loadCreateRouteSpec = Effect.fn('loadCreateRouteSpec')(function* () {
+const collectWorkbenchCreateSpec = Effect.fn('collectWorkbenchCreateSpec')(function* (options: CreateRouteOptions) {
+  const cli = yield* CliContext
+  const result = yield* Effect.promise(() =>
+    runCreateWorkbench({
+      ...(cli.args.name === undefined ? {} : { initialProjectName: cli.args.name }),
+      ...(options.targetDir === undefined ? {} : { targetDir: options.targetDir }),
+    }).catch(error => ({
+      kind: 'unavailable' as const,
+      reason: `workbench failed: ${formatUnknownError(error)}`,
+    })),
+  )
+
+  switch (result.kind) {
+    case 'submitted':
+      return {
+        spec: result.spec,
+        targetName: yield* decodeGuidedProjectName(result.targetName),
+      } satisfies CreateRouteSpecInput
+    case 'cancelled':
+      return yield* cancelledCreateWorkbenchError()
+    case 'unavailable':
+      return yield* collectGuidedCreateSpec()
+  }
+})
+
+const loadCreateRouteSpec = Effect.fn('loadCreateRouteSpec')(function* (options: CreateRouteOptions) {
   const cli = yield* CliContext
 
   if (cli.args.preset !== undefined) {
@@ -314,6 +353,10 @@ const loadCreateRouteSpec = Effect.fn('loadCreateRouteSpec')(function* () {
 
   if (!cli.isInteractive) {
     return yield* missingNonInteractiveInputError()
+  }
+
+  if (options.preferWorkbench === true) {
+    return yield* collectWorkbenchCreateSpec(options)
   }
 
   return yield* collectGuidedCreateSpec()
@@ -343,7 +386,7 @@ export const runCreateRoute = Effect.fn('runCreateRoute')(
   function* (options: CreateRouteOptions) {
     const cli = yield* CliContext
 
-    const input = yield* loadCreateRouteSpec()
+    const input = yield* loadCreateRouteSpec(options)
 
     if (cli.args.dryRun) {
       const planResult = yield* Effect.result(planCreateProjectFromSpec(input.spec))
