@@ -28,6 +28,7 @@
     "typecheck": "tsgo --noEmit --project tsconfig.json",
     "typecheck:tsc": "tsc -p tsconfig.json --noEmit",
     "test": "vitest run",
+    "prototype:create-workbench": "tsx src/core/create-workbench-prototype/index.ts",
     "smoke:generated": "pnpm build && tsx tests/generated-projects.smoke.ts",
     "smoke:examples": "pnpm build && tsx tests/generated-projects.smoke.ts",
     "prepare": "effect-language-service patch --dir ../../node_modules/typescript",

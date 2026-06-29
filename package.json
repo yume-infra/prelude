@@ -11,6 +11,7 @@
     "clean": "turbo run clean && rm -rf node_modules",
     "verify": "pnpm --filter @sayoriqwq/prelude build && pnpm typecheck && pnpm --filter @sayoriqwq/prelude test && pnpm lint && pnpm knip && pnpm effect:verify",
     "verify:code": "pnpm --filter @sayoriqwq/prelude build && pnpm typecheck && pnpm --filter @sayoriqwq/prelude test && pnpm lint && pnpm knip",
+    "prototype:create-workbench": "pnpm --filter @sayoriqwq/prelude prototype:create-workbench",
     "smoke:examples": "pnpm --filter @sayoriqwq/prelude smoke:examples",
     "deps:check": "taze -r",
     "deps:check:all": "taze -r --all",
