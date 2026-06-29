@@ -8,6 +8,11 @@ Does the desired v1 create entrypoint feel right as a fullscreen terminal
 workbench where humans edit and inspect a `CreateSpec` draft, while direct
 CLI/spec mode remains the non-interactive agent path?
 
+Follow-up question after Sayori review:
+
+Does the prototype feel right when the default screen is user-facing and minimal,
+with engineering details collapsed behind preview/details/export actions?
+
 ## Command
 
 ```bash
@@ -32,9 +37,9 @@ npx --yes pnpm@10.33.4 --config.verify-deps-before-run=false prototype:create-wo
 
 ## Variants
 
-- `1` / left arrow: Three-pane workbench.
-- `2`: Pipeline board.
-- `3` / right arrow: Inspector console.
+- `1` / left arrow: Guided setup.
+- `2`: Recipe gallery.
+- `3` / right arrow: Review and create.
 - `q`: Quit.
 
 ## Verdict

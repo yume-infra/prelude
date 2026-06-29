@@ -8,191 +8,187 @@ interface Variant {
   readonly render: (width: number, height: number) => readonly string[]
 }
 
+interface ProjectPreview {
+  readonly name: string
+  readonly target: string
+  readonly shape: string
+  readonly primaryPackage: string
+  readonly includes: readonly string[]
+  readonly managedSupport: readonly string[]
+  readonly nextCommands: readonly string[]
+  readonly agentCommand: string
+}
+
+const preview: ProjectPreview = {
+  name: 'my-worker',
+  target: './my-worker',
+  shape: 'Workspace with one Effect CLI package',
+  primaryPackage: 'apps/worker',
+  includes: [
+    'TypeScript project baseline',
+    'Effect-ready CLI entrypoint',
+    'ESLint quality checks',
+    'Knip project hygiene',
+    'pnpm workspace setup',
+  ],
+  managedSupport: [
+    'Effect harness support stays managed',
+    'Application source is handed to you after create',
+  ],
+  nextCommands: [
+    'pnpm install',
+    'pnpm verify',
+    'pnpm dev',
+  ],
+  agentCommand: 'prelude create --spec ./prelude.create.json --target ./my-worker --json --yes',
+}
+
 const variants: readonly Variant[] = [
   {
     key: '1',
-    title: 'Three-pane workbench',
-    render: renderThreePane,
+    title: 'Guided setup',
+    render: renderGuidedSetup,
   },
   {
     key: '2',
-    title: 'Pipeline board',
-    render: renderPipelineBoard,
+    title: 'Recipe gallery',
+    render: renderRecipeGallery,
   },
   {
     key: '3',
-    title: 'Inspector console',
-    render: renderInspectorConsole,
+    title: 'Review and create',
+    render: renderReviewAndCreate,
   },
 ]
 
 let currentVariantIndex = 0
 
-function renderThreePane(width: number, height: number): readonly string[] {
-  const bodyHeight = Math.max(8, height - 8)
-  const columnWidth = Math.max(24, Math.floor((width - 6) / 3))
-  const lines: string[] = [
-    header(width, 'prelude create - fullscreen workbench prototype'),
-    row([
-      cell('Run context', [
-        'target: ./my-worker',
-        'mode: preview -> apply',
-        'output: human',
-        'confirm: interactive',
-        '',
-        'Agent path:',
-        'prelude create --spec',
-        '  ./create-spec.json',
-        '  --target ./my-worker',
-        '  --json --yes',
-      ], columnWidth),
-      cell('CreateSpec draft', [
-        'topology',
-        '  [x] workspace',
-        'packages',
-        '  [x] apps/worker',
-        'capabilities',
-        '  [x] node-cli',
-        '  [x] typescript',
-        '  [x] lint',
-        '  [x] knip',
-        'maintain',
-        '  [x] effect-harness',
-      ], columnWidth),
-      cell('Preview', [
-        'resolved graph',
-        '  root workspace',
-        '  package apps/worker',
-        '  maintain domain: effect',
-        '',
-        'create WritePlan',
-        '  + package.json',
-        '  + pnpm-workspace.yaml',
-        '  + apps/worker/src/index.ts',
-        '  + .prelude/manifest.json',
-      ], columnWidth),
-    ], bodyHeight),
-    footer(width),
-  ]
-
-  return lines
-}
-
-function renderPipelineBoard(width: number, height: number): readonly string[] {
-  const laneWidth = Math.max(18, Math.floor((width - 10) / 5))
-  const laneHeight = Math.max(9, height - 9)
+function renderGuidedSetup(width: number, height: number): readonly string[] {
+  const leftWidth = Math.max(34, Math.floor(width * 0.42))
+  const rightWidth = Math.max(42, width - leftWidth - 5)
+  const bodyHeight = Math.max(13, height - 10)
 
   return [
-    header(width, 'prelude create - pipeline board prototype'),
+    header(width, 'prelude create'),
+    callout(width, 'Ready to create', 'Choose the project shape, check the outcome, then create. Details stay one key away.'),
     row([
-      cell('1. Spec', [
-        'workspace',
-        'apps/worker',
-        'node-cli',
-        'typescript',
-        'lint',
-        'knip',
-        'effect-harness',
-      ], laneWidth),
-      cell('2. Resolve', [
-        'defaults',
-        'package scopes',
-        'surface choices',
-        'maintain intent',
+      panel('Project', [
+        field('Name', preview.name),
+        field('Location', preview.target),
+        field('Starting point', preview.shape),
+        field('Main package', preview.primaryPackage),
         '',
-        'blockers: none',
-      ], laneWidth),
-      cell('3. Preview', [
-        'files: 12',
-        'structured: 5',
-        'generated: 6',
-        'initializeMaintain: 1',
-        '',
-        'writes not applied',
-      ], laneWidth),
-      cell('4. Apply', [
-        'explicit confirm',
-        'write project files',
-        'run create verify',
-        '',
-        'ordinary scaffold',
-        'handoff after verify',
-      ], laneWidth),
-      cell('5. Maintain', [
-        'manifest owned here',
-        'managed claims',
-        'base snapshots',
-        '',
-        'update compares:',
-        'desired/base/current',
-      ], laneWidth),
-    ], laneHeight),
-    statusBar(width, [
-      'This variant emphasizes flow order over dense editing.',
-      'No real create logic is wired.',
-    ]),
-    footer(width),
-  ]
-}
-
-function renderInspectorConsole(width: number, height: number): readonly string[] {
-  const leftWidth = Math.max(22, Math.floor(width * 0.24))
-  const rightWidth = Math.max(38, width - leftWidth - 5)
-  const mainHeight = Math.max(10, height - 10)
-
-  return [
-    header(width, 'prelude create - inspector console prototype'),
-    row([
-      cell('Workbench', [
-        '> Run context',
-        '  CreateSpec draft',
-        '  Resolved graph',
-        '  WritePlan',
-        '  Maintain init',
-        '  Verification',
-        '',
-        'Shortcuts',
-        '  p preview',
-        '  a apply',
-        '  s print spec',
+        'Included',
+        ...preview.includes.map(item => `  [x] ${item}`),
       ], leftWidth),
-      cell('Run context / current inspector', [
-        'Human entry:',
-        '  prelude create',
+      panel('What you will get', [
+        'A ready workspace with:',
+        '  - one CLI package',
+        '  - TypeScript commands',
+        '  - lint and hygiene checks',
+        '  - Effect harness support',
         '',
-        'Agent entry:',
-        '  prelude create --spec ./create-spec.json --target ./my-worker --json --yes',
+        'After create:',
+        ...preview.nextCommands.map(command => `  ${command}`),
         '',
-        'CreateSpec summary:',
-        '  topology: workspace',
-        '  packages: apps/worker',
-        '  create capabilities: node-cli, typescript, lint, knip',
-        '  maintain domains: effect-harness',
-        '',
-        'Machine output contract:',
-        '  status | blockers | resolvedGraph | writePlan | verification | maintainInit',
+        'Ownership',
+        ...preview.managedSupport.map(item => `  - ${item}`),
       ], rightWidth),
-    ], mainHeight),
-    cell('Static JSON-shaped preview', [
-      '{',
-      '  "status": "previewOnly",',
-      '  "blockers": [],',
-      '  "ordinaryScaffold": "handoffAfterCreateVerification",',
-      '  "managedSurfaces": ["effect-harness"],',
-      '  "note": "prototype has no resolver, writes, or maintain logic"',
-      '}',
+    ], bodyHeight),
+    footer(width, 'enter create  p preview details  e export spec  q quit'),
+  ]
+}
+
+function renderRecipeGallery(width: number, height: number): readonly string[] {
+  const leftWidth = Math.max(30, Math.floor(width * 0.34))
+  const rightWidth = Math.max(50, width - leftWidth - 5)
+  const bodyHeight = Math.max(14, height - 9)
+
+  return [
+    header(width, 'prelude create'),
+    callout(width, 'Start from a saved shape', 'Recipes are complete CreateSpec files, not presets. Pick one, then customize only what matters.'),
+    row([
+      panel('Starting points', [
+        '> Effect CLI workspace',
+        '  React app workspace',
+        '  Vue app workspace',
+        '  Node package',
+        '  Library package',
+        '',
+        'Recent',
+        '  sayori-tooling',
+        '  agent-ready-cli',
+      ], leftWidth),
+      panel('Effect CLI workspace', [
+        'Best for',
+        '  A small internal command tool with Effect support.',
+        '',
+        'Creates',
+        `  ${preview.target}`,
+        `  ${preview.primaryPackage}`,
+        '',
+        'Includes',
+        ...preview.includes.map(item => `  - ${item}`),
+        '',
+        'Managed support',
+        '  Effect harness can be updated later.',
+      ], rightWidth),
+    ], bodyHeight),
+    footer(width, 'enter use recipe  c customize  e export spec  q quit'),
+  ]
+}
+
+function renderReviewAndCreate(width: number, height: number): readonly string[] {
+  const topWidth = Math.max(50, Math.floor(width * 0.62))
+  const sideWidth = Math.max(28, width - topWidth - 5)
+  const bodyHeight = Math.max(12, height - 16)
+
+  return [
+    header(width, 'prelude create'),
+    steps(width, ['Choose', 'Configure', 'Review', 'Create'], 2),
+    row([
+      panel('Review', [
+        `${preview.name}`,
+        `Location: ${preview.target}`,
+        `Shape: ${preview.shape}`,
+        '',
+        'This will create a new project start.',
+        'It will not manage ordinary app code after create.',
+        '',
+        'Looks ready:',
+        '  [x] target path is available',
+        '  [x] selected tools are compatible',
+        '  [x] managed support is explicit',
+      ], topWidth),
+      panel('Actions', [
+        '[enter] Create project',
+        '[p] Preview file list',
+        '[e] Export CreateSpec',
+        '[a] Copy agent command',
+        '',
+        'Agent command',
+        ...wrap(preview.agentCommand, sideWidth - 4),
+      ], sideWidth),
+    ], bodyHeight),
+    panel('Details are collapsed by default', [
+      'Advanced details can show canonical CreateSpec, file plan, and maintain ownership.',
+      'The default screen keeps those out of the way unless the user asks for them.',
     ], width - 2).join('\n'),
-    footer(width),
+    footer(width, 'enter create  p preview details  e export spec  a agent command  q quit'),
   ].flatMap(splitLines)
 }
 
-function cell(title: string, content: readonly string[], width: number): readonly string[] {
+function field(label: string, value: string): string {
+  return `${label}: ${value}`
+}
+
+function panel(title: string, content: readonly string[], width: number): readonly string[] {
   const innerWidth = Math.max(1, width - 4)
   const lines = [
     `+${repeat('-', width - 2)}+`,
     `| ${padRight(title, innerWidth)} |`,
     `+${repeat('-', width - 2)}+`,
-    ...content.map(line => `| ${padRight(line, innerWidth)} |`),
+    ...content.flatMap(line => wrap(line, innerWidth)).map(line => `| ${padRight(line, innerWidth)} |`),
     `+${repeat('-', width - 2)}+`,
   ]
 
@@ -211,27 +207,45 @@ function row(columns: readonly (readonly string[])[], minHeight: number): string
   return rows.join('\n')
 }
 
-function header(width: number, title: string): string {
+function header(width: number, productName: string): string {
   const variant = getCurrentVariant()
   return [
     repeat('=', width),
-    padRight(`${title} | variant ${variant.key}: ${variant.title}`, width),
+    padRight(`${productName} | ${variant.key}. ${variant.title}`, width),
     padRight('PROTOTYPE ONLY - static terminal mock, no create/maintain logic', width),
     repeat('=', width),
   ].join('\n')
 }
 
-function statusBar(width: number, messages: readonly string[]): string {
+function callout(width: number, title: string, body: string): string {
   return [
+    padRight(`${title}: ${body}`, width),
     repeat('-', width),
-    ...messages.map(message => padRight(message, width)),
   ].join('\n')
 }
 
-function footer(width: number): string {
+function steps(width: number, labels: readonly string[], activeIndex: number): string {
+  const parts = labels.map((label, index) => {
+    if (index < activeIndex) {
+      return `[x] ${label}`
+    }
+    if (index === activeIndex) {
+      return `> ${label}`
+    }
+    return `[ ] ${label}`
+  })
+
+  return [
+    padRight(parts.join('  ->  '), width),
+    repeat('-', width),
+  ].join('\n')
+}
+
+function footer(width: number, shortcuts: string): string {
   return [
     repeat('-', width),
-    '[1] three-pane  [2] pipeline  [3] inspector  [left/right] switch  [q] quit',
+    '[1] guided  [2] recipes  [3] review  [left/right] switch',
+    shortcuts,
   ].map(line => padRight(line, width)).join('\n')
 }
 
@@ -283,6 +297,33 @@ function padRight(value: string, width: number): string {
 
 function repeat(value: string, count: number): string {
   return value.repeat(Math.max(0, count))
+}
+
+function wrap(value: string, width: number): readonly string[] {
+  if (value.length <= width) {
+    return [value]
+  }
+
+  const words = value.split(' ')
+  const lines: string[] = []
+  let current = ''
+
+  for (const word of words) {
+    const next = current.length === 0 ? word : `${current} ${word}`
+    if (next.length > width) {
+      lines.push(current)
+      current = word
+    }
+    else {
+      current = next
+    }
+  }
+
+  if (current.length > 0) {
+    lines.push(current)
+  }
+
+  return lines
 }
 
 function nextVariant(): void {
