@@ -1,8 +1,7 @@
 import type {
   CreateSpec,
   GeneratedUserSurfaceRecord,
-  LifecycleProviderRecord,
-  LifecycleSurfaceRecord,
+  MaintainProviderReference,
   PreludeManifest,
   ResolvedGraph,
   VerificationResult,
@@ -10,7 +9,7 @@ import type {
 } from './model'
 import {
   effectHarnessLifecycleProviderRecord,
-  effectHarnessLifecycleSurfaces,
+  effectHarnessMaintainProviderReference,
   hasEffectHarnessProvider,
 } from './effect-harness-provider'
 import { toManifestCreateSpec } from './resolve'
@@ -45,20 +44,12 @@ function generatedSurfaceRecordForOperation(operation: WritePlan['operations'][n
   }
 }
 
-function lifecycleProvidersFor(graph: ResolvedGraph): readonly LifecycleProviderRecord[] {
+function maintainProvidersFor(graph: ResolvedGraph): readonly MaintainProviderReference[] {
   if (!hasEffectHarnessProvider(graph)) {
     return []
   }
 
-  return [effectHarnessLifecycleProviderRecord(graph)]
-}
-
-function lifecycleSurfacesFor(graph: ResolvedGraph): readonly LifecycleSurfaceRecord[] {
-  if (!hasEffectHarnessProvider(graph)) {
-    return []
-  }
-
-  return effectHarnessLifecycleSurfaces(graph)
+  return [effectHarnessMaintainProviderReference(effectHarnessLifecycleProviderRecord(graph))]
 }
 
 export function buildManifest(input: {
@@ -77,8 +68,7 @@ export function buildManifest(input: {
       packageManager: 'pnpm@10.33.4',
       typescript: 'catalog:',
     },
-    lifecycleProviders: lifecycleProvidersFor(input.resolvedGraph),
-    lifecycleSurfaces: lifecycleSurfacesFor(input.resolvedGraph),
+    maintainProviders: maintainProvidersFor(input.resolvedGraph),
     generatedUserSurfaces: input.writePlan.operations
       .filter(isGeneratedUserOperation)
       .map(generatedSurfaceRecordForOperation),

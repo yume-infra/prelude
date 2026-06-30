@@ -118,7 +118,6 @@ describe('fullscreen create workbench v1 acceptance fixtures', () => {
       assert.ok(paths.includes('eslint.config.mjs'))
       assert.ok(paths.includes('knip.json'))
       assert.ok(paths.includes('.prelude/providers/effect-harness/provider.json'))
-      assert.ok(paths.includes('.effect-harness.json'))
       assert.ok(paths.includes('AGENTS.md'))
       assert.ok(operationKinds.has('writeStructuredFile'))
       assert.ok(operationKinds.has('writeGeneratedUserFile'))
@@ -302,7 +301,7 @@ describe('fullscreen create workbench v1 acceptance fixtures', () => {
               topology: string
               packageScopes: readonly string[]
             }
-            lifecycleSurfaces?: readonly string[]
+            surfaces?: readonly { id: string }[]
           }
         }>
         blockers: unknown[]
@@ -323,7 +322,6 @@ describe('fullscreen create workbench v1 acceptance fixtures', () => {
       assert.ok(paths.includes('apps/node/tsconfig.json'))
       assert.ok(paths.includes('apps/node/tsdown.config.ts'))
       assert.ok(paths.includes('.prelude/providers/effect-harness/provider.json'))
-      assert.ok(paths.includes('.effect-harness.json'))
       assert.ok(paths.includes('AGENTS.md'))
       assert.equal(rootPackageJsonOperation?.value?.scripts?.build, 'turbo run build')
       assert.equal(rootPackageJsonOperation?.value?.scripts?.typecheck, 'turbo run typecheck')
@@ -339,7 +337,7 @@ describe('fullscreen create workbench v1 acceptance fixtures', () => {
       assert.match(workspaceManifestOperation?.content ?? '', /'@types\/node': 25\.6\.0/u)
       assert.equal(providerOperation?.value?.projectedContext?.topology, 'workspace')
       assert.deepStrictEqual(providerOperation?.value?.projectedContext?.packageScopes, ['node'])
-      assert.equal(providerOperation?.value?.lifecycleSurfaces?.some(surface => surface.startsWith('tsconfig:root:')), false)
+      assert.equal(providerOperation?.value?.surfaces?.some(surface => surface.id.startsWith('tsconfig:root:')), false)
       assert.equal(yield* pathExists(path.join(targetDir, '.prelude/manifest.json')), false)
     }))
 })

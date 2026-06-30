@@ -27,6 +27,7 @@ catalog:
   eslint: ^10.3.0
   knip: ^6.12.0
   tsdown: ^0.21.10
+  turbo: ^2.9.9
   typescript: 6.0.3
 `
 
@@ -411,12 +412,11 @@ const workerTsconfig = await readJson<{
 }>(path.join(workerDir, 'tsconfig.json'))
 const workerManifest = await readJson<{
   createSpec: typeof workerSpec
-  lifecycleProviders: Array<{ id: string, lifecycleSurfaces: readonly string[] }>
-  lifecycleSurfaces: Array<{ id: string, owner: string, lifecycle: string, path: string }>
+  maintainProviders: Array<{ id: string, recordPath: string }>
   generatedUserSurfaces: Array<{ path: string, authority: string }>
   verificationRecords: Array<{ id: string, checkedPaths: readonly string[] }>
 }>(path.join(workerDir, '.prelude/manifest.json'))
-const providerArtifact = await readJson<{ id: string, lifecycleSurfaces: readonly string[] }>(
+const providerRecord = await readJson<{ id: string, surfaces: Array<{ id: string, owner: string, lifecycle: string, path: string }> }>(
   path.join(workerDir, '.prelude/providers/effect-harness/provider.json'),
 )
 
@@ -436,16 +436,13 @@ assert.deepEqual(workerTsconfig.compilerOptions.types, ['node'])
 assert.equal(workerTsconfig.compilerOptions.plugins[0]?.name, '@effect/language-service')
 assert.deepEqual(workerTsconfig.include, ['src/**/*.ts'])
 assert.equal(workerManifest.createSpec.package.capabilities[0], 'effect-package')
-assert.deepEqual(workerManifest.lifecycleProviders.map(provider => provider.id), ['effect-harness'])
-assert.equal(providerArtifact.id, 'effect-harness')
-assert.ok(providerArtifact.lifecycleSurfaces.includes('provider-managed-file:effect-harness:.effect-harness.json'))
-assert.ok(providerArtifact.lifecycleSurfaces.includes('tsconfig:root:/compilerOptions/plugins'))
-assert.deepEqual(
-  workerManifest.lifecycleProviders[0]?.lifecycleSurfaces,
-  workerManifest.lifecycleSurfaces.map(surface => surface.id),
-)
+assert.deepEqual(workerManifest.maintainProviders.map(provider => provider.id), ['effect-harness'])
+assert.equal(workerManifest.maintainProviders[0]?.recordPath, '.prelude/providers/effect-harness/provider.json')
+assert.equal(providerRecord.id, 'effect-harness')
+const providerSurfaceIds = new Set(providerRecord.surfaces.map(surface => surface.id))
+assert.ok(providerSurfaceIds.has('tsconfig:root:/compilerOptions/plugins'))
 assert.ok(
-  workerManifest.lifecycleSurfaces.every(surface =>
+  providerRecord.surfaces.every(surface =>
     surface.owner === 'provider:effect-harness'
     && surface.lifecycle === 'managed'
     && !surface.path.startsWith('src/')),
@@ -551,8 +548,7 @@ const vueTsconfig = await readJson<{
 }>(path.join(vueDir, 'tsconfig.json'))
 const vueManifest = await readJson<{
   createSpec: typeof vueSpec
-  lifecycleProviders: readonly unknown[]
-  lifecycleSurfaces: readonly unknown[]
+  maintainProviders: readonly unknown[]
   generatedUserSurfaces: Array<{ path: string, authority: string }>
 }>(path.join(vueDir, '.prelude/manifest.json'))
 
@@ -587,8 +583,7 @@ assert.match(vueTailwindStyles, /@import "tailwindcss";/u)
 assert.deepEqual(vueTsconfig.compilerOptions.types, ['vite/client'])
 assert.deepEqual(vueTsconfig.include, ['src/**/*.ts', 'src/**/*.vue', 'vite.config.ts'])
 assert.deepEqual(vueManifest.createSpec.package.capabilities, ['vue-app', 'css:less', 'css:tailwind', 'router:vue-router', 'state:pinia'])
-assert.deepEqual(vueManifest.lifecycleProviders, [])
-assert.deepEqual(vueManifest.lifecycleSurfaces, [])
+assert.deepEqual(vueManifest.maintainProviders, [])
 assert.ok(
   vueManifest.generatedUserSurfaces.every(surface => surface.authority === 'none'),
   'vue generated scaffold surfaces must be handed off',
@@ -607,8 +602,7 @@ const backendPackageJson = await readJson<{
 const backendSource = await readFile(path.join(backendDir, 'src/index.ts'), 'utf8')
 const backendManifest = await readJson<{
   createSpec: typeof backendSpec
-  lifecycleProviders: readonly unknown[]
-  lifecycleSurfaces: readonly unknown[]
+  maintainProviders: readonly unknown[]
   generatedUserSurfaces: Array<{ path: string, authority: string }>
 }>(path.join(backendDir, '.prelude/manifest.json'))
 
@@ -635,8 +629,7 @@ assert.equal(backendPackageJson.devDependencies.tsdown, 'catalog:')
 assert.match(backendSource, /fileURLToPath\(import\.meta\.url\)/u)
 assert.match(backendSource, /node-backend-fixture/u)
 assert.deepEqual(backendManifest.createSpec.package.capabilities, ['node-backend'])
-assert.deepEqual(backendManifest.lifecycleProviders, [])
-assert.deepEqual(backendManifest.lifecycleSurfaces, [])
+assert.deepEqual(backendManifest.maintainProviders, [])
 assert.ok(
   backendManifest.generatedUserSurfaces.every(surface => surface.authority === 'none'),
   'backend generated scaffold surfaces must be handed off',
@@ -655,8 +648,7 @@ const libraryPackageJson = await readJson<{
 const librarySource = await readFile(path.join(libraryDir, 'src/index.ts'), 'utf8')
 const libraryManifest = await readJson<{
   createSpec: typeof librarySpec
-  lifecycleProviders: readonly unknown[]
-  lifecycleSurfaces: readonly unknown[]
+  maintainProviders: readonly unknown[]
   generatedUserSurfaces: Array<{ path: string, authority: string }>
 }>(path.join(libraryDir, '.prelude/manifest.json'))
 
@@ -676,8 +668,7 @@ assert.equal(libraryPackageJson.devDependencies.typescript, 'catalog:')
 assert.match(librarySource, /export function createGreeting/u)
 assert.match(librarySource, /library-package-fixture/u)
 assert.deepEqual(libraryManifest.createSpec.package.capabilities, ['library'])
-assert.deepEqual(libraryManifest.lifecycleProviders, [])
-assert.deepEqual(libraryManifest.lifecycleSurfaces, [])
+assert.deepEqual(libraryManifest.maintainProviders, [])
 assert.ok(
   libraryManifest.generatedUserSurfaces.every(surface => surface.authority === 'none'),
   'library generated scaffold surfaces must be handed off',
@@ -698,8 +689,7 @@ const cliSource = await readFile(path.join(cliDir, 'src/index.ts'), 'utf8')
 const cliEnsureShebang = await readFile(path.join(cliDir, 'scripts/ensure-shebang.mjs'), 'utf8')
 const cliManifest = await readJson<{
   createSpec: typeof cliSpec
-  lifecycleProviders: readonly unknown[]
-  lifecycleSurfaces: readonly unknown[]
+  maintainProviders: readonly unknown[]
   generatedUserSurfaces: Array<{ path: string, authority: string }>
 }>(path.join(cliDir, '.prelude/manifest.json'))
 
@@ -725,22 +715,50 @@ assert.match(cliSource, /^#!\/usr\/bin\/env node/u)
 assert.match(cliSource, /Usage: cli-tool-fixture/u)
 assert.match(cliEnsureShebang, /chmod\(binPath, 0o755\)/u)
 assert.deepEqual(cliManifest.createSpec.package.capabilities, ['cli-tool'])
-assert.deepEqual(cliManifest.lifecycleProviders, [])
-assert.deepEqual(cliManifest.lifecycleSurfaces, [])
+assert.deepEqual(cliManifest.maintainProviders, [])
 assert.ok(
   cliManifest.generatedUserSurfaces.every(surface => surface.authority === 'none'),
   'cli generated scaffold surfaces must be handed off',
 )
 
-await execa('pnpm', ['install'], {
+await execa('pnpm', ['install', '--ignore-scripts'], {
   cwd: generatedRoot,
   stdio: 'inherit',
   timeout: 120_000,
 })
-await execa('pnpm', ['--filter', workerSpec.package.name, 'verify'], {
+await execa('pnpm', ['--filter', workerSpec.package.name, 'build'], {
   cwd: generatedRoot,
   stdio: 'inherit',
   timeout: 120_000,
+})
+await execa('pnpm', ['--filter', workerSpec.package.name, 'typecheck'], {
+  cwd: generatedRoot,
+  stdio: 'inherit',
+  timeout: 120_000,
+})
+await execa('pnpm', ['--filter', workerSpec.package.name, 'lint'], {
+  cwd: generatedRoot,
+  stdio: 'inherit',
+  timeout: 120_000,
+})
+await execa('pnpm', ['--filter', workerSpec.package.name, 'knip'], {
+  cwd: generatedRoot,
+  stdio: 'inherit',
+  timeout: 120_000,
+})
+const workerProviderVerify = await execa('node', [cliEntry, 'verify', '--provider', 'effect-harness'], {
+  cwd: workerDir,
+  timeout: 120_000,
+})
+assert.deepEqual(JSON.parse(workerProviderVerify.stdout), {
+  command: 'verify',
+  status: 'completed',
+  providers: [
+    {
+      providerId: 'effect-harness',
+      status: 'passed',
+    },
+  ],
 })
 await execa('pnpm', ['--filter', reactSpec.package.name, 'verify'], {
   cwd: generatedRoot,
@@ -849,7 +867,7 @@ assert.deepEqual(workspaceManifest.verificationRecords.map(record => record.id),
   'workspace-package-files-present',
 ])
 
-await execa('pnpm', ['install'], {
+await execa('pnpm', ['install', '--ignore-scripts'], {
   cwd: workspaceDir,
   stdio: 'inherit',
   timeout: 120_000,

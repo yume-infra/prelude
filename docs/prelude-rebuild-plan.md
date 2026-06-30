@@ -44,12 +44,14 @@ CreateSpec
 maintain config
   -> maintain resolver
   -> managed claims
-  -> maintain manifest
+  -> maintain manifest provider references
+  -> provider records
   -> status | verify | update
   -> desired/base/current reconcile
   -> maintain WritePlan
   -> managed surface updates
-  -> refreshed manifest base
+  -> refreshed provider records
+  -> refreshed manifest references
 ```
 
 The rebuild succeeds when rejected generator concepts are no longer required to explain, extend, verify, or maintain project creation.
@@ -165,7 +167,7 @@ It MUST NOT contain `renderTemplate`.
 
 Maintain is a core product ability.
 
-Maintain owns status, verify, update, drift check, maintain WritePlan, and manifest base refresh.
+Maintain owns status, verify, update, drift check, maintain WritePlan, provider record base refresh, and manifest reference refresh.
 
 Maintain MUST NOT update ordinary scaffold.
 
@@ -173,19 +175,20 @@ Maintain MUST NOT update ordinary scaffold.
 
 `.prelude/manifest.json` is the maintain manifest.
 
-The maintain manifest records managed lifecycle state, not ordinary scaffold creation provenance.
+The maintain manifest records maintain provider references, not ordinary scaffold creation provenance.
 
 It SHOULD record:
 
 - schema version
-- enabled maintain domains
-- managed claims
-- managed locators
-- base snapshots
-- domain contract identity
+- enabled maintain providers
+- provider record paths
+- provider contract identity
+- provider implementation/profile identity
 - maintain verification records
 
 It SHOULD NOT record ordinary scaffold provenance records.
+
+Provider records under `.prelude/providers/<provider-id>/provider.json` SHOULD record managed claims, locators, base snapshots, provider options, provider profile, and runtime metadata.
 
 ### Maintain Domains
 

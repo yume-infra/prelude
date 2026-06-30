@@ -6,7 +6,7 @@ import type { FileIOError, SchemaContractError } from '@/core/errors'
 export type Topology = 'single-package' | 'workspace'
 export type CapabilityId = 'minimal-node-package' | 'node-app' | 'react-app' | 'react-counter' | 'vue-app' | 'effect-package' | 'node-backend' | 'library' | 'cli-tool' | 'router:react-router' | 'router:vue-router' | 'state:jotai' | 'state:pinia' | 'css:less' | 'css:tailwind'
 export type RootCapabilityId = 'package-manager:pnpm' | 'task-runner:turbo' | 'linting' | 'knip' | 'dependency-update:taze' | 'ai-harness'
-export type ProviderId = 'effect-harness'
+export type ProviderId = string
 export type PackageManifestSurfaceId = `package-manifest:${string}`
 export type WorkspaceManifestSurfaceId = 'workspace-manifest:root'
 export type ReactAppShellSurfaceId = `react-app-shell:${string}`
@@ -328,12 +328,7 @@ export interface GeneratedUserSurfaceRecord {
 export interface ProviderArtifactRecord {
   readonly id: ProviderId
   readonly version: string
-  readonly source: {
-    readonly repository: string
-    readonly branch: string
-    readonly split: string
-  }
-  readonly packageBaseline: Record<string, string>
+  readonly [key: string]: JsonValue
 }
 
 export interface ProviderProjectedContext {
@@ -341,15 +336,6 @@ export interface ProviderProjectedContext {
   readonly packageScopes: readonly string[]
   readonly rootCapabilities: readonly RootCapabilityId[]
   readonly packageCapabilities: Record<string, readonly CapabilityId[]>
-}
-
-export interface LifecycleProviderRecord {
-  readonly id: ProviderId
-  readonly contractVersion: string
-  readonly artifact: ProviderArtifactRecord
-  readonly projectedContext: ProviderProjectedContext
-  readonly lifecycleSurfaces: readonly string[]
-  readonly verificationRecordId: string
 }
 
 interface LifecycleSurfaceMetadata {
@@ -393,6 +379,35 @@ interface ManagedBlockLifecycleSurfaceRecord extends LifecycleSurfaceMetadata {
 
 export type LifecycleSurfaceRecord = OwnedFileLifecycleSurfaceRecord | StructuredPointerLifecycleSurfaceRecord | ManagedBlockLifecycleSurfaceRecord
 
+export interface MaintainProviderReference {
+  readonly id: ProviderId
+  readonly contractVersion: string
+  readonly providerVersion: string
+  readonly profile: string
+  readonly recordPath: string
+}
+
+export interface ProviderRuntimeRecord {
+  readonly commands: Record<string, string>
+  readonly routes: Record<string, string>
+  readonly files: readonly string[]
+  readonly [key: string]: JsonValue
+}
+
+export interface LifecycleProviderRecord {
+  readonly schemaVersion: 1
+  readonly id: ProviderId
+  readonly contractVersion: string
+  readonly providerVersion: string
+  readonly profile: string
+  readonly artifact: ProviderArtifactRecord
+  readonly projectedContext: ProviderProjectedContext
+  readonly options: Record<string, JsonValue>
+  readonly runtime: ProviderRuntimeRecord
+  readonly surfaces: readonly LifecycleSurfaceRecord[]
+  readonly verificationRecordId: string
+}
+
 export interface PreludeManifest {
   readonly schemaVersion: 1
   readonly preludeVersion: string
@@ -402,8 +417,7 @@ export interface PreludeManifest {
     readonly packageManager: 'pnpm@10.33.4'
     readonly typescript: 'catalog:'
   }
-  readonly lifecycleProviders: readonly LifecycleProviderRecord[]
-  readonly lifecycleSurfaces: readonly LifecycleSurfaceRecord[]
+  readonly maintainProviders: readonly MaintainProviderReference[]
   readonly generatedUserSurfaces: readonly GeneratedUserSurfaceRecord[]
   readonly verificationRecords: readonly VerificationRecord[]
 }

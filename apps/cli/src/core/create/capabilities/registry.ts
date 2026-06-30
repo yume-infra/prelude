@@ -19,7 +19,7 @@ const packageCapabilityDefinitions: readonly PackageCapabilityDefinition[] = [
   ...frontendCapabilityDefinitions,
 ] as const
 
-const supportedProviders = ['effect-harness'] as const satisfies readonly ProviderId[]
+const supportedProviders: readonly string[] = ['effect-harness']
 
 export function isRootCapabilityId(capability: string): capability is RootCapabilityId {
   return rootCapabilityDefinitions.some(definition => definition.id === capability)
@@ -30,7 +30,7 @@ export function isPackageCapabilityId(capability: string): capability is Capabil
 }
 
 export function isProviderId(provider: string): provider is ProviderId {
-  return supportedProviders.includes(provider as ProviderId)
+  return supportedProviders.includes(provider)
 }
 
 function packageCapabilityDefinition(capability: CapabilityId) {

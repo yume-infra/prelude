@@ -102,16 +102,14 @@ describe('recovered main intent create pipeline', () => {
         const manifest = yield* Effect.promise(() =>
           readJson<{
             createSpec: unknown
-            lifecycleProviders: readonly unknown[]
-            lifecycleSurfaces: readonly unknown[]
+            maintainProviders: readonly unknown[]
             generatedUserSurfaces: readonly { path: string, authority: string }[]
             verificationRecords: readonly unknown[]
           }>(path.join(targetDir, '.prelude/manifest.json')),
         )
 
         assert.deepStrictEqual(manifest.createSpec, spec)
-        assert.deepStrictEqual(manifest.lifecycleProviders, [])
-        assert.deepStrictEqual(manifest.lifecycleSurfaces, [])
+        assert.deepStrictEqual(manifest.maintainProviders, [])
         assert.deepStrictEqual(
           manifest.generatedUserSurfaces.map(surface => ({ path: surface.path, authority: surface.authority })),
           [
@@ -178,7 +176,6 @@ describe('recovered main intent create pipeline', () => {
           'tsconfig.json',
           '.prelude/providers/effect-harness/provider.json',
         ])
-        assert.ok(operationPaths.includes('.effect-harness.json'))
         assert.ok(operationPaths.includes('AGENTS.md'))
         assert.ok(operationPaths.includes('.codex/skills/effect-code/SKILL.md'))
 
@@ -210,42 +207,38 @@ describe('recovered main intent create pipeline', () => {
         assert.match(sourceEntry, /NodeRuntime\.runMain\(main\(\)\)/u)
         assert.match(sourceEntry, /cli-effect-fixture ready/u)
 
-        const providerArtifact = yield* Effect.promise(() =>
+        const providerRecord = yield* Effect.promise(() =>
           readJson<{
             id: string
             projectedContext: {
               packageScopes: readonly string[]
               packageCapabilities: Record<string, readonly string[]>
             }
-            lifecycleSurfaces: readonly string[]
+            surfaces: readonly { id: string, owner: string, lifecycle: string, path: string }[]
           }>(path.join(targetDir, '.prelude/providers/effect-harness/provider.json')),
         )
-        assert.strictEqual(providerArtifact.id, 'effect-harness')
-        assert.deepStrictEqual(providerArtifact.projectedContext.packageScopes, ['cli'])
-        assert.deepStrictEqual(providerArtifact.projectedContext.packageCapabilities, {
+        assert.strictEqual(providerRecord.id, 'effect-harness')
+        assert.deepStrictEqual(providerRecord.projectedContext.packageScopes, ['cli'])
+        assert.deepStrictEqual(providerRecord.projectedContext.packageCapabilities, {
           cli: ['effect-package'],
         })
-        assert.ok(providerArtifact.lifecycleSurfaces.includes('provider-artifact:effect-harness'))
-        assert.ok(providerArtifact.lifecycleSurfaces.includes('package-manifest:root:/dependencies/effect'))
+        const providerSurfaceIds = new Set(providerRecord.surfaces.map(surface => surface.id))
+        assert.ok(providerSurfaceIds.has('package-manifest:root:/dependencies/effect'))
 
         const manifest = yield* Effect.promise(() =>
           readJson<{
             createSpec: unknown
-            lifecycleProviders: readonly { id: string, lifecycleSurfaces: readonly string[] }[]
-            lifecycleSurfaces: readonly { id: string, owner: string, lifecycle: string, path: string }[]
+            maintainProviders: readonly { id: string, recordPath: string }[]
             generatedUserSurfaces: readonly { path: string, authority: string }[]
             verificationRecords: readonly unknown[]
           }>(path.join(targetDir, '.prelude/manifest.json')),
         )
 
         assert.deepStrictEqual(manifest.createSpec, spec)
-        assert.deepStrictEqual(manifest.lifecycleProviders.map(provider => provider.id), ['effect-harness'])
-        assert.deepStrictEqual(
-          manifest.lifecycleProviders[0]?.lifecycleSurfaces,
-          manifest.lifecycleSurfaces.map(surface => surface.id),
-        )
+        assert.deepStrictEqual(manifest.maintainProviders.map(provider => provider.id), ['effect-harness'])
+        assert.deepStrictEqual(manifest.maintainProviders[0]?.recordPath, '.prelude/providers/effect-harness/provider.json')
         assert.ok(
-          manifest.lifecycleSurfaces.every(surface =>
+          providerRecord.surfaces.every(surface =>
             surface.owner === 'provider:effect-harness'
             && surface.lifecycle === 'managed'
             && !surface.path.startsWith('src/')),

@@ -189,8 +189,7 @@ describe('node backend and library package creation', () => {
 
     const manifest = await readJson<{
       resolvedGraph: { packageCapabilities: unknown, logicalSurfaces: unknown, verification: unknown }
-      lifecycleProviders: readonly unknown[]
-      lifecycleSurfaces: readonly unknown[]
+      maintainProviders: readonly unknown[]
       generatedUserSurfaces: readonly { path: string, creator: string, authority: string }[]
       verificationRecords: readonly unknown[]
     }>(path.join(targetDir, '.prelude/manifest.json'))
@@ -199,8 +198,7 @@ describe('node backend and library package creation', () => {
       api: ['node-backend'],
     })
     assert.deepStrictEqual(manifest.resolvedGraph.verification, ['node-package-files-present'])
-    assert.deepStrictEqual(manifest.lifecycleProviders, [])
-    assert.deepStrictEqual(manifest.lifecycleSurfaces, [])
+    assert.deepStrictEqual(manifest.maintainProviders, [])
     assert.deepStrictEqual(
       manifest.generatedUserSurfaces.map(surface => ({
         path: surface.path,
@@ -242,8 +240,7 @@ describe('node backend and library package creation', () => {
 
     const manifest = await readJson<{
       resolvedGraph: { packageCapabilities: unknown, verification: unknown }
-      lifecycleProviders: readonly unknown[]
-      lifecycleSurfaces: readonly unknown[]
+      maintainProviders: readonly unknown[]
       generatedUserSurfaces: readonly { path: string, authority: string }[]
       verificationRecords: readonly unknown[]
     }>(path.join(targetDir, '.prelude/manifest.json'))
@@ -252,8 +249,7 @@ describe('node backend and library package creation', () => {
       lib: ['library'],
     })
     assert.deepStrictEqual(manifest.resolvedGraph.verification, ['node-package-files-present'])
-    assert.deepStrictEqual(manifest.lifecycleProviders, [])
-    assert.deepStrictEqual(manifest.lifecycleSurfaces, [])
+    assert.deepStrictEqual(manifest.maintainProviders, [])
     assert.deepStrictEqual(
       manifest.generatedUserSurfaces.map(surface => ({ path: surface.path, authority: surface.authority })),
       [

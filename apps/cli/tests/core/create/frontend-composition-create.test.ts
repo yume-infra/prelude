@@ -76,13 +76,11 @@ describe('frontend composition create pipeline', () => {
 
         const manifest = yield* Effect.promise(() =>
           readJson<{
-            lifecycleProviders: readonly unknown[]
-            lifecycleSurfaces: readonly unknown[]
+            maintainProviders: readonly unknown[]
             generatedUserSurfaces: Array<{ path: string, authority: string }>
           }>(path.join(targetDir, '.prelude/manifest.json')),
         )
-        assert.deepEqual(manifest.lifecycleProviders, [])
-        assert.deepEqual(manifest.lifecycleSurfaces, [])
+        assert.deepEqual(manifest.maintainProviders, [])
         assert.ok(manifest.generatedUserSurfaces.every(surface => surface.authority === 'none'))
         assert.deepEqual(
           manifest.generatedUserSurfaces.map(surface => surface.path).filter(surfacePath => surfacePath.startsWith('src/')),
@@ -142,13 +140,11 @@ describe('frontend composition create pipeline', () => {
 
         const manifest = yield* Effect.promise(() =>
           readJson<{
-            lifecycleProviders: readonly unknown[]
-            lifecycleSurfaces: readonly unknown[]
+            maintainProviders: readonly unknown[]
             generatedUserSurfaces: Array<{ path: string, authority: string }>
           }>(path.join(targetDir, '.prelude/manifest.json')),
         )
-        assert.deepEqual(manifest.lifecycleProviders, [])
-        assert.deepEqual(manifest.lifecycleSurfaces, [])
+        assert.deepEqual(manifest.maintainProviders, [])
         assert.ok(manifest.generatedUserSurfaces.every(surface => surface.authority === 'none'))
         assert.deepEqual(
           manifest.generatedUserSurfaces.map(surface => surface.path).filter(surfacePath => surfacePath.startsWith('src/')),

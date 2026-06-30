@@ -1,11 +1,14 @@
 import type { TargetDir } from '@/brand/target-dir'
 import type { CliArgs } from '@/core/cli-context'
-import { Effect, Option } from 'effect'
+import process from 'node:process'
+import { Console, Effect, Option } from 'effect'
 import { Command, Flag } from 'effect/unstable/cli'
 import { decodeProjectName, formatProjectNameError } from '@/brand/project-name'
+import { makeTargetDir } from '@/brand/target-dir'
 import { CliContextLive } from '@/core/cli-context'
 import { runCreateRoute } from '@/core/create-route'
 import { SchemaContractError } from '@/core/errors'
+import { effectHarnessLifecycleProvider, runProviderLifecycleStatus, runProviderLifecycleUpdate, runProviderLifecycleVerify } from '@/core/lifecycle'
 import { schemaIssueCount } from '@/schema/errors'
 
 export interface PreludeCommandOptions {
@@ -67,7 +70,23 @@ const preludeCommandConfig = {
   ),
 }
 
+const lifecycleCommandConfig = {
+  provider: Flag.string('provider').pipe(
+    Flag.optional,
+    Flag.withDescription('Limit the command to one maintain provider id'),
+  ),
+  target: Flag.string('target').pipe(
+    Flag.optional,
+    Flag.withDescription('Target project directory; defaults to the current working directory'),
+  ),
+}
+
+const lifecycleProviders = {
+  'effect-harness': effectHarnessLifecycleProvider,
+}
+
 type PreludeCommandInput = Command.Command.Config.Infer<typeof preludeCommandConfig>
+type LifecycleCommandInput = Command.Command.Config.Infer<typeof lifecycleCommandConfig>
 type MutableCliArgs = {
   -readonly [Key in keyof CliArgs]: CliArgs[Key]
 }
@@ -94,6 +113,28 @@ const decodeCliProjectName = Effect.fn('decodeCliProjectName')(
 
 function optionValue<A>(value: Option.Option<A>) {
   return Option.isSome(value) ? value.value : undefined
+}
+
+function lifecycleTargetDir(options: PreludeCommandOptions, input: LifecycleCommandInput): TargetDir {
+  return makeTargetDir(optionValue(input.target) ?? options.targetDir ?? process.cwd())
+}
+
+function lifecycleProvider(input: LifecycleCommandInput) {
+  return optionValue(input.provider)
+}
+
+function lifecycleCommandOptions(options: PreludeCommandOptions, input: LifecycleCommandInput) {
+  const provider = lifecycleProvider(input)
+
+  return {
+    targetDir: lifecycleTargetDir(options, input),
+    providers: lifecycleProviders,
+    ...(provider === undefined ? {} : { provider }),
+  }
+}
+
+function printJson(value: unknown) {
+  return Console.log(JSON.stringify(value, null, 2))
 }
 
 const cliArgsFromCommandInput = Effect.fn('cliArgsFromCommandInput')(
@@ -162,12 +203,41 @@ function handlePreludeCommand(options: PreludeCommandOptions) {
   )
 }
 
+function makeLifecycleStatusCommand(options: PreludeCommandOptions) {
+  return Command.make('status', lifecycleCommandConfig, input =>
+    runProviderLifecycleStatus(lifecycleCommandOptions(options, input)).pipe(Effect.flatMap(printJson))).pipe(
+    Command.withDescription('Read maintain provider status from the prelude manifest'),
+    Command.withShortDescription('Read maintain provider status'),
+  )
+}
+
+function makeLifecycleVerifyCommand(options: PreludeCommandOptions) {
+  return Command.make('verify', lifecycleCommandConfig, input =>
+    runProviderLifecycleVerify(lifecycleCommandOptions(options, input)).pipe(Effect.flatMap(printJson))).pipe(
+    Command.withDescription('Verify maintain provider records and managed surfaces'),
+    Command.withShortDescription('Verify maintain providers'),
+  )
+}
+
+function makeLifecycleUpdateCommand(options: PreludeCommandOptions) {
+  return Command.make('update', lifecycleCommandConfig, input =>
+    runProviderLifecycleUpdate(lifecycleCommandOptions(options, input)).pipe(Effect.flatMap(printJson))).pipe(
+    Command.withDescription('Update declared maintain provider surfaces after drift preflight'),
+    Command.withShortDescription('Update maintain providers'),
+  )
+}
+
 export function makePreludeCommand(options: PreludeCommandOptions) {
   return Command.make(
     'prelude',
     preludeCommandConfig,
     handlePreludeCommand(options),
   ).pipe(
+    Command.withSubcommands([
+      makeLifecycleStatusCommand(options),
+      makeLifecycleVerifyCommand(options),
+      makeLifecycleUpdateCommand(options),
+    ]),
     Command.withDescription('Create an agent-ready project workspace from a canonical CreateSpec'),
     Command.withExamples([
       {
@@ -181,6 +251,10 @@ export function makePreludeCommand(options: PreludeCommandOptions) {
       {
         command: 'prelude --spec prelude.json --print-spec',
         description: 'Print the canonical CreateSpec and exit before generation',
+      },
+      {
+        command: 'prelude verify --provider effect-harness',
+        description: 'Verify declared maintain provider surfaces for the current project',
       },
     ]),
   )

@@ -41,17 +41,28 @@ function manifestJson(overrides: Record<string, unknown> = {}) {
       packageManager: 'pnpm@10.33.4',
       typescript: 'catalog:',
     },
-    lifecycleProviders: [],
-    lifecycleSurfaces: [],
+    maintainProviders: [],
     generatedUserSurfaces: [],
     verificationRecords: [],
     ...overrides,
   }, null, 2)}\n`
 }
 
+const effectHarnessPackageBaseline = {
+  'effect': '4.0.0-beta.90',
+  '@effect/platform-node': '4.0.0-beta.90',
+  '@effect/vitest': '4.0.0-beta.90',
+  '@effect/tsgo': '0.14.6',
+  '@effect/language-service': '0.86.2',
+  '@typescript/native-preview': '7.0.0-dev.20260624.1',
+}
+
 const effectHarnessRecord = {
+  schemaVersion: 1,
   id: 'effect-harness',
   contractVersion: '1',
+  providerVersion: '0.1.0',
+  profile: 'codex-effect-v4',
   artifact: {
     id: 'effect-harness',
     version: '0.1.0',
@@ -60,9 +71,7 @@ const effectHarnessRecord = {
       branch: 'main',
       split: 'abc123',
     },
-    packageBaseline: {
-      effect: '4.0.0-beta.90',
-    },
+    packageBaseline: effectHarnessPackageBaseline,
   },
   projectedContext: {
     topology: 'single-package',
@@ -72,9 +81,41 @@ const effectHarnessRecord = {
       worker: ['effect-package'],
     },
   },
-  lifecycleSurfaces: [],
+  options: {
+    runtime: 'codex',
+    effect: {
+      major: 4,
+      packageBaseline: effectHarnessPackageBaseline,
+    },
+    languageService: {
+      enabled: true,
+      floatingEffect: 'error',
+    },
+    packageScopes: ['worker'],
+  },
+  runtime: {
+    commands: {
+      status: 'effect-harness status',
+      verify: 'effect-harness verify --target .',
+    },
+    routes: {},
+    files: [],
+  },
+  surfaces: [],
   verificationRecordId: 'provider:effect-harness:create-contract',
 } as const
+
+const effectHarnessReference = {
+  id: 'effect-harness',
+  contractVersion: '1',
+  providerVersion: '0.1.0',
+  profile: 'codex-effect-v4',
+  recordPath: '.prelude/providers/effect-harness/provider.json',
+} as const
+
+function providerRecordJson(record: unknown = effectHarnessRecord) {
+  return `${JSON.stringify(record, null, 2)}\n`
+}
 
 const tsgoSurfaceId = 'package-manifest:root:/devDependencies/@effect~1tsgo'
 const tsgoPointer = '/devDependencies/@effect~1tsgo'
@@ -150,6 +191,38 @@ function managedBlockSurface(overrides: Record<string, unknown> = {}) {
     snapshot: originalManagedBlock,
     operationId: 'write-effect-harness-agents-md-block',
     ...overrides,
+  }
+}
+
+function providerRecordWithSurfaces(surfaces: readonly Record<string, unknown>[]) {
+  return {
+    ...effectHarnessRecord,
+    surfaces,
+  }
+}
+
+function readLifecycleFiles(input: {
+  readonly manifest?: string
+  readonly providerRecord?: unknown
+  readonly fallback?: string | ((path: string) => string)
+} = {}) {
+  const manifest = input.manifest ?? manifestJson()
+  const providerRecord = input.providerRecord ?? effectHarnessRecord
+
+  return (path: string) => {
+    if (path.endsWith('.prelude/manifest.json')) {
+      return Effect.succeed(manifest)
+    }
+
+    if (path.endsWith('.prelude/providers/effect-harness/provider.json')) {
+      return Effect.succeed(providerRecordJson(providerRecord))
+    }
+
+    if (typeof input.fallback === 'function') {
+      return Effect.succeed(input.fallback(path))
+    }
+
+    return Effect.succeed(input.fallback ?? '')
   }
 }
 
@@ -283,9 +356,11 @@ describe('provider lifecycle runtime', () => {
     const writes: string[] = []
     const fsLayer = makeFsMockLayer({
       exists: () => Effect.succeed(true),
-      readFileString: () => Effect.succeed(manifestJson({
-        lifecycleProviders: [effectHarnessRecord],
-      })),
+      readFileString: readLifecycleFiles({
+        manifest: manifestJson({
+          maintainProviders: [effectHarnessReference],
+        }),
+      }),
       writeFileString: path => Effect.sync(() => {
         writes.push(path)
       }),
@@ -343,9 +418,11 @@ describe('provider lifecycle runtime', () => {
     const writes: string[] = []
     const fsLayer = makeFsMockLayer({
       exists: () => Effect.succeed(true),
-      readFileString: () => Effect.succeed(manifestJson({
-        lifecycleProviders: [effectHarnessRecord],
-      })),
+      readFileString: readLifecycleFiles({
+        manifest: manifestJson({
+          maintainProviders: [effectHarnessReference],
+        }),
+      }),
       writeFileString: path => Effect.sync(() => {
         writes.push(path)
       }),
@@ -403,15 +480,14 @@ describe('provider lifecycle runtime', () => {
       const writes: string[] = []
       const fsLayer = makeFsMockLayer({
         exists: () => Effect.succeed(true),
-        readFileString: () => Effect.succeed(manifestJson({
-          lifecycleProviders: [{
-            ...effectHarnessRecord,
-            lifecycleSurfaces: [tsgoSurfaceId],
-          }],
-          lifecycleSurfaces: [
+        readFileString: readLifecycleFiles({
+          manifest: manifestJson({
+            maintainProviders: [effectHarnessReference],
+          }),
+          providerRecord: providerRecordWithSurfaces([
             structuredPointerSurface(),
-          ],
-        })),
+          ]),
+        }),
         writeFileString: path => Effect.sync(() => {
           writes.push(path)
         }),
@@ -441,15 +517,14 @@ describe('provider lifecycle runtime', () => {
       const writes: string[] = []
       const fsLayer = makeFsMockLayer({
         exists: () => Effect.succeed(true),
-        readFileString: () => Effect.succeed(manifestJson({
-          lifecycleProviders: [{
-            ...effectHarnessRecord,
-            lifecycleSurfaces: [tsgoSurfaceId],
-          }],
-          lifecycleSurfaces: [
+        readFileString: readLifecycleFiles({
+          manifest: manifestJson({
+            maintainProviders: [effectHarnessReference],
+          }),
+          providerRecord: providerRecordWithSurfaces([
             structuredPointerSurface(),
-          ],
-        })),
+          ]),
+        }),
         writeFileString: path => Effect.sync(() => {
           writes.push(path)
         }),
@@ -480,20 +555,13 @@ describe('provider lifecycle runtime', () => {
       status: 'changed',
     })
     assert.deepEqual(verify.status, 'failed')
-    assert.ok(plan.operations.some(operation =>
-      operation.kind === 'replaceProviderFile'
-      && operation.path === '.prelude/providers/effect-harness/provider.json'))
-    assert.ok(plan.operations.some(operation =>
-      operation.kind === 'replaceOwnedFile'
-      && operation.path === '.effect-harness.json'))
+    assert.ok(!plan.operations.some(operation => operation.path === '.prelude/providers/effect-harness/provider.json'))
+    assert.ok(!plan.operations.some(operation => operation.path === '.effect-harness.json'))
     assert.ok(plan.operations.some(operation =>
       operation.kind === 'replaceStructuredPointer'
       && operation.path === 'package.json'
       && operation.pointer === '/scripts/effect:verify'))
-    assert.deepEqual(plan.nextRecord?.lifecycleSurfaces, plan.operations.map((operation) => {
-      if (operation.kind === 'replaceProviderFile') {
-        return 'provider-artifact:effect-harness'
-      }
+    assert.deepEqual(plan.nextRecord?.surfaces.map(surface => surface.id), plan.operations.map((operation) => {
       if (operation.kind === 'replaceOwnedFile') {
         return `provider-managed-file:effect-harness:${operation.path}`
       }
@@ -505,9 +573,11 @@ describe('provider lifecycle runtime', () => {
     const calls: string[] = []
     const fsLayer = makeFsMockLayer({
       exists: () => Effect.succeed(true),
-      readFileString: () => Effect.succeed(manifestJson({
-        lifecycleProviders: [effectHarnessRecord],
-      })),
+      readFileString: readLifecycleFiles({
+        manifest: manifestJson({
+          maintainProviders: [effectHarnessReference],
+        }),
+      }),
     })
 
     const result = await Effect.runPromise(
@@ -547,20 +617,20 @@ describe('provider lifecycle runtime', () => {
   it('blocks update plans that target undeclared external writes', async () => {
     const fsLayer = makeFsMockLayer({
       exists: () => Effect.succeed(true),
-      readFileString: path =>
-        Effect.succeed(path.endsWith('manifest.json')
-          ? manifestJson({
-              lifecycleProviders: [effectHarnessRecord],
-              generatedUserSurfaces: [
-                {
-                  path: 'package.json',
-                  creator: 'materializer:package-json',
-                  authority: 'none',
-                  operationId: 'write-package-json',
-                },
-              ],
-            })
-          : '{ "scripts": { "build": "tsc --noEmit" } }\n'),
+      readFileString: readLifecycleFiles({
+        manifest: manifestJson({
+          maintainProviders: [effectHarnessReference],
+          generatedUserSurfaces: [
+            {
+              path: 'package.json',
+              creator: 'materializer:package-json',
+              authority: 'none',
+              operationId: 'write-package-json',
+            },
+          ],
+        }),
+        fallback: '{ "scripts": { "build": "tsc --noEmit" } }\n',
+      }),
     })
 
     const result = await Effect.runPromise(
@@ -603,20 +673,20 @@ describe('provider lifecycle runtime', () => {
     const writes: Array<{ path: string, content: string }> = []
     const fsLayer = makeFsMockLayer({
       exists: () => Effect.succeed(true),
-      readFileString: path =>
-        Effect.succeed(path.endsWith('manifest.json')
-          ? manifestJson({
-              lifecycleProviders: [effectHarnessRecord],
-              generatedUserSurfaces: [
-                {
-                  path: 'package.json',
-                  creator: 'materializer:package-json',
-                  authority: 'none',
-                  operationId: 'write-package-json',
-                },
-              ],
-            })
-          : '{ "scripts": { "build": "user changed this handed-off scaffold" } }\n'),
+      readFileString: readLifecycleFiles({
+        manifest: manifestJson({
+          maintainProviders: [effectHarnessReference],
+          generatedUserSurfaces: [
+            {
+              path: 'package.json',
+              creator: 'materializer:package-json',
+              authority: 'none',
+              operationId: 'write-package-json',
+            },
+          ],
+        }),
+        fallback: '{ "scripts": { "build": "user changed this handed-off scaffold" } }\n',
+      }),
       writeFileString: (path, content) => Effect.sync(() => {
         writes.push({ path, content })
       }),
@@ -641,13 +711,11 @@ describe('provider lifecycle runtime', () => {
               calls.push(`planUpdate:${record.id}`)
               return {
                 providerId: record.id,
-                operations: [
-                  {
-                    kind: 'replaceProviderFile',
-                    path: '.prelude/providers/effect-harness/provider.json',
-                    content: '{ "id": "effect-harness", "version": "0.1.1" }\n',
-                  },
-                ],
+                operations: [],
+                nextRecord: {
+                  ...record,
+                  providerVersion: '0.1.1',
+                },
               }
             }),
           },
@@ -671,17 +739,23 @@ describe('provider lifecycle runtime', () => {
       '/project/.prelude/manifest.json',
     ])
     assert.match(writes[0]!.content, /0\.1\.1/)
-    assert.match(writes[1]!.content, /"lifecycleProviders"/)
+    assert.match(writes[1]!.content, /"maintainProviders"/)
   })
 
-  it.effect('blocks provider namespace writes that use non-canonical separators', () =>
+  it.effect('blocks provider record references that point at invalid records', () =>
     Effect.gen(function* () {
       const writes: string[] = []
       const fsLayer = makeFsMockLayer({
         exists: () => Effect.succeed(true),
-        readFileString: () => Effect.succeed(manifestJson({
-          lifecycleProviders: [effectHarnessRecord],
-        })),
+        readFileString: readLifecycleFiles({
+          manifest: manifestJson({
+            maintainProviders: [effectHarnessReference],
+          }),
+          providerRecord: {
+            ...effectHarnessRecord,
+            id: 'other-provider',
+          },
+        }),
         writeFileString: path => Effect.sync(() => {
           writes.push(path)
         }),
@@ -690,19 +764,13 @@ describe('provider lifecycle runtime', () => {
       const result = yield* Effect.result(
         runProviderLifecycleUpdate({
           targetDir: makeTargetDir('/project'),
-          providers: registryWithOperations([
-            {
-              kind: 'replaceProviderFile',
-              path: '.prelude\\providers\\effect-harness\\provider.json',
-              content: '{}\n',
-            },
-          ]),
+          providers: registryWithOperations([]),
         }).pipe(Effect.provide(fsLayer)),
       )
 
       assert.equal(result._tag, 'Failure')
       if (result._tag === 'Failure') {
-        assert.match(result.failure.message, /unsupported provider path/)
+        assert.match(result.failure.message, /does not match manifest reference/)
       }
       assert.deepEqual(writes, [])
     }))
@@ -711,18 +779,15 @@ describe('provider lifecycle runtime', () => {
     const writes: Array<{ path: string, content: string }> = []
     const fsLayer = makeFsMockLayer({
       exists: () => Effect.succeed(true),
-      readFileString: path =>
-        Effect.succeed(path.endsWith('manifest.json')
-          ? manifestJson({
-              lifecycleProviders: [{
-                ...effectHarnessRecord,
-                lifecycleSurfaces: [tsgoSurfaceId],
-              }],
-              lifecycleSurfaces: [
-                structuredPointerSurface(),
-              ],
-            })
-          : '{ "devDependencies": { "@effect/tsgo": "0.15.0" } }\n'),
+      readFileString: readLifecycleFiles({
+        manifest: manifestJson({
+          maintainProviders: [effectHarnessReference],
+        }),
+        providerRecord: providerRecordWithSurfaces([
+          structuredPointerSurface(),
+        ]),
+        fallback: '{ "devDependencies": { "@effect/tsgo": "0.15.0" } }\n',
+      }),
       writeFileString: (path, content) => Effect.sync(() => {
         writes.push({ path, content })
       }),
@@ -748,28 +813,26 @@ describe('provider lifecycle runtime', () => {
       ],
     })
     assert.deepEqual(writes.map(write => write.path), [
+      '/project/.prelude/providers/effect-harness/provider.json',
       '/project/.prelude/manifest.json',
     ])
     assert.match(writes[0]!.content, /"base": "0\.15\.0"/)
     assert.match(writes[0]!.content, /"snapshot": "0\.15\.0"/)
   })
 
-  it('applies desired structured pointer value when current still equals manifest base', async () => {
+  it('applies desired structured pointer value when current still equals provider record base', async () => {
     const writes: Array<{ path: string, content: string }> = []
     const fsLayer = makeFsMockLayer({
       exists: () => Effect.succeed(true),
-      readFileString: path =>
-        Effect.succeed(path.endsWith('manifest.json')
-          ? manifestJson({
-              lifecycleProviders: [{
-                ...effectHarnessRecord,
-                lifecycleSurfaces: [tsgoSurfaceId],
-              }],
-              lifecycleSurfaces: [
-                structuredPointerSurface(),
-              ],
-            })
-          : '{ "devDependencies": { "@effect/tsgo": "0.14.6" } }\n'),
+      readFileString: readLifecycleFiles({
+        manifest: manifestJson({
+          maintainProviders: [effectHarnessReference],
+        }),
+        providerRecord: providerRecordWithSurfaces([
+          structuredPointerSurface(),
+        ]),
+        fallback: '{ "devDependencies": { "@effect/tsgo": "0.14.6" } }\n',
+      }),
       writeFileString: (path, content) => Effect.sync(() => {
         writes.push({ path, content })
       }),
@@ -787,6 +850,7 @@ describe('provider lifecycle runtime', () => {
     assert.deepEqual(result.status, 'completed')
     assert.deepEqual(writes.map(write => write.path), [
       '/project/package.json',
+      '/project/.prelude/providers/effect-harness/provider.json',
       '/project/.prelude/manifest.json',
     ])
     assert.match(writes[0]!.content, /"@effect\/tsgo": "0\.15\.0"/)
@@ -811,34 +875,31 @@ describe('provider lifecycle runtime', () => {
       const writes: Array<{ path: string, content: string }> = []
       const fsLayer = makeFsMockLayer({
         exists: () => Effect.succeed(true),
-        readFileString: path =>
-          Effect.succeed(path.endsWith('manifest.json')
-            ? manifestJson({
-                lifecycleProviders: [{
-                  ...effectHarnessRecord,
-                  lifecycleSurfaces: [pluginsSurfaceId],
-                }],
-                lifecycleSurfaces: [
-                  {
-                    id: pluginsSurfaceId,
-                    owner: 'provider:effect-harness',
-                    lifecycle: 'managed',
-                    scope: 'entry',
-                    locator: `tsconfig.json#${pluginsPointer}`,
-                    conflictPolicy: 'block',
-                    contractVersion: '1',
-                    implementationVersion: '0.1.0',
-                    authority: 'bounded',
-                    kind: 'structuredPointer',
-                    path: 'tsconfig.json',
-                    pointer: pluginsPointer,
-                    base: pluginSnapshot,
-                    snapshot: pluginSnapshot,
-                    operationId: 'write-tsconfig',
-                  },
-                ],
-              })
-            : '{ "compilerOptions": { "plugins": [{ "options": { "diagnosticSeverity": { "floatingEffect": "error" } }, "name": "@effect/language-service" }] } }\n'),
+        readFileString: readLifecycleFiles({
+          manifest: manifestJson({
+            maintainProviders: [effectHarnessReference],
+          }),
+          providerRecord: providerRecordWithSurfaces([
+            {
+              id: pluginsSurfaceId,
+              owner: 'provider:effect-harness',
+              lifecycle: 'managed',
+              scope: 'entry',
+              locator: `tsconfig.json#${pluginsPointer}`,
+              conflictPolicy: 'block',
+              contractVersion: '1',
+              implementationVersion: '0.1.0',
+              authority: 'bounded',
+              kind: 'structuredPointer',
+              path: 'tsconfig.json',
+              pointer: pluginsPointer,
+              base: pluginSnapshot,
+              snapshot: pluginSnapshot,
+              operationId: 'write-tsconfig',
+            },
+          ]),
+          fallback: '{ "compilerOptions": { "plugins": [{ "options": { "diagnosticSeverity": { "floatingEffect": "error" } }, "name": "@effect/language-service" }] } }\n',
+        }),
         writeFileString: (path, content) => Effect.sync(() => {
           writes.push({ path, content })
         }),
@@ -859,6 +920,7 @@ describe('provider lifecycle runtime', () => {
 
       assert.deepEqual(result.status, 'completed')
       assert.deepEqual(writes.map(write => write.path), [
+        '/project/.prelude/providers/effect-harness/provider.json',
         '/project/.prelude/manifest.json',
       ])
     }))
@@ -866,18 +928,15 @@ describe('provider lifecycle runtime', () => {
   it('blocks update when a bounded structured pointer drifted', async () => {
     const fsLayer = makeFsMockLayer({
       exists: () => Effect.succeed(true),
-      readFileString: path =>
-        Effect.succeed(path.endsWith('manifest.json')
-          ? manifestJson({
-              lifecycleProviders: [{
-                ...effectHarnessRecord,
-                lifecycleSurfaces: [tsgoSurfaceId],
-              }],
-              lifecycleSurfaces: [
-                structuredPointerSurface(),
-              ],
-            })
-          : '{ "devDependencies": { "@effect/tsgo": "manual-change" } }\n'),
+      readFileString: readLifecycleFiles({
+        manifest: manifestJson({
+          maintainProviders: [effectHarnessReference],
+        }),
+        providerRecord: providerRecordWithSurfaces([
+          structuredPointerSurface(),
+        ]),
+        fallback: '{ "devDependencies": { "@effect/tsgo": "manual-change" } }\n',
+      }),
     })
 
     const result = await Effect.runPromise(
@@ -909,21 +968,18 @@ describe('provider lifecycle runtime', () => {
     }
   })
 
-  it('blocks structured pointer drift even when desired still equals manifest base', async () => {
+  it('blocks structured pointer drift even when desired still equals provider record base', async () => {
     const fsLayer = makeFsMockLayer({
       exists: () => Effect.succeed(true),
-      readFileString: path =>
-        Effect.succeed(path.endsWith('manifest.json')
-          ? manifestJson({
-              lifecycleProviders: [{
-                ...effectHarnessRecord,
-                lifecycleSurfaces: [tsgoSurfaceId],
-              }],
-              lifecycleSurfaces: [
-                structuredPointerSurface(),
-              ],
-            })
-          : '{ "devDependencies": { "@effect/tsgo": "manual-change" } }\n'),
+      readFileString: readLifecycleFiles({
+        manifest: manifestJson({
+          maintainProviders: [effectHarnessReference],
+        }),
+        providerRecord: providerRecordWithSurfaces([
+          structuredPointerSurface(),
+        ]),
+        fallback: '{ "devDependencies": { "@effect/tsgo": "manual-change" } }\n',
+      }),
     })
 
     const result = await Effect.runPromise(
@@ -940,7 +996,7 @@ describe('provider lifecycle runtime', () => {
     assert.strictEqual(result._tag, 'Failure')
     if (result._tag === 'Failure') {
       assert.match(result.failure.message, /drifted/)
-      assert.match(result.failure.message, /current differs from manifest base and desired value/)
+      assert.match(result.failure.message, /current differs from provider record base and desired value/)
     }
   })
 
@@ -948,22 +1004,19 @@ describe('provider lifecycle runtime', () => {
     const writes: Array<{ path: string, content: string }> = []
     const fsLayer = makeFsMockLayer({
       exists: () => Effect.succeed(true),
-      readFileString: path =>
-        Effect.succeed(path.endsWith('manifest.json')
-          ? manifestJson({
-              lifecycleProviders: [{
-                ...effectHarnessRecord,
-                lifecycleSurfaces: [managedBlockSurfaceId],
-              }],
-              lifecycleSurfaces: [
-                managedBlockSurface(),
-              ],
-            })
-          : `# Local instructions
+      readFileString: readLifecycleFiles({
+        manifest: manifestJson({
+          maintainProviders: [effectHarnessReference],
+        }),
+        providerRecord: providerRecordWithSurfaces([
+          managedBlockSurface(),
+        ]),
+        fallback: `# Local instructions
 
 ${originalManagedBlock}
 User-owned notes stay here.
-`),
+`,
+      }),
       writeFileString: (path, content) => Effect.sync(() => {
         writes.push({ path, content })
       }),
@@ -981,6 +1034,7 @@ User-owned notes stay here.
     assert.deepEqual(result.status, 'completed')
     assert.deepEqual(writes.map(write => write.path), [
       '/project/AGENTS.md',
+      '/project/.prelude/providers/effect-harness/provider.json',
       '/project/.prelude/manifest.json',
     ])
     assert.match(writes[0]!.content, /^# Local instructions/u)
@@ -993,21 +1047,18 @@ User-owned notes stay here.
   it('blocks update when a managed block drifted', async () => {
     const fsLayer = makeFsMockLayer({
       exists: () => Effect.succeed(true),
-      readFileString: path =>
-        Effect.succeed(path.endsWith('manifest.json')
-          ? manifestJson({
-              lifecycleProviders: [{
-                ...effectHarnessRecord,
-                lifecycleSurfaces: [managedBlockSurfaceId],
-              }],
-              lifecycleSurfaces: [
-                managedBlockSurface(),
-              ],
-            })
-          : `${managedBlockStart}
+      readFileString: readLifecycleFiles({
+        manifest: manifestJson({
+          maintainProviders: [effectHarnessReference],
+        }),
+        providerRecord: providerRecordWithSurfaces([
+          managedBlockSurface(),
+        ]),
+        fallback: `${managedBlockStart}
 manual provider block edit
 ${managedBlockEnd}
-`),
+`,
+      }),
     })
 
     const result = await Effect.runPromise(
@@ -1032,19 +1083,16 @@ ${managedBlockEnd}
     Effect.gen(function* () {
       const fsLayer = makeFsMockLayer({
         exists: () => Effect.succeed(true),
-        readFileString: path =>
-          Effect.succeed(path.endsWith('manifest.json')
-            ? manifestJson({
-                lifecycleProviders: [{
-                  ...effectHarnessRecord,
-                  lifecycleSurfaces: [managedBlockSurfaceId],
-                }],
-                lifecycleSurfaces: [
-                  managedBlockSurface(),
-                ],
-              })
-            : `${originalManagedBlock}
-${updatedManagedBlock}`),
+        readFileString: readLifecycleFiles({
+          manifest: manifestJson({
+            maintainProviders: [effectHarnessReference],
+          }),
+          providerRecord: providerRecordWithSurfaces([
+            managedBlockSurface(),
+          ]),
+          fallback: `${originalManagedBlock}
+${updatedManagedBlock}`,
+        }),
       })
 
       const result = yield* Effect.result(
@@ -1068,9 +1116,11 @@ ${updatedManagedBlock}`),
       const writes: Array<{ path: string, content: string }> = []
       const fsLayer = makeFsMockLayer({
         exists: () => Effect.succeed(true),
-        readFileString: () => Effect.succeed(manifestJson({
-          lifecycleProviders: [effectHarnessRecord],
-        })),
+        readFileString: readLifecycleFiles({
+          manifest: manifestJson({
+            maintainProviders: [effectHarnessReference],
+          }),
+        }),
         writeFileString: (path, content) => Effect.sync(() => {
           writes.push({ path, content })
         }),
@@ -1091,13 +1141,8 @@ ${updatedManagedBlock}`),
               }),
               planUpdate: record => Effect.succeed({
                 providerId: record.id,
-                operations: [
-                  {
-                    kind: 'replaceProviderFile',
-                    path: '.prelude/providers/effect-harness/provider.json',
-                    content: '{ "id": "effect-harness" }\n',
-                  },
-                ],
+                operations: [],
+                nextRecord: record,
               }),
             },
           },
@@ -1108,26 +1153,21 @@ ${updatedManagedBlock}`),
       if (result._tag === 'Failure') {
         assert.match(result.failure.message, /provider output is invalid/)
       }
-      assert.deepEqual(writes.map(write => write.path), [
-        '/project/.prelude/providers/effect-harness/provider.json',
-      ])
+      assert.deepEqual(writes.map(write => write.path), [])
     }))
 
   it('blocks update when an owned external lifecycle file drifted', async () => {
     const fsLayer = makeFsMockLayer({
       exists: () => Effect.succeed(true),
-      readFileString: path =>
-        Effect.succeed(path.endsWith('manifest.json')
-          ? manifestJson({
-              lifecycleProviders: [{
-                ...effectHarnessRecord,
-                lifecycleSurfaces: ['agents-provider-block'],
-              }],
-              lifecycleSurfaces: [
-                ownedFileSurface(),
-              ],
-            })
-          : 'manual change\n'),
+      readFileString: readLifecycleFiles({
+        manifest: manifestJson({
+          maintainProviders: [effectHarnessReference],
+        }),
+        providerRecord: providerRecordWithSurfaces([
+          ownedFileSurface(),
+        ]),
+        fallback: 'manual change\n',
+      }),
     })
 
     const result = await Effect.runPromise(
@@ -1170,13 +1210,34 @@ ${updatedManagedBlock}`),
       id: 'other-harness',
       verificationRecordId: 'provider:other-harness:create-contract',
     }
+    const otherReference = {
+      id: 'other-harness',
+      contractVersion: '1',
+      providerVersion: '0.1.0',
+      profile: 'codex-effect-v4',
+      recordPath: '.prelude/providers/other-harness/provider.json',
+    }
     const calls: string[] = []
     const writes: string[] = []
     const fsLayer = makeFsMockLayer({
       exists: () => Effect.succeed(true),
-      readFileString: () => Effect.succeed(manifestJson({
-        lifecycleProviders: [effectHarnessRecord, otherRecord],
-      })),
+      readFileString: (path) => {
+        if (path.endsWith('.prelude/manifest.json')) {
+          return Effect.succeed(manifestJson({
+            maintainProviders: [effectHarnessReference, otherReference],
+          }))
+        }
+
+        if (path.endsWith('.prelude/providers/effect-harness/provider.json')) {
+          return Effect.succeed(providerRecordJson(effectHarnessRecord))
+        }
+
+        if (path.endsWith('.prelude/providers/other-harness/provider.json')) {
+          return Effect.succeed(providerRecordJson(otherRecord))
+        }
+
+        return Effect.succeed('')
+      },
       writeFileString: path => Effect.sync(() => {
         writes.push(path)
       }),
@@ -1246,6 +1307,12 @@ ${updatedManagedBlock}`),
       'planUpdate:other-harness',
       'verify:other-harness',
     ])
-    assert.deepEqual(writes, ['/project/.prelude/manifest.json', '/project/.prelude/manifest.json'])
+    assert.deepEqual(writes, [
+      '/project/.prelude/providers/effect-harness/provider.json',
+      '/project/.prelude/providers/other-harness/provider.json',
+      '/project/.prelude/manifest.json',
+      '/project/.prelude/providers/other-harness/provider.json',
+      '/project/.prelude/manifest.json',
+    ])
   })
 })

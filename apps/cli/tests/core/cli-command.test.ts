@@ -109,6 +109,7 @@ describe('prelude Effect CLI command', () => {
       const result = yield* withCapturedStdout(runCommand(['--help']))
 
       assert.match(result.output, /prelude/u)
+      assert.match(result.output, /verify/u)
       assert.match(result.output, /--spec/u)
       assert.match(result.output, /--no-input/u)
       assert.match(result.output, /--print-spec/u)
@@ -156,6 +157,50 @@ describe('prelude Effect CLI command', () => {
       assert.deepStrictEqual(manifest.resolvedGraph.packageCapabilities, {
         app: ['minimal-node-package'],
       })
+    }))
+
+  it.effect('verifies maintain provider records through a CLI subcommand', () =>
+    Effect.gen(function* () {
+      const targetDir = yield* makeTempProjectDir()
+      const spec = {
+        topology: 'single-package',
+        package: {
+          id: 'worker',
+          name: 'cli-effect-worker',
+          capabilities: ['effect-package'],
+        },
+        rootCapabilities: ['package-manager:pnpm', 'linting', 'knip', 'ai-harness'],
+        providers: ['effect-harness'],
+        overrides: {},
+      }
+
+      yield* runCommand([
+        '--spec',
+        JSON.stringify(spec),
+        '--name',
+        'cli-effect-worker',
+        '--no-input',
+      ], targetDir)
+
+      const result = yield* withCapturedStdout(runCommand([
+        'verify',
+        '--provider',
+        'effect-harness',
+      ], targetDir))
+      const output = JSON.parse(result.output) as {
+        readonly command: string
+        readonly status: string
+        readonly providers: readonly { readonly providerId: string, readonly status: string }[]
+      }
+
+      assert.equal(output.command, 'verify')
+      assert.equal(output.status, 'completed')
+      assert.deepStrictEqual(output.providers, [
+        {
+          providerId: 'effect-harness',
+          status: 'passed',
+        },
+      ])
     }))
 
   it.effect('prints the canonical --spec without creating files', () =>

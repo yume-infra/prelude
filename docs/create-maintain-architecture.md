@@ -79,17 +79,21 @@ Guided CLI | Direct CreateSpec | CreateSpec recipe
 maintain config
   -> maintain resolver
   -> managed claims
-  -> maintain manifest
+  -> maintain manifest provider references
+  -> provider records
   -> status | verify | update
   -> desired/base/current reconcile
   -> maintain WritePlan
   -> apply managed changes
-  -> refresh manifest base
+  -> refresh provider records
+  -> refresh manifest references
 ```
 
 `maintain` MUST own the manifest.
 
-`maintain` MUST track only managed claims, managed locators, base snapshots, domain state, and maintain verification records.
+`maintain` MUST track provider references in `.prelude/manifest.json`.
+
+Provider records under `.prelude/providers/<provider-id>/provider.json` MUST track managed claims, managed locators, base snapshots, provider options, provider profile, and provider runtime metadata.
 
 `maintain` MUST NOT use the create resolved graph as desired truth.
 
@@ -119,7 +123,8 @@ create selects maintain behavior
   -> maintain initialization
   -> managed intent
   -> maintain config
-  -> maintain manifest
+  -> provider record
+  -> maintain manifest reference
 ```
 
 `maintain initialization` MUST NOT transfer ordinary scaffold ownership.
@@ -211,6 +216,6 @@ Maintain core MUST validate domain-declared managed changes before applying them
 
 `prelude` MUST NOT treat manifest as create provenance for ordinary scaffold.
 
-`prelude` MUST NOT derive maintain desired state from manifest base claims.
+`prelude` MUST NOT derive maintain desired state from manifest or provider-record base claims.
 
 `prelude` MUST NOT let maintain become whole-project update.

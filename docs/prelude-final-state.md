@@ -66,21 +66,25 @@ Guided CLI、direct spec 和 CreateSpec recipe MUST enter the same create resolv
 maintain config
   -> maintain resolver
   -> managed claims
-  -> maintain manifest
+  -> maintain manifest provider references
+  -> provider records
   -> status | verify | update
   -> desired/base/current reconcile
   -> maintain WritePlan
   -> apply managed changes
-  -> refresh manifest base
+  -> refresh provider records
+  -> refresh manifest references
 ```
 
 `maintain` owns the manifest.
 
-The maintain manifest is reconciliation base, not create provenance.
+The maintain manifest is a provider index, not create provenance.
+
+Provider records are the reconciliation base for managed surfaces.
 
 `maintain` MUST NOT update ordinary scaffold.
 
-`maintain` MUST NOT derive desired state from manifest base claims.
+`maintain` MUST NOT derive desired state from manifest or provider-record base claims.
 
 ## Association
 
@@ -90,7 +94,8 @@ The create-to-maintain association is maintain initialization.
 create selected maintain behavior
   -> initialize maintain config
   -> write initial managed surfaces
-  -> record maintain manifest base
+  -> write provider records
+  -> record maintain manifest references
 ```
 
 This association MUST be narrow.
@@ -175,21 +180,24 @@ Maintain verification is separate from create verification.
 
 ## Maintain Manifest
 
-The maintain manifest records managed lifecycle state.
+The maintain manifest records maintain provider references.
 
 The maintain manifest SHOULD include:
 
 - schema version
-- maintain domains
-- managed claims
-- managed locators
-- base snapshots
-- domain contract identity
+- maintain provider id
+- provider record path
+- provider contract identity
+- provider implementation/profile identity
 - maintain verification records
+
+Provider records under `.prelude/providers/<provider-id>/provider.json` SHOULD include managed claims, locators, base snapshots, options, profile, and runtime metadata.
 
 The maintain manifest SHOULD NOT include ordinary scaffold provenance records.
 
-The maintain manifest MAY include minimal create context only when a maintain domain needs it.
+The maintain manifest SHOULD NOT expand provider managed surfaces.
+
+Provider records MAY include minimal create context only when a maintain domain needs it.
 
 ## Maintain Domains
 

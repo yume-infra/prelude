@@ -109,7 +109,9 @@ Maintain is core product flow, not an integration-scoped adjunct.
 
 Maintain owns the manifest.
 
-The maintain manifest records managed claims, locators, base snapshots, domain identity, and maintain verification state.
+The maintain manifest records maintain provider references and verification state.
+
+Provider records under `.prelude/providers/<provider-id>/provider.json` record managed claims, locators, base snapshots, provider options, provider profile, and domain identity.
 
 The maintain manifest MUST NOT become a create ledger for ordinary scaffold.
 

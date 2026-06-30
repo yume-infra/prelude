@@ -3,6 +3,7 @@ import type {
   JsonValue,
   LifecycleProviderRecord,
   LifecycleSurfaceRecord,
+  MaintainProviderReference,
   ProviderArtifactRecord,
   ProviderProjectedContext,
   ResolvedGraph,
@@ -13,11 +14,11 @@ import * as fs from 'node:fs'
 import * as path from 'node:path'
 
 export const effectHarnessContractVersion = '1'
-const effectHarnessArtifactVersion = '0.1.0'
-export const effectHarnessProviderPath = '.prelude/providers/effect-harness/provider.json'
+export const effectHarnessProviderVersion = '0.1.0'
+const effectHarnessProfile = 'codex-effect-v4'
+const effectHarnessProviderPath = '.prelude/providers/effect-harness/provider.json'
 const effectHarnessRoot = '/Users/sayori/Desktop/yume-infra/effect-harness'
 export const effectHarnessVerificationId = 'provider:effect-harness:create-contract'
-const effectHarnessProviderArtifactSurfaceId = 'provider-artifact:effect-harness'
 export const effectHarnessManagedBlockSurfaceId = 'provider-managed-block:effect-harness:AGENTS.md#effect-harness'
 const effectHarnessRuntimeRoot = path.join(effectHarnessRoot, 'harness/runtime/codex')
 const effectHarnessAgentsStartMarker = '<!-- effect-harness:start -->'
@@ -33,7 +34,7 @@ export const effectHarnessTsgoPlugin = [{
 
 export const effectHarnessArtifact = {
   id: 'effect-harness',
-  version: effectHarnessArtifactVersion,
+  version: effectHarnessProviderVersion,
   source: {
     repository: 'https://github.com/Effect-TS/effect-smol.git',
     branch: 'main',
@@ -53,7 +54,7 @@ export function effectHarnessResolvedProvider(packageScopes: string | readonly s
   return {
     id: 'effect-harness',
     contractVersion: effectHarnessContractVersion,
-    artifactVersion: effectHarnessArtifactVersion,
+    artifactVersion: effectHarnessProviderVersion,
     packageScopes: typeof packageScopes === 'string' ? [packageScopes] : [...packageScopes],
   }
 }
@@ -124,39 +125,13 @@ function runtimeFilesUnder(directory: 'skills' | 'agents') {
   return files
 }
 
-function effectHarnessManifestValue(): Record<string, JsonValue> {
-  const commands = effectHarnessTargetCommands()
-  const routes = effectHarnessRoutes()
-
-  return {
-    schemaVersion: 1,
-    harnessRoot: effectHarnessRoot,
-    commands,
-    routes,
-    source: {
-      repository: effectHarnessArtifact.source.repository,
-      branch: effectHarnessArtifact.source.branch,
-      split: effectHarnessArtifact.source.split,
-    },
-    packageBaseline: effectHarnessArtifact.packageBaseline,
-  }
-}
-
 function managedAgentsBlock() {
   const fragment = runtimeText('AGENTS.fragment.md').trim()
   return `${effectHarnessAgentsStartMarker}\n${fragment}\n${effectHarnessAgentsEndMarker}\n`
 }
 
-function encodeManagedJson(value: Record<string, JsonValue>) {
-  return `${JSON.stringify(value, null, 2)}\n`
-}
-
 export function effectHarnessManagedFileArtifacts() {
   return [
-    {
-      path: '.effect-harness.json',
-      content: encodeManagedJson(effectHarnessManifestValue()),
-    },
     ...runtimeFilesUnder('skills'),
     ...runtimeFilesUnder('agents'),
     {
@@ -211,7 +186,6 @@ export function effectHarnessTsconfigSurfacesForProjectedContext(projectedContex
 
 export function effectHarnessProviderSurfaceIdsForProjectedContext(projectedContext: ProviderProjectedContext): readonly string[] {
   return [
-    effectHarnessProviderArtifactSurfaceId,
     ...effectHarnessPackageSurfacesForProjectedContext(projectedContext).map(surface => surface.id),
     ...effectHarnessTsconfigSurfacesForProjectedContext(projectedContext).map(surface => surface.id),
     ...effectHarnessManagedFileArtifacts().map(artifact => effectHarnessManagedFileSurfaceId(artifact.path)),
@@ -233,13 +207,9 @@ function lifecycleSurfaceMetadata(input: {
     locator: input.locator,
     conflictPolicy: 'block',
     contractVersion: effectHarnessContractVersion,
-    implementationVersion: effectHarnessArtifactVersion,
+    implementationVersion: effectHarnessProviderVersion,
     ...(input.base === undefined ? {} : { base: input.base, snapshot: input.base }),
   } as const
-}
-
-export function encodeJsonValue(value: Record<string, JsonValue>) {
-  return `${JSON.stringify(value, null, 2)}\n`
 }
 
 function snapshotJsonValue(value: JsonValue) {
@@ -308,23 +278,8 @@ function effectHarnessTsconfigSurfaces() {
   ] as const satisfies readonly { readonly id: string, readonly pointer: string, readonly value: JsonValue }[]
 }
 
-export function effectHarnessLifecycleSurfaces(graph: ResolvedGraph): readonly LifecycleSurfaceRecord[] {
-  const providerArtifactBase = encodeJsonValue(providerJsonValue(graph))
-  const projectedContext = effectHarnessProjectedContext(graph)
-
+function effectHarnessLifecycleSurfacesForProjectedContext(projectedContext: ProviderProjectedContext): readonly LifecycleSurfaceRecord[] {
   return [
-    {
-      ...lifecycleSurfaceMetadata({
-        id: effectHarnessProviderArtifactSurfaceId,
-        scope: 'file',
-        locator: effectHarnessProviderPath,
-        base: providerArtifactBase,
-      }),
-      authority: 'owner',
-      kind: 'ownedFile',
-      path: effectHarnessProviderPath,
-      operationId: 'write-effect-harness-provider-record',
-    },
     ...effectHarnessPackageSurfacesForProjectedContext(projectedContext).map(surface =>
       structuredPointerSurface({
         surface,
@@ -423,14 +378,51 @@ function managedBlockSurface(input: {
 }
 
 export function effectHarnessLifecycleProviderRecord(graph: ResolvedGraph): LifecycleProviderRecord {
-  const projectedContext = effectHarnessProjectedContext(graph)
+  return effectHarnessProviderRecordForProjectedContext(effectHarnessProjectedContext(graph))
+}
+
+export function effectHarnessMaintainProviderReference(record: LifecycleProviderRecord): MaintainProviderReference {
+  return {
+    id: record.id,
+    contractVersion: record.contractVersion,
+    providerVersion: record.providerVersion,
+    profile: record.profile,
+    recordPath: effectHarnessProviderPath,
+  }
+}
+
+export function effectHarnessProviderRecordForProjectedContext(projectedContext: ProviderProjectedContext): LifecycleProviderRecord {
+  const surfaces = effectHarnessLifecycleSurfacesForProjectedContext(projectedContext)
 
   return {
+    schemaVersion: 1,
     id: 'effect-harness',
     contractVersion: effectHarnessContractVersion,
+    providerVersion: effectHarnessProviderVersion,
+    profile: effectHarnessProfile,
     artifact: effectHarnessArtifact,
     projectedContext,
-    lifecycleSurfaces: effectHarnessProviderSurfaceIdsForProjectedContext(projectedContext),
+    options: {
+      runtime: 'codex',
+      effect: {
+        major: 4,
+        packageBaseline: effectHarnessArtifact.packageBaseline,
+      },
+      languageService: {
+        enabled: true,
+        floatingEffect: 'error',
+      },
+      packageScopes: projectedContext.packageScopes,
+    },
+    runtime: {
+      commands: effectHarnessTargetCommands(),
+      routes: effectHarnessRoutes(),
+      files: [
+        ...effectHarnessManagedFileArtifacts().map(artifact => artifact.path),
+        effectHarnessManagedBlockArtifact().path,
+      ],
+    },
+    surfaces,
     verificationRecordId: effectHarnessVerificationId,
   }
 }
@@ -443,49 +435,8 @@ export function effectHarnessVerificationRecord(): VerificationRecord {
   }
 }
 
-export function providerJsonValueForProjectedContext(projectedContext: ProviderProjectedContext): Record<string, JsonValue> {
-  return {
-    id: 'effect-harness',
-    contractVersion: effectHarnessContractVersion,
-    artifact: {
-      id: effectHarnessArtifact.id,
-      version: effectHarnessArtifact.version,
-      source: {
-        repository: effectHarnessArtifact.source.repository,
-        branch: effectHarnessArtifact.source.branch,
-        split: effectHarnessArtifact.source.split,
-      },
-      packageBaseline: {
-        'effect': effectHarnessArtifact.packageBaseline.effect,
-        '@effect/platform-node': effectHarnessArtifact.packageBaseline['@effect/platform-node'],
-        '@effect/vitest': effectHarnessArtifact.packageBaseline['@effect/vitest'],
-        '@effect/tsgo': effectHarnessArtifact.packageBaseline['@effect/tsgo'],
-        '@effect/language-service': effectHarnessArtifact.packageBaseline['@effect/language-service'],
-        '@typescript/native-preview': effectHarnessArtifact.packageBaseline['@typescript/native-preview'],
-      },
-    },
-    projectedContext: {
-      topology: projectedContext.topology,
-      packageScopes: projectedContext.packageScopes,
-      rootCapabilities: projectedContext.rootCapabilities,
-      packageCapabilities: Object.fromEntries(
-        Object.entries(projectedContext.packageCapabilities).map(([packageId, capabilities]) => [packageId, [...capabilities]]),
-      ),
-    },
-    targetRuntime: {
-      commands: effectHarnessTargetCommands(),
-      routes: effectHarnessRoutes(),
-      files: [
-        ...effectHarnessManagedFileArtifacts().map(artifact => artifact.path),
-        effectHarnessManagedBlockArtifact().path,
-      ],
-    },
-    lifecycleSurfaces: effectHarnessProviderSurfaceIdsForProjectedContext(projectedContext),
-    verification: {
-      id: effectHarnessVerificationId,
-      status: 'passed',
-    },
-  }
+function providerJsonValueForProjectedContext(projectedContext: ProviderProjectedContext): Record<string, JsonValue> {
+  return JSON.parse(JSON.stringify(effectHarnessProviderRecordForProjectedContext(projectedContext))) as Record<string, JsonValue>
 }
 
 function providerJsonValue(graph: ResolvedGraph): Record<string, JsonValue> {

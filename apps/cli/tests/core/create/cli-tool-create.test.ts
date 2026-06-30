@@ -177,8 +177,7 @@ describe('cli tool package creation', () => {
 
     const manifest = await readJson<{
       resolvedGraph: { packageCapabilities: unknown, verification: unknown }
-      lifecycleProviders: readonly unknown[]
-      lifecycleSurfaces: readonly unknown[]
+      maintainProviders: readonly unknown[]
       generatedUserSurfaces: readonly { path: string, creator: string, authority: string }[]
       verificationRecords: readonly unknown[]
     }>(path.join(targetDir, '.prelude/manifest.json'))
@@ -187,8 +186,7 @@ describe('cli tool package creation', () => {
       cli: ['cli-tool'],
     })
     assert.deepStrictEqual(manifest.resolvedGraph.verification, ['cli-tool-files-present'])
-    assert.deepStrictEqual(manifest.lifecycleProviders, [])
-    assert.deepStrictEqual(manifest.lifecycleSurfaces, [])
+    assert.deepStrictEqual(manifest.maintainProviders, [])
     assert.deepStrictEqual(
       manifest.generatedUserSurfaces.map(surface => ({
         path: surface.path,

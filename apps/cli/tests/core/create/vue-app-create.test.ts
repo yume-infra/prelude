@@ -159,16 +159,14 @@ describe('vue app create pipeline', () => {
         const manifest = yield* Effect.promise(() =>
           readJson<{
             createSpec: unknown
-            lifecycleProviders: readonly unknown[]
-            lifecycleSurfaces: readonly unknown[]
+            maintainProviders: readonly unknown[]
             generatedUserSurfaces: readonly { path: string, authority: string }[]
             verificationRecords: readonly unknown[]
           }>(path.join(targetDir, '.prelude/manifest.json')),
         )
 
         assert.deepStrictEqual(manifest.createSpec, spec)
-        assert.deepStrictEqual(manifest.lifecycleProviders, [])
-        assert.deepStrictEqual(manifest.lifecycleSurfaces, [])
+        assert.deepStrictEqual(manifest.maintainProviders, [])
         assert.deepStrictEqual(
           manifest.generatedUserSurfaces.map(surface => ({ path: surface.path, authority: surface.authority })),
           [

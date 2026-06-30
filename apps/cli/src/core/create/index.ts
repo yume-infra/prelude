@@ -22,6 +22,7 @@ export type {
   JsonValue,
   LifecycleProviderRecord,
   LifecycleSurfaceRecord,
+  MaintainProviderReference,
   PreludeManifest,
   ResolvedGraph,
   WriteOperation,

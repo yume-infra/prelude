@@ -37,7 +37,7 @@ Maintain domain modules MUST NOT be modeled as create capabilities.
 
 ## Manifest
 
-The maintain manifest is the durable base for managed lifecycle.
+The maintain manifest is the durable index for managed lifecycle.
 
 Expected path:
 
@@ -48,16 +48,36 @@ Expected path:
 The maintain manifest SHOULD record:
 
 - schema version
-- enabled maintain domains
-- managed claims
+- enabled maintain provider references
+- provider record paths
+- provider contract identity
+- provider implementation/profile identity
+- maintain verification records
+
+The maintain manifest MUST NOT expand provider managed claims or base snapshots.
+
+Each provider owns one provider record under its namespace:
+
+```text
+.prelude/providers/<provider-id>/provider.json
+```
+
+A provider record SHOULD record:
+
+- schema version
+- provider id
+- contract version
+- provider version
+- selected profile
+- selected options
+- projected create context required by the provider
 - managed surface locators
 - base snapshots
-- domain contract identity
-- maintain verification records
+- provider runtime metadata when needed
 
 The maintain manifest SHOULD NOT record ordinary scaffold provenance.
 
-The maintain manifest SHOULD NOT record the full create resolved graph as update authority.
+The maintain manifest MUST NOT treat any recorded create resolved graph as update authority.
 
 The maintain manifest MAY include narrow create context only when a maintain domain needs it.
 
@@ -65,13 +85,13 @@ The maintain manifest MAY include narrow create context only when a maintain dom
 
 Maintain desired state comes from maintain config, lock data, and current maintain domain implementations.
 
-Maintain desired state MUST NOT be derived from manifest base claims.
+Maintain desired state MUST NOT be derived from manifest or provider-record base claims.
 
 The update model is:
 
 ```text
 desired = maintain config + lock + current maintain domain implementation
-base    = maintain manifest
+base    = provider record
 current = filesystem
 ```
 
@@ -176,7 +196,8 @@ Maintain core owns:
 - drift check
 - operation validation
 - write application
-- manifest base refresh
+- provider record base refresh
+- manifest provider reference refresh
 
 ## Maintain Initialization
 
@@ -185,8 +206,8 @@ Create may initialize maintain when a `CreateSpec` selects maintain behavior.
 Maintain initialization MAY:
 
 - write initial managed surfaces
-- create maintain config
-- create the initial maintain manifest
+- write provider records
+- create the initial maintain manifest references
 - record initial base snapshots
 
 Maintain initialization MUST NOT:
@@ -200,7 +221,8 @@ Maintain initialization MUST NOT:
 
 ```text
 read maintain config
-  -> read maintain manifest as base
+  -> read maintain manifest provider references
+  -> read provider records as base
   -> resolve maintain domains
   -> compute desired managed claims
   -> read current managed logical values
@@ -210,7 +232,8 @@ read maintain config
   -> validate declared managed surfaces
   -> dry-run or apply
   -> run maintain verify
-  -> refresh manifest base
+  -> refresh provider record base
+  -> refresh manifest provider references
 ```
 
 ## Blockers
@@ -243,6 +266,6 @@ A contract transition plan SHOULD declare:
 - retire, delete, or detach behavior
 - preconditions
 
-Maintain core validates preconditions, reads current logical values, detects drift, produces maintain WritePlan, applies writes, re-reads outputs, and records the new manifest base.
+Maintain core validates preconditions, reads current logical values, detects drift, produces maintain WritePlan, applies writes, re-reads outputs, refreshes provider record base snapshots, and updates manifest provider references when provider identity changes.
 
 Maintain domain modules MUST NOT mutate previous manifests or files directly.
