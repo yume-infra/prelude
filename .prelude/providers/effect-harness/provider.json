@@ -1,0 +1,339 @@
+{
+  "schemaVersion": 1,
+  "id": "effect-harness",
+  "contractVersion": "1",
+  "providerVersion": "0.1.0",
+  "profile": "codex-effect-v4",
+  "artifact": {
+    "id": "effect-harness",
+    "version": "0.1.0",
+    "source": {
+      "repository": "https://github.com/Effect-TS/effect-smol.git",
+      "branch": "main",
+      "split": "3475ee6c2bda6b05c6d7a12ce30c8bb840b5b1a6"
+    },
+    "packageBaseline": {
+      "effect": "4.0.0-beta.90",
+      "@effect/platform-node": "4.0.0-beta.90",
+      "@effect/vitest": "4.0.0-beta.90",
+      "@effect/tsgo": "0.14.6",
+      "@effect/language-service": "0.86.2",
+      "@typescript/native-preview": "7.0.0-dev.20260624.1"
+    }
+  },
+  "projectedContext": {
+    "topology": "workspace",
+    "packageScopes": [
+      "cli"
+    ],
+    "rootCapabilities": [
+      "package-manager:pnpm",
+      "task-runner:turbo",
+      "linting",
+      "knip",
+      "dependency-update:taze",
+      "ai-harness"
+    ],
+    "packageCapabilities": {
+      "cli": [
+        "cli-tool"
+      ]
+    }
+  },
+  "options": {
+    "runtime": "codex",
+    "effect": {
+      "major": 4,
+      "packageBaseline": {
+        "effect": "4.0.0-beta.90",
+        "@effect/platform-node": "4.0.0-beta.90",
+        "@effect/vitest": "4.0.0-beta.90",
+        "@effect/tsgo": "0.14.6",
+        "@effect/language-service": "0.86.2",
+        "@typescript/native-preview": "7.0.0-dev.20260624.1"
+      }
+    },
+    "languageService": {
+      "enabled": true,
+      "floatingEffect": "error"
+    },
+    "packageScopes": [
+      "cli"
+    ]
+  },
+  "runtime": {
+    "commands": {
+      "status": "node \"/Users/sayori/Desktop/yume-infra/effect-harness/dist/bin/effect-harness.js\" status",
+      "verify": "node \"/Users/sayori/Desktop/yume-infra/effect-harness/dist/bin/effect-harness.js\" verify --target .",
+      "init": "node \"/Users/sayori/Desktop/yume-infra/effect-harness/dist/bin/effect-harness.js\" init --target . --harness \"/Users/sayori/Desktop/yume-infra/effect-harness\""
+    },
+    "routes": {
+      "harness": "/Users/sayori/Desktop/yume-infra/effect-harness/HARNESS.md",
+      "agentContract": "/Users/sayori/Desktop/yume-infra/effect-harness/harness/index.md",
+      "targetContract": "/Users/sayori/Desktop/yume-infra/effect-harness/harness/target-agent-contract.md",
+      "officialGuide": "/Users/sayori/Desktop/yume-infra/effect-harness/repos/effect/LLMS.md"
+    },
+    "files": [
+      ".codex/skills/effect-code/SKILL.md",
+      ".codex/skills/effect-code/agents/openai.yaml",
+      ".codex/skills/effect-feedback/SKILL.md",
+      ".codex/skills/effect-feedback/agents/openai.yaml",
+      ".codex/agents/effect-worker.md",
+      ".codex/effect-feedback/.gitkeep",
+      "AGENTS.md"
+    ]
+  },
+  "surfaces": [
+    {
+      "id": "package-manifest:root:/dependencies/effect",
+      "owner": "provider:effect-harness",
+      "lifecycle": "managed",
+      "scope": "entry",
+      "locator": "package.json#/dependencies/effect",
+      "conflictPolicy": "block",
+      "contractVersion": "1",
+      "implementationVersion": "0.1.0",
+      "base": "4.0.0-beta.90",
+      "snapshot": "4.0.0-beta.90",
+      "authority": "bounded",
+      "kind": "structuredPointer",
+      "path": "package.json",
+      "pointer": "/dependencies/effect",
+      "operationId": "write-package-json"
+    },
+    {
+      "id": "package-manifest:root:/dependencies/@effect~1platform-node",
+      "owner": "provider:effect-harness",
+      "lifecycle": "managed",
+      "scope": "entry",
+      "locator": "package.json#/dependencies/@effect~1platform-node",
+      "conflictPolicy": "block",
+      "contractVersion": "1",
+      "implementationVersion": "0.1.0",
+      "base": "4.0.0-beta.90",
+      "snapshot": "4.0.0-beta.90",
+      "authority": "bounded",
+      "kind": "structuredPointer",
+      "path": "package.json",
+      "pointer": "/dependencies/@effect~1platform-node",
+      "operationId": "write-package-json"
+    },
+    {
+      "id": "package-manifest:root:/devDependencies/@effect~1vitest",
+      "owner": "provider:effect-harness",
+      "lifecycle": "managed",
+      "scope": "entry",
+      "locator": "package.json#/devDependencies/@effect~1vitest",
+      "conflictPolicy": "block",
+      "contractVersion": "1",
+      "implementationVersion": "0.1.0",
+      "base": "4.0.0-beta.90",
+      "snapshot": "4.0.0-beta.90",
+      "authority": "bounded",
+      "kind": "structuredPointer",
+      "path": "package.json",
+      "pointer": "/devDependencies/@effect~1vitest",
+      "operationId": "write-package-json"
+    },
+    {
+      "id": "package-manifest:root:/devDependencies/@effect~1tsgo",
+      "owner": "provider:effect-harness",
+      "lifecycle": "managed",
+      "scope": "entry",
+      "locator": "package.json#/devDependencies/@effect~1tsgo",
+      "conflictPolicy": "block",
+      "contractVersion": "1",
+      "implementationVersion": "0.1.0",
+      "base": "0.14.6",
+      "snapshot": "0.14.6",
+      "authority": "bounded",
+      "kind": "structuredPointer",
+      "path": "package.json",
+      "pointer": "/devDependencies/@effect~1tsgo",
+      "operationId": "write-package-json"
+    },
+    {
+      "id": "package-manifest:root:/devDependencies/@effect~1language-service",
+      "owner": "provider:effect-harness",
+      "lifecycle": "managed",
+      "scope": "entry",
+      "locator": "package.json#/devDependencies/@effect~1language-service",
+      "conflictPolicy": "block",
+      "contractVersion": "1",
+      "implementationVersion": "0.1.0",
+      "base": "0.86.2",
+      "snapshot": "0.86.2",
+      "authority": "bounded",
+      "kind": "structuredPointer",
+      "path": "package.json",
+      "pointer": "/devDependencies/@effect~1language-service",
+      "operationId": "write-package-json"
+    },
+    {
+      "id": "package-manifest:root:/devDependencies/@typescript~1native-preview",
+      "owner": "provider:effect-harness",
+      "lifecycle": "managed",
+      "scope": "entry",
+      "locator": "package.json#/devDependencies/@typescript~1native-preview",
+      "conflictPolicy": "block",
+      "contractVersion": "1",
+      "implementationVersion": "0.1.0",
+      "base": "7.0.0-dev.20260624.1",
+      "snapshot": "7.0.0-dev.20260624.1",
+      "authority": "bounded",
+      "kind": "structuredPointer",
+      "path": "package.json",
+      "pointer": "/devDependencies/@typescript~1native-preview",
+      "operationId": "write-package-json"
+    },
+    {
+      "id": "package-manifest:root:/scripts/effect:status",
+      "owner": "provider:effect-harness",
+      "lifecycle": "managed",
+      "scope": "entry",
+      "locator": "package.json#/scripts/effect:status",
+      "conflictPolicy": "block",
+      "contractVersion": "1",
+      "implementationVersion": "0.1.0",
+      "base": "node \"/Users/sayori/Desktop/yume-infra/effect-harness/dist/bin/effect-harness.js\" status",
+      "snapshot": "node \"/Users/sayori/Desktop/yume-infra/effect-harness/dist/bin/effect-harness.js\" status",
+      "authority": "bounded",
+      "kind": "structuredPointer",
+      "path": "package.json",
+      "pointer": "/scripts/effect:status",
+      "operationId": "write-package-json"
+    },
+    {
+      "id": "package-manifest:root:/scripts/effect:verify",
+      "owner": "provider:effect-harness",
+      "lifecycle": "managed",
+      "scope": "entry",
+      "locator": "package.json#/scripts/effect:verify",
+      "conflictPolicy": "block",
+      "contractVersion": "1",
+      "implementationVersion": "0.1.0",
+      "base": "node \"/Users/sayori/Desktop/yume-infra/effect-harness/dist/bin/effect-harness.js\" verify --target .",
+      "snapshot": "node \"/Users/sayori/Desktop/yume-infra/effect-harness/dist/bin/effect-harness.js\" verify --target .",
+      "authority": "bounded",
+      "kind": "structuredPointer",
+      "path": "package.json",
+      "pointer": "/scripts/effect:verify",
+      "operationId": "write-package-json"
+    },
+    {
+      "id": "provider-managed-file:effect-harness:.codex/skills/effect-code/SKILL.md",
+      "owner": "provider:effect-harness",
+      "lifecycle": "managed",
+      "scope": "file",
+      "locator": ".codex/skills/effect-code/SKILL.md",
+      "conflictPolicy": "block",
+      "contractVersion": "1",
+      "implementationVersion": "0.1.0",
+      "base": "---\nname: effect-code\ndescription: \"Use in an Effect target repo when writing, reviewing, or debugging Effect v4 beta code against the linked effect-harness official pin. Covers Effect services, runtime entrypoints, tests, CLI/HTTP/process boundaries, @effect/tsgo diagnostics, and focused Effect subagent delegation. Not for updating effect-harness, changing the source pin, or writing generic TypeScript unrelated to Effect.\"\n---\n\n# Effect Code\n\nUse this skill for target-local Effect code work against the linked `effect-harness`.\n\n## Capability\n\nDrive Effect implementation and review through the pinned official source, target runtime contract, and\npatched diagnostics instead of memory, stale examples, or copied harness internals.\n\nPressure scenario: an agent imports from `repos/effect`, uses old v3 patterns, silences `@effect/tsgo`\nwith assertions, writes plain Vitest tests, or delegates Effect work without passing the target runtime\nagent contract.\n\n## Trigger\n\nUse when the task touches Effect services, layers, runtime entrypoints, tests, CLI/HTTP/process\nintegration, `@effect/tsgo` diagnostics, or focused Effect review in this target repo.\n\nDo not use for updating `effect-harness`, refreshing `repos/effect`, generic TypeScript cleanup, or target\nbusiness decisions that do not require Effect guidance.\n\n## Soft Boundary\n\n- Target repo instructions and current code shape come first.\n- Official pinned source beats local memory.\n- Delegate focused Effect implementation or review with `.codex/agents/effect-worker.md` when a subagent is useful.\n- Keep target business logic in the target repo; only reusable harness gaps go to feedback.\n\n## Hard Boundary\n\n- Do not import from `/Users/sayori/Desktop/yume-infra/effect-harness/repos/effect`.\n- Do not copy effect-harness maintainer skills into the target.\n- Use installed packages: `effect`, `@effect/platform-node`, `@effect/vitest`.\n- Use patched `tsgo --noEmit` as the primary Effect diagnostic loop.\n- Use `assert` from `@effect/vitest`; do not use `expect`.\n\n## Workflow\n\n1. Read target instructions and existing code.\n2. Read official/harness sources in this order:\n   - `/Users/sayori/Desktop/yume-infra/effect-harness/repos/effect/LLMS.md`\n   - `/Users/sayori/Desktop/yume-infra/effect-harness/repos/effect/ai-docs/src/`\n   - `/Users/sayori/Desktop/yume-infra/effect-harness/repos/effect/migration/v3-to-v4.md`\n   - `/Users/sayori/Desktop/yume-infra/effect-harness/harness/index.md`\n   - `.prelude/providers/effect-harness/provider.json` for prelude-managed targets\n   - `.effect-harness.json` only for standalone CLI compatibility\n3. Use `Context.Service` for services on this baseline.\n4. Treat `@effect/tsgo` suggestions as type-boundary work, not assertion cleanup.\n5. Prefer `Schema.Finite`, explicit fallback return types, named result unions/helpers, `satisfies`,\n   `Effect.satisfiesSuccessType`, or `Function.satisfies`.\n6. Pass `Effect.fn` transforms as extra arguments to `Effect.fn(...)`; do not `.pipe(...)` transforms onto\n   an `Effect.fn` declaration.\n7. If delegating to an Effect subagent, give it `.codex/agents/effect-worker.md`, the target task, and the\n   relevant files/tests; require it to report changed files and verification.\n\n## Validation\n\nBefore reporting completion, run:\n\n```bash\npnpm effect:status\npnpm effect:verify\npnpm verify\n```\n\nReport any reusable harness gap through `$effect-feedback`.\n",
+      "snapshot": "---\nname: effect-code\ndescription: \"Use in an Effect target repo when writing, reviewing, or debugging Effect v4 beta code against the linked effect-harness official pin. Covers Effect services, runtime entrypoints, tests, CLI/HTTP/process boundaries, @effect/tsgo diagnostics, and focused Effect subagent delegation. Not for updating effect-harness, changing the source pin, or writing generic TypeScript unrelated to Effect.\"\n---\n\n# Effect Code\n\nUse this skill for target-local Effect code work against the linked `effect-harness`.\n\n## Capability\n\nDrive Effect implementation and review through the pinned official source, target runtime contract, and\npatched diagnostics instead of memory, stale examples, or copied harness internals.\n\nPressure scenario: an agent imports from `repos/effect`, uses old v3 patterns, silences `@effect/tsgo`\nwith assertions, writes plain Vitest tests, or delegates Effect work without passing the target runtime\nagent contract.\n\n## Trigger\n\nUse when the task touches Effect services, layers, runtime entrypoints, tests, CLI/HTTP/process\nintegration, `@effect/tsgo` diagnostics, or focused Effect review in this target repo.\n\nDo not use for updating `effect-harness`, refreshing `repos/effect`, generic TypeScript cleanup, or target\nbusiness decisions that do not require Effect guidance.\n\n## Soft Boundary\n\n- Target repo instructions and current code shape come first.\n- Official pinned source beats local memory.\n- Delegate focused Effect implementation or review with `.codex/agents/effect-worker.md` when a subagent is useful.\n- Keep target business logic in the target repo; only reusable harness gaps go to feedback.\n\n## Hard Boundary\n\n- Do not import from `/Users/sayori/Desktop/yume-infra/effect-harness/repos/effect`.\n- Do not copy effect-harness maintainer skills into the target.\n- Use installed packages: `effect`, `@effect/platform-node`, `@effect/vitest`.\n- Use patched `tsgo --noEmit` as the primary Effect diagnostic loop.\n- Use `assert` from `@effect/vitest`; do not use `expect`.\n\n## Workflow\n\n1. Read target instructions and existing code.\n2. Read official/harness sources in this order:\n   - `/Users/sayori/Desktop/yume-infra/effect-harness/repos/effect/LLMS.md`\n   - `/Users/sayori/Desktop/yume-infra/effect-harness/repos/effect/ai-docs/src/`\n   - `/Users/sayori/Desktop/yume-infra/effect-harness/repos/effect/migration/v3-to-v4.md`\n   - `/Users/sayori/Desktop/yume-infra/effect-harness/harness/index.md`\n   - `.prelude/providers/effect-harness/provider.json` for prelude-managed targets\n   - `.effect-harness.json` only for standalone CLI compatibility\n3. Use `Context.Service` for services on this baseline.\n4. Treat `@effect/tsgo` suggestions as type-boundary work, not assertion cleanup.\n5. Prefer `Schema.Finite`, explicit fallback return types, named result unions/helpers, `satisfies`,\n   `Effect.satisfiesSuccessType`, or `Function.satisfies`.\n6. Pass `Effect.fn` transforms as extra arguments to `Effect.fn(...)`; do not `.pipe(...)` transforms onto\n   an `Effect.fn` declaration.\n7. If delegating to an Effect subagent, give it `.codex/agents/effect-worker.md`, the target task, and the\n   relevant files/tests; require it to report changed files and verification.\n\n## Validation\n\nBefore reporting completion, run:\n\n```bash\npnpm effect:status\npnpm effect:verify\npnpm verify\n```\n\nReport any reusable harness gap through `$effect-feedback`.\n",
+      "authority": "owner",
+      "kind": "ownedFile",
+      "path": ".codex/skills/effect-code/SKILL.md",
+      "operationId": "write-effect-harness-codex-skills-effect-code-SKILL-md"
+    },
+    {
+      "id": "provider-managed-file:effect-harness:.codex/skills/effect-code/agents/openai.yaml",
+      "owner": "provider:effect-harness",
+      "lifecycle": "managed",
+      "scope": "file",
+      "locator": ".codex/skills/effect-code/agents/openai.yaml",
+      "conflictPolicy": "block",
+      "contractVersion": "1",
+      "implementationVersion": "0.1.0",
+      "base": "interface:\n  display_name: Effect Code\n  short_description: 编写和审查 Effect v4 beta 代码\n  default_prompt: 使用 $effect-code，并按 .codex/agents/effect-worker.md 作为 Effect 子任务配置。\n",
+      "snapshot": "interface:\n  display_name: Effect Code\n  short_description: 编写和审查 Effect v4 beta 代码\n  default_prompt: 使用 $effect-code，并按 .codex/agents/effect-worker.md 作为 Effect 子任务配置。\n",
+      "authority": "owner",
+      "kind": "ownedFile",
+      "path": ".codex/skills/effect-code/agents/openai.yaml",
+      "operationId": "write-effect-harness-codex-skills-effect-code-agents-openai-yaml"
+    },
+    {
+      "id": "provider-managed-file:effect-harness:.codex/skills/effect-feedback/SKILL.md",
+      "owner": "provider:effect-harness",
+      "lifecycle": "managed",
+      "scope": "file",
+      "locator": ".codex/skills/effect-feedback/SKILL.md",
+      "conflictPolicy": "block",
+      "contractVersion": "1",
+      "implementationVersion": "0.1.0",
+      "base": "---\nname: effect-feedback\ndescription: \"Use in an Effect target repo when a recurring Effect practice failure, @effect/tsgo gap, guardrail gap, verifier mismatch, or workaround may be reusable for effect-harness. Not for product-specific examples, generic Effect API tutorials, or issues already covered by the pinned official source.\"\n---\n\n# Effect Feedback\n\nUse this skill to capture target-local evidence that may improve `effect-harness`.\n\n## Capability\n\nSeparate reusable harness gaps from target business issues by checking pinned official source first, then\nrecording a local feedback item with enough evidence for a maintainer to promote or reject.\n\nPressure scenario: an agent upstreams a product-specific workaround, copies official docs into the harness,\nor loses a real repeated target failure because it was never written as evidence.\n\n## Trigger\n\nUse when this target hits a recurring Effect pitfall, `@effect/tsgo` diagnostic gap, guardrail gap,\nverifier mismatch, or local workaround that might apply across Effect targets.\n\nDo not use when official source already explains the issue, when the issue is product-specific, or when the\ntask is ordinary Effect implementation.\n\n## Soft Boundary\n\n- Feedback starts as target-local evidence under `.codex/effect-feedback/`.\n- Promotion to `effect-harness` requires maintainer judgment.\n- Business examples, product semantics, release rituals, and target project shape stay in the target repo.\n\n## Hard Boundary\n\n- Check pinned official source before writing feedback.\n- Do not bypass `repos/effect/LLMS.md`, `repos/effect/ai-docs/src/`, `repos/effect/migration/v3-to-v4.md`,\n  `repos/effect/`, or patched `tsgo --noEmit`.\n- Do not copy upstream maintainer-only workflow from `repos/effect/AGENTS.md`,\n  `repos/effect/.agents/skills/*`, or `repos/effect/.specs/*`.\n\n## Workflow\n\n1. Record concrete evidence from this repo: error, diff, test, log, command output, or failed agent loop.\n2. Check official pinned sources and diagnostics.\n3. If official source covers it, route to that source and do not create feedback.\n4. If the gap is reusable and business-neutral, write a local entry in `.codex/effect-feedback/`.\n5. Ask the maintainer whether to upstream it to `/Users/sayori/Desktop/yume-infra/effect-harness/harness/feedback/index.md`.\n\n## Local Entry\n\n```markdown\n## <issue>\n\n- Evidence:\n- Official coverage check:\n- Missing harness contract:\n- Proposed landing:\n- Verifier or guardrail:\n- Status:\n```\n\n## Validation\n\nThe entry must state the official coverage check and a proposed landing as route, runtime contract,\nguardrail, verifier, or harness skill update.\n",
+      "snapshot": "---\nname: effect-feedback\ndescription: \"Use in an Effect target repo when a recurring Effect practice failure, @effect/tsgo gap, guardrail gap, verifier mismatch, or workaround may be reusable for effect-harness. Not for product-specific examples, generic Effect API tutorials, or issues already covered by the pinned official source.\"\n---\n\n# Effect Feedback\n\nUse this skill to capture target-local evidence that may improve `effect-harness`.\n\n## Capability\n\nSeparate reusable harness gaps from target business issues by checking pinned official source first, then\nrecording a local feedback item with enough evidence for a maintainer to promote or reject.\n\nPressure scenario: an agent upstreams a product-specific workaround, copies official docs into the harness,\nor loses a real repeated target failure because it was never written as evidence.\n\n## Trigger\n\nUse when this target hits a recurring Effect pitfall, `@effect/tsgo` diagnostic gap, guardrail gap,\nverifier mismatch, or local workaround that might apply across Effect targets.\n\nDo not use when official source already explains the issue, when the issue is product-specific, or when the\ntask is ordinary Effect implementation.\n\n## Soft Boundary\n\n- Feedback starts as target-local evidence under `.codex/effect-feedback/`.\n- Promotion to `effect-harness` requires maintainer judgment.\n- Business examples, product semantics, release rituals, and target project shape stay in the target repo.\n\n## Hard Boundary\n\n- Check pinned official source before writing feedback.\n- Do not bypass `repos/effect/LLMS.md`, `repos/effect/ai-docs/src/`, `repos/effect/migration/v3-to-v4.md`,\n  `repos/effect/`, or patched `tsgo --noEmit`.\n- Do not copy upstream maintainer-only workflow from `repos/effect/AGENTS.md`,\n  `repos/effect/.agents/skills/*`, or `repos/effect/.specs/*`.\n\n## Workflow\n\n1. Record concrete evidence from this repo: error, diff, test, log, command output, or failed agent loop.\n2. Check official pinned sources and diagnostics.\n3. If official source covers it, route to that source and do not create feedback.\n4. If the gap is reusable and business-neutral, write a local entry in `.codex/effect-feedback/`.\n5. Ask the maintainer whether to upstream it to `/Users/sayori/Desktop/yume-infra/effect-harness/harness/feedback/index.md`.\n\n## Local Entry\n\n```markdown\n## <issue>\n\n- Evidence:\n- Official coverage check:\n- Missing harness contract:\n- Proposed landing:\n- Verifier or guardrail:\n- Status:\n```\n\n## Validation\n\nThe entry must state the official coverage check and a proposed landing as route, runtime contract,\nguardrail, verifier, or harness skill update.\n",
+      "authority": "owner",
+      "kind": "ownedFile",
+      "path": ".codex/skills/effect-feedback/SKILL.md",
+      "operationId": "write-effect-harness-codex-skills-effect-feedback-SKILL-md"
+    },
+    {
+      "id": "provider-managed-file:effect-harness:.codex/skills/effect-feedback/agents/openai.yaml",
+      "owner": "provider:effect-harness",
+      "lifecycle": "managed",
+      "scope": "file",
+      "locator": ".codex/skills/effect-feedback/agents/openai.yaml",
+      "conflictPolicy": "block",
+      "contractVersion": "1",
+      "implementationVersion": "0.1.0",
+      "base": "interface:\n  display_name: Effect Feedback\n  short_description: 记录 Effect target 实践反馈\n  default_prompt: 使用 $effect-feedback，把 target repo 的 Effect 踩坑整理成反馈条目。\n",
+      "snapshot": "interface:\n  display_name: Effect Feedback\n  short_description: 记录 Effect target 实践反馈\n  default_prompt: 使用 $effect-feedback，把 target repo 的 Effect 踩坑整理成反馈条目。\n",
+      "authority": "owner",
+      "kind": "ownedFile",
+      "path": ".codex/skills/effect-feedback/agents/openai.yaml",
+      "operationId": "write-effect-harness-codex-skills-effect-feedback-agents-openai-yaml"
+    },
+    {
+      "id": "provider-managed-file:effect-harness:.codex/agents/effect-worker.md",
+      "owner": "provider:effect-harness",
+      "lifecycle": "managed",
+      "scope": "file",
+      "locator": ".codex/agents/effect-worker.md",
+      "conflictPolicy": "block",
+      "contractVersion": "1",
+      "implementationVersion": "0.1.0",
+      "base": "# Effect Worker\n\nUse this worker configuration when delegating focused Effect implementation or review in this target repo.\n\n## Inputs\n\n- Target repo instructions and current task.\n- `.prelude/providers/effect-harness/provider.json` for prelude-managed targets.\n- `.effect-harness.json` only for standalone CLI compatibility.\n- `.codex/skills/effect-code/SKILL.md`.\n- `/Users/sayori/Desktop/yume-infra/effect-harness/repos/effect/LLMS.md`.\n- `/Users/sayori/Desktop/yume-infra/effect-harness/harness/index.md`.\n- Patched `tsgo --noEmit` diagnostics.\n\n## Responsibilities\n\n- Implement or review Effect code against the pinned official guide.\n- Prefer official source and diagnostics over memory.\n- Keep target business logic in the target repo.\n- Report reusable harness gaps through `.codex/skills/effect-feedback`.\n- Report changed files and verification output to the parent agent.\n\n## Hard Stops\n\n- Do not import from `/Users/sayori/Desktop/yume-infra/effect-harness/repos/effect`.\n- Do not update the harness source pin.\n- Do not copy effect-harness maintainer skills into this repo.\n",
+      "snapshot": "# Effect Worker\n\nUse this worker configuration when delegating focused Effect implementation or review in this target repo.\n\n## Inputs\n\n- Target repo instructions and current task.\n- `.prelude/providers/effect-harness/provider.json` for prelude-managed targets.\n- `.effect-harness.json` only for standalone CLI compatibility.\n- `.codex/skills/effect-code/SKILL.md`.\n- `/Users/sayori/Desktop/yume-infra/effect-harness/repos/effect/LLMS.md`.\n- `/Users/sayori/Desktop/yume-infra/effect-harness/harness/index.md`.\n- Patched `tsgo --noEmit` diagnostics.\n\n## Responsibilities\n\n- Implement or review Effect code against the pinned official guide.\n- Prefer official source and diagnostics over memory.\n- Keep target business logic in the target repo.\n- Report reusable harness gaps through `.codex/skills/effect-feedback`.\n- Report changed files and verification output to the parent agent.\n\n## Hard Stops\n\n- Do not import from `/Users/sayori/Desktop/yume-infra/effect-harness/repos/effect`.\n- Do not update the harness source pin.\n- Do not copy effect-harness maintainer skills into this repo.\n",
+      "authority": "owner",
+      "kind": "ownedFile",
+      "path": ".codex/agents/effect-worker.md",
+      "operationId": "write-effect-harness-codex-agents-effect-worker-md"
+    },
+    {
+      "id": "provider-managed-file:effect-harness:.codex/effect-feedback/.gitkeep",
+      "owner": "provider:effect-harness",
+      "lifecycle": "managed",
+      "scope": "file",
+      "locator": ".codex/effect-feedback/.gitkeep",
+      "conflictPolicy": "block",
+      "contractVersion": "1",
+      "implementationVersion": "0.1.0",
+      "base": "",
+      "snapshot": "",
+      "authority": "owner",
+      "kind": "ownedFile",
+      "path": ".codex/effect-feedback/.gitkeep",
+      "operationId": "write-effect-harness-codex-effect-feedback-gitkeep"
+    },
+    {
+      "id": "provider-managed-block:effect-harness:AGENTS.md#effect-harness",
+      "owner": "provider:effect-harness",
+      "lifecycle": "managed",
+      "scope": "entry",
+      "locator": "AGENTS.md#effect-harness",
+      "conflictPolicy": "block",
+      "contractVersion": "1",
+      "implementationVersion": "0.1.0",
+      "base": "<!-- effect-harness:start -->\n# Effect Harness\n\nThis repo uses `/Users/sayori/Desktop/yume-infra/effect-harness` as its Effect harness root.\n\nBefore writing non-trivial Effect code, read:\n\n- `/Users/sayori/Desktop/yume-infra/effect-harness/repos/effect/LLMS.md`\n- `/Users/sayori/Desktop/yume-infra/effect-harness/harness/index.md`\n- `/Users/sayori/Desktop/yume-infra/effect-harness/repos/effect.subtree.json`\n- `.prelude/providers/effect-harness/provider.json` when this target is prelude-managed\n- `.effect-harness.json` only for standalone CLI compatibility\n\nRuntime skills and agents installed by the harness:\n\n- Use `.codex/skills/effect-code/SKILL.md` for Effect implementation and review.\n- Use `.codex/skills/effect-feedback/SKILL.md` for reusable target feedback.\n- Use `.codex/agents/effect-worker.md` when delegating focused Effect subagent work.\n\nUse:\n\n```bash\npnpm effect:status\npnpm effect:verify\npnpm verify\n```\n\nDo not import from `/Users/sayori/Desktop/yume-infra/effect-harness/repos/effect`.\nDo not copy effect-harness `.codex/skills`; this target only uses the runtime installed under\n`.codex/`.\n<!-- effect-harness:end -->\n",
+      "snapshot": "<!-- effect-harness:start -->\n# Effect Harness\n\nThis repo uses `/Users/sayori/Desktop/yume-infra/effect-harness` as its Effect harness root.\n\nBefore writing non-trivial Effect code, read:\n\n- `/Users/sayori/Desktop/yume-infra/effect-harness/repos/effect/LLMS.md`\n- `/Users/sayori/Desktop/yume-infra/effect-harness/harness/index.md`\n- `/Users/sayori/Desktop/yume-infra/effect-harness/repos/effect.subtree.json`\n- `.prelude/providers/effect-harness/provider.json` when this target is prelude-managed\n- `.effect-harness.json` only for standalone CLI compatibility\n\nRuntime skills and agents installed by the harness:\n\n- Use `.codex/skills/effect-code/SKILL.md` for Effect implementation and review.\n- Use `.codex/skills/effect-feedback/SKILL.md` for reusable target feedback.\n- Use `.codex/agents/effect-worker.md` when delegating focused Effect subagent work.\n\nUse:\n\n```bash\npnpm effect:status\npnpm effect:verify\npnpm verify\n```\n\nDo not import from `/Users/sayori/Desktop/yume-infra/effect-harness/repos/effect`.\nDo not copy effect-harness `.codex/skills`; this target only uses the runtime installed under\n`.codex/`.\n<!-- effect-harness:end -->\n",
+      "authority": "bounded",
+      "kind": "managedBlock",
+      "path": "AGENTS.md",
+      "startMarker": "<!-- effect-harness:start -->",
+      "endMarker": "<!-- effect-harness:end -->",
+      "operationId": "write-effect-harness-AGENTS-md-block"
+    }
+  ],
+  "verificationRecordId": "provider:effect-harness:create-contract"
+}

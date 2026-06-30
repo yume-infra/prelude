@@ -47,7 +47,8 @@ business decisions that do not require Effect guidance.
    - `/Users/sayori/Desktop/yume-infra/effect-harness/repos/effect/ai-docs/src/`
    - `/Users/sayori/Desktop/yume-infra/effect-harness/repos/effect/migration/v3-to-v4.md`
    - `/Users/sayori/Desktop/yume-infra/effect-harness/harness/index.md`
-   - `.effect-harness.json`
+   - `.prelude/providers/effect-harness/provider.json` for prelude-managed targets
+   - `.effect-harness.json` only for standalone CLI compatibility
 3. Use `Context.Service` for services on this baseline.
 4. Treat `@effect/tsgo` suggestions as type-boundary work, not assertion cleanup.
 5. Prefer `Schema.Finite`, explicit fallback return types, named result unions/helpers, `satisfies`,

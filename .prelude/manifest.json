@@ -1,0 +1,124 @@
+{
+  "schemaVersion": 1,
+  "preludeVersion": "0.2.3",
+  "createSpec": {
+    "topology": "workspace",
+    "packages": [
+      {
+        "id": "cli",
+        "name": "@sayoriqwq/prelude",
+        "capabilities": [
+          "cli-tool"
+        ],
+        "internalDependencies": []
+      }
+    ],
+    "rootCapabilities": [
+      "package-manager:pnpm",
+      "task-runner:turbo",
+      "linting",
+      "knip",
+      "dependency-update:taze",
+      "ai-harness"
+    ],
+    "providers": [
+      "effect-harness"
+    ],
+    "overrides": {}
+  },
+  "resolvedGraph": {
+    "topology": "workspace",
+    "rootPackage": {
+      "id": "root",
+      "name": "prelude-workspace",
+      "path": ".",
+      "capabilities": []
+    },
+    "packages": [
+      {
+        "id": "cli",
+        "name": "@sayoriqwq/prelude",
+        "path": "apps/cli",
+        "capabilities": [
+          "cli-tool"
+        ],
+        "internalDependencies": []
+      }
+    ],
+    "rootCapabilities": [
+      "package-manager:pnpm",
+      "task-runner:turbo",
+      "linting",
+      "knip",
+      "dependency-update:taze",
+      "ai-harness"
+    ],
+    "packageCapabilities": {
+      "cli": [
+        "cli-tool"
+      ]
+    },
+    "providers": [
+      {
+        "id": "effect-harness",
+        "contractVersion": "1",
+        "artifactVersion": "0.1.0",
+        "packageScopes": [
+          "cli"
+        ]
+      }
+    ],
+    "logicalSurfaces": [
+      {
+        "id": "package-manifest:root",
+        "materializer": "package-json",
+        "owner": "prelude"
+      },
+      {
+        "id": "workspace-manifest:root",
+        "materializer": "workspace-manifest",
+        "owner": "prelude"
+      },
+      {
+        "id": "provider:effect-harness",
+        "materializer": "provider-artifact",
+        "owner": "capability:ai-harness"
+      },
+      {
+        "id": "package-manifest:apps/cli",
+        "materializer": "package-json",
+        "owner": "prelude"
+      }
+    ],
+    "verification": [
+      "workspace-root-files-present",
+      "workspace-package-files-present",
+      "root-engineering-files-present",
+      "provider:effect-harness:create-contract"
+    ]
+  },
+  "pins": {
+    "packageManager": "pnpm@10.33.4",
+    "typescript": "catalog:"
+  },
+  "maintainProviders": [
+    {
+      "id": "effect-harness",
+      "contractVersion": "1",
+      "providerVersion": "0.1.0",
+      "profile": "codex-effect-v4",
+      "recordPath": ".prelude/providers/effect-harness/provider.json"
+    }
+  ],
+  "generatedUserSurfaces": [],
+  "verificationRecords": [
+    {
+      "id": "provider:effect-harness:create-contract",
+      "status": "passed",
+      "checkedPaths": [
+        "package.json",
+        ".prelude/providers/effect-harness/provider.json"
+      ]
+    }
+  ]
+}

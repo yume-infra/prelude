@@ -92,7 +92,8 @@ Before writing non-trivial Effect code, read:
 - `/Users/sayori/Desktop/yume-infra/effect-harness/repos/effect/LLMS.md`
 - `/Users/sayori/Desktop/yume-infra/effect-harness/harness/index.md`
 - `/Users/sayori/Desktop/yume-infra/effect-harness/repos/effect.subtree.json`
-- `.effect-harness.json`
+- `.prelude/providers/effect-harness/provider.json` when this target is prelude-managed
+- `.effect-harness.json` only for standalone CLI compatibility
 
 Runtime skills and agents installed by the harness:
 
