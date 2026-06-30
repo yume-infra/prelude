@@ -2,6 +2,7 @@ import type { LifecycleProviderRegistry, ProviderUpdateOperation } from '@/core/
 import { assert, describe, it } from '@effect/vitest'
 import { Effect } from 'effect'
 import { makeTargetDir } from '@/brand/target-dir'
+import { effectHarnessProviderRecordForProjectedContext, effectHarnessSourceEntryEditorPolicy } from '@/core/create/effect-harness-provider'
 import { effectHarnessLifecycleProvider, reconcileManagedLogicalValue, runProviderLifecycleStatus, runProviderLifecycleUpdate, runProviderLifecycleVerify } from '@/core/lifecycle'
 import { makeFsMockLayer } from '../../support/fs-mock'
 
@@ -550,11 +551,10 @@ describe('provider lifecycle runtime', () => {
     const verify = await Effect.runPromise(effectHarnessLifecycleProvider.verify(effectHarnessRecord))
     const plan = await Effect.runPromise(effectHarnessLifecycleProvider.planUpdate(effectHarnessRecord, { providerId: 'effect-harness' }))
 
-    assert.deepEqual(status, {
-      providerId: 'effect-harness',
-      status: 'changed',
-    })
-    assert.deepEqual(verify.status, 'failed')
+    assert.equal(status.providerId, 'effect-harness')
+    assert.equal(status.status, 'changed')
+    assert.match(status.message ?? '', /current effect-harness profile/u)
+    assert.equal(verify.status, 'failed')
     assert.ok(!plan.operations.some(operation => operation.path === '.prelude/providers/effect-harness/provider.json'))
     assert.ok(!plan.operations.some(operation => operation.path === '.effect-harness.json'))
     assert.ok(plan.operations.some(operation =>
@@ -567,6 +567,78 @@ describe('provider lifecycle runtime', () => {
       }
       return operation.surfaceId
     }))
+  })
+
+  it('projects the effect-harness first-party provider interface without source-entry surfaces', async () => {
+    const record = effectHarnessProviderRecordForProjectedContext({
+      topology: 'single-package',
+      packageScopes: ['worker'],
+      rootCapabilities: ['ai-harness'],
+      packageCapabilities: {
+        worker: ['effect-package'],
+      },
+    })
+
+    assert.equal(record.id, 'effect-harness')
+    assert.equal(record.profile, 'codex-effect-v4')
+    assert.equal(record.options.runtime, 'codex')
+    assert.deepEqual(record.options.languageService, {
+      enabled: true,
+      floatingEffect: 'error',
+    })
+    assert.deepEqual([...record.runtime.files].sort(), [
+      '.codex/agents/effect-worker.md',
+      '.codex/effect-feedback/.gitkeep',
+      '.codex/skills/effect-code/SKILL.md',
+      '.codex/skills/effect-code/agents/openai.yaml',
+      '.codex/skills/effect-feedback/SKILL.md',
+      '.codex/skills/effect-feedback/agents/openai.yaml',
+      'AGENTS.md',
+    ])
+    const officialGuide = record.runtime.routes.officialGuide
+    const effectLlmGuide = record.runtime.routes.effectLlmGuide
+    if (typeof officialGuide !== 'string' || typeof effectLlmGuide !== 'string') {
+      assert.fail('effect-harness runtime guide routes must be present')
+    }
+    assert.match(officialGuide, /harness\/offcial-guide\.md$/u)
+    assert.match(effectLlmGuide, /repos\/effect\/LLMS\.md$/u)
+
+    const surfacePaths = record.surfaces.map(surface => surface.path)
+    assert.isFalse(surfacePaths.some(surfacePath => surfacePath.startsWith('repos/')))
+    assert.isFalse(surfacePaths.includes('.effect-harness.json'))
+    assert.isFalse(surfacePaths.some(surfacePath => surfacePath.startsWith('.vscode/') || surfacePath.startsWith('.zed/')))
+    assert.isTrue(record.surfaces.some(surface =>
+      surface.kind === 'managedBlock'
+      && surface.path === 'AGENTS.md'
+      && surface.locator === 'AGENTS.md#effect-harness',
+    ))
+    assert.deepEqual(effectHarnessSourceEntryEditorPolicy.vscode.defaultAutoImportExclude, {
+      'typescript.preferences.autoImportFileExcludePatterns': ['repos/**'],
+      'javascript.preferences.autoImportFileExcludePatterns': ['repos/**'],
+    })
+    assert.equal(effectHarnessSourceEntryEditorPolicy.zed.hideFilesExclude, 'user-preference')
+    assert.equal(effectHarnessSourceEntryEditorPolicy.preludeTargetBehavior, 'do-not-materialize-source-entry-editor-settings')
+
+    const status = await Effect.runPromise(effectHarnessLifecycleProvider.status(record))
+    const verify = await Effect.runPromise(effectHarnessLifecycleProvider.verify(record))
+    assert.equal(status.status, 'ok')
+    assert.equal(verify.status, 'passed')
+
+    const staleRuntimeRecord = {
+      ...record,
+      runtime: {
+        ...record.runtime,
+        routes: {
+          ...record.runtime.routes,
+          officialGuide: 'old-guide.md',
+        },
+      },
+    }
+    const staleStatus = await Effect.runPromise(effectHarnessLifecycleProvider.status(staleRuntimeRecord))
+    const staleVerify = await Effect.runPromise(effectHarnessLifecycleProvider.verify(staleRuntimeRecord))
+    assert.equal(staleStatus.status, 'changed')
+    assert.equal(staleVerify.status, 'failed')
+    assert.match(staleVerify.message ?? '', /runtime metadata/u)
   })
 
   it('blocks unsupported provider contract transitions without a declarative migration plan', async () => {

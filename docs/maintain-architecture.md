@@ -269,3 +269,42 @@ A contract transition plan SHOULD declare:
 Maintain core validates preconditions, reads current logical values, detects drift, produces maintain WritePlan, applies writes, re-reads outputs, refreshes provider record base snapshots, and updates manifest provider references when provider identity changes.
 
 Maintain domain modules MUST NOT mutate previous manifests or files directly.
+
+## Effect Harness Provider Interface
+
+`effect-harness` is a first-party maintain provider.
+
+Prelude consumes the provider through stable provider-facing records:
+
+- provider profile: provider id, contract version, provider version, selected profile, options, package baseline, runtime asset declarations, and status/verify semantics
+- provider record: target-local selected profile, resolved options, projected create context, runtime metadata, managed surfaces, and base snapshots
+- managed surfaces: structured package/config pointers, owned runtime files, and managed blocks declared by the provider
+
+Prelude MUST NOT consume effect-harness internal setup notes as a second interface.
+
+Prelude MUST NOT maintain the Effect source pin.
+
+The Effect source entry belongs to the provider repo. It may be maintained by effect-harness itself or a generic Partita `source` workflow. In a prelude-managed target, `partita source` MAY help produce provider claims, but it MUST NOT write target managed surfaces or replace the prelude lifecycle.
+
+The effect-harness provider update model is:
+
+```text
+desired = current effect-harness provider implementation/profile
+base    = .prelude/providers/effect-harness/provider.json
+current = target filesystem logical values
+```
+
+Update MUST only write surfaces declared by the provider record. When desired introduces new target surfaces that are absent from the provider record, the lifecycle blocks unless a future contract transition explicitly approves the expansion.
+
+Status and verify are provider-facing lifecycle operations:
+
+- `status` reports provider/profile/artifact drift without writing files.
+- `verify` checks provider record conformance and target managed logical values.
+- `update` reconciles desired/base/current, applies managed-surface writes through maintain WritePlan, refreshes provider record base snapshots, and refreshes manifest provider references.
+
+Editor policy for source entries is not a prelude target surface unless the provider explicitly declares such a target surface. When a source-entry workflow owns editor policy, the current decision is:
+
+- auto-import exclude defaults to blocking source-entry imports.
+- watch/search exclude is recommended but requires explicit configuration.
+- `files.exclude` hiding is a user preference, not a default.
+- VSCode and Zed settings shapes are separate and MUST NOT be projected through one shared VSCode-shaped object.

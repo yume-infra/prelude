@@ -204,6 +204,32 @@ Maintain core MUST validate domain-declared managed changes before applying them
 
 `prelude` SHOULD NOT create a generic domain platform before multiple maintain domains prove the seam.
 
+### Effect Harness Boundary
+
+`effect-harness` exposes a first-party provider profile to Prelude.
+
+Prelude consumes:
+
+- profile identity and options
+- provider artifact/source identity
+- runtime asset declarations
+- managed target surfaces
+- status, verify, and update semantics
+
+Prelude does not consume effect-harness internal setup documents as target update truth.
+
+Prelude does not maintain the Effect source pin. Source-entry pinning belongs inside the provider repo or a generic Partita source workflow. `partita source` is not a second maintain system for prelude-managed targets.
+
+For effect-harness maintain:
+
+```text
+desired = current provider implementation/profile
+base    = provider record
+current = filesystem
+```
+
+Drift blocks. Update writes only provider-declared target surfaces.
+
 ## Rejections
 
 `prelude` MUST NOT restore `ProjectConfig` as creation truth.

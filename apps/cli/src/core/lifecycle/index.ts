@@ -4,7 +4,6 @@ import type { FileIOError } from '@/core/errors'
 import * as path from 'node:path'
 import { Effect, Schema } from 'effect'
 import {
-  effectHarnessArtifact,
   effectHarnessContractVersion,
   effectHarnessManagedBlockArtifact,
   effectHarnessManagedBlockSurfaceId,
@@ -13,7 +12,6 @@ import {
   effectHarnessPackageSurfacesForProjectedContext,
   effectHarnessProviderRecordForProjectedContext,
   effectHarnessProviderSurfaceIdsForProjectedContext,
-  effectHarnessProviderVersion,
   effectHarnessTsconfigSurfacesForProjectedContext,
 } from '@/core/create/effect-harness-provider'
 import { extractManagedBlock, managedBlockCount, upsertManagedBlock } from '@/core/create/managed-block'
@@ -91,8 +89,53 @@ function missingEffectHarnessSurfaceIds(record: LifecycleProviderRecord) {
   return expected.filter(surfaceId => !actual.includes(surfaceId))
 }
 
+function surfaceDescriptor(surface: LifecycleSurfaceRecord) {
+  const descriptor: Record<string, unknown> = { ...surface }
+  delete descriptor.base
+  delete descriptor.snapshot
+  return descriptor
+}
+
 function desiredEffectHarnessRecord(record: LifecycleProviderRecord): LifecycleProviderRecord {
   return effectHarnessProviderRecordForProjectedContext(record.projectedContext)
+}
+
+function effectHarnessRecordProfileIssues(record: LifecycleProviderRecord) {
+  const desired = desiredEffectHarnessRecord(record)
+  const issues: string[] = []
+
+  if (record.providerVersion !== desired.providerVersion || record.profile !== desired.profile) {
+    issues.push('provider profile identity differs from current effect-harness profile')
+  }
+
+  if (!jsonMatches(record.artifact, desired.artifact)) {
+    issues.push('provider artifact identity differs from current effect-harness profile')
+  }
+
+  if (!jsonMatches(record.options, desired.options)) {
+    issues.push('provider options differ from current effect-harness profile')
+  }
+
+  if (!jsonMatches(record.runtime, desired.runtime)) {
+    issues.push('provider runtime metadata differs from current effect-harness profile')
+  }
+
+  const missingSurfaceIds = missingEffectHarnessSurfaceIds(record)
+  if (missingSurfaceIds.length > 0) {
+    issues.push(`provider record is missing managed surfaces: ${missingSurfaceIds.join(', ')}`)
+  }
+
+  const desiredSurfaceIds = new Set(desired.surfaces.map(surface => surface.id))
+  const extraSurfaceIds = record.surfaces.map(surface => surface.id).filter(surfaceId => !desiredSurfaceIds.has(surfaceId))
+  if (extraSurfaceIds.length > 0) {
+    issues.push(`provider record contains retired managed surfaces: ${extraSurfaceIds.join(', ')}`)
+  }
+
+  if (!jsonMatches(record.surfaces.map(surfaceDescriptor), desired.surfaces.map(surfaceDescriptor))) {
+    issues.push('provider managed surface declarations differ from current effect-harness profile')
+  }
+
+  return issues
 }
 
 function desiredEffectHarnessOperations(record: LifecycleProviderRecord): readonly ProviderUpdateOperation[] {
@@ -130,22 +173,23 @@ function desiredEffectHarnessOperations(record: LifecycleProviderRecord): readon
 
 const effectHarnessStatus = Effect.fn('effectHarnessStatus')(
   function* (record: LifecycleProviderRecord): Effect.fn.Return<ProviderStatus, LifecycleCommandError> {
+    const issues = effectHarnessRecordProfileIssues(record)
+
     return {
       providerId: record.id,
-      status: record.providerVersion === effectHarnessProviderVersion
-        && jsonMatches(record.artifact, effectHarnessArtifact)
-        && missingEffectHarnessSurfaceIds(record).length === 0
-        ? 'ok'
-        : 'changed',
+      status: issues.length === 0 ? 'ok' : 'changed',
+      ...(issues.length === 0 ? {} : { message: issues.join('; ') }),
     }
   },
 )
 
 const effectHarnessVerify = Effect.fn('effectHarnessVerify')(
   function* (record: LifecycleProviderRecord): Effect.fn.Return<ProviderVerifyResult, LifecycleCommandError> {
-    return record.contractVersion === effectHarnessContractVersion
-      && record.providerVersion === effectHarnessProviderVersion
-      && missingEffectHarnessSurfaceIds(record).length === 0
+    const issues = record.contractVersion === effectHarnessContractVersion
+      ? effectHarnessRecordProfileIssues(record)
+      : [`effect-harness contract version ${record.contractVersion} is unsupported`]
+
+    return issues.length === 0
       ? {
           providerId: record.id,
           status: 'passed' as const,
@@ -153,7 +197,7 @@ const effectHarnessVerify = Effect.fn('effectHarnessVerify')(
       : {
           providerId: record.id,
           status: 'failed' as const,
-          message: `effect-harness lifecycle provider record is missing managed surfaces: ${missingEffectHarnessSurfaceIds(record).join(', ')}`,
+          message: `effect-harness lifecycle provider record does not match current provider profile: ${issues.join('; ')}`,
         }
   },
 )
@@ -632,11 +676,9 @@ function applyManifestUpdates(
 }
 
 function nextRecordForPlan(record: LifecycleProviderRecord, plan: ProviderUpdatePlan): LifecycleProviderRecord {
-  if (plan.nextRecord !== undefined) {
-    return plan.nextRecord
-  }
+  const nextRecord = plan.nextRecord ?? record
 
-  const surfaces = record.surfaces.map((surface) => {
+  const surfaces = nextRecord.surfaces.map((surface) => {
     const operation = plan.operations.find(candidate => candidate.surfaceId === surface.id)
 
     if (operation === undefined) {
@@ -672,7 +714,7 @@ function nextRecordForPlan(record: LifecycleProviderRecord, plan: ProviderUpdate
   })
 
   return {
-    ...record,
+    ...nextRecord,
     surfaces,
   }
 }
