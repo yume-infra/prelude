@@ -1,6 +1,10 @@
-import type { CapabilityId, JsonValue } from '../model'
+import type { CapabilityId, EffectHarnessProviderDiscovery, JsonValue } from '../model'
 import type { PackageCapabilityDefinition, PackageManifestEntries } from './types'
-import { effectHarnessTsgoPlugin, hasEffectHarnessProvider } from '../effect-harness-provider'
+import {
+  effectHarnessTsgoPluginForDiscovery,
+  effectHarnessTypecheckCommandForDiscovery,
+  hasEffectHarnessProvider,
+} from '../effect-harness-provider'
 import {
   sourceSurface,
   tsdownConfigSurface,
@@ -38,13 +42,23 @@ NodeRuntime.runMain(main())
 `
 }
 
-function effectPackageBuildScript(hasProvider: boolean) {
-  return hasProvider
-    ? 'tsgo --noEmit --project tsconfig.json'
-    : 'tsc --noEmit --project tsconfig.json'
+function effectPackageBuildScript(hasProvider: boolean, discovery?: EffectHarnessProviderDiscovery) {
+  if (hasProvider) {
+    if (discovery === undefined) {
+      throw new Error('effect-harness provider discovery must be loaded before collecting effect-package contributions')
+    }
+
+    return effectHarnessTypecheckCommandForDiscovery(discovery)
+  }
+
+  return 'tsc --noEmit --project tsconfig.json'
 }
 
-function effectPackageTsconfig(hasProvider: boolean) {
+function effectPackageTsconfig(hasProvider: boolean, discovery?: EffectHarnessProviderDiscovery) {
+  if (hasProvider && discovery === undefined) {
+    throw new Error('effect-harness provider discovery must be loaded before collecting effect-package tsconfig contributions')
+  }
+
   return `${JSON.stringify({
     compilerOptions: {
       target: 'ES2022',
@@ -53,7 +67,7 @@ function effectPackageTsconfig(hasProvider: boolean) {
       strict: true,
       skipLibCheck: true,
       types: ['node'],
-      ...(hasProvider ? { plugins: effectHarnessTsgoPlugin } : {}),
+      ...(hasProvider && discovery !== undefined ? { plugins: effectHarnessTsgoPluginForDiscovery(discovery) } : {}),
     },
     include: ['src/**/*.ts'],
   }, null, 2)}\n`
@@ -328,6 +342,7 @@ export const packageRuntimeCapabilityDefinitions: readonly PackageCapabilityDefi
     ],
     contribute: (context) => {
       const hasProvider = hasEffectHarnessProvider(context.graph)
+      const discovery = hasProvider ? context.effectHarnessDiscovery : undefined
 
       return [
         {
@@ -339,7 +354,7 @@ export const packageRuntimeCapabilityDefinitions: readonly PackageCapabilityDefi
             type: 'module',
             version: '0.0.0',
             scripts: {
-              build: effectPackageBuildScript(hasProvider),
+              build: effectPackageBuildScript(hasProvider, discovery),
             },
             devDependencies: {
               '@types/node': 'catalog:',
@@ -367,7 +382,7 @@ export const packageRuntimeCapabilityDefinitions: readonly PackageCapabilityDefi
           path: context.scopedPath('tsconfig.json'),
           operationId: 'write-tsconfig',
           operationOwner: 'capability:effect-package',
-          content: effectPackageTsconfig(hasProvider),
+          content: effectPackageTsconfig(hasProvider, discovery),
         },
       ]
     },

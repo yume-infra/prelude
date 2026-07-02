@@ -1,5 +1,6 @@
 import type {
   CapabilityId,
+  EffectHarnessProviderDiscovery,
   LogicalSurface,
   ResolvedGraph,
   ResolvedPackage,
@@ -154,7 +155,7 @@ export function styleSheetSurface(scope: string, path: 'src/styles.css' | 'src/s
   }
 }
 
-export function makePackageCapabilityContext(graph: ResolvedGraph, pkg: ResolvedPackage): PackageCapabilityContext {
+export function makePackageCapabilityContext(graph: ResolvedGraph, pkg: ResolvedPackage, effectHarnessDiscovery?: EffectHarnessProviderDiscovery): PackageCapabilityContext {
   const packageManifestScope = packageManifestScopeForPackage(pkg)
   const sourceScope = surfaceScopeForPackage(pkg)
 
@@ -170,5 +171,6 @@ export function makePackageCapabilityContext(graph: ResolvedGraph, pkg: Resolved
     scopedPath: filePath => scopedPath(pkg, filePath),
     scopedTypeScriptConfigSurfaceId: scopedTypeScriptConfigSurfaceId(pkg),
     scopedTsdownConfigSurfaceId: scopedTsdownConfigSurfaceId(pkg),
+    ...(effectHarnessDiscovery === undefined ? {} : { effectHarnessDiscovery }),
   }
 }

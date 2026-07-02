@@ -65,8 +65,12 @@ export function logicalSurfacesForPackageCapabilities(graph: ResolvedGraph, pkg:
   })
 }
 
-export function packageCapabilityContributions(graph: ResolvedGraph, pkg: ResolvedPackage): readonly CapabilityContribution[] {
-  const context = makePackageCapabilityContext(graph, pkg)
+export function packageCapabilityContributions(
+  graph: ResolvedGraph,
+  pkg: ResolvedPackage,
+  effectHarnessDiscovery?: EffectHarnessProviderDiscovery,
+): readonly CapabilityContribution[] {
+  const context = makePackageCapabilityContext(graph, pkg, effectHarnessDiscovery)
 
   return pkg.capabilities.flatMap((capability) => {
     const definition = packageCapabilityDefinition(capability)

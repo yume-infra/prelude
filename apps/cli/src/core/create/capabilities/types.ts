@@ -1,6 +1,7 @@
 import type {
   CapabilityContribution,
   CapabilityId,
+  EffectHarnessProviderDiscovery,
   JsonValue,
   LogicalSurface,
   ResolvedGraph,
@@ -26,6 +27,7 @@ export interface PackageCapabilityContext {
   readonly scopedPath: (filePath: string) => string
   readonly scopedTypeScriptConfigSurfaceId: string
   readonly scopedTsdownConfigSurfaceId: string
+  readonly effectHarnessDiscovery?: EffectHarnessProviderDiscovery
 }
 
 interface RootCapabilityContext {

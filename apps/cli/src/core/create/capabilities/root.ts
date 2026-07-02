@@ -1,23 +1,24 @@
-import type { JsonValue, ResolvedGraph } from '../model'
+import type { EffectHarnessProviderDiscovery, JsonValue, ResolvedGraph } from '../model'
 import type { PackageManifestEntries, RootCapabilityDefinition } from './types'
+import { effectHarnessProviderLintCommand, effectHarnessProviderVerificationCommands } from '../effect-harness-provider'
 
-function verifyScriptFor(graph: ResolvedGraph): string | undefined {
+function verifyScriptFor(graph: ResolvedGraph, effectHarnessDiscovery?: EffectHarnessProviderDiscovery): string | undefined {
   const commands = ['pnpm build']
 
   if (graph.providers.some(provider => provider.id === 'effect-harness')) {
-    commands.push('pnpm typecheck')
+    if (effectHarnessDiscovery === undefined) {
+      throw new Error('effect-harness provider discovery must be loaded before collecting provider verification contributions')
+    }
+
+    commands.push(...effectHarnessProviderVerificationCommands(effectHarnessDiscovery))
   }
 
   if (graph.rootCapabilities.includes('linting')) {
-    commands.push('pnpm lint')
+    commands.push(effectHarnessDiscovery === undefined ? 'pnpm lint' : effectHarnessProviderLintCommand(effectHarnessDiscovery))
   }
 
   if (graph.rootCapabilities.includes('knip')) {
     commands.push('pnpm knip')
-  }
-
-  if (graph.providers.some(provider => provider.id === 'effect-harness')) {
-    commands.push('pnpm effect:verify')
   }
 
   return commands.length > 1 ? commands.join(' && ') : undefined
@@ -43,7 +44,7 @@ export function workspaceGlobs(packages: ResolvedGraph['packages']) {
   return globs
 }
 
-export function workspaceRootPackageEntries(graph: ResolvedGraph): PackageManifestEntries {
+export function workspaceRootPackageEntries(graph: ResolvedGraph, effectHarnessDiscovery?: EffectHarnessProviderDiscovery): PackageManifestEntries {
   const hasTurbo = graph.rootCapabilities.includes('task-runner:turbo')
   const scripts: Record<string, JsonValue> = graph.packages.length === 0
     ? {}
@@ -51,7 +52,7 @@ export function workspaceRootPackageEntries(graph: ResolvedGraph): PackageManife
         build: hasTurbo ? 'turbo run build' : 'pnpm -r --if-present build',
         typecheck: hasTurbo ? 'turbo run typecheck' : 'pnpm -r --if-present typecheck',
       }
-  const verifyScript = verifyScriptFor(graph)
+  const verifyScript = verifyScriptFor(graph, effectHarnessDiscovery)
 
   if (verifyScript) {
     scripts.verify = verifyScript
@@ -63,8 +64,8 @@ export function workspaceRootPackageEntries(graph: ResolvedGraph): PackageManife
   }
 }
 
-export function rootVerifyContribution(graph: ResolvedGraph): PackageManifestEntries {
-  const verifyScript = verifyScriptFor(graph)
+export function rootVerifyContribution(graph: ResolvedGraph, effectHarnessDiscovery?: EffectHarnessProviderDiscovery): PackageManifestEntries {
+  const verifyScript = verifyScriptFor(graph, effectHarnessDiscovery)
 
   return verifyScript === undefined
     ? {}

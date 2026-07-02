@@ -188,14 +188,15 @@ describe('recovered main intent create pipeline', () => {
             devDependencies: Record<string, string>
           }>(path.join(targetDir, 'package.json')),
         )
-        assert.strictEqual(packageJson.scripts.build, 'tsgo --noEmit --project tsconfig.json')
-        assert.strictEqual(packageJson.scripts.typecheck, 'tsgo --noEmit --project tsconfig.json')
-        assert.strictEqual(packageJson.scripts.verify, 'pnpm build && pnpm typecheck && pnpm knip && pnpm effect:verify')
-        assert.match(packageJson.scripts['effect:verify'] ?? '', /effect-harness\.js" verify --target \./u)
-        assert.strictEqual(packageJson.dependencies.effect, '4.0.0-beta.90')
-        assert.strictEqual(packageJson.dependencies['@effect/platform-node'], '4.0.0-beta.90')
-        assert.strictEqual(packageJson.devDependencies['@effect/tsgo'], '0.14.6')
-        assert.strictEqual(packageJson.devDependencies['@effect/vitest'], '4.0.0-beta.90')
+        assert.strictEqual(packageJson.scripts.build, 'tsgo --noEmit')
+        assert.strictEqual(packageJson.scripts.prepare, 'effect-tsgo patch')
+        assert.strictEqual(packageJson.scripts.typecheck, 'tsgo --noEmit')
+        assert.strictEqual(packageJson.scripts.verify, 'pnpm build && pnpm typecheck && pnpm knip')
+        assert.strictEqual(packageJson.scripts['effect:verify'], undefined)
+        assert.strictEqual(packageJson.dependencies.effect, '4.0.0-beta.92')
+        assert.strictEqual(packageJson.dependencies['@effect/platform-node'], '4.0.0-beta.92')
+        assert.strictEqual(packageJson.devDependencies['@effect/tsgo'], '0.15.0')
+        assert.strictEqual(packageJson.devDependencies['@effect/vitest'], '4.0.0-beta.92')
 
         const knipConfig = yield* Effect.promise(() =>
           readJson<{

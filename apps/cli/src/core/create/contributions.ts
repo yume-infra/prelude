@@ -31,7 +31,7 @@ function workspaceRootContributions(graph: ResolvedGraph, providerDiscoveries: P
       kind: 'packageManifest',
       surfaceId: 'package-manifest:root',
       owner: 'topology:workspace',
-      entries: workspaceRootPackageEntries(graph),
+      entries: workspaceRootPackageEntries(graph, providerDiscoveries.effectHarness),
     },
     {
       kind: 'workspaceManifest',
@@ -43,7 +43,7 @@ function workspaceRootContributions(graph: ResolvedGraph, providerDiscoveries: P
   ]
 }
 
-function collectWorkspacePackageContributions(graph: ResolvedGraph, pkg: ResolvedPackage): CapabilityContribution[] {
+function collectWorkspacePackageContributions(graph: ResolvedGraph, pkg: ResolvedPackage, providerDiscoveries: ProviderDiscoveries): CapabilityContribution[] {
   const contributions: CapabilityContribution[] = []
   const internalDependencyEntries = workspaceInternalDependencyEntries(pkg)
 
@@ -56,7 +56,7 @@ function collectWorkspacePackageContributions(graph: ResolvedGraph, pkg: Resolve
     })
   }
 
-  contributions.push(...packageCapabilityContributions(graph, pkg))
+  contributions.push(...packageCapabilityContributions(graph, pkg, providerDiscoveries.effectHarness))
 
   return contributions
 }
@@ -65,11 +65,11 @@ export function collectCapabilityContributions(graph: ResolvedGraph, providerDis
   if (graph.topology === 'workspace') {
     return [
       ...workspaceRootContributions(graph, providerDiscoveries),
-      ...graph.packages.flatMap(pkg => collectWorkspacePackageContributions(graph, pkg)),
+      ...graph.packages.flatMap(pkg => collectWorkspacePackageContributions(graph, pkg, providerDiscoveries)),
     ]
   }
 
-  const verifyContribution = rootVerifyContribution(graph)
+  const verifyContribution = rootVerifyContribution(graph, providerDiscoveries.effectHarness)
   const verificationContributions: CapabilityContribution[] = Object.keys(verifyContribution).length === 0
     ? []
     : [{
@@ -80,7 +80,7 @@ export function collectCapabilityContributions(graph: ResolvedGraph, providerDis
       }]
 
   return [
-    ...packageCapabilityContributions(graph, graph.rootPackage),
+    ...packageCapabilityContributions(graph, graph.rootPackage, providerDiscoveries.effectHarness),
     ...rootCapabilityContributions(graph, providerDiscoveries.effectHarness),
     ...verificationContributions,
   ]

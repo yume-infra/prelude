@@ -9,7 +9,7 @@ import { makeTargetDir } from '@/brand/target-dir'
 import { createProjectFromSpec, materializeWritePlan } from '@/core/create'
 import { effectHarnessProviderDiscoveryDecodeLayer } from '@/core/create/effect-harness-discovery'
 import { FsLive } from '@/core/services/fs'
-import { EffectHarnessDiscoveryTestLayer } from '../../support/effect-harness-discovery'
+import { effectHarnessDiscoveryFixture, EffectHarnessDiscoveryTestLayer } from '../../support/effect-harness-discovery'
 
 async function makeTempProjectDir() {
   return await fs.mkdtemp(path.join(os.tmpdir(), 'prelude-create-'))
@@ -17,6 +17,13 @@ async function makeTempProjectDir() {
 
 async function readJson<T = unknown>(filePath: string) {
   return JSON.parse(await fs.readFile(filePath, 'utf8')) as T
+}
+
+async function pathExists(filePath: string) {
+  return fs.access(filePath).then(
+    () => true,
+    () => false,
+  )
 }
 
 const TestLayer = FsLive.pipe(
@@ -691,22 +698,21 @@ export default defineConfig({
           version: '0.0.0',
           packageManager: 'pnpm@10.33.4',
           scripts: {
-            'build': 'tsgo --noEmit --project tsconfig.json',
-            'effect:status': 'node "/Users/sayori/Desktop/yume-infra/effect-harness/dist/bin/effect-harness.js" status',
-            'effect:verify': 'node "/Users/sayori/Desktop/yume-infra/effect-harness/dist/bin/effect-harness.js" verify --target .',
-            'typecheck': 'tsgo --noEmit --project tsconfig.json',
-            'verify': 'pnpm build && pnpm typecheck && pnpm effect:verify',
+            build: 'tsgo --noEmit',
+            prepare: 'effect-tsgo patch',
+            typecheck: 'tsgo --noEmit',
+            verify: 'pnpm build && pnpm typecheck',
           },
           dependencies: {
-            '@effect/platform-node': '4.0.0-beta.90',
-            'effect': '4.0.0-beta.90',
+            '@effect/platform-node': '4.0.0-beta.92',
+            'effect': '4.0.0-beta.92',
           },
           devDependencies: {
             '@effect/language-service': '0.86.2',
-            '@effect/tsgo': '0.14.6',
-            '@effect/vitest': '4.0.0-beta.90',
+            '@effect/tsgo': '0.15.0',
+            '@effect/vitest': '4.0.0-beta.92',
             '@types/node': 'catalog:',
-            '@typescript/native-preview': '7.0.0-dev.20260624.1',
+            '@typescript/native-preview': '7.0.0-dev.20260630.1',
             'typescript': 'catalog:',
           },
         })
@@ -734,11 +740,16 @@ NodeRuntime.runMain(main())
             plugins: [
               {
                 name: '@effect/language-service',
-                options: {
-                  diagnosticSeverity: {
-                    floatingEffect: 'error',
-                  },
+                diagnostics: true,
+                includeSuggestionsInTsc: true,
+                ignoreEffectSuggestionsInTscExitCode: false,
+                ignoreEffectWarningsInTscExitCode: false,
+                ignoreEffectErrorsInTscExitCode: false,
+                diagnosticSeverity: {
+                  floatingEffect: 'error',
+                  missingEffectError: 'error',
                 },
+                barrelImportPackages: ['effect'],
               },
             ],
           },
@@ -749,6 +760,8 @@ NodeRuntime.runMain(main())
           readJson<{
             id: string
             projectedContext: unknown
+            options: { effect: { packageBaseline: Record<string, string> }, policies: Record<string, unknown> }
+            runtime: { targetManagedSurfaces: { contributions: Record<string, unknown> } }
             surfaces: Array<{ id: string, owner: string, lifecycle: string, kind: string, path: string, pointer?: string }>
           }>(path.join(targetDir, '.prelude/providers/effect-harness/provider.json')),
         )
@@ -763,10 +776,36 @@ NodeRuntime.runMain(main())
         })
         const providerSurfaceIds = new Set(providerRecord.surfaces.map(surface => surface.id))
         assert.ok(providerSurfaceIds.has('package-manifest:root:/dependencies/effect'))
-        assert.ok(providerSurfaceIds.has('package-manifest:root:/scripts/effect:verify'))
+        assert.ok(providerSurfaceIds.has('package-manifest:root:/scripts/prepare'))
+        assert.ok(providerSurfaceIds.has('package-manifest:root:/scripts/typecheck'))
+        assert.isFalse(providerSurfaceIds.has('package-manifest:root:/scripts/effect:verify'))
         assert.ok(providerSurfaceIds.has('tsconfig:root:/compilerOptions/plugins'))
+        assert.ok(providerSurfaceIds.has('provider-managed-file:effect-harness:.prelude/providers/effect-harness/docs/discovery.md'))
+        assert.ok(providerSurfaceIds.has('provider-managed-file:effect-harness:.prelude/providers/effect-harness/snippets/agents.md'))
         assert.ok(providerSurfaceIds.has('provider-managed-file:effect-harness:.codex/skills/effect-code/SKILL.md'))
         assert.ok(providerSurfaceIds.has('provider-managed-block:effect-harness:AGENTS.md#effect-harness'))
+        assert.deepEqual(providerRecord.options.effect.packageBaseline, {
+          'effect': '4.0.0-beta.92',
+          '@effect/platform-node': '4.0.0-beta.92',
+          '@effect/vitest': '4.0.0-beta.92',
+          '@effect/tsgo': '0.15.0',
+          '@effect/language-service': '0.86.2',
+          '@typescript/native-preview': '7.0.0-dev.20260630.1',
+        })
+        assert.deepEqual(Object.keys(providerRecord.options.policies).sort(), [
+          'editorPolicy',
+          'lintGuardrails',
+          'testPolicy',
+          'verificationPolicy',
+        ])
+        assert.deepEqual(Object.keys(providerRecord.runtime.targetManagedSurfaces.contributions).sort(), [
+          'editorPolicy',
+          'lintGuardrails',
+          'packageJson',
+          'testPolicy',
+          'tsconfig',
+          'verificationPolicy',
+        ])
         const manifest = yield* Effect.promise(() =>
           readJson<{
             createSpec: { providers: unknown }
@@ -832,7 +871,7 @@ NodeRuntime.runMain(main())
             surface.owner === 'provider:effect-harness'
             && surface.lifecycle === 'managed'
             && !surface.path.startsWith('src/')),
-          'only provider runtime assets and package/config pointers are managed',
+          'provider-managed surfaces must not include target source files',
         )
         assert.deepEqual(
           manifest.generatedUserSurfaces.map(surface => ({ path: surface.path, authority: surface.authority })),
@@ -842,6 +881,16 @@ NodeRuntime.runMain(main())
             { path: 'tsconfig.json', authority: 'none' },
           ],
         )
+        const discoveryDoc = yield* Effect.promise(() =>
+          fs.readFile(path.join(targetDir, '.prelude/providers/effect-harness/docs/discovery.md'), 'utf8'),
+        )
+        const agentsSnippet = yield* Effect.promise(() =>
+          fs.readFile(path.join(targetDir, '.prelude/providers/effect-harness/snippets/agents.md'), 'utf8'),
+        )
+        assert.include(discoveryDoc, 'provider-discover exposes target-managed surfaces')
+        assert.include(agentsSnippet, 'Manual include snippet for target agents')
+        assert.isFalse(yield* Effect.promise(() => pathExists(path.join(targetDir, 'repos/effect/LLMS.md'))))
+        assert.isFalse(yield* Effect.promise(() => pathExists(path.join(targetDir, 'harness/effect-routes.md'))))
         assert.deepEqual(manifest.verificationRecords, [
           {
             id: 'minimal-create-files-present',
@@ -863,11 +912,9 @@ NodeRuntime.runMain(main())
       Effect.gen(function* () {
         const targetDir = yield* Effect.promise(makeTempProjectDir)
         const discovery = {
-          schemaVersion: 1,
-          artifactRoot: '/tmp/effect-harness-artifact',
-          providerProfilePath: '/tmp/effect-harness-artifact/provider/effect-harness.provider.json',
-          providerProfileRelativePath: 'provider/effect-harness.provider.json',
+          ...effectHarnessDiscoveryFixture,
           packageLocator: {
+            ...effectHarnessDiscoveryFixture.packageLocator,
             packageName: '@sayoriqwq/effect-harness',
             packageVersion: '9.9.9-test',
             binName: 'effect-harness',
@@ -876,27 +923,14 @@ NodeRuntime.runMain(main())
             packageFiles: ['provider', 'harness', 'repos'],
           },
           provider: {
+            ...effectHarnessDiscoveryFixture.provider,
             id: 'effect-harness',
             contractVersion: '7-test',
             providerVersion: '9.9.9-test',
             defaultProfile: 'codex-effect-v4',
           },
-          selectedProfile: 'codex-effect-v4',
-          discovery: {
-            mode: 'provider-discovery',
-            consumer: 'prelude',
-            profileSource: 'provider/effect-harness.provider.json',
-            targetLifecycleOwner: 'prelude',
-          },
-          deliveryModes: {},
-          targetManagedSurfaces: {
-            targetReceives: ['provider record at .prelude/providers/effect-harness/provider.json'],
-            targetDoesNotReceive: ['effect-harness runtime assets under .codex'],
-            documentationBundle: { mode: 'managed-files', targetBasePath: '.prelude/providers/effect-harness/docs', files: [] },
-            snippets: { mode: 'managed-files', targetBasePath: '.prelude/providers/effect-harness/snippets', files: [] },
-            contributions: {},
-          },
           artifactOnlyReferences: {
+            ...effectHarnessDiscoveryFixture.artifactOnlyReferences,
             mode: 'provider-artifact-reference',
             targetDelivery: 'identity-only',
             packageSurface: ['provider', 'harness', 'repos'],
@@ -909,8 +943,9 @@ NodeRuntime.runMain(main())
             },
           },
           sourceIdentities: {
+            ...effectHarnessDiscoveryFixture.sourceIdentities,
             defaultSourceEntry: 'effect-official-source',
-            sourceEntries: {},
+            sourceEntries: ['effect-official-source'],
             sourceBoundary: {
               providerRepoInternal: true,
               targetDelivery: 'identity-only',
@@ -919,11 +954,6 @@ NodeRuntime.runMain(main())
             },
             providerSourceEntries: {},
             artifactReferences: {},
-          },
-          internalHarnessSurfaces: {
-            mode: 'internal-harness',
-            description: 'not target materialized',
-            examples: ['harness/**'],
           },
         } as const
 

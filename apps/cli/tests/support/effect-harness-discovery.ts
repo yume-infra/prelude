@@ -8,7 +8,7 @@ export const effectHarnessDiscoveryFixture = {
   providerProfileRelativePath: 'provider/effect-harness.provider.json',
   packageLocator: {
     packageName: '@sayoriqwq/effect-harness',
-    packageVersion: '0.1.0',
+    packageVersion: '0.0.3',
     binName: 'effect-harness',
     binPath: 'dist/bin/effect-harness.js',
     discoveryCommand: 'npx --yes @sayoriqwq/effect-harness provider-discover',
@@ -68,15 +68,266 @@ export const effectHarnessDiscoveryFixture = {
       '.effect-harness.json standalone manifest',
       '.codex/effect-feedback feedback intake',
     ],
-    documentationBundle: { mode: 'managed-files', targetBasePath: '.prelude/providers/effect-harness/docs', files: [] },
-    snippets: { mode: 'managed-files', targetBasePath: '.prelude/providers/effect-harness/snippets', files: [] },
+    documentationBundle: {
+      mode: 'managed-files',
+      targetBasePath: '.prelude/providers/effect-harness/docs',
+      files: [
+        {
+          id: 'effect-code',
+          sourcePath: 'provider/docs/effect-code.md',
+          targetPath: 'effect-code.md',
+          contentType: 'text/markdown',
+          managed: true,
+          content: '# Effect Code\n\nTarget-facing Effect coding policy.\n',
+        },
+        {
+          id: 'diagnostics',
+          sourcePath: 'provider/docs/diagnostics.md',
+          targetPath: 'diagnostics.md',
+          contentType: 'text/markdown',
+          managed: true,
+          content: '# Diagnostics\n\ntsgo diagnostics policy.\n',
+        },
+        {
+          id: 'editor-policy',
+          sourcePath: 'provider/docs/editor-policy.md',
+          targetPath: 'editor-policy.md',
+          contentType: 'text/markdown',
+          managed: true,
+          content: '# Editor Policy\n\nTarget editor boundaries.\n',
+        },
+        {
+          id: 'managed-surfaces',
+          sourcePath: 'provider/docs/managed-surfaces.md',
+          targetPath: 'managed-surfaces.md',
+          contentType: 'text/markdown',
+          managed: true,
+          content: '# Managed Surfaces\n\nProvider target-managed surfaces.\n',
+        },
+        {
+          id: 'discovery',
+          sourcePath: 'provider/docs/discovery.md',
+          targetPath: 'discovery.md',
+          contentType: 'text/markdown',
+          managed: true,
+          content: '# Provider Discovery\n\nprovider-discover exposes target-managed surfaces.\n',
+        },
+        {
+          id: 'package-config',
+          sourcePath: 'provider/docs/package-config.md',
+          targetPath: 'package-config.md',
+          contentType: 'text/markdown',
+          managed: true,
+          content: '# Package Config\n\npackage.json and tsconfig contributions.\n',
+        },
+        {
+          id: 'quality-policy',
+          sourcePath: 'provider/docs/quality-policy.md',
+          targetPath: 'quality-policy.md',
+          contentType: 'text/markdown',
+          managed: true,
+          content: '# Quality Policy\n\nlint, test, and verification policy.\n',
+        },
+        {
+          id: 'source-identity',
+          sourcePath: 'provider/docs/source-identity.md',
+          targetPath: 'source-identity.md',
+          contentType: 'text/markdown',
+          managed: true,
+          content: '# Source Identity\n\nartifact-only references stay outside targets.\n',
+        },
+      ],
+    },
+    snippets: {
+      mode: 'managed-files',
+      targetBasePath: '.prelude/providers/effect-harness/snippets',
+      files: [
+        {
+          id: 'agents-effect-harness',
+          sourcePath: 'provider/snippets/agents.md',
+          targetPath: 'agents.md',
+          contentType: 'text/markdown',
+          managed: true,
+          targetUsage: 'manual-copy-or-include-only',
+          content: '# Effect Harness Agents Snippet\n\nManual include snippet for target agents.\n',
+        },
+      ],
+    },
     contributions: {
-      packageJson: { mode: 'structured-merge', targetPath: 'package.json' },
-      tsconfig: { mode: 'structured-merge', targetPath: 'tsconfig.json' },
-      editorPolicy: { mode: 'structured-merge', targetPaths: ['.vscode/settings.json', '.zed/settings.json'] },
-      lintGuardrails: { mode: 'command-policy', stage: 'lint' },
-      testPolicy: { mode: 'command-policy', stage: 'tests' },
-      verificationPolicy: { mode: 'pipeline-policy', completionGate: 'pnpm verify' },
+      packageJson: {
+        mode: 'structured-merge',
+        targetPath: 'package.json',
+        selfConformanceSpecifier: 'catalog:',
+        dependencyGroups: {
+          runtime: {
+            field: 'dependencies',
+            packages: {
+              'effect': '4.0.0-beta.92',
+              '@effect/platform-node': '4.0.0-beta.92',
+            },
+          },
+          testing: {
+            field: 'devDependencies',
+            packages: {
+              '@effect/vitest': '4.0.0-beta.92',
+            },
+          },
+          diagnostics: {
+            field: 'devDependencies',
+            packages: {
+              '@effect/tsgo': '0.15.0',
+              '@effect/language-service': '0.86.2',
+            },
+          },
+          nativeBackend: {
+            field: 'devDependencies',
+            packages: {
+              '@typescript/native-preview': '7.0.0-dev.20260630.1',
+            },
+          },
+        },
+        scripts: {
+          prepare: {
+            semantic: 'prepare Effect TypeScript-Go backend',
+            defaultCommand: 'effect-tsgo patch',
+          },
+          typecheck: {
+            semantic: 'primary Effect diagnostics',
+            defaultCommand: 'tsgo --noEmit',
+          },
+        },
+      },
+      tsconfig: {
+        mode: 'structured-merge',
+        targetPath: 'tsconfig.json',
+        tsgo: {
+          diagnosticCommand: 'tsgo --noEmit',
+          nativeBackend: {
+            package: '@typescript/native-preview',
+            version: '7.0.0-dev.20260630.1',
+            setupCommand: 'effect-tsgo patch',
+          },
+          diagnosticGate: {
+            includeSuggestionsInTsc: true,
+            ignoreEffectSuggestionsInTscExitCode: false,
+            ignoreEffectWarningsInTscExitCode: false,
+            ignoreEffectErrorsInTscExitCode: false,
+          },
+          ruleMapSource: {
+            metadata: 'repos/tsgo/_packages/tsgo/src/metadata.json',
+            policy: 'harness/tsgo.md',
+            supportedEffect: 'v4',
+            ruleCount: 76,
+          },
+        },
+        compilerOptions: {
+          plugins: [
+            {
+              name: '@effect/language-service',
+              diagnostics: true,
+              includeSuggestionsInTsc: true,
+              ignoreEffectSuggestionsInTscExitCode: false,
+              ignoreEffectWarningsInTscExitCode: false,
+              ignoreEffectErrorsInTscExitCode: false,
+              diagnosticSeverity: {
+                floatingEffect: 'error',
+                missingEffectError: 'error',
+              },
+              barrelImportPackages: ['effect'],
+            },
+          ],
+        },
+      },
+      editorPolicy: {
+        mode: 'structured-merge',
+        targetPaths: ['.vscode/settings.json', '.zed/settings.json'],
+        sourceIdentity: {
+          providerInternalPatterns: ['repos/**'],
+          targetReceivesSourceTrees: false,
+        },
+        policies: {
+          autoImportExclude: {
+            level: 'hard-boundary',
+            patterns: ['repos/**'],
+            vscode: {
+              'typescript.preferences.autoImportFileExcludePatterns': ['repos/**'],
+              'javascript.preferences.autoImportFileExcludePatterns': ['repos/**'],
+            },
+          },
+          watchExclude: {
+            level: 'recommended',
+            patterns: ['repos/**'],
+            vscode: {
+              'files.watcherExclude': { 'repos/**': true },
+            },
+          },
+          searchExclude: {
+            level: 'recommended',
+            patterns: ['repos/**'],
+            vscode: {
+              'search.exclude': { 'repos/**': true },
+            },
+          },
+          filesExclude: {
+            level: 'preference',
+            patterns: ['repos/effect/**'],
+            vscode: {
+              'files.exclude': { 'repos/effect/**': true },
+            },
+          },
+        },
+      },
+      lintGuardrails: {
+        mode: 'command-policy',
+        stage: 'lint',
+        command: 'pnpm lint --max-warnings 0',
+        configFiles: ['eslint.config.mjs'],
+        layers: {
+          owns: ['repository import boundary', 'Effect test entry'],
+          doesNotOwn: ['Effect semantic diagnostics'],
+        },
+        rules: {
+          restrictedImports: ['node:test', 'vitest', '@effect/cli', '@effect/cli/*', 'repos/effect/**', 'repos/tsgo/**'],
+          restrictedSyntax: ['Context.Tag', 'Effect.ignore', 'plain it() in tests'],
+          allowedTestEntrypoints: ['it.effect', 'it.live', 'layer'],
+        },
+      },
+      testPolicy: {
+        mode: 'command-policy',
+        stage: 'tests',
+        command: 'pnpm test',
+        packageScript: 'vitest run tests/*.test.ts',
+        framework: '@effect/vitest',
+        expectedEntries: ['tests/*.test.ts'],
+        effectEntrypoints: ['it.effect', 'it.live', 'layer'],
+        disallowedImports: ['node:test', 'vitest'],
+      },
+      verificationPolicy: {
+        mode: 'pipeline-policy',
+        completionGate: 'pnpm verify',
+        packageScript: 'node bin/effect-harness.ts verify --harness .',
+        lifecycleOwner: 'prelude',
+        localCommands: {
+          diagnostics: ['pnpm typecheck'],
+          tests: ['pnpm test'],
+          lint: ['pnpm lint --max-warnings 0'],
+          completion: ['pnpm verify'],
+        },
+        stages: [
+          {
+            tag: 'tsgo-diagnostics',
+            summary: 'Run tsgo --noEmit and enforce zero Effect diagnostics.',
+          },
+          {
+            tag: 'tests',
+            summary: 'Run the Effect test suite.',
+          },
+          {
+            tag: 'lint',
+            summary: 'Run ESLint with zero warnings.',
+          },
+        ],
+      },
     },
   },
   artifactOnlyReferences: {

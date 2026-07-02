@@ -5,13 +5,7 @@ import * as path from 'node:path'
 import { Effect, Schema } from 'effect'
 import { EffectHarnessProviderDiscoveryService } from '@/core/create/effect-harness-discovery'
 import {
-  effectHarnessManagedBlockArtifact,
-  effectHarnessManagedBlockSurfaceId,
-  effectHarnessManagedFileArtifacts,
-  effectHarnessManagedFileSurfaceId,
-  effectHarnessPackageSurfacesForProjectedContext,
   effectHarnessProviderRecordForProjectedContext,
-  effectHarnessTsconfigSurfacesForProjectedContext,
 } from '@/core/create/effect-harness-provider'
 import { extractManagedBlock, managedBlockCount, upsertManagedBlock } from '@/core/create/managed-block'
 import { FsService } from '@/core/services/fs'
@@ -149,36 +143,44 @@ function effectHarnessRecordProfileIssues(discovery: EffectHarnessProviderDiscov
 }
 
 function desiredEffectHarnessOperations(record: LifecycleProviderRecord): readonly ProviderUpdateOperation[] {
-  return [
-    ...effectHarnessPackageSurfacesForProjectedContext(record.projectedContext).map(surface => ({
-      kind: 'replaceStructuredPointer' as const,
+  return record.surfaces.map((surface) => {
+    if (surface.kind === 'structuredPointer') {
+      return {
+        kind: 'replaceStructuredPointer' as const,
+        surfaceId: surface.id,
+        path: surface.path,
+        pointer: surface.pointer,
+        value: parseLifecycleSurfaceValue(surface.base),
+      }
+    }
+
+    if (surface.kind === 'ownedFile') {
+      return {
+        kind: 'replaceOwnedFile' as const,
+        surfaceId: surface.id,
+        path: surface.path,
+        content: surface.base ?? '',
+      }
+    }
+
+    return {
+      kind: 'replaceManagedBlock' as const,
       surfaceId: surface.id,
-      path: 'package.json',
-      pointer: surface.pointer,
-      value: surface.value,
-    })),
-    ...effectHarnessTsconfigSurfacesForProjectedContext(record.projectedContext).map(surface => ({
-      kind: 'replaceStructuredPointer' as const,
-      surfaceId: surface.id,
-      path: 'tsconfig.json',
-      pointer: surface.pointer,
-      value: surface.value,
-    })),
-    ...effectHarnessManagedFileArtifacts().map(artifact => ({
-      kind: 'replaceOwnedFile' as const,
-      surfaceId: effectHarnessManagedFileSurfaceId(artifact.path),
-      path: artifact.path,
-      content: artifact.content,
-    })),
-    {
-      kind: 'replaceManagedBlock',
-      surfaceId: effectHarnessManagedBlockSurfaceId,
-      path: effectHarnessManagedBlockArtifact().path,
-      startMarker: effectHarnessManagedBlockArtifact().startMarker,
-      endMarker: effectHarnessManagedBlockArtifact().endMarker,
-      content: effectHarnessManagedBlockArtifact().content,
-    },
-  ]
+      path: surface.path,
+      startMarker: surface.startMarker,
+      endMarker: surface.endMarker,
+      content: surface.base,
+    }
+  })
+}
+
+function parseLifecycleSurfaceValue(value: string): JsonValue {
+  try {
+    return JSON.parse(value) as JsonValue
+  }
+  catch {
+    return value
+  }
 }
 
 function effectHarnessStatusForDiscovery(discovery: EffectHarnessProviderDiscovery) {
@@ -219,10 +221,12 @@ function effectHarnessVerifyForDiscovery(discovery: EffectHarnessProviderDiscove
 function planEffectHarnessUpdateForDiscovery(discovery: EffectHarnessProviderDiscovery) {
   return Effect.fn('planEffectHarnessUpdate')(
     function* (record: LifecycleProviderRecord): Effect.fn.Return<ProviderUpdatePlan, LifecycleCommandError> {
+      const nextRecord = desiredEffectHarnessRecord(discovery, record)
+
       return {
         providerId: record.id,
-        operations: desiredEffectHarnessOperations(record),
-        nextRecord: desiredEffectHarnessRecord(discovery, record),
+        operations: desiredEffectHarnessOperations(nextRecord),
+        nextRecord,
       }
     },
   )

@@ -58,62 +58,19 @@ function manifestJson(overrides: Record<string, unknown> = {}) {
   }, null, 2)}\n`
 }
 
-const effectHarnessPackageBaseline = {
-  'effect': '4.0.0-beta.90',
-  '@effect/platform-node': '4.0.0-beta.90',
-  '@effect/vitest': '4.0.0-beta.90',
-  '@effect/tsgo': '0.14.6',
-  '@effect/language-service': '0.86.2',
-  '@typescript/native-preview': '7.0.0-dev.20260624.1',
-}
-
-const effectHarnessRecord = {
-  schemaVersion: 1,
-  id: 'effect-harness',
-  contractVersion: '1',
-  providerVersion: '0.1.0',
-  profile: 'codex-effect-v4',
-  artifact: {
-    id: 'effect-harness',
-    version: '0.1.0',
-    source: {
-      repository: 'https://example.com/effect-harness.git',
-      branch: 'main',
-      split: 'abc123',
-    },
-    packageBaseline: effectHarnessPackageBaseline,
+const effectHarnessProjectedContext = {
+  topology: 'single-package',
+  packageScopes: ['worker'],
+  rootCapabilities: ['ai-harness'],
+  packageCapabilities: {
+    worker: ['effect-package'],
   },
-  projectedContext: {
-    topology: 'single-package',
-    packageScopes: ['worker'],
-    rootCapabilities: ['ai-harness'],
-    packageCapabilities: {
-      worker: ['effect-package'],
-    },
-  },
-  options: {
-    runtime: 'codex',
-    effect: {
-      major: 4,
-      packageBaseline: effectHarnessPackageBaseline,
-    },
-    languageService: {
-      enabled: true,
-      floatingEffect: 'error',
-    },
-    packageScopes: ['worker'],
-  },
-  runtime: {
-    commands: {
-      status: 'effect-harness status',
-      verify: 'effect-harness verify --target .',
-    },
-    routes: {},
-    files: [],
-  },
-  surfaces: [],
-  verificationRecordId: 'provider:effect-harness:create-contract',
 } as const
+
+const effectHarnessRecord = effectHarnessProviderRecordForProjectedContext(
+  effectHarnessDiscoveryFixture,
+  effectHarnessProjectedContext,
+)
 
 const effectHarnessReference = {
   id: 'effect-harness',
@@ -124,11 +81,9 @@ const effectHarnessReference = {
 } as const
 
 const discoveredProvider = {
-  schemaVersion: 1,
-  artifactRoot: '/tmp/effect-harness-artifact',
-  providerProfilePath: '/tmp/effect-harness-artifact/provider/effect-harness.provider.json',
-  providerProfileRelativePath: 'provider/effect-harness.provider.json',
+  ...effectHarnessDiscoveryFixture,
   packageLocator: {
+    ...effectHarnessDiscoveryFixture.packageLocator,
     packageName: '@sayoriqwq/effect-harness',
     packageVersion: '9.9.9-test',
     binName: 'effect-harness',
@@ -137,27 +92,14 @@ const discoveredProvider = {
     packageFiles: ['provider', 'harness', 'repos'],
   },
   provider: {
+    ...effectHarnessDiscoveryFixture.provider,
     id: 'effect-harness',
     contractVersion: '7-test',
     providerVersion: '9.9.9-test',
     defaultProfile: 'codex-effect-v4',
   },
-  selectedProfile: 'codex-effect-v4',
-  discovery: {
-    mode: 'provider-discovery',
-    consumer: 'prelude',
-    profileSource: 'provider/effect-harness.provider.json',
-    targetLifecycleOwner: 'prelude',
-  },
-  deliveryModes: {},
-  targetManagedSurfaces: {
-    targetReceives: ['provider record at .prelude/providers/effect-harness/provider.json'],
-    targetDoesNotReceive: ['effect-harness runtime assets under .codex'],
-    documentationBundle: { mode: 'managed-files', targetBasePath: '.prelude/providers/effect-harness/docs', files: [] },
-    snippets: { mode: 'managed-files', targetBasePath: '.prelude/providers/effect-harness/snippets', files: [] },
-    contributions: {},
-  },
   artifactOnlyReferences: {
+    ...effectHarnessDiscoveryFixture.artifactOnlyReferences,
     mode: 'provider-artifact-reference',
     targetDelivery: 'identity-only',
     packageSurface: ['provider', 'harness', 'repos'],
@@ -170,8 +112,9 @@ const discoveredProvider = {
     },
   },
   sourceIdentities: {
+    ...effectHarnessDiscoveryFixture.sourceIdentities,
     defaultSourceEntry: 'effect-official-source',
-    sourceEntries: {},
+    sourceEntries: ['effect-official-source'],
     sourceBoundary: {
       providerRepoInternal: true,
       targetDelivery: 'identity-only',
@@ -180,11 +123,6 @@ const discoveredProvider = {
     },
     providerSourceEntries: {},
     artifactReferences: {},
-  },
-  internalHarnessSurfaces: {
-    mode: 'internal-harness',
-    description: 'not target materialized',
-    examples: ['harness/**'],
   },
 } as const
 
@@ -220,8 +158,8 @@ function structuredPointerSurface(overrides: Record<string, unknown> = {}) {
     kind: 'structuredPointer',
     path: 'package.json',
     pointer: tsgoPointer,
-    base: '0.14.6',
-    snapshot: '0.14.6',
+    base: '0.15.0',
+    snapshot: '0.15.0',
     operationId: 'write-package-json',
     ...overrides,
   }
@@ -435,6 +373,7 @@ describe('provider lifecycle runtime', () => {
         manifest: manifestJson({
           maintainProviders: [effectHarnessReference],
         }),
+        providerRecord: providerRecordWithSurfaces([]),
       }),
       writeFileString: path => Effect.sync(() => {
         writes.push(path)
@@ -497,6 +436,7 @@ describe('provider lifecycle runtime', () => {
         manifest: manifestJson({
           maintainProviders: [effectHarnessReference],
         }),
+        providerRecord: providerRecordWithSurfaces([]),
       }),
       writeFileString: path => Effect.sync(() => {
         writes.push(path)
@@ -627,15 +567,14 @@ describe('provider lifecycle runtime', () => {
     const plan = await Effect.runPromise(provider.planUpdate(effectHarnessRecord, { providerId: 'effect-harness' }))
 
     assert.equal(status.providerId, 'effect-harness')
-    assert.equal(status.status, 'changed')
-    assert.match(status.message ?? '', /current effect-harness profile/u)
-    assert.equal(verify.status, 'failed')
+    assert.equal(status.status, 'ok')
+    assert.equal(verify.status, 'passed')
     assert.ok(!plan.operations.some(operation => operation.path === '.prelude/providers/effect-harness/provider.json'))
     assert.ok(!plan.operations.some(operation => operation.path === '.effect-harness.json'))
     assert.ok(plan.operations.some(operation =>
       operation.kind === 'replaceStructuredPointer'
       && operation.path === 'package.json'
-      && operation.pointer === '/scripts/effect:verify'))
+      && operation.pointer === '/scripts/typecheck'))
     assert.deepEqual(plan.nextRecord?.surfaces.map(surface => surface.id), plan.operations.map((operation) => {
       if (operation.kind === 'replaceOwnedFile') {
         return `provider-managed-file:effect-harness:${operation.path}`
@@ -690,9 +629,32 @@ describe('provider lifecycle runtime', () => {
       enabled: true,
       floatingEffect: 'error',
     })
+    const packageBaseline = jsonObject(jsonObject(record.options.effect).packageBaseline)
+    assert.equal(packageBaseline.effect, '4.0.0-beta.92')
+    assert.equal(packageBaseline['@effect/tsgo'], '0.15.0')
+    const policies = jsonObject(record.options.policies)
+    assert.deepEqual(Object.keys(policies).sort(), [
+      'editorPolicy',
+      'lintGuardrails',
+      'testPolicy',
+      'verificationPolicy',
+    ])
+    assert.equal(jsonObject(policies.lintGuardrails).command, 'pnpm lint --max-warnings 0')
+    assert.equal(jsonObject(policies.testPolicy).packageScript, 'vitest run tests/*.test.ts')
+    assert.equal(jsonObject(policies.verificationPolicy).lifecycleOwner, 'prelude')
     assert.deepEqual(record.runtime.files, [])
     assert.equal(record.runtime.commands.discover, 'npx --yes @sayoriqwq/effect-harness provider-discover')
     assert.equal(record.runtime.routes.providerProfile, 'provider/effect-harness.provider.json')
+    const targetManagedSurfaces = jsonObject(record.runtime.targetManagedSurfaces)
+    const contributionBuckets = jsonObject(targetManagedSurfaces.contributions)
+    assert.deepEqual(Object.keys(contributionBuckets).sort(), [
+      'editorPolicy',
+      'lintGuardrails',
+      'packageJson',
+      'testPolicy',
+      'tsconfig',
+      'verificationPolicy',
+    ])
     const artifactOnlyReferences = jsonObject(record.artifact.artifactOnlyReferences)
     const references = jsonObject(artifactOnlyReferences.references)
     const sourceIdentities = jsonObject(record.artifact.sourceIdentities)
@@ -709,6 +671,8 @@ describe('provider lifecycle runtime', () => {
     assert.equal(sourceIdentities.defaultSourceEntry, 'effect-official-source')
 
     const surfacePaths = record.surfaces.map(surface => surface.path)
+    assert.isTrue(surfacePaths.includes('.prelude/providers/effect-harness/docs/discovery.md'))
+    assert.isTrue(surfacePaths.includes('.prelude/providers/effect-harness/snippets/agents.md'))
     assert.isFalse(surfacePaths.some(surfacePath => surfacePath.startsWith('repos/')))
     assert.isFalse(surfacePaths.includes('.effect-harness.json'))
     assert.isFalse(surfacePaths.some(surfacePath => surfacePath.startsWith('.vscode/') || surfacePath.startsWith('.zed/')))
@@ -806,6 +770,7 @@ describe('provider lifecycle runtime', () => {
             },
           ],
         }),
+        providerRecord: providerRecordWithSurfaces([]),
         fallback: '{ "scripts": { "build": "tsc --noEmit" } }\n',
       }),
     })
@@ -862,6 +827,7 @@ describe('provider lifecycle runtime', () => {
             },
           ],
         }),
+        providerRecord: providerRecordWithSurfaces([]),
         fallback: '{ "scripts": { "build": "user changed this handed-off scaffold" } }\n',
       }),
       writeFileString: (path, content) => Effect.sync(() => {
@@ -1006,7 +972,10 @@ describe('provider lifecycle runtime', () => {
           maintainProviders: [effectHarnessReference],
         }),
         providerRecord: providerRecordWithSurfaces([
-          structuredPointerSurface(),
+          structuredPointerSurface({
+            base: '0.14.6',
+            snapshot: '0.14.6',
+          }),
         ]),
         fallback: '{ "devDependencies": { "@effect/tsgo": "0.14.6" } }\n',
       }),
@@ -1164,7 +1133,7 @@ describe('provider lifecycle runtime', () => {
         runProviderLifecycleUpdate({
           targetDir: makeTargetDir('/project'),
           providers: registryWithOperations([
-            replaceTsgoOperation('0.14.6'),
+            replaceTsgoOperation('0.15.0'),
           ]),
         }).pipe(Effect.provide(fsLayer)),
       ),
@@ -1297,6 +1266,7 @@ ${updatedManagedBlock}`,
           manifest: manifestJson({
             maintainProviders: [effectHarnessReference],
           }),
+          providerRecord: providerRecordWithSurfaces([]),
         }),
         writeFileString: (path, content) => Effect.sync(() => {
           writes.push({ path, content })
@@ -1385,6 +1355,7 @@ ${updatedManagedBlock}`,
     const otherRecord = {
       ...effectHarnessRecord,
       id: 'other-harness',
+      surfaces: [],
       verificationRecordId: 'provider:other-harness:create-contract',
     }
     const otherReference = {
@@ -1406,7 +1377,7 @@ ${updatedManagedBlock}`,
         }
 
         if (path.endsWith('.prelude/providers/effect-harness/provider.json')) {
-          return Effect.succeed(providerRecordJson(effectHarnessRecord))
+          return Effect.succeed(providerRecordJson(providerRecordWithSurfaces([])))
         }
 
         if (path.endsWith('.prelude/providers/other-harness/provider.json')) {

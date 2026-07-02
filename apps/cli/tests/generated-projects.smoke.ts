@@ -13,13 +13,13 @@ const generatedWorkspace = `packages:
 trustPolicy: no-downgrade
 
 trustPolicyExclude:
-  - '@effect/platform-node@4.0.0-beta.90'
-  - '@effect/platform-node-shared@4.0.0-beta.90'
-  - '@effect/vitest@4.0.0-beta.90'
-  - effect@4.0.0-beta.90
+  - '@effect/platform-node@4.0.0-beta.92'
+  - '@effect/platform-node-shared@4.0.0-beta.92'
+  - '@effect/vitest@4.0.0-beta.92'
+  - effect@4.0.0-beta.92
 
 overrides:
-  '@effect/platform-node@4.0.0-beta.90>@effect/platform-node-shared': 4.0.0-beta.90
+  '@effect/platform-node@4.0.0-beta.92>@effect/platform-node-shared': 4.0.0-beta.92
 
 catalog:
   '@antfu/eslint-config': 8.2.0
@@ -421,13 +421,14 @@ const providerRecord = await readJson<{ id: string, surfaces: Array<{ id: string
 )
 
 assert.equal(workerPackageJson.name, workerSpec.package.name)
-assert.equal(workerPackageJson.scripts.build, 'tsgo --noEmit --project tsconfig.json')
+assert.equal(workerPackageJson.scripts.build, 'tsgo --noEmit')
 assert.equal(workerPackageJson.scripts.lint, 'eslint .')
 assert.equal(workerPackageJson.scripts.knip, 'knip')
-assert.equal(workerPackageJson.scripts.typecheck, 'tsgo --noEmit --project tsconfig.json')
-assert.equal(workerPackageJson.scripts.verify, 'pnpm build && pnpm typecheck && pnpm lint && pnpm knip && pnpm effect:verify')
-assert.match(workerPackageJson.scripts['effect:verify'] ?? '', /effect-harness\.js" verify --target \./u)
-assert.equal(workerPackageJson.devDependencies['@effect/tsgo'], '0.14.6')
+assert.equal(workerPackageJson.scripts.prepare, 'effect-tsgo patch')
+assert.equal(workerPackageJson.scripts.typecheck, 'tsgo --noEmit')
+assert.equal(workerPackageJson.scripts.verify, 'pnpm build && pnpm typecheck && pnpm lint --max-warnings 0 && pnpm knip')
+assert.equal(workerPackageJson.scripts['effect:verify'], undefined)
+assert.equal(workerPackageJson.devDependencies['@effect/tsgo'], '0.15.0')
 assert.deepEqual(workerKnipConfig.ignoreDependencies, ['@effect/tsgo', '@effect/vitest'])
 assert.match(workerSource, /Effect\.fn\('main'\)/u)
 assert.match(workerSource, /NodeRuntime\.runMain\(main\(\)\)/u)
@@ -441,12 +442,14 @@ assert.equal(workerManifest.maintainProviders[0]?.recordPath, '.prelude/provider
 assert.equal(providerRecord.id, 'effect-harness')
 const providerSurfaceIds = new Set(providerRecord.surfaces.map(surface => surface.id))
 assert.ok(providerSurfaceIds.has('tsconfig:root:/compilerOptions/plugins'))
+assert.ok(providerSurfaceIds.has('provider-managed-file:effect-harness:.prelude/providers/effect-harness/docs/discovery.md'))
+assert.ok(providerSurfaceIds.has('provider-managed-file:effect-harness:.prelude/providers/effect-harness/snippets/agents.md'))
 assert.ok(
   providerRecord.surfaces.every(surface =>
     surface.owner === 'provider:effect-harness'
     && surface.lifecycle === 'managed'
     && !surface.path.startsWith('src/')),
-  'effect-harness must only manage provider runtime assets and package pointers',
+  'effect-harness must not manage target source files',
 )
 assert.ok(
   workerManifest.generatedUserSurfaces.every(surface => surface.authority === 'none'),

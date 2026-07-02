@@ -21,7 +21,7 @@ const effectHarnessProfile = 'codex-effect-v4'
 const effectHarnessProviderPath = '.prelude/providers/effect-harness/provider.json'
 const effectHarnessRoot = '/Users/sayori/Desktop/yume-infra/effect-harness'
 export const effectHarnessVerificationId = 'provider:effect-harness:create-contract'
-export const effectHarnessManagedBlockSurfaceId = 'provider-managed-block:effect-harness:AGENTS.md#effect-harness'
+const effectHarnessManagedBlockSurfaceId = 'provider-managed-block:effect-harness:AGENTS.md#effect-harness'
 
 const effectHarnessProviderProfile = {
   provider: {
@@ -132,7 +132,6 @@ const effectHarnessProviderProfile = {
 const effectHarnessProfileContract = effectHarnessProviderProfile.profiles[effectHarnessProfile]
 const effectHarnessAgentsStartMarker = effectHarnessProfileContract.contributions.agentsBlock.startMarker
 const effectHarnessAgentsEndMarker = effectHarnessProfileContract.contributions.agentsBlock.endMarker
-const effectHarnessTypecheckCommand = 'tsgo --noEmit --project tsconfig.json'
 
 export const effectHarnessSourceEntryEditorPolicy = {
   targetSurface: 'provider-repo-source-entry',
@@ -157,14 +156,136 @@ export const effectHarnessSourceEntryEditorPolicy = {
   },
 } as const satisfies JsonValue
 
-export const effectHarnessTsgoPlugin = effectHarnessProfileContract
-  .contributions
-  .tsconfig
-  .compilerOptions
-  .plugins satisfies JsonValue
-
 function jsonRecord(value: unknown): Record<string, JsonValue> {
   return JSON.parse(JSON.stringify(value)) as Record<string, JsonValue>
+}
+
+function isJsonRecord(value: JsonValue | undefined): value is Record<string, JsonValue> {
+  return value !== undefined && value !== null && typeof value === 'object' && !Array.isArray(value)
+}
+
+function requiredJsonRecord(value: JsonValue | undefined, source: string): Record<string, JsonValue> {
+  if (!isJsonRecord(value)) {
+    throw new Error(`Invalid effect-harness provider discovery: expected ${source} JSON object`)
+  }
+
+  return value
+}
+
+function requiredString(value: JsonValue | undefined, source: string): string {
+  if (typeof value !== 'string') {
+    throw new TypeError(`Invalid effect-harness provider discovery: expected ${source} string`)
+  }
+
+  return value
+}
+
+function optionalString(value: JsonValue | undefined): string | undefined {
+  return typeof value === 'string' ? value : undefined
+}
+
+function jsonPointerSegment(value: string) {
+  return value.replaceAll('~', '~0').replaceAll('/', '~1')
+}
+
+function targetManagedContributions(discovery: EffectHarnessProviderDiscovery) {
+  return requiredJsonRecord(discovery.targetManagedSurfaces.contributions, 'targetManagedSurfaces.contributions')
+}
+
+function targetManagedContribution(discovery: EffectHarnessProviderDiscovery, key: string) {
+  return requiredJsonRecord(targetManagedContributions(discovery)[key], `targetManagedSurfaces.contributions.${key}`)
+}
+
+function effectHarnessPackageJsonContribution(discovery: EffectHarnessProviderDiscovery) {
+  return targetManagedContribution(discovery, 'packageJson')
+}
+
+function effectHarnessTsconfigContribution(discovery: EffectHarnessProviderDiscovery) {
+  return targetManagedContribution(discovery, 'tsconfig')
+}
+
+function effectHarnessPolicyContributions(discovery: EffectHarnessProviderDiscovery) {
+  const contributions = targetManagedContributions(discovery)
+
+  return {
+    editorPolicy: requiredJsonRecord(contributions.editorPolicy, 'targetManagedSurfaces.contributions.editorPolicy'),
+    lintGuardrails: requiredJsonRecord(contributions.lintGuardrails, 'targetManagedSurfaces.contributions.lintGuardrails'),
+    testPolicy: requiredJsonRecord(contributions.testPolicy, 'targetManagedSurfaces.contributions.testPolicy'),
+    verificationPolicy: requiredJsonRecord(contributions.verificationPolicy, 'targetManagedSurfaces.contributions.verificationPolicy'),
+  }
+}
+
+function targetManagedFilesContribution(discovery: EffectHarnessProviderDiscovery, key: 'documentationBundle' | 'snippets') {
+  return requiredJsonRecord(discovery.targetManagedSurfaces[key], `targetManagedSurfaces.${key}`)
+}
+
+function effectHarnessPackageDependencyGroups(discovery: EffectHarnessProviderDiscovery) {
+  return requiredJsonRecord(effectHarnessPackageJsonContribution(discovery).dependencyGroups, 'targetManagedSurfaces.contributions.packageJson.dependencyGroups')
+}
+
+function effectHarnessPackageScripts(discovery: EffectHarnessProviderDiscovery) {
+  return requiredJsonRecord(effectHarnessPackageJsonContribution(discovery).scripts, 'targetManagedSurfaces.contributions.packageJson.scripts')
+}
+
+function effectHarnessPackageBaseline(discovery: EffectHarnessProviderDiscovery): Record<string, JsonValue> {
+  const packageBaseline: Record<string, JsonValue> = {}
+
+  for (const [groupName, groupValue] of Object.entries(effectHarnessPackageDependencyGroups(discovery))) {
+    const group = requiredJsonRecord(groupValue, `targetManagedSurfaces.contributions.packageJson.dependencyGroups.${groupName}`)
+    const packages = requiredJsonRecord(group.packages, `targetManagedSurfaces.contributions.packageJson.dependencyGroups.${groupName}.packages`)
+
+    for (const [packageName, version] of Object.entries(packages)) {
+      packageBaseline[packageName] = requiredString(version, `targetManagedSurfaces.contributions.packageJson.dependencyGroups.${groupName}.packages.${packageName}`)
+    }
+  }
+
+  return packageBaseline
+}
+
+export function effectHarnessTypecheckCommandForDiscovery(discovery: EffectHarnessProviderDiscovery) {
+  const scripts = effectHarnessPackageScripts(discovery)
+  const typecheck = requiredJsonRecord(scripts.typecheck, 'targetManagedSurfaces.contributions.packageJson.scripts.typecheck')
+
+  return requiredString(typecheck.defaultCommand, 'targetManagedSurfaces.contributions.packageJson.scripts.typecheck.defaultCommand')
+}
+
+function effectHarnessLanguageServiceFloatingEffect(discovery: EffectHarnessProviderDiscovery) {
+  const [plugin] = effectHarnessTsgoPluginForDiscovery(discovery)
+  const pluginRecord = requiredJsonRecord(plugin, 'targetManagedSurfaces.contributions.tsconfig.compilerOptions.plugins[0]')
+  const diagnosticSeverity = requiredJsonRecord(pluginRecord.diagnosticSeverity, 'targetManagedSurfaces.contributions.tsconfig.compilerOptions.plugins[0].diagnosticSeverity')
+
+  return optionalString(diagnosticSeverity.floatingEffect) ?? 'error'
+}
+
+export function effectHarnessTsgoPluginForDiscovery(discovery: EffectHarnessProviderDiscovery): readonly JsonValue[] {
+  const tsconfig = effectHarnessTsconfigContribution(discovery)
+  const compilerOptions = requiredJsonRecord(tsconfig.compilerOptions, 'targetManagedSurfaces.contributions.tsconfig.compilerOptions')
+  const plugins = compilerOptions.plugins
+
+  if (!Array.isArray(plugins)) {
+    throw new TypeError('Invalid effect-harness provider discovery: expected targetManagedSurfaces.contributions.tsconfig.compilerOptions.plugins array')
+  }
+
+  return plugins
+}
+
+export function effectHarnessProviderVerificationCommands(discovery: EffectHarnessProviderDiscovery): readonly string[] {
+  const { verificationPolicy } = effectHarnessPolicyContributions(discovery)
+  const localCommands = requiredJsonRecord(verificationPolicy.localCommands, 'targetManagedSurfaces.contributions.verificationPolicy.localCommands')
+  const diagnostics = localCommands.diagnostics
+
+  if (!Array.isArray(diagnostics)) {
+    return ['pnpm typecheck']
+  }
+
+  return diagnostics.map((command, index) =>
+    requiredString(command, `targetManagedSurfaces.contributions.verificationPolicy.localCommands.diagnostics[${index}]`))
+}
+
+export function effectHarnessProviderLintCommand(discovery: EffectHarnessProviderDiscovery) {
+  const { lintGuardrails } = effectHarnessPolicyContributions(discovery)
+
+  return requiredString(lintGuardrails.command, 'targetManagedSurfaces.contributions.lintGuardrails.command')
 }
 
 function effectHarnessArtifact(discovery: EffectHarnessProviderDiscovery): ProviderArtifactRecord {
@@ -203,19 +324,6 @@ export function effectHarnessResolvedProvider(discovery: EffectHarnessProviderDi
     artifactVersion: discovery.provider.providerVersion,
     packageScopes: typeof packageScopes === 'string' ? [packageScopes] : [...packageScopes],
   }
-}
-
-function effectHarnessTargetCommands() {
-  const builtCliPath = path.join(effectHarnessRoot, 'dist/bin/effect-harness.js')
-  const cliPath = fs.existsSync(builtCliPath)
-    ? builtCliPath
-    : path.join(effectHarnessRoot, 'bin/effect-harness.ts')
-
-  return {
-    status: `node "${cliPath}" status`,
-    verify: `node "${cliPath}" verify --target .`,
-    init: `node "${cliPath}" init --target . --harness "${effectHarnessRoot}"`,
-  } as const
 }
 
 export function hasEffectHarnessProvider(graph: ResolvedGraph) {
@@ -311,7 +419,47 @@ function effectHarnessManagedFileArtifactDefinitions() {
   ]
 }
 
-export function effectHarnessManagedFileArtifacts() {
+function discoveryManagedFileContent(discovery: EffectHarnessProviderDiscovery, file: Record<string, JsonValue>, source: string) {
+  const inlineContent = optionalString(file.content)
+  if (inlineContent !== undefined) {
+    return inlineContent
+  }
+
+  const sourcePath = requiredString(file.sourcePath, `${source}.sourcePath`)
+
+  return fs.readFileSync(path.join(discovery.artifactRoot, sourcePath), 'utf8')
+}
+
+function effectHarnessManagedFilesContribution(discovery: EffectHarnessProviderDiscovery, key: 'documentationBundle' | 'snippets') {
+  const contribution = targetManagedFilesContribution(discovery, key)
+  const targetBasePath = requiredString(contribution.targetBasePath, `targetManagedSurfaces.${key}.targetBasePath`)
+  const files = contribution.files
+
+  if (!Array.isArray(files)) {
+    throw new TypeError(`Invalid effect-harness provider discovery: expected targetManagedSurfaces.${key}.files array`)
+  }
+
+  return files.map((fileValue, index) => {
+    const source = `targetManagedSurfaces.${key}.files[${index}]`
+    const file = requiredJsonRecord(fileValue, source)
+    const targetPath = requiredString(file.targetPath, `${source}.targetPath`)
+    const pathInTarget = path.posix.join(targetBasePath, targetPath)
+
+    return {
+      path: pathInTarget,
+      content: discoveryManagedFileContent(discovery, file, source),
+    }
+  })
+}
+
+function effectHarnessDiscoveryManagedFileArtifacts(discovery: EffectHarnessProviderDiscovery) {
+  return [
+    ...effectHarnessManagedFilesContribution(discovery, 'documentationBundle'),
+    ...effectHarnessManagedFilesContribution(discovery, 'snippets'),
+  ]
+}
+
+function effectHarnessManagedFileArtifacts() {
   return [
     ...effectHarnessManagedFileArtifactDefinitions().map(artifact => ({
       path: artifact.target,
@@ -324,7 +472,7 @@ export function effectHarnessManagedFileArtifacts() {
   ] as const
 }
 
-export function effectHarnessManagedBlockArtifact() {
+function effectHarnessManagedBlockArtifact() {
   return {
     path: 'AGENTS.md',
     startMarker: effectHarnessAgentsStartMarker,
@@ -333,7 +481,7 @@ export function effectHarnessManagedBlockArtifact() {
   } as const
 }
 
-export function effectHarnessManagedFileSurfaceId(filePath: string) {
+function effectHarnessManagedFileSurfaceId(filePath: string) {
   return `provider-managed-file:effect-harness:${filePath}`
 }
 
@@ -355,16 +503,16 @@ function tsconfigPointerSurfaceId(pointer: string) {
   return `tsconfig:root:${pointer}`
 }
 
-export function effectHarnessPackageSurfacesForProjectedContext(projectedContext: ProviderProjectedContext) {
+function effectHarnessPackageSurfacesForProjectedContext(discovery: EffectHarnessProviderDiscovery, projectedContext: ProviderProjectedContext) {
   return projectedContext.topology === 'workspace'
-    ? effectHarnessPackageSurfaces().filter(surface => surface.pointer !== '/scripts/typecheck')
-    : effectHarnessPackageSurfaces()
+    ? effectHarnessPackageSurfaces(discovery).filter(surface => surface.pointer !== '/scripts/typecheck')
+    : effectHarnessPackageSurfaces(discovery)
 }
 
-export function effectHarnessTsconfigSurfacesForProjectedContext(projectedContext: ProviderProjectedContext) {
+function effectHarnessTsconfigSurfacesForProjectedContext(discovery: EffectHarnessProviderDiscovery, projectedContext: ProviderProjectedContext) {
   return projectedContext.topology === 'workspace'
     ? []
-    : effectHarnessTsconfigSurfaces()
+    : effectHarnessTsconfigSurfaces(discovery)
 }
 
 function lifecycleSurfaceMetadata(input: {
@@ -391,72 +539,54 @@ function snapshotJsonValue(value: JsonValue) {
   return typeof value === 'string' ? value : JSON.stringify(value)
 }
 
-function effectHarnessPackageSurfaces() {
-  const commands = effectHarnessTargetCommands()
-  const packageJson = effectHarnessProfileContract.contributions.packageJson
+function effectHarnessPackageSurfaces(discovery: EffectHarnessProviderDiscovery) {
+  const surfaces: { readonly id: string, readonly pointer: string, readonly value: JsonValue }[] = []
 
-  return [
-    {
-      id: packagePointerSurfaceId('/dependencies/effect'),
-      pointer: '/dependencies/effect',
-      value: packageJson.dependencies.effect,
-    },
-    {
-      id: packagePointerSurfaceId('/dependencies/@effect~1platform-node'),
-      pointer: '/dependencies/@effect~1platform-node',
-      value: packageJson.dependencies['@effect/platform-node'],
-    },
-    {
-      id: packagePointerSurfaceId('/devDependencies/@effect~1vitest'),
-      pointer: '/devDependencies/@effect~1vitest',
-      value: packageJson.devDependencies['@effect/vitest'],
-    },
-    {
-      id: packagePointerSurfaceId('/devDependencies/@effect~1tsgo'),
-      pointer: '/devDependencies/@effect~1tsgo',
-      value: packageJson.devDependencies['@effect/tsgo'],
-    },
-    {
-      id: packagePointerSurfaceId('/devDependencies/@effect~1language-service'),
-      pointer: '/devDependencies/@effect~1language-service',
-      value: packageJson.devDependencies['@effect/language-service'],
-    },
-    {
-      id: packagePointerSurfaceId('/devDependencies/@typescript~1native-preview'),
-      pointer: '/devDependencies/@typescript~1native-preview',
-      value: packageJson.devDependencies['@typescript/native-preview'],
-    },
-    {
-      id: packagePointerSurfaceId('/scripts/effect:status'),
-      pointer: '/scripts/effect:status',
-      value: commands.status,
-    },
-    {
-      id: packagePointerSurfaceId('/scripts/effect:verify'),
-      pointer: '/scripts/effect:verify',
-      value: commands.verify,
-    },
-    {
-      id: packagePointerSurfaceId('/scripts/typecheck'),
-      pointer: '/scripts/typecheck',
-      value: effectHarnessTypecheckCommand,
-    },
-  ] as const satisfies readonly { readonly id: string, readonly pointer: string, readonly value: JsonValue }[]
+  for (const [groupName, groupValue] of Object.entries(effectHarnessPackageDependencyGroups(discovery))) {
+    const group = requiredJsonRecord(groupValue, `targetManagedSurfaces.contributions.packageJson.dependencyGroups.${groupName}`)
+    const field = requiredString(group.field, `targetManagedSurfaces.contributions.packageJson.dependencyGroups.${groupName}.field`)
+    const packages = requiredJsonRecord(group.packages, `targetManagedSurfaces.contributions.packageJson.dependencyGroups.${groupName}.packages`)
+
+    if (field !== 'dependencies' && field !== 'devDependencies') {
+      throw new Error(`Invalid effect-harness provider discovery: unsupported packageJson dependency field ${field}`)
+    }
+
+    for (const [packageName, version] of Object.entries(packages)) {
+      const pointer = `/${field}/${jsonPointerSegment(packageName)}`
+      surfaces.push({
+        id: packagePointerSurfaceId(pointer),
+        pointer,
+        value: requiredString(version, `targetManagedSurfaces.contributions.packageJson.dependencyGroups.${groupName}.packages.${packageName}`),
+      })
+    }
+  }
+
+  for (const [scriptName, scriptValue] of Object.entries(effectHarnessPackageScripts(discovery))) {
+    const script = requiredJsonRecord(scriptValue, `targetManagedSurfaces.contributions.packageJson.scripts.${scriptName}`)
+    const pointer = `/scripts/${jsonPointerSegment(scriptName)}`
+    surfaces.push({
+      id: packagePointerSurfaceId(pointer),
+      pointer,
+      value: requiredString(script.defaultCommand, `targetManagedSurfaces.contributions.packageJson.scripts.${scriptName}.defaultCommand`),
+    })
+  }
+
+  return surfaces
 }
 
-function effectHarnessTsconfigSurfaces() {
+function effectHarnessTsconfigSurfaces(discovery: EffectHarnessProviderDiscovery) {
   return [
     {
       id: tsconfigPointerSurfaceId('/compilerOptions/plugins'),
       pointer: '/compilerOptions/plugins',
-      value: effectHarnessTsgoPlugin,
+      value: effectHarnessTsgoPluginForDiscovery(discovery),
     },
   ] as const satisfies readonly { readonly id: string, readonly pointer: string, readonly value: JsonValue }[]
 }
 
 function effectHarnessLifecycleSurfacesForProjectedContext(discovery: EffectHarnessProviderDiscovery, projectedContext: ProviderProjectedContext): readonly LifecycleSurfaceRecord[] {
   return [
-    ...effectHarnessPackageSurfacesForProjectedContext(projectedContext).map(surface =>
+    ...effectHarnessPackageSurfacesForProjectedContext(discovery, projectedContext).map(surface =>
       structuredPointerSurface({
         discovery,
         surface,
@@ -464,13 +594,21 @@ function effectHarnessLifecycleSurfacesForProjectedContext(discovery: EffectHarn
         locator: `package.json#${surface.pointer}`,
         operationId: 'write-package-json',
       })),
-    ...effectHarnessTsconfigSurfacesForProjectedContext(projectedContext).map(surface =>
+    ...effectHarnessTsconfigSurfacesForProjectedContext(discovery, projectedContext).map(surface =>
       structuredPointerSurface({
         discovery,
         surface,
         path: 'tsconfig.json',
         locator: `tsconfig.json#${surface.pointer}`,
         operationId: 'write-tsconfig',
+      })),
+    ...effectHarnessDiscoveryManagedFileArtifacts(discovery).map(artifact =>
+      ownedFileSurface({
+        discovery,
+        id: effectHarnessManagedFileSurfaceId(artifact.path),
+        path: artifact.path,
+        base: artifact.content,
+        operationId: managedFileOperationId(artifact.path),
       })),
     ...effectHarnessManagedFileArtifacts().map(artifact =>
       ownedFileSurface({
@@ -593,13 +731,14 @@ export function effectHarnessProviderRecordForProjectedContext(discovery: Effect
       runtime: effectHarnessProfileContract.options.runtime,
       effect: {
         major: 4,
-        packageBaseline: effectHarnessProfileContract.packageBaseline,
+        packageBaseline: effectHarnessPackageBaseline(discovery),
       },
       languageService: {
-        enabled: effectHarnessProfileContract.options.languageService,
-        floatingEffect: effectHarnessProfileContract.options.floatingEffect,
+        enabled: effectHarnessTsgoPluginForDiscovery(discovery).length > 0,
+        floatingEffect: effectHarnessLanguageServiceFloatingEffect(discovery),
       },
       packageScopes: projectedContext.packageScopes,
+      policies: effectHarnessPolicyContributions(discovery),
     },
     runtime: effectHarnessRuntime(discovery),
     surfaces,
@@ -623,33 +762,36 @@ function providerJsonValue(discovery: EffectHarnessProviderDiscovery, graph: Res
   return providerJsonValueForProjectedContext(discovery, effectHarnessProjectedContext(graph))
 }
 
-export function effectHarnessContributions(discovery: EffectHarnessProviderDiscovery, graph: ResolvedGraph): readonly CapabilityContribution[] {
-  const scripts: Record<string, JsonValue> = {
-    'effect:status': effectHarnessTargetCommands().status,
-    'effect:verify': effectHarnessTargetCommands().verify,
-    ...(graph.topology === 'workspace' ? {} : { typecheck: effectHarnessTypecheckCommand }),
+function packageManifestEntriesFromSurfaces(surfaces: readonly { readonly pointer: string, readonly value: JsonValue }[]) {
+  const entries: Record<string, JsonValue> = {}
+
+  for (const surface of surfaces) {
+    const [, section, rawKey] = surface.pointer.split('/')
+    if (section === undefined || rawKey === undefined) {
+      continue
+    }
+
+    const key = rawKey.replaceAll('~1', '/').replaceAll('~0', '~')
+    const sectionEntries = isJsonRecord(entries[section]) ? entries[section] : {}
+    entries[section] = {
+      ...sectionEntries,
+      [key]: surface.value,
+    }
   }
-  const packageJson = effectHarnessProfileContract.contributions.packageJson
+
+  return entries
+}
+
+export function effectHarnessContributions(discovery: EffectHarnessProviderDiscovery, graph: ResolvedGraph): readonly CapabilityContribution[] {
+  const projectedContext = effectHarnessProjectedContext(graph)
+  const packageEntries = packageManifestEntriesFromSurfaces(effectHarnessPackageSurfacesForProjectedContext(discovery, projectedContext))
 
   return [
     {
       kind: 'packageManifest',
       surfaceId: 'package-manifest:root',
       owner: 'provider:effect-harness',
-      entries: {
-        scripts,
-        dependencies: {
-          '@effect/platform-node': packageJson.dependencies['@effect/platform-node'],
-          'effect': packageJson.dependencies.effect,
-        },
-        devDependencies: {
-          '@effect/language-service': packageJson.devDependencies['@effect/language-service'],
-          '@effect/tsgo': packageJson.devDependencies['@effect/tsgo'],
-          '@effect/vitest': packageJson.devDependencies['@effect/vitest'],
-          '@typescript/native-preview': packageJson.devDependencies['@typescript/native-preview'],
-          'typescript': 'catalog:',
-        },
-      },
+      entries: packageEntries,
     },
     {
       kind: 'providerArtifact',
@@ -659,6 +801,15 @@ export function effectHarnessContributions(discovery: EffectHarnessProviderDisco
       path: effectHarnessProviderPath,
       value: providerJsonValue(discovery, graph),
     },
+    ...effectHarnessDiscoveryManagedFileArtifacts(discovery).map(artifact => ({
+      kind: 'providerManagedFile' as const,
+      surfaceId: effectHarnessManagedFileSurfaceId(artifact.path),
+      operationId: managedFileOperationId(artifact.path),
+      owner: 'provider:effect-harness' as const,
+      providerId: 'effect-harness' as const,
+      path: artifact.path,
+      content: artifact.content,
+    })),
     ...effectHarnessManagedFileArtifacts().map(artifact => ({
       kind: 'providerManagedFile' as const,
       surfaceId: effectHarnessManagedFileSurfaceId(artifact.path),

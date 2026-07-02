@@ -4,6 +4,14 @@ import { promisify } from 'node:util'
 import { Context, Effect, Layer, Schema } from 'effect'
 
 const execFilePromise = promisify(execFile)
+const targetManagedContributionKeys = [
+  'packageJson',
+  'tsconfig',
+  'editorPolicy',
+  'lintGuardrails',
+  'testPolicy',
+  'verificationPolicy',
+] as const
 
 class EffectHarnessProviderDiscoveryError extends Schema.TaggedErrorClass<EffectHarnessProviderDiscoveryError>()('EffectHarnessProviderDiscoveryError', {
   message: Schema.String,
@@ -47,6 +55,33 @@ function requireJsonRecord(record: Record<string, unknown>, key: string): Record
     throw new TypeError(`expected JSON object field ${key}`)
   }
   return value
+}
+
+function decodeTargetManagedSurfaces(input: Record<string, unknown>): Record<string, JsonValue> {
+  const targetManagedSurfaces = requireJsonRecord(input, 'targetManagedSurfaces')
+  const documentationBundle = targetManagedSurfaces.documentationBundle
+  const snippets = targetManagedSurfaces.snippets
+  const contributions = targetManagedSurfaces.contributions
+
+  if (!isRecord(documentationBundle)) {
+    throw new TypeError('expected targetManagedSurfaces.documentationBundle JSON object')
+  }
+
+  if (!isRecord(snippets)) {
+    throw new TypeError('expected targetManagedSurfaces.snippets JSON object')
+  }
+
+  if (!isRecord(contributions)) {
+    throw new TypeError('expected targetManagedSurfaces.contributions JSON object')
+  }
+
+  for (const key of targetManagedContributionKeys) {
+    if (!isRecord(contributions[key])) {
+      throw new TypeError(`expected targetManagedSurfaces.contributions.${key} JSON object`)
+    }
+  }
+
+  return targetManagedSurfaces
 }
 
 function decodePackageLocator(value: Record<string, unknown>): EffectHarnessPackageLocator {
@@ -103,7 +138,7 @@ function decodeEffectHarnessProviderDiscovery(input: unknown): Effect.Effect<Eff
         selectedProfile: requireString(input, 'selectedProfile'),
         discovery: requireJsonRecord(input, 'discovery'),
         deliveryModes: requireJsonRecord(input, 'deliveryModes'),
-        targetManagedSurfaces: requireJsonRecord(input, 'targetManagedSurfaces'),
+        targetManagedSurfaces: decodeTargetManagedSurfaces(input),
         artifactOnlyReferences: {
           ...artifactOnlyReferences,
           references,
