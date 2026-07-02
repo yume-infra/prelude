@@ -7,6 +7,7 @@ import { Effect, Layer } from 'effect'
 import { makePackageName } from '@/brand/package-name'
 import { makeTargetDir } from '@/brand/target-dir'
 import { createProjectFromSpec, materializeWritePlan } from '@/core/create'
+import { effectHarnessProviderDiscoveryDecodeLayer } from '@/core/create/effect-harness-discovery'
 import { FsLive } from '@/core/services/fs'
 import { EffectHarnessDiscoveryTestLayer } from '../../support/effect-harness-discovery'
 
@@ -21,6 +22,19 @@ async function readJson<T = unknown>(filePath: string) {
 const TestLayer = FsLive.pipe(
   Layer.provideMerge(NodeServices.layer),
   Layer.provideMerge(EffectHarnessDiscoveryTestLayer),
+)
+
+const InvalidDiscoveryTestLayer = FsLive.pipe(
+  Layer.provideMerge(NodeServices.layer),
+  Layer.provideMerge(effectHarnessProviderDiscoveryDecodeLayer({
+    schemaVersion: 1,
+    provider: {
+      id: 'effect-harness',
+      contractVersion: '1',
+      providerVersion: '0.1.0',
+      defaultProfile: 'codex-effect-v4',
+    },
+  })),
 )
 
 describe('create spec creation path', () => {
@@ -954,6 +968,40 @@ NodeRuntime.runMain(main())
       }).pipe(Effect.provide(TestLayer)),
     )
   })
+
+  it.effect('reports invalid provider discovery output at the public create seam', () =>
+    Effect.gen(function* () {
+      const targetDir = yield* Effect.promise(makeTempProjectDir)
+
+      const result = yield* Effect.result(
+        createProjectFromSpec({
+          spec: {
+            topology: 'single-package',
+            package: {
+              id: 'worker',
+              name: makePackageName('invalid-discovery-worker'),
+              capabilities: ['effect-package'],
+            },
+            rootCapabilities: ['package-manager:pnpm', 'ai-harness'],
+            providers: ['effect-harness'],
+            overrides: {},
+          },
+          targetDir: makeTargetDir(targetDir),
+          preludeVersion: '0.0.0-test',
+        }),
+      )
+
+      assert.equal(result._tag, 'Failure')
+      if (result._tag === 'Failure') {
+        assert.equal(result.failure._tag, 'SchemaContractError')
+        if (!('schema' in result.failure)) {
+          assert.fail('expected discovery failures to surface as SchemaContractError')
+        }
+        assert.equal(result.failure.schema, 'EffectHarnessProviderDiscovery')
+        assert.include(result.failure.message, 'Invalid effect-harness provider discovery output')
+        assert.include(result.failure.message, 'expected object field artifactOnlyReferences')
+      }
+    }).pipe(Effect.provide(InvalidDiscoveryTestLayer)))
 
   it.effect('dedupes equal structured package keys and blocks incompatible values before writes', () =>
     Effect.gen(function* () {

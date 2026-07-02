@@ -167,3 +167,12 @@ export function effectHarnessProviderDiscoveryLayer(discovery: EffectHarnessProv
     }),
   )
 }
+
+export function effectHarnessProviderDiscoveryDecodeLayer(discovery: unknown) {
+  return Layer.succeed(
+    EffectHarnessProviderDiscoveryService,
+    EffectHarnessProviderDiscoveryService.of({
+      discover: decodeEffectHarnessProviderDiscovery(discovery),
+    }),
+  )
+}
