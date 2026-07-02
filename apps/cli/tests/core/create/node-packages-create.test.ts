@@ -12,9 +12,11 @@ import { CliContextLive } from '@/core/cli-context'
 import { runCreateRoute } from '@/core/create-route'
 import { formatCanonicalCreateSpecJson } from '@/core/create-spec-input'
 import { FsLive } from '@/core/services/fs'
+import { EffectHarnessDiscoveryTestLayer } from '../../support/effect-harness-discovery'
 
 const TestLayer = FsLive.pipe(
   Layer.provideMerge(NodeServices.layer),
+  Layer.provideMerge(EffectHarnessDiscoveryTestLayer),
 )
 
 async function makeTempProjectDir() {

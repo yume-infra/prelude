@@ -1,10 +1,19 @@
+import type { JsonValue } from '@/core/create'
 import type { LifecycleProviderRegistry, ProviderUpdateOperation } from '@/core/lifecycle'
 import { assert, describe, it } from '@effect/vitest'
 import { Effect } from 'effect'
 import { makeTargetDir } from '@/brand/target-dir'
 import { effectHarnessProviderRecordForProjectedContext, effectHarnessSourceEntryEditorPolicy } from '@/core/create/effect-harness-provider'
-import { effectHarnessLifecycleProvider, reconcileManagedLogicalValue, runProviderLifecycleStatus, runProviderLifecycleUpdate, runProviderLifecycleVerify } from '@/core/lifecycle'
+import { effectHarnessLifecycleProviderForDiscovery, reconcileManagedLogicalValue, runProviderLifecycleStatus, runProviderLifecycleUpdate, runProviderLifecycleVerify } from '@/core/lifecycle'
+import { effectHarnessDiscoveryFixture } from '../../support/effect-harness-discovery'
 import { makeFsMockLayer } from '../../support/fs-mock'
+
+function jsonObject(value: JsonValue | undefined): Record<string, JsonValue> {
+  if (value === undefined || value === null || typeof value !== 'object' || Array.isArray(value)) {
+    throw new Error('expected JSON object')
+  }
+  return value as Record<string, JsonValue>
+}
 
 function manifestJson(overrides: Record<string, unknown> = {}) {
   return `${JSON.stringify({
@@ -112,6 +121,71 @@ const effectHarnessReference = {
   providerVersion: '0.1.0',
   profile: 'codex-effect-v4',
   recordPath: '.prelude/providers/effect-harness/provider.json',
+} as const
+
+const discoveredProvider = {
+  schemaVersion: 1,
+  artifactRoot: '/tmp/effect-harness-artifact',
+  providerProfilePath: '/tmp/effect-harness-artifact/provider/effect-harness.provider.json',
+  providerProfileRelativePath: 'provider/effect-harness.provider.json',
+  packageLocator: {
+    packageName: '@sayoriqwq/effect-harness',
+    packageVersion: '9.9.9-test',
+    binName: 'effect-harness',
+    binPath: 'dist/bin/effect-harness.js',
+    discoveryCommand: 'npx --yes @sayoriqwq/effect-harness provider-discover',
+    packageFiles: ['provider', 'harness', 'repos'],
+  },
+  provider: {
+    id: 'effect-harness',
+    contractVersion: '7-test',
+    providerVersion: '9.9.9-test',
+    defaultProfile: 'codex-effect-v4',
+  },
+  selectedProfile: 'codex-effect-v4',
+  discovery: {
+    mode: 'provider-discovery',
+    consumer: 'prelude',
+    profileSource: 'provider/effect-harness.provider.json',
+    targetLifecycleOwner: 'prelude',
+  },
+  deliveryModes: {},
+  targetManagedSurfaces: {
+    targetReceives: ['provider record at .prelude/providers/effect-harness/provider.json'],
+    targetDoesNotReceive: ['effect-harness runtime assets under .codex'],
+    documentationBundle: { mode: 'managed-files', targetBasePath: '.prelude/providers/effect-harness/docs', files: [] },
+    snippets: { mode: 'managed-files', targetBasePath: '.prelude/providers/effect-harness/snippets', files: [] },
+    contributions: {},
+  },
+  artifactOnlyReferences: {
+    mode: 'provider-artifact-reference',
+    targetDelivery: 'identity-only',
+    packageSurface: ['provider', 'harness', 'repos'],
+    references: {
+      'effect-source-tree': {
+        sourceEntry: 'effect-official-source',
+        path: 'repos/effect',
+        targetDelivery: 'artifact-only',
+      },
+    },
+  },
+  sourceIdentities: {
+    defaultSourceEntry: 'effect-official-source',
+    sourceEntries: {},
+    sourceBoundary: {
+      providerRepoInternal: true,
+      targetDelivery: 'identity-only',
+      targetMustNotReceive: ['repos/effect'],
+      allowedTargetSourceIdentity: ['artifact.sourceIdentities'],
+    },
+    providerSourceEntries: {},
+    artifactReferences: {},
+  },
+  internalHarnessSurfaces: {
+    mode: 'internal-harness',
+    description: 'not target materialized',
+    examples: ['harness/**'],
+  },
 } as const
 
 function providerRecordJson(record: unknown = effectHarnessRecord) {
@@ -547,9 +621,10 @@ describe('provider lifecycle runtime', () => {
     }))
 
   it('effect-harness adapter returns declarative provider and managed-surface operations', async () => {
-    const status = await Effect.runPromise(effectHarnessLifecycleProvider.status(effectHarnessRecord))
-    const verify = await Effect.runPromise(effectHarnessLifecycleProvider.verify(effectHarnessRecord))
-    const plan = await Effect.runPromise(effectHarnessLifecycleProvider.planUpdate(effectHarnessRecord, { providerId: 'effect-harness' }))
+    const provider = effectHarnessLifecycleProviderForDiscovery(effectHarnessDiscoveryFixture)
+    const status = await Effect.runPromise(provider.status(effectHarnessRecord))
+    const verify = await Effect.runPromise(provider.verify(effectHarnessRecord))
+    const plan = await Effect.runPromise(provider.planUpdate(effectHarnessRecord, { providerId: 'effect-harness' }))
 
     assert.equal(status.providerId, 'effect-harness')
     assert.equal(status.status, 'changed')
@@ -569,8 +644,37 @@ describe('provider lifecycle runtime', () => {
     }))
   })
 
+  it('effect-harness adapter compares provider identity against discovery output', async () => {
+    const provider = effectHarnessLifecycleProviderForDiscovery(discoveredProvider)
+    const record = effectHarnessProviderRecordForProjectedContext(discoveredProvider, effectHarnessRecord.projectedContext)
+
+    const okStatus = await Effect.runPromise(provider.status(record))
+    const okVerify = await Effect.runPromise(provider.verify(record))
+    assert.equal(okStatus.status, 'ok')
+    assert.equal(okVerify.status, 'passed')
+
+    const packageLocator = jsonObject(record.artifact.packageLocator)
+    const staleRecord = {
+      ...record,
+      providerVersion: '0.0.0-stale',
+      artifact: {
+        ...record.artifact,
+        packageLocator: {
+          ...packageLocator,
+          packageVersion: '0.0.0-stale',
+        },
+      },
+    }
+    const staleStatus = await Effect.runPromise(provider.status(staleRecord))
+    const staleVerify = await Effect.runPromise(provider.verify(staleRecord))
+    assert.equal(staleStatus.status, 'changed')
+    assert.equal(staleVerify.status, 'failed')
+    assert.match(staleVerify.message ?? '', /discovered provider identity/u)
+  })
+
   it('projects the effect-harness first-party provider interface without source-entry surfaces', async () => {
-    const record = effectHarnessProviderRecordForProjectedContext({
+    const provider = effectHarnessLifecycleProviderForDiscovery(effectHarnessDiscoveryFixture)
+    const record = effectHarnessProviderRecordForProjectedContext(effectHarnessDiscoveryFixture, {
       topology: 'single-package',
       packageScopes: ['worker'],
       rootCapabilities: ['ai-harness'],
@@ -586,22 +690,23 @@ describe('provider lifecycle runtime', () => {
       enabled: true,
       floatingEffect: 'error',
     })
-    assert.deepEqual([...record.runtime.files].sort(), [
-      '.codex/agents/effect-worker.md',
-      '.codex/effect-feedback/.gitkeep',
-      '.codex/skills/effect-code/SKILL.md',
-      '.codex/skills/effect-code/agents/openai.yaml',
-      '.codex/skills/effect-feedback/SKILL.md',
-      '.codex/skills/effect-feedback/agents/openai.yaml',
-      'AGENTS.md',
+    assert.deepEqual(record.runtime.files, [])
+    assert.equal(record.runtime.commands.discover, 'npx --yes @sayoriqwq/effect-harness provider-discover')
+    assert.equal(record.runtime.routes.providerProfile, 'provider/effect-harness.provider.json')
+    const artifactOnlyReferences = jsonObject(record.artifact.artifactOnlyReferences)
+    const references = jsonObject(artifactOnlyReferences.references)
+    const sourceIdentities = jsonObject(record.artifact.sourceIdentities)
+    assert.deepEqual(Object.keys(references).sort(), [
+      'effect-anchor-doc',
+      'effect-route-doc',
+      'effect-source-contract',
+      'effect-source-tree',
+      'tsgo-anchor-doc',
+      'tsgo-route-doc',
+      'tsgo-source-contract',
+      'tsgo-source-tree',
     ])
-    const officialGuide = record.runtime.routes.officialGuide
-    const effectLlmGuide = record.runtime.routes.effectLlmGuide
-    if (typeof officialGuide !== 'string' || typeof effectLlmGuide !== 'string') {
-      assert.fail('effect-harness runtime guide routes must be present')
-    }
-    assert.match(officialGuide, /harness\/offcial-guide\.md$/u)
-    assert.match(effectLlmGuide, /repos\/effect\/LLMS\.md$/u)
+    assert.equal(sourceIdentities.defaultSourceEntry, 'effect-official-source')
 
     const surfacePaths = record.surfaces.map(surface => surface.path)
     assert.isFalse(surfacePaths.some(surfacePath => surfacePath.startsWith('repos/')))
@@ -619,8 +724,8 @@ describe('provider lifecycle runtime', () => {
     assert.equal(effectHarnessSourceEntryEditorPolicy.zed.hideFilesExclude, 'user-preference')
     assert.equal(effectHarnessSourceEntryEditorPolicy.preludeTargetBehavior, 'do-not-materialize-source-entry-editor-settings')
 
-    const status = await Effect.runPromise(effectHarnessLifecycleProvider.status(record))
-    const verify = await Effect.runPromise(effectHarnessLifecycleProvider.verify(record))
+    const status = await Effect.runPromise(provider.status(record))
+    const verify = await Effect.runPromise(provider.verify(record))
     assert.equal(status.status, 'ok')
     assert.equal(verify.status, 'passed')
 
@@ -630,12 +735,12 @@ describe('provider lifecycle runtime', () => {
         ...record.runtime,
         routes: {
           ...record.runtime.routes,
-          officialGuide: 'old-guide.md',
+          providerProfile: 'old-provider-profile.json',
         },
       },
     }
-    const staleStatus = await Effect.runPromise(effectHarnessLifecycleProvider.status(staleRuntimeRecord))
-    const staleVerify = await Effect.runPromise(effectHarnessLifecycleProvider.verify(staleRuntimeRecord))
+    const staleStatus = await Effect.runPromise(provider.status(staleRuntimeRecord))
+    const staleVerify = await Effect.runPromise(provider.verify(staleRuntimeRecord))
     assert.equal(staleStatus.status, 'changed')
     assert.equal(staleVerify.status, 'failed')
     assert.match(staleVerify.message ?? '', /runtime metadata/u)

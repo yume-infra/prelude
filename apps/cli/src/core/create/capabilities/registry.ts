@@ -1,6 +1,7 @@
 import type {
   CapabilityContribution,
   CapabilityId,
+  EffectHarnessProviderDiscovery,
   LogicalSurface,
   ProviderId,
   ResolvedGraph,
@@ -73,14 +74,23 @@ export function packageCapabilityContributions(graph: ResolvedGraph, pkg: Resolv
   })
 }
 
-export function rootCapabilityContributions(graph: ResolvedGraph): readonly CapabilityContribution[] {
+export function rootCapabilityContributions(
+  graph: ResolvedGraph,
+  effectHarnessDiscovery: EffectHarnessProviderDiscovery | undefined,
+): readonly CapabilityContribution[] {
   const context = { graph }
   const rootContributions = graph.rootCapabilities.flatMap((capability) => {
     const definition = rootCapabilityDefinition(capability)
     return definition?.contribute(context) ?? []
   })
 
-  return graph.providers.some(provider => provider.id === 'effect-harness')
-    ? [...rootContributions, ...effectHarnessContributions(graph)]
-    : rootContributions
+  if (!graph.providers.some(provider => provider.id === 'effect-harness')) {
+    return rootContributions
+  }
+
+  if (effectHarnessDiscovery === undefined) {
+    throw new Error('effect-harness provider discovery must be loaded before collecting provider contributions')
+  }
+
+  return [...rootContributions, ...effectHarnessContributions(effectHarnessDiscovery, graph)]
 }

@@ -9,7 +9,7 @@
     "build": "turbo run build",
     "dev": "turbo run dev",
     "clean": "turbo run clean && rm -rf node_modules",
-    "verify": "pnpm --filter @sayoriqwq/prelude build && pnpm typecheck && pnpm --filter @sayoriqwq/prelude test && pnpm lint && pnpm knip && pnpm effect:verify",
+    "verify": "pnpm verify:code",
     "verify:code": "pnpm --filter @sayoriqwq/prelude build && pnpm typecheck && pnpm --filter @sayoriqwq/prelude test && pnpm lint && pnpm knip",
     "prototype:create-workbench": "pnpm --filter @sayoriqwq/prelude prototype:create-workbench",
     "smoke:examples": "pnpm --filter @sayoriqwq/prelude smoke:examples",
@@ -29,8 +29,6 @@
     "lint:fix": "eslint --fix",
     "prepare": "node -e \"if (require('node:fs').existsSync('.git')) require('node:child_process').execFileSync('husky', { stdio: 'inherit', shell: true })\" && effect-tsgo patch",
     "knip": "knip",
-    "effect:status": "node \"/Users/sayori/Desktop/yume-infra/effect-harness/dist/bin/effect-harness.js\" status",
-    "effect:verify": "node \"/Users/sayori/Desktop/yume-infra/effect-harness/dist/bin/effect-harness.js\" verify --target .",
     "typecheck": "tsgo --noEmit --project apps/cli/tsconfig.json",
     "typecheck:tsc": "pnpm --filter @sayoriqwq/prelude typecheck:tsc"
   },

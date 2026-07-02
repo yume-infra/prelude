@@ -9,9 +9,11 @@ import { Command } from 'effect/unstable/cli'
 import { makeTargetDir } from '@/brand/target-dir'
 import { formatPreludeCommandError, makePreludeCommand, printPreludeCommandHelp } from '@/core/cli-command'
 import { FsLive } from '@/core/services/fs'
+import { EffectHarnessDiscoveryTestLayer } from '../support/effect-harness-discovery'
 
 const TestLayer = FsLive.pipe(
   Layer.provideMerge(NodeServices.layer),
+  Layer.provideMerge(EffectHarnessDiscoveryTestLayer),
 )
 
 function makeTempProjectDir() {

@@ -9,9 +9,11 @@ import { makeTargetDir } from '@/brand/target-dir'
 import { createProjectFromSpec } from '@/core/create'
 import { projectRecoveredIntentFixtureToCreateSpec } from '@/core/create/recovered-intent-projector'
 import { FsLive } from '@/core/services/fs'
+import { EffectHarnessDiscoveryTestLayer } from '../../support/effect-harness-discovery'
 
 const TestLayer = FsLive.pipe(
   Layer.provideMerge(NodeServices.layer),
+  Layer.provideMerge(EffectHarnessDiscoveryTestLayer),
 )
 
 async function makeTempProjectDir() {

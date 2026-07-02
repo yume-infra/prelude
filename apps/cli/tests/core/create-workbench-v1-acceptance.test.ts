@@ -9,9 +9,11 @@ import { makeTargetDir } from '@/brand/target-dir'
 import { CliContextLive } from '@/core/cli-context'
 import { runCreateRoute } from '@/core/create-route'
 import { FsLive } from '@/core/services/fs'
+import { EffectHarnessDiscoveryTestLayer } from '../support/effect-harness-discovery'
 
 const TestLayer = FsLive.pipe(
   Layer.provideMerge(NodeServices.layer),
+  Layer.provideMerge(EffectHarnessDiscoveryTestLayer),
 )
 
 const fixtureRoot = fileURLToPath(new URL('../fixtures/fullscreen-create-workbench-v1/', import.meta.url))

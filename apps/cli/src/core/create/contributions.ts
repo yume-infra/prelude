@@ -1,4 +1,4 @@
-import type { CapabilityContribution, JsonValue, ResolvedGraph, ResolvedPackage } from './model'
+import type { CapabilityContribution, JsonValue, ProviderDiscoveries, ResolvedGraph, ResolvedPackage } from './model'
 import {
   packageCapabilityContributions,
   rootCapabilityContributions,
@@ -25,7 +25,7 @@ function workspaceInternalDependencyEntries(pkg: ResolvedPackage): Record<string
   }
 }
 
-function workspaceRootContributions(graph: ResolvedGraph): CapabilityContribution[] {
+function workspaceRootContributions(graph: ResolvedGraph, providerDiscoveries: ProviderDiscoveries): CapabilityContribution[] {
   return [
     {
       kind: 'packageManifest',
@@ -39,7 +39,7 @@ function workspaceRootContributions(graph: ResolvedGraph): CapabilityContributio
       owner: 'topology:workspace',
       globs: workspaceGlobs(graph.packages),
     },
-    ...rootCapabilityContributions(graph),
+    ...rootCapabilityContributions(graph, providerDiscoveries.effectHarness),
   ]
 }
 
@@ -61,10 +61,10 @@ function collectWorkspacePackageContributions(graph: ResolvedGraph, pkg: Resolve
   return contributions
 }
 
-export function collectCapabilityContributions(graph: ResolvedGraph): readonly CapabilityContribution[] {
+export function collectCapabilityContributions(graph: ResolvedGraph, providerDiscoveries: ProviderDiscoveries): readonly CapabilityContribution[] {
   if (graph.topology === 'workspace') {
     return [
-      ...workspaceRootContributions(graph),
+      ...workspaceRootContributions(graph, providerDiscoveries),
       ...graph.packages.flatMap(pkg => collectWorkspacePackageContributions(graph, pkg)),
     ]
   }
@@ -81,7 +81,7 @@ export function collectCapabilityContributions(graph: ResolvedGraph): readonly C
 
   return [
     ...packageCapabilityContributions(graph, graph.rootPackage),
-    ...rootCapabilityContributions(graph),
+    ...rootCapabilityContributions(graph, providerDiscoveries.effectHarness),
     ...verificationContributions,
   ]
 }

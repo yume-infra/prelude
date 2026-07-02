@@ -12,6 +12,7 @@ import { CliContextLive } from '@/core/cli-context'
 import { runCreateRoute } from '@/core/create-route'
 import { loadCreateSpecFromInput } from '@/core/create-spec-input'
 import { FsLive } from '@/core/services/fs'
+import { EffectHarnessDiscoveryTestLayer } from '../support/effect-harness-discovery'
 
 const prompts = vi.hoisted(() => ({
   isCancel: vi.fn(),
@@ -29,6 +30,7 @@ vi.mock('@clack/prompts', () => ({
 
 const TestLayer = FsLive.pipe(
   Layer.provideMerge(NodeServices.layer),
+  Layer.provideMerge(EffectHarnessDiscoveryTestLayer),
 )
 
 async function makeTempProjectDir() {

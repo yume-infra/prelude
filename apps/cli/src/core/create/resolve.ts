@@ -3,6 +3,7 @@ import type {
   CreateSpec,
   CreateSpecPackage,
   CreateSpecWorkspacePackage,
+  EffectHarnessProviderDiscovery,
   JsonCreateSpec,
   LogicalSurface,
   ResolvedGraph,
@@ -76,14 +77,22 @@ function resolveRootCapabilities(spec: CreateSpec): readonly RootCapabilityId[] 
   return rootCapabilities
 }
 
-function resolveProviders(spec: CreateSpec, rootCapabilities: readonly RootCapabilityId[]): readonly ResolvedProvider[] {
+function resolveProviders(
+  spec: CreateSpec,
+  rootCapabilities: readonly RootCapabilityId[],
+  effectHarnessDiscovery: EffectHarnessProviderDiscovery | undefined,
+): readonly ResolvedProvider[] {
   if (!rootCapabilities.includes('ai-harness') || !spec.providers.includes('effect-harness')) {
     return []
   }
 
+  if (effectHarnessDiscovery === undefined) {
+    throw new Error('effect-harness provider discovery must be loaded before resolving effect-harness provider')
+  }
+
   return spec.topology === 'workspace'
-    ? [effectHarnessResolvedProvider(spec.packages.map(pkg => pkg.id))]
-    : [effectHarnessResolvedProvider(spec.package.id)]
+    ? [effectHarnessResolvedProvider(effectHarnessDiscovery, spec.packages.map(pkg => pkg.id))]
+    : [effectHarnessResolvedProvider(effectHarnessDiscovery, spec.package.id)]
 }
 
 function logicalSurfacesForPackage(graph: ResolvedGraph, pkg: ResolvedPackage): readonly LogicalSurface[] {
@@ -406,9 +415,9 @@ function withLogicalSurfaces(graph: Omit<ResolvedGraph, 'logicalSurfaces'>): Res
   }
 }
 
-export function resolveCreateSpec(spec: CreateSpec): ResolvedGraph {
+export function resolveCreateSpec(spec: CreateSpec, effectHarnessDiscovery?: EffectHarnessProviderDiscovery): ResolvedGraph {
   const rootCapabilities = resolveRootCapabilities(spec)
-  const providers = resolveProviders(spec, rootCapabilities)
+  const providers = resolveProviders(spec, rootCapabilities, effectHarnessDiscovery)
 
   if (spec.topology === 'workspace') {
     const packages = resolveWorkspacePackages(spec)

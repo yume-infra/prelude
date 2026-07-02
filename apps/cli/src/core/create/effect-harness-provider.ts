@@ -1,5 +1,6 @@
 import type {
   CapabilityContribution,
+  EffectHarnessProviderDiscovery,
   JsonValue,
   LifecycleProviderRecord,
   LifecycleSurfaceRecord,
@@ -13,8 +14,8 @@ import type {
 import * as fs from 'node:fs'
 import * as path from 'node:path'
 
-export const effectHarnessContractVersion = '1'
-const effectHarnessProviderVersion = '0.1.0'
+const effectHarnessContractVersion = '1'
+const legacyInlineEffectHarnessProviderVersion = '0.1.0'
 const effectHarnessProviderId = 'effect-harness'
 const effectHarnessProfile = 'codex-effect-v4'
 const effectHarnessProviderPath = '.prelude/providers/effect-harness/provider.json'
@@ -26,7 +27,7 @@ const effectHarnessProviderProfile = {
   provider: {
     id: effectHarnessProviderId,
     contractVersion: effectHarnessContractVersion,
-    providerVersion: effectHarnessProviderVersion,
+    providerVersion: legacyInlineEffectHarnessProviderVersion,
     defaultProfile: effectHarnessProfile,
   },
   profiles: {
@@ -162,18 +163,44 @@ export const effectHarnessTsgoPlugin = effectHarnessProfileContract
   .compilerOptions
   .plugins satisfies JsonValue
 
-const effectHarnessArtifact = {
-  id: effectHarnessProviderProfile.provider.id,
-  version: effectHarnessProviderVersion,
-  source: effectHarnessProfileContract.source,
-  packageBaseline: effectHarnessProfileContract.packageBaseline,
-} as const satisfies ProviderArtifactRecord
+function jsonRecord(value: unknown): Record<string, JsonValue> {
+  return JSON.parse(JSON.stringify(value)) as Record<string, JsonValue>
+}
 
-export function effectHarnessResolvedProvider(packageScopes: string | readonly string[]): ResolvedProvider {
+function effectHarnessArtifact(discovery: EffectHarnessProviderDiscovery): ProviderArtifactRecord {
   return {
-    id: effectHarnessProviderProfile.provider.id,
-    contractVersion: effectHarnessContractVersion,
-    artifactVersion: effectHarnessProviderVersion,
+    id: discovery.provider.id,
+    version: discovery.provider.providerVersion,
+    artifactRoot: discovery.artifactRoot,
+    providerProfilePath: discovery.providerProfilePath,
+    providerProfileRelativePath: discovery.providerProfileRelativePath,
+    packageLocator: jsonRecord(discovery.packageLocator),
+    artifactOnlyReferences: jsonRecord(discovery.artifactOnlyReferences),
+    sourceIdentities: jsonRecord(discovery.sourceIdentities),
+  } satisfies ProviderArtifactRecord
+}
+
+function effectHarnessRuntime(discovery: EffectHarnessProviderDiscovery) {
+  return {
+    commands: {
+      discover: discovery.packageLocator.discoveryCommand,
+    },
+    routes: {
+      providerProfile: discovery.providerProfileRelativePath,
+    },
+    files: [],
+    discovery: discovery.discovery,
+    deliveryModes: discovery.deliveryModes,
+    targetManagedSurfaces: discovery.targetManagedSurfaces,
+    internalHarnessSurfaces: discovery.internalHarnessSurfaces,
+  } as const satisfies LifecycleProviderRecord['runtime']
+}
+
+export function effectHarnessResolvedProvider(discovery: EffectHarnessProviderDiscovery, packageScopes: string | readonly string[]): ResolvedProvider {
+  return {
+    id: discovery.provider.id,
+    contractVersion: discovery.provider.contractVersion,
+    artifactVersion: discovery.provider.providerVersion,
     packageScopes: typeof packageScopes === 'string' ? [packageScopes] : [...packageScopes],
   }
 }
@@ -188,16 +215,6 @@ function effectHarnessTargetCommands() {
     status: `node "${cliPath}" status`,
     verify: `node "${cliPath}" verify --target .`,
     init: `node "${cliPath}" init --target . --harness "${effectHarnessRoot}"`,
-  } as const
-}
-
-function effectHarnessRoutes() {
-  return {
-    harness: path.join(effectHarnessRoot, 'HARNESS.md'),
-    agentContract: path.join(effectHarnessRoot, 'harness/index.md'),
-    targetContract: path.join(effectHarnessRoot, 'harness/target-agent-contract.md'),
-    officialGuide: path.join(effectHarnessRoot, 'harness/offcial-guide.md'),
-    effectLlmGuide: path.join(effectHarnessRoot, effectHarnessProfileContract.officialSource.llmDocument),
   } as const
 }
 
@@ -350,16 +367,8 @@ export function effectHarnessTsconfigSurfacesForProjectedContext(projectedContex
     : effectHarnessTsconfigSurfaces()
 }
 
-export function effectHarnessProviderSurfaceIdsForProjectedContext(projectedContext: ProviderProjectedContext): readonly string[] {
-  return [
-    ...effectHarnessPackageSurfacesForProjectedContext(projectedContext).map(surface => surface.id),
-    ...effectHarnessTsconfigSurfacesForProjectedContext(projectedContext).map(surface => surface.id),
-    ...effectHarnessManagedFileArtifacts().map(artifact => effectHarnessManagedFileSurfaceId(artifact.path)),
-    effectHarnessManagedBlockSurfaceId,
-  ]
-}
-
 function lifecycleSurfaceMetadata(input: {
+  readonly discovery: EffectHarnessProviderDiscovery
   readonly id: string
   readonly scope: 'entry' | 'file'
   readonly locator: string
@@ -372,8 +381,8 @@ function lifecycleSurfaceMetadata(input: {
     scope: input.scope,
     locator: input.locator,
     conflictPolicy: 'block',
-    contractVersion: effectHarnessContractVersion,
-    implementationVersion: effectHarnessProviderVersion,
+    contractVersion: input.discovery.provider.contractVersion,
+    implementationVersion: input.discovery.provider.providerVersion,
     ...(input.base === undefined ? {} : { base: input.base, snapshot: input.base }),
   } as const
 }
@@ -445,10 +454,11 @@ function effectHarnessTsconfigSurfaces() {
   ] as const satisfies readonly { readonly id: string, readonly pointer: string, readonly value: JsonValue }[]
 }
 
-function effectHarnessLifecycleSurfacesForProjectedContext(projectedContext: ProviderProjectedContext): readonly LifecycleSurfaceRecord[] {
+function effectHarnessLifecycleSurfacesForProjectedContext(discovery: EffectHarnessProviderDiscovery, projectedContext: ProviderProjectedContext): readonly LifecycleSurfaceRecord[] {
   return [
     ...effectHarnessPackageSurfacesForProjectedContext(projectedContext).map(surface =>
       structuredPointerSurface({
+        discovery,
         surface,
         path: 'package.json',
         locator: `package.json#${surface.pointer}`,
@@ -456,6 +466,7 @@ function effectHarnessLifecycleSurfacesForProjectedContext(projectedContext: Pro
       })),
     ...effectHarnessTsconfigSurfacesForProjectedContext(projectedContext).map(surface =>
       structuredPointerSurface({
+        discovery,
         surface,
         path: 'tsconfig.json',
         locator: `tsconfig.json#${surface.pointer}`,
@@ -463,12 +474,14 @@ function effectHarnessLifecycleSurfacesForProjectedContext(projectedContext: Pro
       })),
     ...effectHarnessManagedFileArtifacts().map(artifact =>
       ownedFileSurface({
+        discovery,
         id: effectHarnessManagedFileSurfaceId(artifact.path),
         path: artifact.path,
         base: artifact.content,
         operationId: managedFileOperationId(artifact.path),
       })),
     managedBlockSurface({
+      discovery,
       id: effectHarnessManagedBlockSurfaceId,
       artifact: effectHarnessManagedBlockArtifact(),
       operationId: managedBlockOperationId('AGENTS.md'),
@@ -477,6 +490,7 @@ function effectHarnessLifecycleSurfacesForProjectedContext(projectedContext: Pro
 }
 
 function structuredPointerSurface(input: {
+  readonly discovery: EffectHarnessProviderDiscovery
   readonly surface: { readonly id: string, readonly pointer: string, readonly value: JsonValue }
   readonly path: string
   readonly locator: string
@@ -486,6 +500,7 @@ function structuredPointerSurface(input: {
 
   return {
     ...lifecycleSurfaceMetadata({
+      discovery: input.discovery,
       id: input.surface.id,
       scope: 'entry',
       locator: input.locator,
@@ -502,6 +517,7 @@ function structuredPointerSurface(input: {
 }
 
 function ownedFileSurface(input: {
+  readonly discovery: EffectHarnessProviderDiscovery
   readonly id: string
   readonly path: string
   readonly base: string
@@ -509,6 +525,7 @@ function ownedFileSurface(input: {
 }): LifecycleSurfaceRecord {
   return {
     ...lifecycleSurfaceMetadata({
+      discovery: input.discovery,
       id: input.id,
       scope: 'file',
       locator: input.path,
@@ -522,12 +539,14 @@ function ownedFileSurface(input: {
 }
 
 function managedBlockSurface(input: {
+  readonly discovery: EffectHarnessProviderDiscovery
   readonly id: string
   readonly artifact: ReturnType<typeof effectHarnessManagedBlockArtifact>
   readonly operationId: string
 }): LifecycleSurfaceRecord {
   return {
     ...lifecycleSurfaceMetadata({
+      discovery: input.discovery,
       id: input.id,
       scope: 'entry',
       locator: `${input.artifact.path}#effect-harness`,
@@ -544,8 +563,8 @@ function managedBlockSurface(input: {
   }
 }
 
-export function effectHarnessLifecycleProviderRecord(graph: ResolvedGraph): LifecycleProviderRecord {
-  return effectHarnessProviderRecordForProjectedContext(effectHarnessProjectedContext(graph))
+export function effectHarnessLifecycleProviderRecord(discovery: EffectHarnessProviderDiscovery, graph: ResolvedGraph): LifecycleProviderRecord {
+  return effectHarnessProviderRecordForProjectedContext(discovery, effectHarnessProjectedContext(graph))
 }
 
 export function effectHarnessMaintainProviderReference(record: LifecycleProviderRecord): MaintainProviderReference {
@@ -558,22 +577,23 @@ export function effectHarnessMaintainProviderReference(record: LifecycleProvider
   }
 }
 
-export function effectHarnessProviderRecordForProjectedContext(projectedContext: ProviderProjectedContext): LifecycleProviderRecord {
-  const surfaces = effectHarnessLifecycleSurfacesForProjectedContext(projectedContext)
+export function effectHarnessProviderRecordForProjectedContext(discovery: EffectHarnessProviderDiscovery, projectedContext: ProviderProjectedContext): LifecycleProviderRecord {
+  const surfaces = effectHarnessLifecycleSurfacesForProjectedContext(discovery, projectedContext)
+  const artifact = effectHarnessArtifact(discovery)
 
   return {
     schemaVersion: 1,
-    id: effectHarnessProviderProfile.provider.id,
-    contractVersion: effectHarnessProviderProfile.provider.contractVersion,
-    providerVersion: effectHarnessProviderProfile.provider.providerVersion,
-    profile: effectHarnessProfile,
-    artifact: effectHarnessArtifact,
+    id: discovery.provider.id,
+    contractVersion: discovery.provider.contractVersion,
+    providerVersion: discovery.provider.providerVersion,
+    profile: discovery.selectedProfile,
+    artifact,
     projectedContext,
     options: {
       runtime: effectHarnessProfileContract.options.runtime,
       effect: {
         major: 4,
-        packageBaseline: effectHarnessArtifact.packageBaseline,
+        packageBaseline: effectHarnessProfileContract.packageBaseline,
       },
       languageService: {
         enabled: effectHarnessProfileContract.options.languageService,
@@ -581,14 +601,7 @@ export function effectHarnessProviderRecordForProjectedContext(projectedContext:
       },
       packageScopes: projectedContext.packageScopes,
     },
-    runtime: {
-      commands: effectHarnessTargetCommands(),
-      routes: effectHarnessRoutes(),
-      files: [
-        ...effectHarnessManagedFileArtifacts().map(artifact => artifact.path),
-        effectHarnessManagedBlockArtifact().path,
-      ],
-    },
+    runtime: effectHarnessRuntime(discovery),
     surfaces,
     verificationRecordId: effectHarnessVerificationId,
   }
@@ -602,15 +615,15 @@ export function effectHarnessVerificationRecord(): VerificationRecord {
   }
 }
 
-function providerJsonValueForProjectedContext(projectedContext: ProviderProjectedContext): Record<string, JsonValue> {
-  return JSON.parse(JSON.stringify(effectHarnessProviderRecordForProjectedContext(projectedContext))) as Record<string, JsonValue>
+function providerJsonValueForProjectedContext(discovery: EffectHarnessProviderDiscovery, projectedContext: ProviderProjectedContext): Record<string, JsonValue> {
+  return JSON.parse(JSON.stringify(effectHarnessProviderRecordForProjectedContext(discovery, projectedContext))) as Record<string, JsonValue>
 }
 
-function providerJsonValue(graph: ResolvedGraph): Record<string, JsonValue> {
-  return providerJsonValueForProjectedContext(effectHarnessProjectedContext(graph))
+function providerJsonValue(discovery: EffectHarnessProviderDiscovery, graph: ResolvedGraph): Record<string, JsonValue> {
+  return providerJsonValueForProjectedContext(discovery, effectHarnessProjectedContext(graph))
 }
 
-export function effectHarnessContributions(graph: ResolvedGraph): readonly CapabilityContribution[] {
+export function effectHarnessContributions(discovery: EffectHarnessProviderDiscovery, graph: ResolvedGraph): readonly CapabilityContribution[] {
   const scripts: Record<string, JsonValue> = {
     'effect:status': effectHarnessTargetCommands().status,
     'effect:verify': effectHarnessTargetCommands().verify,
@@ -644,7 +657,7 @@ export function effectHarnessContributions(graph: ResolvedGraph): readonly Capab
       owner: 'provider:effect-harness',
       providerId: 'effect-harness',
       path: effectHarnessProviderPath,
-      value: providerJsonValue(graph),
+      value: providerJsonValue(discovery, graph),
     },
     ...effectHarnessManagedFileArtifacts().map(artifact => ({
       kind: 'providerManagedFile' as const,

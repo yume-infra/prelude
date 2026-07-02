@@ -104,8 +104,6 @@ Runtime skills and agents installed by the harness:
 Use:
 
 ```bash
-pnpm effect:status
-pnpm effect:verify
 pnpm verify
 ```
 

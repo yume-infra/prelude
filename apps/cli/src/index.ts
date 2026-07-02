@@ -7,6 +7,7 @@ import { Console, Effect, Layer, Logger, References } from 'effect'
 import { DevTools } from 'effect/unstable/devtools'
 import { AppConfig } from '@/config/app-config'
 import { formatPreludeCommandError, printPreludeCommandHelp, runPreludeCommand, shouldPrintPreludeCommandHelp } from '@/core/cli-command'
+import { EffectHarnessProviderDiscoveryService } from '@/core/create/effect-harness-discovery'
 import { TracingLive } from '@/core/services/tracing'
 import { FsLive } from '~/fs'
 
@@ -43,6 +44,7 @@ const BaseLayer = Layer.mergeAll(
   LoggerLevelLive,
   Logger.layer([Logger.consolePretty()]),
   FsLive,
+  EffectHarnessProviderDiscoveryService.Default,
 ).pipe(Layer.provideMerge(PlatformLayer))
 
 const commandOptions = {

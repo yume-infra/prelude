@@ -1,17 +1,16 @@
 import type { TargetDir } from '@/brand/target-dir'
-import type { CreateFs, JsonValue, LifecycleProviderRecord, LifecycleSurfaceRecord, MaintainProviderReference, PreludeManifest } from '@/core/create'
+import type { CreateFs, EffectHarnessProviderDiscovery, JsonValue, LifecycleProviderRecord, LifecycleSurfaceRecord, MaintainProviderReference, PreludeManifest } from '@/core/create'
 import type { FileIOError } from '@/core/errors'
 import * as path from 'node:path'
 import { Effect, Schema } from 'effect'
+import { EffectHarnessProviderDiscoveryService } from '@/core/create/effect-harness-discovery'
 import {
-  effectHarnessContractVersion,
   effectHarnessManagedBlockArtifact,
   effectHarnessManagedBlockSurfaceId,
   effectHarnessManagedFileArtifacts,
   effectHarnessManagedFileSurfaceId,
   effectHarnessPackageSurfacesForProjectedContext,
   effectHarnessProviderRecordForProjectedContext,
-  effectHarnessProviderSurfaceIdsForProjectedContext,
   effectHarnessTsconfigSurfacesForProjectedContext,
 } from '@/core/create/effect-harness-provider'
 import { extractManagedBlock, managedBlockCount, upsertManagedBlock } from '@/core/create/managed-block'
@@ -69,6 +68,17 @@ export interface ProviderUpdateOptions {
 export interface LifecycleProvider {
   readonly id: string
   readonly contractVersion: string
+  readonly status: (record: LifecycleProviderRecord) => Effect.Effect<ProviderStatus, LifecycleCommandError, EffectHarnessProviderDiscoveryService>
+  readonly verify: (record: LifecycleProviderRecord) => Effect.Effect<ProviderVerifyResult, LifecycleCommandError, EffectHarnessProviderDiscoveryService>
+  readonly planUpdate: (
+    record: LifecycleProviderRecord,
+    options: ProviderUpdateOptions,
+  ) => Effect.Effect<ProviderUpdatePlan, LifecycleCommandError, EffectHarnessProviderDiscoveryService>
+}
+
+interface StaticLifecycleProvider {
+  readonly id: string
+  readonly contractVersion: string
   readonly status: (record: LifecycleProviderRecord) => Effect.Effect<ProviderStatus, LifecycleCommandError>
   readonly verify: (record: LifecycleProviderRecord) => Effect.Effect<ProviderVerifyResult, LifecycleCommandError>
   readonly planUpdate: (
@@ -83,8 +93,8 @@ function jsonMatches(left: unknown, right: unknown) {
   return JSON.stringify(left) === JSON.stringify(right)
 }
 
-function missingEffectHarnessSurfaceIds(record: LifecycleProviderRecord) {
-  const expected = effectHarnessProviderSurfaceIdsForProjectedContext(record.projectedContext)
+function missingEffectHarnessSurfaceIds(discovery: EffectHarnessProviderDiscovery, record: LifecycleProviderRecord) {
+  const expected = desiredEffectHarnessRecord(discovery, record).surfaces.map(surface => surface.id)
   const actual = record.surfaces.map(surface => surface.id)
   return expected.filter(surfaceId => !actual.includes(surfaceId))
 }
@@ -96,20 +106,20 @@ function surfaceDescriptor(surface: LifecycleSurfaceRecord) {
   return descriptor
 }
 
-function desiredEffectHarnessRecord(record: LifecycleProviderRecord): LifecycleProviderRecord {
-  return effectHarnessProviderRecordForProjectedContext(record.projectedContext)
+function desiredEffectHarnessRecord(discovery: EffectHarnessProviderDiscovery, record: LifecycleProviderRecord): LifecycleProviderRecord {
+  return effectHarnessProviderRecordForProjectedContext(discovery, record.projectedContext)
 }
 
-function effectHarnessRecordProfileIssues(record: LifecycleProviderRecord) {
-  const desired = desiredEffectHarnessRecord(record)
+function effectHarnessRecordProfileIssues(discovery: EffectHarnessProviderDiscovery, record: LifecycleProviderRecord) {
+  const desired = desiredEffectHarnessRecord(discovery, record)
   const issues: string[] = []
 
   if (record.providerVersion !== desired.providerVersion || record.profile !== desired.profile) {
-    issues.push('provider profile identity differs from current effect-harness profile')
+    issues.push('provider profile identity differs from discovered provider identity')
   }
 
   if (!jsonMatches(record.artifact, desired.artifact)) {
-    issues.push('provider artifact identity differs from current effect-harness profile')
+    issues.push('provider artifact identity differs from discovered provider identity')
   }
 
   if (!jsonMatches(record.options, desired.options)) {
@@ -120,7 +130,7 @@ function effectHarnessRecordProfileIssues(record: LifecycleProviderRecord) {
     issues.push('provider runtime metadata differs from current effect-harness profile')
   }
 
-  const missingSurfaceIds = missingEffectHarnessSurfaceIds(record)
+  const missingSurfaceIds = missingEffectHarnessSurfaceIds(discovery, record)
   if (missingSurfaceIds.length > 0) {
     issues.push(`provider record is missing managed surfaces: ${missingSurfaceIds.join(', ')}`)
   }
@@ -171,53 +181,81 @@ function desiredEffectHarnessOperations(record: LifecycleProviderRecord): readon
   ]
 }
 
-const effectHarnessStatus = Effect.fn('effectHarnessStatus')(
-  function* (record: LifecycleProviderRecord): Effect.fn.Return<ProviderStatus, LifecycleCommandError> {
-    const issues = effectHarnessRecordProfileIssues(record)
+function effectHarnessStatusForDiscovery(discovery: EffectHarnessProviderDiscovery) {
+  return Effect.fn('effectHarnessStatus')(
+    function* (record: LifecycleProviderRecord): Effect.fn.Return<ProviderStatus, LifecycleCommandError> {
+      const issues = effectHarnessRecordProfileIssues(discovery, record)
 
-    return {
-      providerId: record.id,
-      status: issues.length === 0 ? 'ok' : 'changed',
-      ...(issues.length === 0 ? {} : { message: issues.join('; ') }),
-    }
-  },
-)
+      return {
+        providerId: record.id,
+        status: issues.length === 0 ? 'ok' : 'changed',
+        ...(issues.length === 0 ? {} : { message: issues.join('; ') }),
+      }
+    },
+  )
+}
 
-const effectHarnessVerify = Effect.fn('effectHarnessVerify')(
-  function* (record: LifecycleProviderRecord): Effect.fn.Return<ProviderVerifyResult, LifecycleCommandError> {
-    const issues = record.contractVersion === effectHarnessContractVersion
-      ? effectHarnessRecordProfileIssues(record)
-      : [`effect-harness contract version ${record.contractVersion} is unsupported`]
+function effectHarnessVerifyForDiscovery(discovery: EffectHarnessProviderDiscovery) {
+  return Effect.fn('effectHarnessVerify')(
+    function* (record: LifecycleProviderRecord): Effect.fn.Return<ProviderVerifyResult, LifecycleCommandError> {
+      const issues = record.contractVersion === discovery.provider.contractVersion
+        ? effectHarnessRecordProfileIssues(discovery, record)
+        : [`effect-harness contract version ${record.contractVersion} is unsupported by discovered contract ${discovery.provider.contractVersion}`]
 
-    return issues.length === 0
-      ? {
-          providerId: record.id,
-          status: 'passed' as const,
-        }
-      : {
-          providerId: record.id,
-          status: 'failed' as const,
-          message: `effect-harness lifecycle provider record does not match current provider profile: ${issues.join('; ')}`,
-        }
-  },
-)
+      return issues.length === 0
+        ? {
+            providerId: record.id,
+            status: 'passed' as const,
+          }
+        : {
+            providerId: record.id,
+            status: 'failed' as const,
+            message: `effect-harness lifecycle provider record does not match discovered provider identity: ${issues.join('; ')}`,
+          }
+    },
+  )
+}
 
-const planEffectHarnessUpdate = Effect.fn('planEffectHarnessUpdate')(
-  function* (record: LifecycleProviderRecord): Effect.fn.Return<ProviderUpdatePlan, LifecycleCommandError> {
-    return {
-      providerId: record.id,
-      operations: desiredEffectHarnessOperations(record),
-      nextRecord: desiredEffectHarnessRecord(record),
-    }
-  },
-)
+function planEffectHarnessUpdateForDiscovery(discovery: EffectHarnessProviderDiscovery) {
+  return Effect.fn('planEffectHarnessUpdate')(
+    function* (record: LifecycleProviderRecord): Effect.fn.Return<ProviderUpdatePlan, LifecycleCommandError> {
+      return {
+        providerId: record.id,
+        operations: desiredEffectHarnessOperations(record),
+        nextRecord: desiredEffectHarnessRecord(discovery, record),
+      }
+    },
+  )
+}
+
+function withDiscoveredEffectHarness<A>(
+  f: (discovery: EffectHarnessProviderDiscovery) => Effect.Effect<A, LifecycleCommandError>,
+): Effect.Effect<A, LifecycleCommandError, EffectHarnessProviderDiscoveryService> {
+  return Effect.gen(function* () {
+    const discoveryService = yield* EffectHarnessProviderDiscoveryService
+    const discovery = yield* discoveryService.discover.pipe(
+      Effect.mapError(error => new LifecycleCommandError({ message: error.message })),
+    )
+    return yield* f(discovery)
+  })
+}
+
+export function effectHarnessLifecycleProviderForDiscovery(discovery: EffectHarnessProviderDiscovery): StaticLifecycleProvider {
+  return {
+    id: discovery.provider.id,
+    contractVersion: discovery.provider.contractVersion,
+    status: effectHarnessStatusForDiscovery(discovery),
+    verify: effectHarnessVerifyForDiscovery(discovery),
+    planUpdate: planEffectHarnessUpdateForDiscovery(discovery),
+  }
+}
 
 export const effectHarnessLifecycleProvider: LifecycleProvider = {
   id: 'effect-harness',
-  contractVersion: effectHarnessContractVersion,
-  status: effectHarnessStatus,
-  verify: effectHarnessVerify,
-  planUpdate: planEffectHarnessUpdate,
+  contractVersion: 'discovered',
+  status: record => withDiscoveredEffectHarness(discovery => effectHarnessStatusForDiscovery(discovery)(record)),
+  verify: record => withDiscoveredEffectHarness(discovery => effectHarnessVerifyForDiscovery(discovery)(record)),
+  planUpdate: record => withDiscoveredEffectHarness(discovery => planEffectHarnessUpdateForDiscovery(discovery)(record)),
 }
 
 export interface ProviderLifecycleCommandOptions {
@@ -751,7 +789,7 @@ function providerFor(
     }))
   }
 
-  if (provider.contractVersion !== record.contractVersion) {
+  if (provider.contractVersion !== 'discovered' && provider.contractVersion !== record.contractVersion) {
     return Effect.fail(new LifecycleCommandError({
       message: `Lifecycle provider ${record.id} contract transition ${record.contractVersion} -> ${provider.contractVersion} is unsupported; no declarative migration plan is registered`,
     }))
@@ -837,7 +875,7 @@ const verifyProviderCurrentState = Effect.fn('verifyProviderCurrentState')(
     targetDir: TargetDir,
     record: LifecycleProviderRecord,
     provider: LifecycleProvider,
-  ): Effect.fn.Return<ProviderVerifyResult, LifecycleCommandError | FileIOError> {
+  ): Effect.fn.Return<ProviderVerifyResult, LifecycleCommandError | FileIOError, EffectHarnessProviderDiscoveryService> {
     const providerResult = yield* provider.verify(record)
 
     if (providerResult.status === 'failed') {
@@ -887,7 +925,7 @@ const verifyProviderCurrentState = Effect.fn('verifyProviderCurrentState')(
 )
 
 export const runProviderLifecycleStatus = Effect.fn('runProviderLifecycleStatus')(
-  function* (options: ProviderLifecycleCommandOptions): Effect.fn.Return<ProviderLifecycleStatusResult, LifecycleCommandError | FileIOError, FsService> {
+  function* (options: ProviderLifecycleCommandOptions): Effect.fn.Return<ProviderLifecycleStatusResult, LifecycleCommandError | FileIOError, FsService | EffectHarnessProviderDiscoveryService> {
     const fs = yield* FsService
     const manifest = yield* readManifest(options.targetDir)
     const references = yield* selectProviderReferences(manifest, options.provider)
@@ -916,7 +954,7 @@ export const runProviderLifecycleStatus = Effect.fn('runProviderLifecycleStatus'
 )
 
 export const runProviderLifecycleVerify = Effect.fn('runProviderLifecycleVerify')(
-  function* (options: ProviderLifecycleCommandOptions): Effect.fn.Return<ProviderLifecycleVerifyResult, LifecycleCommandError | FileIOError, FsService> {
+  function* (options: ProviderLifecycleCommandOptions): Effect.fn.Return<ProviderLifecycleVerifyResult, LifecycleCommandError | FileIOError, FsService | EffectHarnessProviderDiscoveryService> {
     const fs = yield* FsService
     const manifest = yield* readManifest(options.targetDir)
     const references = yield* selectProviderReferences(manifest, options.provider)
@@ -945,7 +983,7 @@ export const runProviderLifecycleVerify = Effect.fn('runProviderLifecycleVerify'
 )
 
 export const runProviderLifecycleUpdate = Effect.fn('runProviderLifecycleUpdate')(
-  function* (options: ProviderLifecycleCommandOptions): Effect.fn.Return<ProviderLifecycleUpdateResult, LifecycleCommandError | FileIOError, FsService> {
+  function* (options: ProviderLifecycleCommandOptions): Effect.fn.Return<ProviderLifecycleUpdateResult, LifecycleCommandError | FileIOError, FsService | EffectHarnessProviderDiscoveryService> {
     const fs = yield* FsService
     const manifest = yield* readManifest(options.targetDir)
     const references = yield* selectProviderReferences(manifest, options.provider)

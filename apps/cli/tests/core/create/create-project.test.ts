@@ -8,6 +8,7 @@ import { makePackageName } from '@/brand/package-name'
 import { makeTargetDir } from '@/brand/target-dir'
 import { createProjectFromSpec, materializeWritePlan } from '@/core/create'
 import { FsLive } from '@/core/services/fs'
+import { EffectHarnessDiscoveryTestLayer } from '../../support/effect-harness-discovery'
 
 async function makeTempProjectDir() {
   return await fs.mkdtemp(path.join(os.tmpdir(), 'prelude-create-'))
@@ -19,6 +20,7 @@ async function readJson<T = unknown>(filePath: string) {
 
 const TestLayer = FsLive.pipe(
   Layer.provideMerge(NodeServices.layer),
+  Layer.provideMerge(EffectHarnessDiscoveryTestLayer),
 )
 
 describe('create spec creation path', () => {
@@ -838,6 +840,117 @@ NodeRuntime.runMain(main())
             checkedPaths: ['package.json', '.prelude/providers/effect-harness/provider.json'],
           },
         ])
+      }).pipe(Effect.provide(TestLayer)),
+    )
+  })
+
+  it('derives effect-harness provider identity from discovery output', async () => {
+    await Effect.runPromise(
+      Effect.gen(function* () {
+        const targetDir = yield* Effect.promise(makeTempProjectDir)
+        const discovery = {
+          schemaVersion: 1,
+          artifactRoot: '/tmp/effect-harness-artifact',
+          providerProfilePath: '/tmp/effect-harness-artifact/provider/effect-harness.provider.json',
+          providerProfileRelativePath: 'provider/effect-harness.provider.json',
+          packageLocator: {
+            packageName: '@sayoriqwq/effect-harness',
+            packageVersion: '9.9.9-test',
+            binName: 'effect-harness',
+            binPath: 'dist/bin/effect-harness.js',
+            discoveryCommand: 'npx --yes @sayoriqwq/effect-harness provider-discover',
+            packageFiles: ['provider', 'harness', 'repos'],
+          },
+          provider: {
+            id: 'effect-harness',
+            contractVersion: '7-test',
+            providerVersion: '9.9.9-test',
+            defaultProfile: 'codex-effect-v4',
+          },
+          selectedProfile: 'codex-effect-v4',
+          discovery: {
+            mode: 'provider-discovery',
+            consumer: 'prelude',
+            profileSource: 'provider/effect-harness.provider.json',
+            targetLifecycleOwner: 'prelude',
+          },
+          deliveryModes: {},
+          targetManagedSurfaces: {
+            targetReceives: ['provider record at .prelude/providers/effect-harness/provider.json'],
+            targetDoesNotReceive: ['effect-harness runtime assets under .codex'],
+            documentationBundle: { mode: 'managed-files', targetBasePath: '.prelude/providers/effect-harness/docs', files: [] },
+            snippets: { mode: 'managed-files', targetBasePath: '.prelude/providers/effect-harness/snippets', files: [] },
+            contributions: {},
+          },
+          artifactOnlyReferences: {
+            mode: 'provider-artifact-reference',
+            targetDelivery: 'identity-only',
+            packageSurface: ['provider', 'harness', 'repos'],
+            references: {
+              'effect-source-tree': {
+                sourceEntry: 'effect-official-source',
+                path: 'repos/effect',
+                targetDelivery: 'artifact-only',
+              },
+            },
+          },
+          sourceIdentities: {
+            defaultSourceEntry: 'effect-official-source',
+            sourceEntries: {},
+            sourceBoundary: {
+              providerRepoInternal: true,
+              targetDelivery: 'identity-only',
+              targetMustNotReceive: ['repos/effect'],
+              allowedTargetSourceIdentity: ['artifact.sourceIdentities'],
+            },
+            providerSourceEntries: {},
+            artifactReferences: {},
+          },
+          internalHarnessSurfaces: {
+            mode: 'internal-harness',
+            description: 'not target materialized',
+            examples: ['harness/**'],
+          },
+        } as const
+
+        yield* createProjectFromSpec({
+          spec: {
+            topology: 'single-package',
+            package: {
+              id: 'worker',
+              name: makePackageName('discovered-worker'),
+              capabilities: ['effect-package'],
+            },
+            rootCapabilities: ['package-manager:pnpm', 'ai-harness'],
+            providers: ['effect-harness'],
+            overrides: {},
+          },
+          targetDir: makeTargetDir(targetDir),
+          preludeVersion: '0.0.0-test',
+          providerDiscoveries: {
+            effectHarness: discovery,
+          },
+        })
+
+        const providerRecord = yield* Effect.promise(() =>
+          readJson<{
+            contractVersion: string
+            providerVersion: string
+            artifact: {
+              packageLocator: { packageVersion: string, discoveryCommand: string }
+              providerProfileRelativePath: string
+              artifactOnlyReferences: { references: Record<string, unknown> }
+              sourceIdentities: { defaultSourceEntry: string }
+            }
+          }>(path.join(targetDir, '.prelude/providers/effect-harness/provider.json')),
+        )
+        assert.equal(providerRecord.contractVersion, '7-test')
+        assert.equal(providerRecord.providerVersion, '9.9.9-test')
+        assert.equal(providerRecord.artifact.packageLocator.packageVersion, '9.9.9-test')
+        assert.equal(providerRecord.artifact.packageLocator.discoveryCommand, 'npx --yes @sayoriqwq/effect-harness provider-discover')
+        assert.equal(providerRecord.artifact.providerProfileRelativePath, 'provider/effect-harness.provider.json')
+        assert.deepEqual(Object.keys(providerRecord.artifact.artifactOnlyReferences.references), ['effect-source-tree'])
+        assert.equal(providerRecord.artifact.sourceIdentities.defaultSourceEntry, 'effect-official-source')
       }).pipe(Effect.provide(TestLayer)),
     )
   })

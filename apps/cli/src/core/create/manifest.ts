@@ -3,6 +3,7 @@ import type {
   GeneratedUserSurfaceRecord,
   MaintainProviderReference,
   PreludeManifest,
+  ProviderDiscoveries,
   ResolvedGraph,
   VerificationResult,
   WritePlan,
@@ -44,12 +45,16 @@ function generatedSurfaceRecordForOperation(operation: WritePlan['operations'][n
   }
 }
 
-function maintainProvidersFor(graph: ResolvedGraph): readonly MaintainProviderReference[] {
+function maintainProvidersFor(graph: ResolvedGraph, providerDiscoveries: ProviderDiscoveries): readonly MaintainProviderReference[] {
   if (!hasEffectHarnessProvider(graph)) {
     return []
   }
 
-  return [effectHarnessMaintainProviderReference(effectHarnessLifecycleProviderRecord(graph))]
+  if (providerDiscoveries.effectHarness === undefined) {
+    throw new Error('effect-harness provider discovery must be loaded before building maintain provider references')
+  }
+
+  return [effectHarnessMaintainProviderReference(effectHarnessLifecycleProviderRecord(providerDiscoveries.effectHarness, graph))]
 }
 
 export function buildManifest(input: {
@@ -58,6 +63,7 @@ export function buildManifest(input: {
   readonly resolvedGraph: ResolvedGraph
   readonly writePlan: WritePlan
   readonly verification: VerificationResult
+  readonly providerDiscoveries: ProviderDiscoveries
 }): PreludeManifest {
   return {
     schemaVersion: 1,
@@ -68,7 +74,7 @@ export function buildManifest(input: {
       packageManager: 'pnpm@10.33.4',
       typescript: 'catalog:',
     },
-    maintainProviders: maintainProvidersFor(input.resolvedGraph),
+    maintainProviders: maintainProvidersFor(input.resolvedGraph, input.providerDiscoveries),
     generatedUserSurfaces: input.writePlan.operations
       .filter(isGeneratedUserOperation)
       .map(generatedSurfaceRecordForOperation),

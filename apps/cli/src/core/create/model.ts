@@ -60,11 +60,13 @@ export interface CreateProjectOptions {
   readonly spec: CreateSpec
   readonly targetDir: TargetDir
   readonly preludeVersion: string
+  readonly providerDiscoveries?: ProviderDiscoveries
 }
 
 export interface CreateProjectPlan {
   readonly resolvedGraph: ResolvedGraph
   readonly writePlan: WritePlan
+  readonly providerDiscoveries: ProviderDiscoveries
 }
 
 export interface ResolvedPackage {
@@ -329,6 +331,44 @@ export interface ProviderArtifactRecord {
   readonly id: ProviderId
   readonly version: string
   readonly [key: string]: JsonValue
+}
+
+export interface EffectHarnessPackageLocator {
+  readonly packageName: string
+  readonly packageVersion: string
+  readonly binName: string
+  readonly binPath: string
+  readonly discoveryCommand: string
+  readonly packageFiles: readonly string[]
+}
+
+export interface EffectHarnessDiscoveredProvider {
+  readonly id: 'effect-harness'
+  readonly contractVersion: string
+  readonly providerVersion: string
+  readonly defaultProfile: string
+}
+
+export interface EffectHarnessProviderDiscovery {
+  readonly schemaVersion: 1
+  readonly artifactRoot: string
+  readonly providerProfilePath: string
+  readonly providerProfileRelativePath: string
+  readonly packageLocator: EffectHarnessPackageLocator
+  readonly provider: EffectHarnessDiscoveredProvider
+  readonly selectedProfile: string
+  readonly discovery: Record<string, JsonValue>
+  readonly deliveryModes: Record<string, JsonValue>
+  readonly targetManagedSurfaces: Record<string, JsonValue>
+  readonly artifactOnlyReferences: Record<string, JsonValue> & {
+    readonly references: Record<string, JsonValue>
+  }
+  readonly sourceIdentities: Record<string, JsonValue>
+  readonly internalHarnessSurfaces: Record<string, JsonValue>
+}
+
+export interface ProviderDiscoveries {
+  readonly effectHarness?: EffectHarnessProviderDiscovery
 }
 
 export interface ProviderProjectedContext {
