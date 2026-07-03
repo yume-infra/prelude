@@ -14,147 +14,9 @@ import type {
 import * as fs from 'node:fs'
 import * as path from 'node:path'
 
-const effectHarnessContractVersion = '1'
-const legacyInlineEffectHarnessProviderVersion = '0.1.0'
 const effectHarnessProviderId = 'effect-harness'
-const effectHarnessProfile = 'codex-effect-v4'
 const effectHarnessProviderPath = '.prelude/providers/effect-harness/provider.json'
-const effectHarnessRoot = '/Users/sayori/Desktop/yume-infra/effect-harness'
 export const effectHarnessVerificationId = 'provider:effect-harness:create-contract'
-const effectHarnessManagedBlockSurfaceId = 'provider-managed-block:effect-harness:AGENTS.md#effect-harness'
-
-const effectHarnessProviderProfile = {
-  provider: {
-    id: effectHarnessProviderId,
-    contractVersion: effectHarnessContractVersion,
-    providerVersion: legacyInlineEffectHarnessProviderVersion,
-    defaultProfile: effectHarnessProfile,
-  },
-  profiles: {
-    [effectHarnessProfile]: {
-      options: {
-        runtime: 'codex',
-        effect: 'v4',
-        typecheck: 'tsgo',
-        languageService: true,
-        floatingEffect: 'error',
-        packageScopes: ['effect', '@effect/*', '@typescript/native-preview'],
-      },
-      officialSource: {
-        manifest: 'repos/effect.subtree.json',
-        llmDocument: 'repos/effect/LLMS.md',
-        sourcePrefix: 'repos/effect',
-      },
-      source: {
-        repository: 'https://github.com/Effect-TS/effect-smol.git',
-        branch: 'main',
-        split: '3475ee6c2bda6b05c6d7a12ce30c8bb840b5b1a6',
-      },
-      packageBaseline: {
-        'effect': '4.0.0-beta.90',
-        '@effect/platform-node': '4.0.0-beta.90',
-        '@effect/vitest': '4.0.0-beta.90',
-        '@effect/tsgo': '0.14.6',
-        '@effect/language-service': '0.86.2',
-        '@typescript/native-preview': '7.0.0-dev.20260624.1',
-      },
-      contributions: {
-        packageJson: {
-          dependencies: {
-            'effect': '4.0.0-beta.90',
-            '@effect/platform-node': '4.0.0-beta.90',
-          },
-          devDependencies: {
-            '@effect/vitest': '4.0.0-beta.90',
-            '@effect/tsgo': '0.14.6',
-            '@effect/language-service': '0.86.2',
-            '@typescript/native-preview': '7.0.0-dev.20260624.1',
-          },
-        },
-        tsconfig: {
-          compilerOptions: {
-            plugins: [{
-              name: '@effect/language-service',
-              options: {
-                diagnosticSeverity: {
-                  floatingEffect: 'error',
-                },
-              },
-            }],
-          },
-        },
-        agentsBlock: {
-          file: 'AGENTS.md',
-          startMarker: '<!-- effect-harness:start -->',
-          endMarker: '<!-- effect-harness:end -->',
-          source: 'harness/runtime/codex/AGENTS.fragment.md',
-        },
-        codexAssets: {
-          sourceRoot: 'harness/runtime/codex',
-          skills: [
-            {
-              id: 'effect-code',
-              source: 'skills/effect-code/SKILL.md',
-              target: '.codex/skills/effect-code/SKILL.md',
-            },
-            {
-              id: 'effect-feedback',
-              source: 'skills/effect-feedback/SKILL.md',
-              target: '.codex/skills/effect-feedback/SKILL.md',
-            },
-          ],
-          skillAgents: [
-            {
-              id: 'effect-code-openai',
-              source: 'skills/effect-code/agents/openai.yaml',
-              target: '.codex/skills/effect-code/agents/openai.yaml',
-            },
-            {
-              id: 'effect-feedback-openai',
-              source: 'skills/effect-feedback/agents/openai.yaml',
-              target: '.codex/skills/effect-feedback/agents/openai.yaml',
-            },
-          ],
-          agents: [
-            {
-              id: 'effect-worker',
-              source: 'agents/effect-worker.md',
-              target: '.codex/agents/effect-worker.md',
-            },
-          ],
-          feedbackDirectory: '.codex/effect-feedback',
-        },
-      },
-    },
-  },
-} as const
-
-const effectHarnessProfileContract = effectHarnessProviderProfile.profiles[effectHarnessProfile]
-const effectHarnessAgentsStartMarker = effectHarnessProfileContract.contributions.agentsBlock.startMarker
-const effectHarnessAgentsEndMarker = effectHarnessProfileContract.contributions.agentsBlock.endMarker
-
-export const effectHarnessSourceEntryEditorPolicy = {
-  targetSurface: 'provider-repo-source-entry',
-  preludeTargetBehavior: 'do-not-materialize-source-entry-editor-settings',
-  vscode: {
-    defaultAutoImportExclude: {
-      'typescript.preferences.autoImportFileExcludePatterns': ['repos/**'],
-      'javascript.preferences.autoImportFileExcludePatterns': ['repos/**'],
-    },
-    recommendedExplicitExclude: {
-      'files.watcherExclude': { 'repos/**': true },
-      'search.exclude': { 'repos/**': true },
-    },
-    userPreferenceExclude: {
-      'files.exclude': { 'repos/**': true },
-    },
-  },
-  zed: {
-    defaultAutoImportExcludePatterns: ['repos/**'],
-    recommendedExplicitSearchAndWatchExcludes: ['repos/**'],
-    hideFilesExclude: 'user-preference',
-  },
-} as const satisfies JsonValue
 
 function jsonRecord(value: unknown): Record<string, JsonValue> {
   return JSON.parse(JSON.stringify(value)) as Record<string, JsonValue>
@@ -327,96 +189,16 @@ export function effectHarnessResolvedProvider(discovery: EffectHarnessProviderDi
 }
 
 export function hasEffectHarnessProvider(graph: ResolvedGraph) {
-  return graph.providers.some(provider => provider.id === effectHarnessProviderProfile.provider.id)
+  return graph.providers.some(provider => provider.id === effectHarnessProviderId)
 }
 
 function effectHarnessProjectedContext(graph: ResolvedGraph): ProviderProjectedContext {
   return {
     topology: graph.topology,
-    packageScopes: graph.providers.find(provider => provider.id === effectHarnessProviderProfile.provider.id)?.packageScopes ?? [],
+    packageScopes: graph.providers.find(provider => provider.id === effectHarnessProviderId)?.packageScopes ?? [],
     rootCapabilities: graph.rootCapabilities,
     packageCapabilities: graph.packageCapabilities,
   }
-}
-
-function existingFile(candidates: readonly string[]) {
-  return candidates.find(candidate => fs.existsSync(candidate))
-}
-
-function workspaceInstalledPath(targetPath: string) {
-  return existingFile([
-    path.resolve(targetPath),
-    path.resolve('..', targetPath),
-    path.resolve('../..', targetPath),
-  ])
-}
-
-function runtimeAssetText(sourceRelativePath: string, targetPath: string) {
-  const providerSourcePath = path.join(
-    effectHarnessRoot,
-    effectHarnessProfileContract.contributions.codexAssets.sourceRoot,
-    sourceRelativePath,
-  )
-  const sourcePath = fs.existsSync(providerSourcePath)
-    ? providerSourcePath
-    : workspaceInstalledPath(targetPath)
-
-  if (sourcePath === undefined) {
-    throw new Error(`Missing effect-harness runtime asset ${sourceRelativePath}; provider profile must expose ${targetPath}`)
-  }
-
-  return fs.readFileSync(sourcePath, 'utf8')
-    .replaceAll('__EFFECT_HARNESS_ROOT__', effectHarnessRoot)
-}
-
-function currentInstalledManagedBlock() {
-  const agentsPath = workspaceInstalledPath(effectHarnessProfileContract.contributions.agentsBlock.file)
-  if (agentsPath === undefined) {
-    return undefined
-  }
-
-  const content = fs.readFileSync(agentsPath, 'utf8')
-  const start = content.indexOf(effectHarnessAgentsStartMarker)
-  const end = content.indexOf(effectHarnessAgentsEndMarker)
-  if (start < 0 || end < start) {
-    return undefined
-  }
-
-  return `${content.slice(start, end + effectHarnessAgentsEndMarker.length).trim()}\n`
-}
-
-function agentsFragmentText() {
-  const sourcePath = path.join(effectHarnessRoot, effectHarnessProfileContract.contributions.agentsBlock.source)
-  if (fs.existsSync(sourcePath)) {
-    return fs.readFileSync(sourcePath, 'utf8')
-      .replaceAll('__EFFECT_HARNESS_ROOT__', effectHarnessRoot)
-      .trim()
-  }
-
-  const installedBlock = currentInstalledManagedBlock()
-  if (installedBlock !== undefined) {
-    return installedBlock
-      .replace(effectHarnessAgentsStartMarker, '')
-      .replace(effectHarnessAgentsEndMarker, '')
-      .trim()
-  }
-
-  throw new Error(`Missing effect-harness AGENTS fragment ${effectHarnessProfileContract.contributions.agentsBlock.source}`)
-}
-
-function managedAgentsBlock() {
-  const fragment = agentsFragmentText()
-  return `${effectHarnessAgentsStartMarker}\n${fragment}\n${effectHarnessAgentsEndMarker}\n`
-}
-
-function effectHarnessManagedFileArtifactDefinitions() {
-  const assets = effectHarnessProfileContract.contributions.codexAssets
-
-  return [
-    ...assets.skills,
-    ...assets.skillAgents,
-    ...assets.agents,
-  ]
 }
 
 function discoveryManagedFileContent(discovery: EffectHarnessProviderDiscovery, file: Record<string, JsonValue>, source: string) {
@@ -459,28 +241,6 @@ function effectHarnessDiscoveryManagedFileArtifacts(discovery: EffectHarnessProv
   ]
 }
 
-function effectHarnessManagedFileArtifacts() {
-  return [
-    ...effectHarnessManagedFileArtifactDefinitions().map(artifact => ({
-      path: artifact.target,
-      content: runtimeAssetText(artifact.source, artifact.target),
-    })),
-    {
-      path: `${effectHarnessProfileContract.contributions.codexAssets.feedbackDirectory}/.gitkeep`,
-      content: '',
-    },
-  ] as const
-}
-
-function effectHarnessManagedBlockArtifact() {
-  return {
-    path: 'AGENTS.md',
-    startMarker: effectHarnessAgentsStartMarker,
-    endMarker: effectHarnessAgentsEndMarker,
-    content: managedAgentsBlock(),
-  } as const
-}
-
 function effectHarnessManagedFileSurfaceId(filePath: string) {
   return `provider-managed-file:effect-harness:${filePath}`
 }
@@ -488,11 +248,6 @@ function effectHarnessManagedFileSurfaceId(filePath: string) {
 function managedFileOperationId(filePath: string) {
   const slug = filePath.replace(/[^a-z0-9]+/giu, '-').replace(/^-|-$/gu, '')
   return `write-effect-harness-${slug}`
-}
-
-function managedBlockOperationId(filePath: string) {
-  const slug = filePath.replace(/[^a-z0-9]+/giu, '-').replace(/^-|-$/gu, '')
-  return `write-effect-harness-${slug}-block`
 }
 
 function packagePointerSurfaceId(pointer: string) {
@@ -610,20 +365,6 @@ function effectHarnessLifecycleSurfacesForProjectedContext(discovery: EffectHarn
         base: artifact.content,
         operationId: managedFileOperationId(artifact.path),
       })),
-    ...effectHarnessManagedFileArtifacts().map(artifact =>
-      ownedFileSurface({
-        discovery,
-        id: effectHarnessManagedFileSurfaceId(artifact.path),
-        path: artifact.path,
-        base: artifact.content,
-        operationId: managedFileOperationId(artifact.path),
-      })),
-    managedBlockSurface({
-      discovery,
-      id: effectHarnessManagedBlockSurfaceId,
-      artifact: effectHarnessManagedBlockArtifact(),
-      operationId: managedBlockOperationId('AGENTS.md'),
-    }),
   ]
 }
 
@@ -676,31 +417,6 @@ function ownedFileSurface(input: {
   }
 }
 
-function managedBlockSurface(input: {
-  readonly discovery: EffectHarnessProviderDiscovery
-  readonly id: string
-  readonly artifact: ReturnType<typeof effectHarnessManagedBlockArtifact>
-  readonly operationId: string
-}): LifecycleSurfaceRecord {
-  return {
-    ...lifecycleSurfaceMetadata({
-      discovery: input.discovery,
-      id: input.id,
-      scope: 'entry',
-      locator: `${input.artifact.path}#effect-harness`,
-      base: input.artifact.content,
-    }),
-    authority: 'bounded',
-    kind: 'managedBlock',
-    path: input.artifact.path,
-    startMarker: input.artifact.startMarker,
-    endMarker: input.artifact.endMarker,
-    base: input.artifact.content,
-    snapshot: input.artifact.content,
-    operationId: input.operationId,
-  }
-}
-
 export function effectHarnessLifecycleProviderRecord(discovery: EffectHarnessProviderDiscovery, graph: ResolvedGraph): LifecycleProviderRecord {
   return effectHarnessProviderRecordForProjectedContext(discovery, effectHarnessProjectedContext(graph))
 }
@@ -728,7 +444,7 @@ export function effectHarnessProviderRecordForProjectedContext(discovery: Effect
     artifact,
     projectedContext,
     options: {
-      runtime: effectHarnessProfileContract.options.runtime,
+      lifecycleOwner: optionalString(discovery.discovery.targetLifecycleOwner) ?? 'prelude',
       effect: {
         major: 4,
         packageBaseline: effectHarnessPackageBaseline(discovery),
@@ -810,25 +526,5 @@ export function effectHarnessContributions(discovery: EffectHarnessProviderDisco
       path: artifact.path,
       content: artifact.content,
     })),
-    ...effectHarnessManagedFileArtifacts().map(artifact => ({
-      kind: 'providerManagedFile' as const,
-      surfaceId: effectHarnessManagedFileSurfaceId(artifact.path),
-      operationId: managedFileOperationId(artifact.path),
-      owner: 'provider:effect-harness' as const,
-      providerId: 'effect-harness' as const,
-      path: artifact.path,
-      content: artifact.content,
-    })),
-    {
-      kind: 'providerManagedBlock',
-      surfaceId: effectHarnessManagedBlockSurfaceId,
-      operationId: managedBlockOperationId('AGENTS.md'),
-      owner: 'provider:effect-harness',
-      providerId: 'effect-harness',
-      path: effectHarnessManagedBlockArtifact().path,
-      startMarker: effectHarnessManagedBlockArtifact().startMarker,
-      endMarker: effectHarnessManagedBlockArtifact().endMarker,
-      content: effectHarnessManagedBlockArtifact().content,
-    },
   ]
 }

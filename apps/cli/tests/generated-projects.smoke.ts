@@ -392,6 +392,7 @@ async function createFromSpec(spec: SmokeSpec) {
 }
 
 assertSmokeCoverageContract()
+await rm(generatedRoot, { recursive: true, force: true })
 await mkdir(generatedRoot, { recursive: true })
 await writeFile(path.join(generatedRoot, 'pnpm-workspace.yaml'), generatedWorkspace)
 await assertDryRunDoesNotWrite(workerSpec)
@@ -444,6 +445,18 @@ const providerSurfaceIds = new Set(providerRecord.surfaces.map(surface => surfac
 assert.ok(providerSurfaceIds.has('tsconfig:root:/compilerOptions/plugins'))
 assert.ok(providerSurfaceIds.has('provider-managed-file:effect-harness:.prelude/providers/effect-harness/docs/discovery.md'))
 assert.ok(providerSurfaceIds.has('provider-managed-file:effect-harness:.prelude/providers/effect-harness/snippets/agents.md'))
+assert.equal(providerRecord.surfaces.some(surface => surface.path.startsWith('.codex/')), false)
+assert.equal(providerRecord.surfaces.some(surface => surface.path === '.effect-harness.json'), false)
+assert.equal(providerRecord.surfaces.some(surface => surface.path === 'AGENTS.md'), false)
+assert.equal(providerRecord.surfaces.some(surface => surface.path.startsWith('repos/')), false)
+assert.equal(providerRecord.surfaces.some(surface => surface.path.startsWith('harness/')), false)
+assert.equal([...providerSurfaceIds].some(surfaceId => surfaceId.includes('AGENTS.md#effect-harness')), false)
+await assertPathDoesNotExist(path.join(workerDir, '.codex'))
+await assertPathDoesNotExist(path.join(workerDir, 'AGENTS.md'))
+await assertPathDoesNotExist(path.join(workerDir, '.effect-harness.json'))
+await assertPathDoesNotExist(path.join(workerDir, 'repos/effect/LLMS.md'))
+await assertPathDoesNotExist(path.join(workerDir, 'harness/effect-routes.md'))
+await assertPathDoesNotExist(path.join(workerDir, 'harness/tsgo-routes.md'))
 assert.ok(
   providerRecord.surfaces.every(surface =>
     surface.owner === 'provider:effect-harness'

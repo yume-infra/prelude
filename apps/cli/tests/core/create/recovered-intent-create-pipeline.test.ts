@@ -178,8 +178,8 @@ describe('recovered main intent create pipeline', () => {
           'tsconfig.json',
           '.prelude/providers/effect-harness/provider.json',
         ])
-        assert.ok(operationPaths.includes('AGENTS.md'))
-        assert.ok(operationPaths.includes('.codex/skills/effect-code/SKILL.md'))
+        assert.equal(operationPaths.includes('AGENTS.md'), false)
+        assert.equal(operationPaths.some(path => path.startsWith('.codex/')), false)
 
         const packageJson = yield* Effect.promise(() =>
           readJson<{
@@ -227,6 +227,10 @@ describe('recovered main intent create pipeline', () => {
         })
         const providerSurfaceIds = new Set(providerRecord.surfaces.map(surface => surface.id))
         assert.ok(providerSurfaceIds.has('package-manifest:root:/dependencies/effect'))
+        assert.ok(providerSurfaceIds.has('provider-managed-file:effect-harness:.prelude/providers/effect-harness/docs/discovery.md'))
+        assert.ok(providerSurfaceIds.has('provider-managed-file:effect-harness:.prelude/providers/effect-harness/snippets/agents.md'))
+        assert.equal([...providerSurfaceIds].some(surfaceId => surfaceId.includes('.codex/')), false)
+        assert.equal([...providerSurfaceIds].some(surfaceId => surfaceId.includes('AGENTS.md#effect-harness')), false)
 
         const manifest = yield* Effect.promise(() =>
           readJson<{
@@ -245,7 +249,7 @@ describe('recovered main intent create pipeline', () => {
             surface.owner === 'provider:effect-harness'
             && surface.lifecycle === 'managed'
             && !surface.path.startsWith('src/')),
-          'only provider runtime assets and package pointers are managed',
+          'provider-managed surfaces must not include target source files',
         )
         assert.deepStrictEqual(
           manifest.generatedUserSurfaces.map(surface => ({ path: surface.path, authority: surface.authority })),

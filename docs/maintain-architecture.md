@@ -272,17 +272,22 @@ Maintain domain modules MUST NOT mutate previous manifests or files directly.
 
 ## Effect Harness Provider Interface
 
-`effect-harness` is a first-party maintain provider.
+`effect-harness` is a first-party maintain provider discovered through the published provider
+interface.
 
 Prelude consumes the provider through stable provider-facing records:
 
-- provider profile: provider id, contract version, provider version, selected profile, options, package baseline, runtime asset declarations, and status/verify semantics
-- provider record: target-local selected profile, resolved options, projected create context, runtime metadata, managed surfaces, and base snapshots
-- managed surfaces: structured package/config pointers, owned runtime files, and managed blocks declared by the provider
+- provider discovery: provider id, contract version, provider version, selected profile, package locator, provider profile locator, source identity, artifact-only references, and target-managed declarations
+- provider record: target-local selected profile, resolved options, projected create context, runtime metadata, managed surfaces, policy contributions, and base snapshots
+- managed surfaces: structured package/config pointers, policy records, provider-managed docs bundle, and provider-managed snippets declared by discovery
 
 Prelude MUST NOT consume effect-harness internal setup notes as a second interface.
 
 Prelude MUST NOT maintain the Effect source pin.
+
+Prelude MUST NOT materialize effect-harness internal harness/runtime assets into targets. `.codex`
+runtime files, AGENTS managed blocks, standalone `.effect-harness.json`, source trees, source
+contracts, and route documents are either internal harness surfaces or artifact-only references.
 
 The Effect source entry belongs to the provider repo. It may be maintained by effect-harness itself or a generic Partita `source` workflow. In a prelude-managed target, `partita source` MAY help produce provider claims, but it MUST NOT write target managed surfaces or replace the prelude lifecycle.
 
@@ -294,7 +299,9 @@ base    = .prelude/providers/effect-harness/provider.json
 current = target filesystem logical values
 ```
 
-Update MUST only write surfaces declared by the provider record. When desired introduces new target surfaces that are absent from the provider record, the lifecycle blocks unless a future contract transition explicitly approves the expansion.
+Update MUST only write surfaces declared by the discovered provider record. When desired introduces
+new target surfaces that are absent from the provider record, the lifecycle blocks unless a future
+contract transition explicitly approves the expansion.
 
 Status and verify are provider-facing lifecycle operations:
 

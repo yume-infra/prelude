@@ -687,9 +687,8 @@ export default defineConfig({
             authority: 'owner',
           },
         ])
-        assert.ok(writeOperations.some(operation => operation.path === 'AGENTS.md' && operation.kind === 'writeManagedBlock' && operation.authority === 'bounded'))
-        assert.ok(writeOperations.some(operation => operation.path === '.codex/skills/effect-code/SKILL.md' && operation.authority === 'owner'))
-        assert.ok(writeOperations.some(operation => operation.path === '.codex/agents/effect-worker.md' && operation.authority === 'owner'))
+        assert.isFalse(writeOperations.some(operation => operation.path === 'AGENTS.md'))
+        assert.isFalse(writeOperations.some(operation => operation.path.startsWith('.codex/')))
 
         const packageJson = yield* Effect.promise(() => readJson(path.join(targetDir, 'package.json')))
         assert.deepEqual(packageJson, {
@@ -782,8 +781,8 @@ NodeRuntime.runMain(main())
         assert.ok(providerSurfaceIds.has('tsconfig:root:/compilerOptions/plugins'))
         assert.ok(providerSurfaceIds.has('provider-managed-file:effect-harness:.prelude/providers/effect-harness/docs/discovery.md'))
         assert.ok(providerSurfaceIds.has('provider-managed-file:effect-harness:.prelude/providers/effect-harness/snippets/agents.md'))
-        assert.ok(providerSurfaceIds.has('provider-managed-file:effect-harness:.codex/skills/effect-code/SKILL.md'))
-        assert.ok(providerSurfaceIds.has('provider-managed-block:effect-harness:AGENTS.md#effect-harness'))
+        assert.isFalse([...providerSurfaceIds].some(surfaceId => surfaceId.includes('.codex/')))
+        assert.isFalse([...providerSurfaceIds].some(surfaceId => surfaceId.includes('AGENTS.md#effect-harness')))
         assert.deepEqual(providerRecord.options.effect.packageBaseline, {
           'effect': '4.0.0-beta.92',
           '@effect/platform-node': '4.0.0-beta.92',
@@ -865,7 +864,6 @@ NodeRuntime.runMain(main())
             recordPath: '.prelude/providers/effect-harness/provider.json',
           },
         ])
-        assert.ok(providerSurfaceIds.has('provider-managed-file:effect-harness:.codex/agents/effect-worker.md'))
         assert.ok(
           providerRecord.surfaces.every(surface =>
             surface.owner === 'provider:effect-harness'
@@ -889,6 +887,9 @@ NodeRuntime.runMain(main())
         )
         assert.include(discoveryDoc, 'provider-discover exposes target-managed surfaces')
         assert.include(agentsSnippet, 'Manual include snippet for target agents')
+        assert.isFalse(yield* Effect.promise(() => pathExists(path.join(targetDir, '.codex/skills/effect-code/SKILL.md'))))
+        assert.isFalse(yield* Effect.promise(() => pathExists(path.join(targetDir, '.codex/agents/effect-worker.md'))))
+        assert.isFalse(yield* Effect.promise(() => pathExists(path.join(targetDir, 'AGENTS.md'))))
         assert.isFalse(yield* Effect.promise(() => pathExists(path.join(targetDir, 'repos/effect/LLMS.md'))))
         assert.isFalse(yield* Effect.promise(() => pathExists(path.join(targetDir, 'harness/effect-routes.md'))))
         assert.deepEqual(manifest.verificationRecords, [
@@ -1150,25 +1151,25 @@ NodeRuntime.runMain(main())
       const result = yield* Effect.result(materializeWritePlan([
         {
           kind: 'providerManagedBlock',
-          surfaceId: 'provider-managed-block:effect-harness:AGENTS.md#one',
-          operationId: 'write-effect-harness-agents-one',
-          owner: 'provider:effect-harness',
-          providerId: 'effect-harness',
-          path: 'AGENTS.md',
-          startMarker: '<!-- effect-harness:start -->',
-          endMarker: '<!-- effect-harness:end -->',
-          content: '<!-- effect-harness:start -->\none\n<!-- effect-harness:end -->\n',
+          surfaceId: 'provider-managed-block:example-provider:NOTES.md#one',
+          operationId: 'write-example-provider-notes-one',
+          owner: 'provider:example-provider',
+          providerId: 'example-provider',
+          path: 'NOTES.md',
+          startMarker: '<!-- example:start -->',
+          endMarker: '<!-- example:end -->',
+          content: '<!-- example:start -->\none\n<!-- example:end -->\n',
         },
         {
           kind: 'providerManagedBlock',
-          surfaceId: 'provider-managed-block:effect-harness:AGENTS.md#two',
-          operationId: 'write-effect-harness-agents-two',
-          owner: 'provider:effect-harness',
-          providerId: 'effect-harness',
-          path: 'AGENTS.md',
-          startMarker: '<!-- effect-harness:start -->',
-          endMarker: '<!-- effect-harness:end -->',
-          content: '<!-- effect-harness:start -->\ntwo\n<!-- effect-harness:end -->\n',
+          surfaceId: 'provider-managed-block:example-provider:NOTES.md#two',
+          operationId: 'write-example-provider-notes-two',
+          owner: 'provider:example-provider',
+          providerId: 'example-provider',
+          path: 'NOTES.md',
+          startMarker: '<!-- example:start -->',
+          endMarker: '<!-- example:end -->',
+          content: '<!-- example:start -->\ntwo\n<!-- example:end -->\n',
         },
       ]))
 

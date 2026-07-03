@@ -3,7 +3,7 @@ import type { LifecycleProviderRegistry, ProviderUpdateOperation } from '@/core/
 import { assert, describe, it } from '@effect/vitest'
 import { Effect } from 'effect'
 import { makeTargetDir } from '@/brand/target-dir'
-import { effectHarnessProviderRecordForProjectedContext, effectHarnessSourceEntryEditorPolicy } from '@/core/create/effect-harness-provider'
+import { effectHarnessProviderRecordForProjectedContext } from '@/core/create/effect-harness-provider'
 import { effectHarnessLifecycleProviderForDiscovery, reconcileManagedLogicalValue, runProviderLifecycleStatus, runProviderLifecycleUpdate, runProviderLifecycleVerify } from '@/core/lifecycle'
 import { effectHarnessDiscoveryFixture } from '../../support/effect-harness-discovery'
 import { makeFsMockLayer } from '../../support/fs-mock'
@@ -132,9 +132,10 @@ function providerRecordJson(record: unknown = effectHarnessRecord) {
 
 const tsgoSurfaceId = 'package-manifest:root:/devDependencies/@effect~1tsgo'
 const tsgoPointer = '/devDependencies/@effect~1tsgo'
-const managedBlockSurfaceId = 'provider-managed-block:effect-harness:AGENTS.md#effect-harness'
-const managedBlockStart = '<!-- effect-harness:start -->'
-const managedBlockEnd = '<!-- effect-harness:end -->'
+const managedBlockPath = 'NOTES.md'
+const managedBlockSurfaceId = 'provider-managed-block:effect-harness:NOTES.md#example'
+const managedBlockStart = '<!-- example:start -->'
+const managedBlockEnd = '<!-- example:end -->'
 const originalManagedBlock = `${managedBlockStart}
 original provider instructions
 ${managedBlockEnd}
@@ -167,20 +168,20 @@ function structuredPointerSurface(overrides: Record<string, unknown> = {}) {
 
 function ownedFileSurface(overrides: Record<string, unknown> = {}) {
   return {
-    id: 'agents-provider-block',
+    id: 'provider-notes',
     owner: 'provider:effect-harness',
     lifecycle: 'managed',
     scope: 'file',
-    locator: 'AGENTS.md',
+    locator: managedBlockPath,
     conflictPolicy: 'block',
     contractVersion: '1',
     implementationVersion: '0.1.0',
     authority: 'owner',
     kind: 'ownedFile',
-    path: 'AGENTS.md',
+    path: managedBlockPath,
     base: 'original provider instructions\n',
     snapshot: 'original provider instructions\n',
-    operationId: 'write-agents-provider-block',
+    operationId: 'write-provider-notes',
     ...overrides,
   }
 }
@@ -191,18 +192,18 @@ function managedBlockSurface(overrides: Record<string, unknown> = {}) {
     owner: 'provider:effect-harness',
     lifecycle: 'managed',
     scope: 'entry',
-    locator: 'AGENTS.md#effect-harness',
+    locator: `${managedBlockPath}#example`,
     conflictPolicy: 'block',
     contractVersion: '1',
     implementationVersion: '0.1.0',
     authority: 'bounded',
     kind: 'managedBlock',
-    path: 'AGENTS.md',
+    path: managedBlockPath,
     startMarker: managedBlockStart,
     endMarker: managedBlockEnd,
     base: originalManagedBlock,
     snapshot: originalManagedBlock,
-    operationId: 'write-effect-harness-agents-md-block',
+    operationId: 'write-provider-notes-block',
     ...overrides,
   }
 }
@@ -253,7 +254,7 @@ function replaceManagedBlockOperation(content: string): ProviderUpdateOperation 
   return {
     kind: 'replaceManagedBlock',
     surfaceId: managedBlockSurfaceId,
-    path: 'AGENTS.md',
+    path: managedBlockPath,
     startMarker: managedBlockStart,
     endMarker: managedBlockEnd,
     content,
@@ -624,7 +625,7 @@ describe('provider lifecycle runtime', () => {
 
     assert.equal(record.id, 'effect-harness')
     assert.equal(record.profile, 'codex-effect-v4')
-    assert.equal(record.options.runtime, 'codex')
+    assert.equal(record.options.lifecycleOwner, 'prelude')
     assert.deepEqual(record.options.languageService, {
       enabled: true,
       floatingEffect: 'error',
@@ -675,18 +676,19 @@ describe('provider lifecycle runtime', () => {
     assert.isTrue(surfacePaths.includes('.prelude/providers/effect-harness/snippets/agents.md'))
     assert.isFalse(surfacePaths.some(surfacePath => surfacePath.startsWith('repos/')))
     assert.isFalse(surfacePaths.includes('.effect-harness.json'))
+    assert.isFalse(surfacePaths.includes('AGENTS.md'))
+    assert.isFalse(surfacePaths.some(surfacePath => surfacePath.startsWith('.codex/')))
     assert.isFalse(surfacePaths.some(surfacePath => surfacePath.startsWith('.vscode/') || surfacePath.startsWith('.zed/')))
-    assert.isTrue(record.surfaces.some(surface =>
-      surface.kind === 'managedBlock'
-      && surface.path === 'AGENTS.md'
-      && surface.locator === 'AGENTS.md#effect-harness',
-    ))
-    assert.deepEqual(effectHarnessSourceEntryEditorPolicy.vscode.defaultAutoImportExclude, {
+    assert.isFalse(record.surfaces.some(surface => surface.kind === 'managedBlock'))
+    const editorPolicy = jsonObject(contributionBuckets.editorPolicy)
+    const editorPolicies = jsonObject(editorPolicy.policies)
+    const autoImportExclude = jsonObject(editorPolicies.autoImportExclude)
+    const vscodeAutoImportExclude = jsonObject(autoImportExclude.vscode)
+    assert.deepEqual(vscodeAutoImportExclude, {
       'typescript.preferences.autoImportFileExcludePatterns': ['repos/**'],
       'javascript.preferences.autoImportFileExcludePatterns': ['repos/**'],
     })
-    assert.equal(effectHarnessSourceEntryEditorPolicy.zed.hideFilesExclude, 'user-preference')
-    assert.equal(effectHarnessSourceEntryEditorPolicy.preludeTargetBehavior, 'do-not-materialize-source-entry-editor-settings')
+    assert.equal(jsonObject(editorPolicies.filesExclude).level, 'preference')
 
     const status = await Effect.runPromise(provider.status(record))
     const verify = await Effect.runPromise(provider.verify(record))
@@ -973,11 +975,11 @@ describe('provider lifecycle runtime', () => {
         }),
         providerRecord: providerRecordWithSurfaces([
           structuredPointerSurface({
-            base: '0.14.6',
-            snapshot: '0.14.6',
+            base: '0.0.0-old',
+            snapshot: '0.0.0-old',
           }),
         ]),
-        fallback: '{ "devDependencies": { "@effect/tsgo": "0.14.6" } }\n',
+        fallback: '{ "devDependencies": { "@effect/tsgo": "0.0.0-old" } }\n',
       }),
       writeFileString: (path, content) => Effect.sync(() => {
         writes.push({ path, content })
@@ -1179,7 +1181,7 @@ User-owned notes stay here.
 
     assert.deepEqual(result.status, 'completed')
     assert.deepEqual(writes.map(write => write.path), [
-      '/project/AGENTS.md',
+      '/project/NOTES.md',
       '/project/.prelude/providers/effect-harness/provider.json',
       '/project/.prelude/manifest.json',
     ])
@@ -1187,7 +1189,7 @@ User-owned notes stay here.
     assert.match(writes[0]!.content, /updated provider instructions/u)
     assert.match(writes[0]!.content, /User-owned notes stay here\./u)
     assert.isFalse(/original provider instructions/u.test(writes[0]!.content))
-    assert.match(writes[1]!.content, /"base": "<!-- effect-harness:start -->\\nupdated provider instructions/u)
+    assert.match(writes[1]!.content, /"base": "<!-- example:start -->\\nupdated provider instructions/u)
   })
 
   it('blocks update when a managed block drifted', async () => {
@@ -1221,7 +1223,7 @@ ${managedBlockEnd}
     assert.strictEqual(result._tag, 'Failure')
     if (result._tag === 'Failure') {
       assert.match(result.failure.message, /drifted/)
-      assert.match(result.failure.message, /AGENTS\.md/)
+      assert.match(result.failure.message, /NOTES\.md/)
     }
   })
 
@@ -1253,7 +1255,7 @@ ${updatedManagedBlock}`,
       assert.equal(result._tag, 'Failure')
       if (result._tag === 'Failure') {
         assert.match(result.failure.message, /duplicated/)
-        assert.match(result.failure.message, /AGENTS\.md/)
+        assert.match(result.failure.message, /NOTES\.md/)
       }
     }))
 
@@ -1332,8 +1334,8 @@ ${updatedManagedBlock}`,
                 operations: [
                   {
                     kind: 'replaceOwnedFile',
-                    surfaceId: 'agents-provider-block',
-                    path: 'AGENTS.md',
+                    surfaceId: 'provider-notes',
+                    path: 'NOTES.md',
                     content: 'updated provider instructions\n',
                   },
                 ],
@@ -1347,7 +1349,7 @@ ${updatedManagedBlock}`,
     assert.strictEqual(result._tag, 'Failure')
     if (result._tag === 'Failure') {
       assert.match(result.failure.message, /drifted/)
-      assert.match(result.failure.message, /AGENTS\.md/)
+      assert.match(result.failure.message, /NOTES\.md/)
     }
   })
 
