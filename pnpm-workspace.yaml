@@ -15,17 +15,17 @@ shellEmulator: true
 trustPolicy: no-downgrade
 
 trustPolicyExclude:
-  - '@effect/platform-node@4.0.0-beta.90'
-  - '@effect/platform-node-shared@4.0.0-beta.90'
-  - '@effect/vitest@4.0.0-beta.90'
-  - effect@4.0.0-beta.90
+  - '@effect/platform-node@4.0.0-beta.92'
+  - '@effect/platform-node-shared@4.0.0-beta.92'
+  - '@effect/vitest@4.0.0-beta.92'
+  - effect@4.0.0-beta.92
 
 packages:
   - apps/*
   - packages/*
 
 overrides:
-  '@effect/platform-node@4.0.0-beta.90>@effect/platform-node-shared': 4.0.0-beta.90
+  '@effect/platform-node@4.0.0-beta.92>@effect/platform-node-shared': 4.0.0-beta.92
 
 catalog:
   '@antfu/eslint-config': 8.2.0
@@ -34,10 +34,10 @@ catalog:
   '@commitlint/cli': ^20.5.3
   '@commitlint/config-conventional': ^20.5.3
   '@effect/language-service': 0.86.2
-  '@effect/platform-node': 4.0.0-beta.90
-  '@effect/vitest': 4.0.0-beta.90
+  '@effect/platform-node': 4.0.0-beta.92
+  '@effect/vitest': 4.0.0-beta.92
   '@types/node': 25.6.0
-  effect: 4.0.0-beta.90
+  effect: 4.0.0-beta.92
   eslint: ^10.3.0
   execa: ^9.6.1
   husky: ^9.1.7
@@ -55,3 +55,7 @@ updateConfig:
     - typescript
 
 verifyDepsBeforeRun: error
+
+allowBuilds:
+  esbuild: true
+  msgpackr-extract: true

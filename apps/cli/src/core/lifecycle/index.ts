@@ -400,11 +400,35 @@ function surfaceBase(surface: LifecycleSurfaceRecord) {
   return surface.base ?? surface.snapshot
 }
 
+type DeclaredSurface
+  = | {
+    readonly status: 'current'
+    readonly surface: LifecycleSurfaceRecord
+  }
+  | {
+    readonly status: 'added'
+    readonly surface: LifecycleSurfaceRecord
+  }
+
+function surfaceById(record: LifecycleProviderRecord, surfaceId: string) {
+  return record.surfaces.find(candidate => candidate.id === surfaceId)
+}
+
 function findDeclaredSurface(
   record: LifecycleProviderRecord,
+  nextRecord: LifecycleProviderRecord | undefined,
   operation: ProviderUpdateOperation,
-): Effect.Effect<LifecycleSurfaceRecord, LifecycleCommandError> {
-  const surface = record.surfaces.find(candidate => candidate.id === operation.surfaceId)
+): Effect.Effect<DeclaredSurface, LifecycleCommandError> {
+  const surface = surfaceById(record, operation.surfaceId)
+
+  if (surface !== undefined && surface.owner === providerOwner(record.id)) {
+    return Effect.succeed({ status: 'current', surface })
+  }
+
+  const nextSurface = nextRecord === undefined ? undefined : surfaceById(nextRecord, operation.surfaceId)
+  if (nextSurface !== undefined && nextSurface.owner === providerOwner(record.id)) {
+    return Effect.succeed({ status: 'added', surface: nextSurface })
+  }
 
   if (surface === undefined || surface.owner !== providerOwner(record.id)) {
     return Effect.fail(new LifecycleCommandError({
@@ -412,7 +436,9 @@ function findDeclaredSurface(
     }))
   }
 
-  return Effect.succeed(surface)
+  return Effect.fail(new LifecycleCommandError({
+    message: `Provider ${record.id} update targets lifecycle surface ${operation.surfaceId} not owned by provider:${record.id}`,
+  }))
 }
 
 function decodeJsonPointerSegment(segment: string) {
@@ -545,19 +571,52 @@ function reconcileOrBlock(input: {
   return Effect.succeed(decision)
 }
 
+function reconcileAddedOrBlock(input: {
+  readonly surface: LifecycleSurfaceRecord
+  readonly path: string
+  readonly current: string | undefined
+  readonly desired: string
+}) {
+  if (input.current === undefined) {
+    return Effect.succeed({ status: 'apply' } as const)
+  }
+
+  if (input.current === input.desired) {
+    return Effect.succeed({ status: 'alreadyApplied' } as const)
+  }
+
+  return Effect.fail(new LifecycleCommandError({
+    message: `Lifecycle surface ${input.surface.id} at ${input.path} cannot be adopted; existing value differs from provider desired value and has no provider base snapshot`,
+  }))
+}
+
 const preflightOperation = Effect.fn('preflightOperation')(
   function* (
     fs: CreateFs,
     targetDir: TargetDir,
     record: LifecycleProviderRecord,
+    nextRecord: LifecycleProviderRecord | undefined,
     operation: ProviderUpdateOperation,
   ): Effect.fn.Return<Exclude<ManagedSurfaceReconcileResult, { readonly status: 'drift' }>, LifecycleCommandError | FileIOError> {
-    const surface = yield* findDeclaredSurface(record, operation)
+    const declared = yield* findDeclaredSurface(record, nextRecord, operation)
+    const { surface } = declared
 
     if (operation.kind === 'replaceOwnedFile') {
       if (surface.kind !== 'ownedFile' || surface.authority !== 'owner' || surface.path !== operation.path) {
         return yield* new LifecycleCommandError({
           message: `Provider ${record.id} update operation does not match declared owned lifecycle surface ${operation.surfaceId}`,
+        })
+      }
+
+      if (declared.status === 'added') {
+        const pathToRead = targetPath(targetDir, operation.path)
+        const exists = yield* fs.exists(pathToRead)
+        const current = exists ? yield* fs.readFileString(pathToRead) : undefined
+        return yield* reconcileAddedOrBlock({
+          surface,
+          path: operation.path,
+          current,
+          desired: operation.content,
         })
       }
 
@@ -588,6 +647,30 @@ const preflightOperation = Effect.fn('preflightOperation')(
       ) {
         return yield* new LifecycleCommandError({
           message: `Provider ${record.id} update operation does not match declared managed block lifecycle surface ${operation.surfaceId}`,
+        })
+      }
+
+      if (declared.status === 'added') {
+        const pathToRead = targetPath(targetDir, operation.path)
+        const exists = yield* fs.exists(pathToRead)
+        if (!exists) {
+          return { status: 'apply' }
+        }
+
+        const currentFile = yield* fs.readFileString(pathToRead)
+        const blockCount = managedBlockCount(currentFile, operation)
+        if (blockCount > 1) {
+          return yield* new LifecycleCommandError({
+            message: `Lifecycle surface ${operation.surfaceId} at ${operation.path} drifted; managed block markers are duplicated`,
+          })
+        }
+
+        const current = extractManagedBlock(currentFile, operation)
+        return yield* reconcileAddedOrBlock({
+          surface,
+          path: operation.path,
+          current,
+          desired: operation.content,
         })
       }
 
@@ -633,6 +716,22 @@ const preflightOperation = Effect.fn('preflightOperation')(
     const current = yield* readPointer(json, operation.pointer)
     const currentSnapshot = snapshotOf(current)
     const desiredSnapshot = snapshotOf(operation.value)
+
+    if (declared.status === 'added') {
+      if (desiredSnapshot === undefined) {
+        return yield* new LifecycleCommandError({
+          message: `Lifecycle surface ${operation.surfaceId} at ${operation.path} cannot be reconciled because the desired logical value is missing`,
+        })
+      }
+
+      return yield* reconcileAddedOrBlock({
+        surface,
+        path: operation.path,
+        current: currentSnapshot,
+        desired: desiredSnapshot,
+      })
+    }
+
     const base = surfaceBase(surface)
 
     if (base === undefined || currentSnapshot === undefined || desiredSnapshot === undefined) {
@@ -666,7 +765,8 @@ const applyOperation = Effect.fn('applyOperation')(
 
     if (operation.kind === 'replaceManagedBlock') {
       const pathToWrite = targetPath(targetDir, operation.path)
-      const current = yield* fs.readFileString(pathToWrite)
+      const exists = yield* fs.exists(pathToWrite)
+      const current = exists ? yield* fs.readFileString(pathToWrite) : ''
       yield* fs.ensureDir(path.dirname(pathToWrite))
       yield* fs.writeFileString(pathToWrite, upsertManagedBlock(current, operation, operation.content))
       return
@@ -899,7 +999,7 @@ const verifyProviderCurrentState = Effect.fn('verifyProviderCurrentState')(
     const preflightResults = yield* Effect.forEach(
       plan.operations,
       operation =>
-        preflightOperation(fs, targetDir, record, operation).pipe(
+        preflightOperation(fs, targetDir, record, plan.nextRecord, operation).pipe(
           Effect.result,
           Effect.map(result => ({ operation, result })),
         ),
@@ -1017,7 +1117,7 @@ export const runProviderLifecycleUpdate = Effect.fn('runProviderLifecycleUpdate'
           const operations = yield* Effect.forEach(
             update.plan.operations,
             operation =>
-              preflightOperation(fs, options.targetDir, update.record, operation).pipe(
+              preflightOperation(fs, options.targetDir, update.record, update.plan.nextRecord, operation).pipe(
                 Effect.map(decision => ({ decision, operation })),
               ),
             { concurrency: 1 },

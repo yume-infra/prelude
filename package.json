@@ -27,14 +27,14 @@
     "release": "pnpm verify && pnpm smoke:examples && changeset publish",
     "lint": "eslint",
     "lint:fix": "eslint --fix",
-    "prepare": "node -e \"if (require('node:fs').existsSync('.git')) require('node:child_process').execFileSync('husky', { stdio: 'inherit', shell: true })\" && effect-tsgo patch",
+    "prepare": "effect-tsgo patch",
     "knip": "knip",
     "typecheck": "tsgo --noEmit --project apps/cli/tsconfig.json",
     "typecheck:tsc": "pnpm --filter @sayoriqwq/prelude typecheck:tsc"
   },
   "dependencies": {
-    "@effect/platform-node": "4.0.0-beta.90",
-    "effect": "4.0.0-beta.90"
+    "@effect/platform-node": "4.0.0-beta.92",
+    "effect": "4.0.0-beta.92"
   },
   "devDependencies": {
     "@antfu/eslint-config": "catalog:",
@@ -42,10 +42,10 @@
     "@commitlint/cli": "catalog:",
     "@commitlint/config-conventional": "catalog:",
     "@effect/language-service": "0.86.2",
-    "@effect/tsgo": "0.14.6",
-    "@effect/vitest": "4.0.0-beta.90",
+    "@effect/tsgo": "0.15.0",
+    "@effect/vitest": "4.0.0-beta.92",
     "@types/node": "catalog:",
-    "@typescript/native-preview": "7.0.0-dev.20260624.1",
+    "@typescript/native-preview": "7.0.0-dev.20260630.1",
     "eslint": "catalog:",
     "husky": "catalog:",
     "knip": "catalog:",

@@ -1,4 +1,4 @@
-import type { JsonValue } from '@/core/create'
+import type { JsonValue, LifecycleSurfaceRecord } from '@/core/create'
 import type { LifecycleProviderRegistry, ProviderUpdateOperation } from '@/core/lifecycle'
 import { assert, describe, it } from '@effect/vitest'
 import { Effect } from 'effect'
@@ -145,7 +145,7 @@ updated provider instructions
 ${managedBlockEnd}
 `
 
-function structuredPointerSurface(overrides: Record<string, unknown> = {}) {
+function structuredPointerSurface(overrides: Record<string, unknown> = {}): LifecycleSurfaceRecord {
   return {
     id: tsgoSurfaceId,
     owner: 'provider:effect-harness',
@@ -163,10 +163,10 @@ function structuredPointerSurface(overrides: Record<string, unknown> = {}) {
     snapshot: '0.15.0',
     operationId: 'write-package-json',
     ...overrides,
-  }
+  } as LifecycleSurfaceRecord
 }
 
-function ownedFileSurface(overrides: Record<string, unknown> = {}) {
+function ownedFileSurface(overrides: Record<string, unknown> = {}): LifecycleSurfaceRecord {
   return {
     id: 'provider-notes',
     owner: 'provider:effect-harness',
@@ -183,10 +183,10 @@ function ownedFileSurface(overrides: Record<string, unknown> = {}) {
     snapshot: 'original provider instructions\n',
     operationId: 'write-provider-notes',
     ...overrides,
-  }
+  } as LifecycleSurfaceRecord
 }
 
-function managedBlockSurface(overrides: Record<string, unknown> = {}) {
+function managedBlockSurface(overrides: Record<string, unknown> = {}): LifecycleSurfaceRecord {
   return {
     id: managedBlockSurfaceId,
     owner: 'provider:effect-harness',
@@ -205,10 +205,10 @@ function managedBlockSurface(overrides: Record<string, unknown> = {}) {
     snapshot: originalManagedBlock,
     operationId: 'write-provider-notes-block',
     ...overrides,
-  }
+  } as LifecycleSurfaceRecord
 }
 
-function providerRecordWithSurfaces(surfaces: readonly Record<string, unknown>[]) {
+function providerRecordWithSurfaces(surfaces: readonly LifecycleSurfaceRecord[]) {
   return {
     ...effectHarnessRecord,
     surfaces,
@@ -659,6 +659,8 @@ describe('provider lifecycle runtime', () => {
     const artifactOnlyReferences = jsonObject(record.artifact.artifactOnlyReferences)
     const references = jsonObject(artifactOnlyReferences.references)
     const sourceIdentities = jsonObject(record.artifact.sourceIdentities)
+    assert.equal(Object.hasOwn(record.artifact, 'artifactRoot'), false)
+    assert.equal(Object.hasOwn(record.artifact, 'providerProfilePath'), false)
     assert.deepEqual(Object.keys(references).sort(), [
       'effect-anchor-doc',
       'effect-route-doc',
@@ -810,6 +812,127 @@ describe('provider lifecycle runtime', () => {
       assert.match(result.failure.message, /undeclared external lifecycle surface/)
       assert.match(result.failure.message, /package\.json/)
     }
+  })
+
+  it('allows newly declared owned provider surfaces from the next provider record', async () => {
+    const writes: Array<{ path: string, content: string }> = []
+    const nextRecord = providerRecordWithSurfaces([
+      ownedFileSurface({
+        id: 'provider-notes',
+        path: managedBlockPath,
+        base: 'new provider notes\n',
+        snapshot: 'new provider notes\n',
+      }),
+    ])
+    const fsLayer = makeFsMockLayer({
+      exists: path => Effect.succeed(!path.endsWith(managedBlockPath)),
+      readFileString: readLifecycleFiles({
+        manifest: manifestJson({
+          maintainProviders: [effectHarnessReference],
+        }),
+        providerRecord: providerRecordWithSurfaces([]),
+        fallback: '',
+      }),
+      writeFileString: (path, content) => Effect.sync(() => {
+        writes.push({ path, content })
+      }),
+    })
+
+    await Effect.runPromise(
+      runProviderLifecycleUpdate({
+        targetDir: makeTargetDir('/project'),
+        providers: {
+          'effect-harness': {
+            id: 'effect-harness',
+            contractVersion: '1',
+            status: record => Effect.succeed({ providerId: record.id, status: 'changed' as const }),
+            verify: record => Effect.succeed({ providerId: record.id, status: 'passed' as const }),
+            planUpdate: record => Effect.succeed({
+              providerId: record.id,
+              operations: [
+                {
+                  kind: 'replaceOwnedFile',
+                  surfaceId: 'provider-notes',
+                  path: managedBlockPath,
+                  content: 'new provider notes\n',
+                },
+              ],
+              nextRecord,
+            }),
+          },
+        },
+      }).pipe(Effect.provide(fsLayer)),
+    )
+
+    assert.deepEqual(writes.map(write => write.path), [
+      '/project/NOTES.md',
+      '/project/.prelude/providers/effect-harness/provider.json',
+      '/project/.prelude/manifest.json',
+    ])
+    assert.equal(writes[0]?.content, 'new provider notes\n')
+  })
+
+  it('blocks newly declared structured provider surfaces when an external value already differs', async () => {
+    const writes: string[] = []
+    const buildSurfaceId = 'package-manifest:root:/scripts/build'
+    const nextRecord = providerRecordWithSurfaces([
+      structuredPointerSurface({
+        id: buildSurfaceId,
+        locator: 'package.json#/scripts/build',
+        pointer: '/scripts/build',
+        base: 'tsgo --noEmit',
+        snapshot: 'tsgo --noEmit',
+      }),
+    ])
+    const fsLayer = makeFsMockLayer({
+      exists: () => Effect.succeed(true),
+      readFileString: readLifecycleFiles({
+        manifest: manifestJson({
+          maintainProviders: [effectHarnessReference],
+        }),
+        providerRecord: providerRecordWithSurfaces([]),
+        fallback: '{ "scripts": { "build": "tsc --noEmit" } }\n',
+      }),
+      writeFileString: path => Effect.sync(() => {
+        writes.push(path)
+      }),
+    })
+
+    const result = await Effect.runPromise(
+      Effect.result(
+        runProviderLifecycleUpdate({
+          targetDir: makeTargetDir('/project'),
+          providers: {
+            'effect-harness': {
+              id: 'effect-harness',
+              contractVersion: '1',
+              status: record => Effect.succeed({ providerId: record.id, status: 'changed' as const }),
+              verify: record => Effect.succeed({ providerId: record.id, status: 'passed' as const }),
+              planUpdate: record => Effect.succeed({
+                providerId: record.id,
+                operations: [
+                  {
+                    kind: 'replaceStructuredPointer',
+                    surfaceId: buildSurfaceId,
+                    path: 'package.json',
+                    pointer: '/scripts/build',
+                    value: 'tsgo --noEmit',
+                  },
+                ],
+                nextRecord,
+              }),
+            },
+          },
+        }).pipe(Effect.provide(fsLayer)),
+      ),
+    )
+
+    assert.strictEqual(result._tag, 'Failure')
+    if (result._tag === 'Failure') {
+      assert.match(result.failure.message, /cannot be adopted/)
+      assert.match(result.failure.message, /package-manifest:root:\/scripts\/build/)
+    }
+    assert.deepEqual(writes, [])
   })
 
   it('updates provider namespace files while ignoring handed-off scaffold drift', async () => {

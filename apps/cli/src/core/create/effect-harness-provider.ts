@@ -154,8 +154,6 @@ function effectHarnessArtifact(discovery: EffectHarnessProviderDiscovery): Provi
   return {
     id: discovery.provider.id,
     version: discovery.provider.providerVersion,
-    artifactRoot: discovery.artifactRoot,
-    providerProfilePath: discovery.providerProfilePath,
     providerProfileRelativePath: discovery.providerProfileRelativePath,
     packageLocator: jsonRecord(discovery.packageLocator),
     artifactOnlyReferences: jsonRecord(discovery.artifactOnlyReferences),

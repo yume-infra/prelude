@@ -996,6 +996,8 @@ NodeRuntime.runMain(main())
         assert.equal(providerRecord.artifact.providerProfileRelativePath, 'provider/effect-harness.provider.json')
         assert.deepEqual(Object.keys(providerRecord.artifact.artifactOnlyReferences.references), ['effect-source-tree'])
         assert.equal(providerRecord.artifact.sourceIdentities.defaultSourceEntry, 'effect-official-source')
+        assert.equal(Object.hasOwn(providerRecord.artifact, 'artifactRoot'), false)
+        assert.equal(Object.hasOwn(providerRecord.artifact, 'providerProfilePath'), false)
       }).pipe(Effect.provide(TestLayer)),
     )
   })
