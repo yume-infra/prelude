@@ -3,6 +3,7 @@ import type { ProjectName } from '@/brand/project-name'
 import type { TargetDir } from '@/brand/target-dir'
 import type { CreateSpec } from '@/core/create'
 import process from 'node:process'
+import { Effect } from 'effect'
 
 // Production v1 shell. The static throwaway prototype remains under create-workbench-prototype.
 
@@ -98,7 +99,7 @@ export function runCreateWorkbench(options: CreateWorkbenchOptions = {}): Promis
     validationMessage: undefined,
   }
 
-  return new Promise<CreateWorkbenchResult>((resolve) => {
+  return Effect.runPromise(Effect.callback<CreateWorkbenchResult>((resume) => {
     let finished = false
 
     function finish(result: CreateWorkbenchResult): void {
@@ -108,7 +109,7 @@ export function runCreateWorkbench(options: CreateWorkbenchOptions = {}): Promis
 
       finished = true
       cleanup(state, onData, onResize)
-      resolve(result)
+      resume(Effect.succeed(result))
     }
 
     function onResize(): void {
@@ -199,7 +200,13 @@ export function runCreateWorkbench(options: CreateWorkbenchOptions = {}): Promis
         reason: 'failed to enter raw fullscreen terminal mode',
       })
     }
-  })
+
+    return Effect.sync(() => {
+      if (!finished) {
+        cleanup(state, onData, onResize)
+      }
+    })
+  }))
 }
 
 function createWorkbenchSpec(): CreateSpec {

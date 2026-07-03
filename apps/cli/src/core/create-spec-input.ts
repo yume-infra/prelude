@@ -1,6 +1,6 @@
 import type { CreateSpec } from '@/core/create'
-import { readFileSync } from 'node:fs'
 import { Effect, Schema } from 'effect'
+import * as FileSystem from 'effect/FileSystem'
 import { PackageNameSchema } from '@/brand/package-name'
 import { SchemaContractError } from '@/core/errors'
 import { formatSchemaError, schemaIssueCount } from '@/schema/errors'
@@ -69,6 +69,8 @@ const CanonicalCreateSpecSchema = Schema.Union([
 })
 
 const decodeCanonicalCreateSpec = Schema.decodeUnknownEffect(CanonicalCreateSpecSchema, { errors: 'all' })
+const decodeJsonString = Schema.decodeUnknownSync(Schema.UnknownFromJsonString)
+const encodeJsonString = Schema.encodeUnknownSync(Schema.UnknownFromJsonString)
 
 function formatUnknownError(error: unknown) {
   return error instanceof Error ? error.message : String(error)
@@ -78,23 +80,23 @@ function isInlineJsonSpecInput(input: string) {
   return input.trimStart().startsWith('{')
 }
 
-function readSpecInput(input: string) {
-  return isInlineJsonSpecInput(input) ? input : readFileSync(input, 'utf8')
-}
-
 function parseSpecInput(input: string) {
-  return Effect.try({
-    try: () => readSpecInput(input),
-    catch: error => new SchemaContractError({
-      schema: 'CreateSpec',
-      message: `CreateSpec: failed to read --spec input: ${formatUnknownError(error)}`,
-      issueCount: 1,
-    }),
-  }).pipe(
+  return (isInlineJsonSpecInput(input)
+    ? Effect.succeed(input)
+    : Effect.gen(function* () {
+        const fs = yield* FileSystem.FileSystem
+        return yield* fs.readFileString(input).pipe(
+          Effect.mapError(error => SchemaContractError.make({
+            schema: 'CreateSpec',
+            message: `CreateSpec: failed to read --spec input: ${formatUnknownError(error)}`,
+            issueCount: 1,
+          })),
+        )
+      })).pipe(
     Effect.flatMap(content =>
       Effect.try({
-        try: () => JSON.parse(content) as unknown,
-        catch: error => new SchemaContractError({
+        try: () => decodeJsonString(content),
+        catch: error => SchemaContractError.make({
           schema: 'CreateSpec',
           message: `CreateSpec: failed to parse --spec input: ${formatUnknownError(error)}`,
           issueCount: 1,
@@ -104,12 +106,12 @@ function parseSpecInput(input: string) {
   )
 }
 
-export function loadCreateSpecFromInput(input: string): Effect.Effect<CreateSpec, SchemaContractError> {
+export function loadCreateSpecFromInput(input: string): Effect.Effect<CreateSpec, SchemaContractError, FileSystem.FileSystem> {
   return parseSpecInput(input).pipe(
     Effect.flatMap(spec =>
       decodeCanonicalCreateSpec(spec).pipe(
         Effect.map(spec => spec as CreateSpec),
-        Effect.mapError(error => new SchemaContractError({
+        Effect.mapError(error => SchemaContractError.make({
           schema: 'CreateSpec',
           message: `CreateSpec: ${formatSchemaError(error)}`,
           issueCount: schemaIssueCount(error),
@@ -120,5 +122,5 @@ export function loadCreateSpecFromInput(input: string): Effect.Effect<CreateSpec
 }
 
 export function formatCanonicalCreateSpecJson(spec: CreateSpec) {
-  return `${JSON.stringify(spec, null, 2)}\n`
+  return `${encodeJsonString(spec)}\n`
 }

@@ -3,20 +3,18 @@ import { Effect, Fiber } from 'effect'
 import { adjustTestClock, withTestClock } from './support/clock'
 
 describe('test clock support', () => {
-  it('advances delayed effects without waiting for real time', async () => {
-    const result = await Effect.runPromise(
-      withTestClock(Effect.gen(function* () {
-        const fiber = yield* Effect.sleep('1 minute').pipe(
-          Effect.as('done'),
-          Effect.forkChild,
-        )
+  it.effect('advances delayed effects without waiting for real time', () => Effect.gen(function* () {
+    const result = yield* withTestClock(Effect.gen(function* () {
+      const fiber = yield* Effect.sleep('1 minute').pipe(
+        Effect.as('done'),
+        Effect.forkChild,
+      )
 
-        yield* adjustTestClock('1 minute')
+      yield* adjustTestClock('1 minute')
 
-        return yield* Fiber.join(fiber)
-      })),
-    )
+      return yield* Fiber.join(fiber)
+    }))
 
     assert.strictEqual(result, 'done')
-  })
+  }))
 })

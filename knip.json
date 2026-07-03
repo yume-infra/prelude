@@ -5,6 +5,7 @@
   ],
   "ignoreDependencies": [
     "@effect/platform-node",
+    "@typescript/native-preview",
     "effect",
     "@effect/vitest",
     "husky"

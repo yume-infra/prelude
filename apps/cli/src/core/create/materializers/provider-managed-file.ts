@@ -1,10 +1,10 @@
 import type { ProviderManagedFileContribution, WriteOperation } from '../model'
-import * as path from 'node:path'
 import { Effect } from 'effect'
 import { SchemaContractError } from '@/core/errors'
+import { pathIsAbsolute, pathNormalize } from '@/core/path-utils'
 
 function providerManagedFilePathError(contribution: ProviderManagedFileContribution) {
-  return new SchemaContractError({
+  return SchemaContractError.make({
     schema: contribution.surfaceId,
     issueCount: 1,
     message: `Provider ${contribution.providerId} declared unsupported managed file path "${contribution.path}". Managed files must be normalized relative paths inside the generated project.`,
@@ -12,11 +12,11 @@ function providerManagedFilePathError(contribution: ProviderManagedFileContribut
 }
 
 function isSafeRelativePath(filePath: string) {
-  if (path.isAbsolute(filePath) || filePath.includes('\\')) {
+  if (pathIsAbsolute(filePath) || filePath.includes('\\')) {
     return false
   }
 
-  const normalized = path.posix.normalize(filePath)
+  const normalized = pathNormalize(filePath)
   return normalized === filePath
     && normalized.length > 0
     && normalized !== '.'

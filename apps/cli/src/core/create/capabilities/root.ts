@@ -38,7 +38,7 @@ export function workspaceGlobs(packages: ResolvedGraph['packages']) {
 
   for (const pkg of packages) {
     const [directory] = pkg.path.split('/')
-    if (directory && pkg.path !== '.') {
+    if (directory !== undefined && directory !== '' && pkg.path !== '.') {
       const glob = `${directory}/*`
       if (!globs.includes(glob)) {
         globs.push(glob)
@@ -59,7 +59,7 @@ export function workspaceRootPackageEntries(graph: ResolvedGraph, effectHarnessD
       }
   const verifyScript = verifyScriptFor(graph, effectHarnessDiscovery)
 
-  if (verifyScript) {
+  if (verifyScript !== undefined) {
     scripts.verify = verifyScript
   }
 

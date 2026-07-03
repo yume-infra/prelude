@@ -14,7 +14,7 @@ interface FsServiceShape {
   readonly ensureDir: (path: string) => Effect.Effect<void, FileIOError>
 }
 
-export class FsService extends Context.Service<FsService, FsServiceShape>()('@sayoriqwq/prelude/core/services/FsService') {
+export class FsService extends Context.Service<FsService, FsServiceShape>()('@sayoriqwq/prelude/core/services/fs/FsService') {
   static readonly Default = Layer.effect(
     FsService,
     Effect.gen(function* () {
@@ -24,7 +24,7 @@ export class FsService extends Context.Service<FsService, FsServiceShape>()('@sa
         op: FileIOError['op'],
         path: string,
       ) => (e: unknown) =>
-        new FileIOError({
+        FileIOError.make({
           op,
           path,
           message: `${op} failed: \n path: ${path} \n ${String(e)}`,

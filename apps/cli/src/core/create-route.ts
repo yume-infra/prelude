@@ -2,7 +2,7 @@ import type { ProjectName } from '@/brand/project-name'
 import type { TargetDir } from '@/brand/target-dir'
 import type { CapabilityId, CreateSpec, WritePlan } from '@/core/create'
 import { multiselect, select, text } from '@clack/prompts'
-import { Effect, Result } from 'effect'
+import { Console, Effect, Result } from 'effect'
 import { makePackageName } from '@/brand/package-name'
 import { decodeProjectName, formatProjectNameError } from '@/brand/project-name'
 import { makeProjectTargetDir } from '@/brand/target-dir'
@@ -26,7 +26,7 @@ interface CreateRouteSpecInput {
 }
 
 function unsupportedPresetError() {
-  return new SchemaContractError({
+  return SchemaContractError.make({
     schema: 'CliArgs',
     message: 'CliArgs: --preset has been removed from the active create API. Reusable shapes are complete canonical CreateSpec files passed with --spec.',
     issueCount: 1,
@@ -34,7 +34,7 @@ function unsupportedPresetError() {
 }
 
 function missingNonInteractiveInputError() {
-  return new SchemaContractError({
+  return SchemaContractError.make({
     schema: 'CliArgs',
     message: 'CliArgs: non-interactive mode requires --spec with a complete canonical CreateSpec.',
     issueCount: 1,
@@ -42,7 +42,7 @@ function missingNonInteractiveInputError() {
 }
 
 function missingTargetNameError() {
-  return new SchemaContractError({
+  return SchemaContractError.make({
     schema: 'CliArgs',
     message: 'CliArgs: creation requires --name so the target directory is explicit.',
     issueCount: 1,
@@ -51,7 +51,7 @@ function missingTargetNameError() {
 
 function decodeGuidedProjectName(input: string) {
   return decodeProjectName(input).pipe(
-    Effect.mapError(error => new SchemaContractError({
+    Effect.mapError(error => SchemaContractError.make({
       schema: 'ProjectName',
       message: formatProjectNameError(error),
       issueCount: schemaIssueCount(error),
@@ -60,7 +60,7 @@ function decodeGuidedProjectName(input: string) {
 }
 
 function cancelledCreateWorkbenchError() {
-  return new SchemaContractError({
+  return SchemaContractError.make({
     schema: 'CreateWorkbench',
     message: 'CreateWorkbench: creation cancelled.',
     issueCount: 1,
@@ -86,7 +86,7 @@ const askGuidedProjectName = Effect.fn('askGuidedProjectName')(function* () {
   )
 
   if (typeof value !== 'string') {
-    return yield* new SchemaContractError({
+    return yield* SchemaContractError.make({
       schema: 'ProjectName',
       message: 'ProjectName: expected a project name.',
       issueCount: 1,
@@ -388,12 +388,12 @@ export const runCreateRoute = Effect.fn('runCreateRoute')(
 
     const input = yield* loadCreateRouteSpec(options)
 
-    if (cli.args.dryRun) {
+    if (cli.args.dryRun === true) {
       const planResult = yield* Effect.result(planCreateProjectFromSpec(input.spec))
       const writePlan = Result.isSuccess(planResult) ? planResult.success.writePlan : emptyWritePlan()
       const blockers = Result.isFailure(planResult) ? [planResult.failure] : []
       const output = formatDryRunOutput({ writePlan, blockers })
-      yield* Effect.sync(() => console.log(output.trimEnd()))
+      yield* Console.log(output.trimEnd())
       return {
         kind: 'dry-run',
         spec: input.spec,
@@ -403,10 +403,10 @@ export const runCreateRoute = Effect.fn('runCreateRoute')(
       } as const
     }
 
-    if (cli.args.printSpec) {
+    if (cli.args.printSpec === true) {
       yield* planCreateProjectFromSpec(input.spec)
       const output = formatCanonicalCreateSpecJson(input.spec)
-      yield* Effect.sync(() => console.log(output.trimEnd()))
+      yield* Console.log(output.trimEnd())
       return {
         kind: 'printed-spec',
         spec: input.spec,

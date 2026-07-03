@@ -9,52 +9,46 @@ function appConfigTestLayer(input: Record<string, unknown>) {
 }
 
 describe('appConfig', () => {
-  it('reads runtime settings from ConfigProvider.fromUnknown', async () => {
-    const config = await Effect.runPromise(
-      Effect.service(AppConfig).pipe(
-        Effect.provide(appConfigTestLayer({
-          LOG_LEVEL: 'Info',
-          DEFAULT_CONCURRENCY: '4',
-          OTEL_EXPORTER_OTLP_ENDPOINT: 'https://collector.example',
-          DEBUG: 'true',
-        })),
-      ),
-    )
+  it.layer(appConfigTestLayer({
+    LOG_LEVEL: 'Info',
+    DEFAULT_CONCURRENCY: '4',
+    OTEL_EXPORTER_OTLP_ENDPOINT: 'https://collector.example',
+    DEBUG: 'true',
+  }))((it) => {
+    it.effect('reads runtime settings from ConfigProvider.fromUnknown', () => Effect.gen(function* () {
+      const config = yield* Effect.service(AppConfig)
 
-    assert.strictEqual(config.logLevel, 'Info')
-    assert.strictEqual(config.defaultConcurrency, 4)
-    assert.strictEqual(config.debug, true)
-    assert.strictEqual(Option.isSome(config.tracingEndpoint), true)
+      assert.strictEqual(config.logLevel, 'Info')
+      assert.strictEqual(config.defaultConcurrency, 4)
+      assert.strictEqual(config.debug, true)
+      assert.strictEqual(Option.isSome(config.tracingEndpoint), true)
 
-    if (Option.isNone(config.tracingEndpoint)) {
-      throw new Error('expected tracing endpoint to be present')
-    }
+      if (Option.isNone(config.tracingEndpoint)) {
+        throw new Error('expected tracing endpoint to be present')
+      }
 
-    assert.strictEqual(Redacted.value(config.tracingEndpoint.value), 'https://collector.example')
+      assert.strictEqual(Redacted.value(config.tracingEndpoint.value), 'https://collector.example')
+    }))
   })
 
-  it('falls back to defaults when config values are missing', async () => {
-    const config = await Effect.runPromise(
-      Effect.service(AppConfig).pipe(
-        Effect.provide(appConfigTestLayer({})),
-      ),
-    )
+  it.layer(appConfigTestLayer({}))((it) => {
+    it.effect('falls back to defaults when config values are missing', () => Effect.gen(function* () {
+      const config = yield* Effect.service(AppConfig)
 
-    assert.strictEqual(config.logLevel, 'Debug')
-    assert.strictEqual(config.defaultConcurrency, 8)
-    assert.strictEqual(config.debug, false)
-    assert.strictEqual(Option.isNone(config.tracingEndpoint), true)
+      assert.strictEqual(config.logLevel, 'Debug')
+      assert.strictEqual(config.defaultConcurrency, 8)
+      assert.strictEqual(config.debug, false)
+      assert.strictEqual(Option.isNone(config.tracingEndpoint), true)
+    }))
   })
 
-  it('rejects non-positive concurrency at the config boundary', async () => {
-    const exit = await Effect.runPromiseExit(
-      Effect.service(AppConfig).pipe(
-        Effect.provide(appConfigTestLayer({
-          DEFAULT_CONCURRENCY: '0',
-        })),
-      ),
+  it.effect('rejects non-positive concurrency at the config boundary', () => Effect.gen(function* () {
+    const exit = yield* Effect.exit(
+      Layer.build(appConfigTestLayer({
+        DEFAULT_CONCURRENCY: '0',
+      })).pipe(Effect.scoped),
     )
 
     assert.strictEqual(Exit.isFailure(exit), true)
-  })
+  }))
 })

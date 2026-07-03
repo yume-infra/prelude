@@ -303,7 +303,9 @@ export const effectHarnessDiscoveryFixture = {
           doesNotOwn: ['Effect semantic diagnostics'],
         },
         rules: {
-          restrictedImports: ['node:test', 'vitest', '@effect/cli', '@effect/cli/*', 'repos/effect/**', 'repos/tsgo/**'],
+          restrictedImports: ['node:test', '@effect/cli', '@effect/cli/*', 'repos/effect/**', 'repos/tsgo/**'],
+          restrictedVitestImports: ['describe', 'it', 'test'],
+          allowedVitestImports: ['vi', 'beforeEach', 'afterEach', 'beforeAll', 'afterAll'],
           restrictedSyntax: ['Context.Tag', 'Effect.ignore', 'plain it() in tests'],
           allowedTestEntrypoints: ['it.effect', 'it.live', 'layer'],
         },
@@ -316,7 +318,8 @@ export const effectHarnessDiscoveryFixture = {
         framework: '@effect/vitest',
         expectedEntries: ['tests/**/*.test.ts'],
         effectEntrypoints: ['it.effect', 'it.live', 'layer'],
-        disallowedImports: ['node:test', 'vitest'],
+        disallowedImports: ['node:test'],
+        disallowedVitestImports: ['describe', 'it', 'test'],
       },
       verificationPolicy: {
         mode: 'pipeline-policy',

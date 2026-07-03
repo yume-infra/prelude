@@ -1,9 +1,8 @@
 import type { EffectHarnessPackageLocator, EffectHarnessProviderDiscovery, JsonValue } from './model'
-import { execFile } from 'node:child_process'
-import { promisify } from 'node:util'
 import { Context, Effect, Layer, Schema } from 'effect'
+import { ChildProcess, ChildProcessSpawner } from 'effect/unstable/process'
 
-const execFilePromise = promisify(execFile)
+const decodeJsonString = Schema.decodeUnknownSync(Schema.UnknownFromJsonString)
 const targetManagedContributionKeys = [
   'packageJson',
   'tsconfig',
@@ -147,50 +146,48 @@ function decodeEffectHarnessProviderDiscovery(input: unknown): Effect.Effect<Eff
         internalHarnessSurfaces: requireJsonRecord(input, 'internalHarnessSurfaces'),
       }
     },
-    catch: error => new EffectHarnessProviderDiscoveryError({
+    catch: error => EffectHarnessProviderDiscoveryError.make({
       message: `Invalid effect-harness provider discovery output: ${error instanceof Error ? error.message : String(error)}`,
     }),
   })
 }
 
-const discoverEffectHarnessProviderViaCli = Effect.fn('discoverEffectHarnessProviderViaCli')(
-  function* (): Effect.fn.Return<EffectHarnessProviderDiscovery, EffectHarnessProviderDiscoveryError> {
-    const output = yield* Effect.tryPromise({
-      try: async () => {
-        const result = await execFilePromise(
-          'npx',
-          ['--yes', '@sayoriqwq/effect-harness', 'provider-discover'],
-          { maxBuffer: 20 * 1024 * 1024 },
-        )
-        return result.stdout
-      },
-      catch: error => new EffectHarnessProviderDiscoveryError({
+function discoverEffectHarnessProviderViaCli(
+  spawner: ChildProcessSpawner.ChildProcessSpawner['Service'],
+): Effect.Effect<EffectHarnessProviderDiscovery, EffectHarnessProviderDiscoveryError> {
+  return Effect.gen(function* () {
+    const output = yield* spawner.string(
+      ChildProcess.make('npx', ['--yes', '@sayoriqwq/effect-harness', 'provider-discover']),
+    ).pipe(
+      Effect.mapError(error => EffectHarnessProviderDiscoveryError.make({
         message: `Failed to run effect-harness provider discovery command "npx --yes @sayoriqwq/effect-harness provider-discover": ${error instanceof Error ? error.message : String(error)}`,
-      }),
-    })
+      })),
+    )
 
     const parsed = yield* Effect.try({
-      try: () => JSON.parse(output) as unknown,
-      catch: error => new EffectHarnessProviderDiscoveryError({
+      try: () => decodeJsonString(output),
+      catch: error => EffectHarnessProviderDiscoveryError.make({
         message: `Failed to parse effect-harness provider discovery JSON: ${error instanceof Error ? error.message : String(error)}`,
       }),
     })
 
     return yield* decodeEffectHarnessProviderDiscovery(parsed)
-  },
-)
+  })
+}
 
 interface EffectHarnessProviderDiscoveryServiceShape {
   readonly discover: Effect.Effect<EffectHarnessProviderDiscovery, EffectHarnessProviderDiscoveryError>
 }
 
-export class EffectHarnessProviderDiscoveryService extends Context.Service<EffectHarnessProviderDiscoveryService, EffectHarnessProviderDiscoveryServiceShape>()('@sayoriqwq/prelude/core/create/EffectHarnessProviderDiscoveryService') {
+export class EffectHarnessProviderDiscoveryService extends Context.Service<EffectHarnessProviderDiscoveryService, EffectHarnessProviderDiscoveryServiceShape>()('@sayoriqwq/prelude/core/create/effect-harness-discovery/EffectHarnessProviderDiscoveryService') {
   static readonly Default = Layer.effect(
     EffectHarnessProviderDiscoveryService,
-    Effect.sync(() =>
-      EffectHarnessProviderDiscoveryService.of({
-        discover: discoverEffectHarnessProviderViaCli(),
-      })),
+    Effect.gen(function* () {
+      const spawner = yield* ChildProcessSpawner.ChildProcessSpawner
+      return EffectHarnessProviderDiscoveryService.of({
+        discover: discoverEffectHarnessProviderViaCli(spawner),
+      })
+    }),
   )
 }
 
@@ -203,11 +200,8 @@ export function effectHarnessProviderDiscoveryLayer(discovery: EffectHarnessProv
   )
 }
 
-export function effectHarnessProviderDiscoveryDecodeLayer(discovery: unknown) {
-  return Layer.succeed(
-    EffectHarnessProviderDiscoveryService,
-    EffectHarnessProviderDiscoveryService.of({
-      discover: decodeEffectHarnessProviderDiscovery(discovery),
-    }),
-  )
+export function effectHarnessProviderDiscoveryDecodeService(discovery: unknown) {
+  return EffectHarnessProviderDiscoveryService.of({
+    discover: decodeEffectHarnessProviderDiscovery(discovery),
+  })
 }

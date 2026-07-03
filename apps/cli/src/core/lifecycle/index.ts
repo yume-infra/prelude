@@ -1,7 +1,6 @@
 import type { TargetDir } from '@/brand/target-dir'
 import type { CreateFs, EffectHarnessProviderDiscovery, JsonValue, LifecycleProviderRecord, LifecycleSurfaceRecord, MaintainProviderReference, PreludeManifest } from '@/core/create'
 import type { FileIOError } from '@/core/errors'
-import * as path from 'node:path'
 import { Effect, Schema } from 'effect'
 import stripJsonComments from 'strip-json-comments'
 import { EffectHarnessProviderDiscoveryService } from '@/core/create/effect-harness-discovery'
@@ -9,7 +8,11 @@ import {
   effectHarnessProviderRecordForProjectedContext,
 } from '@/core/create/effect-harness-provider'
 import { extractManagedBlock, managedBlockCount, upsertManagedBlock } from '@/core/create/managed-block'
+import { pathDirname, pathJoin } from '@/core/path-utils'
 import { FsService } from '@/core/services/fs'
+
+const decodeJsonString = Schema.decodeUnknownSync(Schema.UnknownFromJsonString)
+const encodeJsonString = Schema.encodeUnknownSync(Schema.UnknownFromJsonString)
 
 class LifecycleCommandError extends Schema.TaggedErrorClass<LifecycleCommandError>()('LifecycleCommandError', {
   message: Schema.String,
@@ -85,7 +88,7 @@ interface StaticLifecycleProvider {
 export type LifecycleProviderRegistry = Record<string, LifecycleProvider>
 
 function jsonMatches(left: unknown, right: unknown) {
-  return JSON.stringify(left) === JSON.stringify(right)
+  return encodeJsonString(left) === encodeJsonString(right)
 }
 
 function missingEffectHarnessSurfaceIds(discovery: EffectHarnessProviderDiscovery, record: LifecycleProviderRecord) {
@@ -177,7 +180,7 @@ function desiredEffectHarnessOperations(record: LifecycleProviderRecord): readon
 
 function parseLifecycleSurfaceValue(value: string): JsonValue {
   try {
-    return JSON.parse(value) as JsonValue
+    return decodeJsonString(value) as JsonValue
   }
   catch {
     return value
@@ -239,7 +242,7 @@ function withDiscoveredEffectHarness<A>(
   return Effect.gen(function* () {
     const discoveryService = yield* EffectHarnessProviderDiscoveryService
     const discovery = yield* discoveryService.discover.pipe(
-      Effect.mapError(error => new LifecycleCommandError({ message: error.message })),
+      Effect.mapError(error => LifecycleCommandError.make({ message: error.message })),
     )
     return yield* f(discovery)
   })
@@ -295,7 +298,7 @@ export type ManagedSurfaceReconcileResult
 const manifestRelativePath = '.prelude/manifest.json'
 
 function manifestPath(targetDir: TargetDir) {
-  return path.join(targetDir, manifestRelativePath)
+  return pathJoin(targetDir, manifestRelativePath)
 }
 
 const readManifest = Effect.fn('readManifest')(
@@ -305,27 +308,27 @@ const readManifest = Effect.fn('readManifest')(
     const exists = yield* fs.exists(targetPath)
 
     if (!exists) {
-      return yield* new LifecycleCommandError({
+      return yield* LifecycleCommandError.make({
         message: `No prelude manifest found at ${manifestRelativePath}`,
       })
     }
 
     const content = yield* fs.readFileString(targetPath)
     const manifest = yield* Effect.try({
-      try: () => JSON.parse(content) as PreludeManifest,
-      catch: error => new LifecycleCommandError({
+      try: () => decodeJsonString(content) as PreludeManifest,
+      catch: error => LifecycleCommandError.make({
         message: `Invalid prelude manifest at ${manifestRelativePath}: ${String(error)}`,
       }),
     })
 
     if (manifest.schemaVersion !== 1) {
-      return yield* new LifecycleCommandError({
+      return yield* LifecycleCommandError.make({
         message: `Unsupported prelude manifest schema at ${manifestRelativePath}`,
       })
     }
 
     if (!Array.isArray(manifest.maintainProviders)) {
-      return yield* new LifecycleCommandError({
+      return yield* LifecycleCommandError.make({
         message: `Invalid prelude manifest maintain provider records at ${manifestRelativePath}`,
       })
     }
@@ -343,20 +346,20 @@ const readProviderRecord = Effect.fn('readProviderRecord')(
     const recordPath = targetPath(targetDir, reference.recordPath)
     const content = yield* fs.readFileString(recordPath)
     const record = yield* Effect.try({
-      try: () => JSON.parse(content) as LifecycleProviderRecord,
-      catch: error => new LifecycleCommandError({
+      try: () => decodeJsonString(content) as LifecycleProviderRecord,
+      catch: error => LifecycleCommandError.make({
         message: `Invalid provider record at ${reference.recordPath}: ${String(error)}`,
       }),
     })
 
     if (record.schemaVersion !== 1 || record.id !== reference.id || record.contractVersion !== reference.contractVersion) {
-      return yield* new LifecycleCommandError({
+      return yield* LifecycleCommandError.make({
         message: `Provider record ${reference.recordPath} does not match manifest reference ${reference.id}`,
       })
     }
 
     if (!Array.isArray(record.surfaces)) {
-      return yield* new LifecycleCommandError({
+      return yield* LifecycleCommandError.make({
         message: `Invalid provider surfaces at ${reference.recordPath}`,
       })
     }
@@ -366,15 +369,15 @@ const readProviderRecord = Effect.fn('readProviderRecord')(
 )
 
 function encodeManifest(manifest: PreludeManifest) {
-  return `${JSON.stringify(manifest, null, 2)}\n`
+  return `${encodeJsonString(manifest)}\n`
 }
 
 function encodeProviderRecord(record: LifecycleProviderRecord) {
-  return `${JSON.stringify(record, null, 2)}\n`
+  return `${encodeJsonString(record)}\n`
 }
 
 function targetPath(targetDir: TargetDir, relativePath: string) {
-  return path.join(targetDir, relativePath)
+  return pathJoin(targetDir, relativePath)
 }
 
 export function reconcileManagedLogicalValue(input: {
@@ -432,12 +435,12 @@ function findDeclaredSurface(
   }
 
   if (surface === undefined || surface.owner !== providerOwner(record.id)) {
-    return Effect.fail(new LifecycleCommandError({
+    return Effect.fail(LifecycleCommandError.make({
       message: `Provider ${record.id} update targets undeclared external lifecycle surface ${operation.surfaceId} at ${operation.path}`,
     }))
   }
 
-  return Effect.fail(new LifecycleCommandError({
+  return Effect.fail(LifecycleCommandError.make({
     message: `Provider ${record.id} update targets lifecycle surface ${operation.surfaceId} not owned by provider:${record.id}`,
   }))
 }
@@ -456,7 +459,7 @@ function pointerParts(pointer: string): Effect.Effect<readonly string[], Lifecyc
   }
 
   if (!pointer.startsWith('/')) {
-    return Effect.fail(new LifecycleCommandError({
+    return Effect.fail(LifecycleCommandError.make({
       message: `Unsupported structured pointer ${pointer}`,
     }))
   }
@@ -490,7 +493,7 @@ const writePointer = Effect.fn('writePointer')(
     }
 
     if (!isJsonObject(value)) {
-      return yield* new LifecycleCommandError({
+      return yield* LifecycleCommandError.make({
         message: `Cannot write structured pointer ${pointer} into non-object JSON`,
       })
     }
@@ -539,16 +542,16 @@ function snapshotOf(value: JsonValue | undefined) {
     return undefined
   }
 
-  return typeof value === 'string' ? value : JSON.stringify(canonicalJsonValue(value))
+  return typeof value === 'string' ? value : encodeJsonString(canonicalJsonValue(value))
 }
 
 function parseJsonFile(content: string, relativePath: string): Effect.Effect<JsonValue, LifecycleCommandError> {
   try {
-    const parsed = JSON.parse(stripJsonComments(content)) as JsonValue
+    const parsed = decodeJsonString(stripJsonComments(content)) as JsonValue
     return Effect.succeed(parsed)
   }
   catch (error) {
-    return Effect.fail(new LifecycleCommandError({
+    return Effect.fail(LifecycleCommandError.make({
       message: `Could not parse lifecycle structured surface ${relativePath}: ${String(error)}`,
     }))
   }
@@ -564,7 +567,7 @@ function reconcileOrBlock(input: {
   const decision = reconcileManagedLogicalValue(input)
 
   if (decision.status === 'drift') {
-    return Effect.fail(new LifecycleCommandError({
+    return Effect.fail(LifecycleCommandError.make({
       message: `Lifecycle surface ${input.surface.id} at ${input.path} drifted; current differs from provider record base and desired value`,
     }))
   }
@@ -586,7 +589,7 @@ function reconcileAddedOrBlock(input: {
     return Effect.succeed({ status: 'alreadyApplied' } as const)
   }
 
-  return Effect.fail(new LifecycleCommandError({
+  return Effect.fail(LifecycleCommandError.make({
     message: `Lifecycle surface ${input.surface.id} at ${input.path} cannot be adopted; existing value differs from provider desired value and has no provider base snapshot`,
   }))
 }
@@ -604,7 +607,7 @@ const preflightOperation = Effect.fn('preflightOperation')(
 
     if (operation.kind === 'replaceOwnedFile') {
       if (surface.kind !== 'ownedFile' || surface.authority !== 'owner' || surface.path !== operation.path) {
-        return yield* new LifecycleCommandError({
+        return yield* LifecycleCommandError.make({
           message: `Provider ${record.id} update operation does not match declared owned lifecycle surface ${operation.surfaceId}`,
         })
       }
@@ -623,7 +626,7 @@ const preflightOperation = Effect.fn('preflightOperation')(
 
       const base = surfaceBase(surface)
       if (base === undefined) {
-        return yield* new LifecycleCommandError({
+        return yield* LifecycleCommandError.make({
           message: `Provider ${record.id} owned lifecycle surface ${operation.surfaceId} has no base snapshot`,
         })
       }
@@ -646,7 +649,7 @@ const preflightOperation = Effect.fn('preflightOperation')(
         || surface.startMarker !== operation.startMarker
         || surface.endMarker !== operation.endMarker
       ) {
-        return yield* new LifecycleCommandError({
+        return yield* LifecycleCommandError.make({
           message: `Provider ${record.id} update operation does not match declared managed block lifecycle surface ${operation.surfaceId}`,
         })
       }
@@ -661,7 +664,7 @@ const preflightOperation = Effect.fn('preflightOperation')(
         const currentFile = yield* fs.readFileString(pathToRead)
         const blockCount = managedBlockCount(currentFile, operation)
         if (blockCount > 1) {
-          return yield* new LifecycleCommandError({
+          return yield* LifecycleCommandError.make({
             message: `Lifecycle surface ${operation.surfaceId} at ${operation.path} drifted; managed block markers are duplicated`,
           })
         }
@@ -677,7 +680,7 @@ const preflightOperation = Effect.fn('preflightOperation')(
 
       const base = surfaceBase(surface)
       if (base === undefined) {
-        return yield* new LifecycleCommandError({
+        return yield* LifecycleCommandError.make({
           message: `Provider ${record.id} managed block lifecycle surface ${operation.surfaceId} has no base snapshot`,
         })
       }
@@ -685,14 +688,14 @@ const preflightOperation = Effect.fn('preflightOperation')(
       const currentFile = yield* fs.readFileString(targetPath(targetDir, operation.path))
       const blockCount = managedBlockCount(currentFile, operation)
       if (blockCount > 1) {
-        return yield* new LifecycleCommandError({
+        return yield* LifecycleCommandError.make({
           message: `Lifecycle surface ${operation.surfaceId} at ${operation.path} drifted; managed block markers are duplicated`,
         })
       }
 
       const current = extractManagedBlock(currentFile, operation)
       if (current === undefined) {
-        return yield* new LifecycleCommandError({
+        return yield* LifecycleCommandError.make({
           message: `Lifecycle surface ${operation.surfaceId} at ${operation.path} drifted; managed block markers are missing`,
         })
       }
@@ -707,7 +710,7 @@ const preflightOperation = Effect.fn('preflightOperation')(
     }
 
     if (surface.kind !== 'structuredPointer' || surface.authority !== 'bounded' || surface.path !== operation.path || surface.pointer !== operation.pointer) {
-      return yield* new LifecycleCommandError({
+      return yield* LifecycleCommandError.make({
         message: `Provider ${record.id} update operation does not match declared structured lifecycle surface ${operation.surfaceId}`,
       })
     }
@@ -720,7 +723,7 @@ const preflightOperation = Effect.fn('preflightOperation')(
 
     if (declared.status === 'added') {
       if (desiredSnapshot === undefined) {
-        return yield* new LifecycleCommandError({
+        return yield* LifecycleCommandError.make({
           message: `Lifecycle surface ${operation.surfaceId} at ${operation.path} cannot be reconciled because the desired logical value is missing`,
         })
       }
@@ -736,7 +739,7 @@ const preflightOperation = Effect.fn('preflightOperation')(
     const base = surfaceBase(surface)
 
     if (base === undefined || currentSnapshot === undefined || desiredSnapshot === undefined) {
-      return yield* new LifecycleCommandError({
+      return yield* LifecycleCommandError.make({
         message: `Lifecycle surface ${operation.surfaceId} at ${operation.path} cannot be reconciled because the logical value is missing`,
       })
     }
@@ -759,7 +762,7 @@ const applyOperation = Effect.fn('applyOperation')(
   ): Effect.fn.Return<void, LifecycleCommandError | FileIOError> {
     if (operation.kind === 'replaceOwnedFile') {
       const pathToWrite = targetPath(targetDir, operation.path)
-      yield* fs.ensureDir(path.dirname(pathToWrite))
+      yield* fs.ensureDir(pathDirname(pathToWrite))
       yield* fs.writeFileString(pathToWrite, operation.content)
       return
     }
@@ -768,7 +771,7 @@ const applyOperation = Effect.fn('applyOperation')(
       const pathToWrite = targetPath(targetDir, operation.path)
       const exists = yield* fs.exists(pathToWrite)
       const current = exists ? yield* fs.readFileString(pathToWrite) : ''
-      yield* fs.ensureDir(path.dirname(pathToWrite))
+      yield* fs.ensureDir(pathDirname(pathToWrite))
       yield* fs.writeFileString(pathToWrite, upsertManagedBlock(current, operation, operation.content))
       return
     }
@@ -779,12 +782,12 @@ const applyOperation = Effect.fn('applyOperation')(
     const nextJson = yield* writePointer(json, operation.pointer, operation.value)
 
     if (!isJsonObject(nextJson)) {
-      return yield* new LifecycleCommandError({
+      return yield* LifecycleCommandError.make({
         message: `Structured lifecycle surface ${operation.path} must remain a JSON object`,
       })
     }
 
-    yield* fs.writeFileString(pathToWrite, `${JSON.stringify(nextJson, null, 2)}\n`)
+    yield* fs.writeFileString(pathToWrite, `${encodeJsonString(nextJson)}\n`)
   },
 )
 
@@ -796,8 +799,7 @@ function applyManifestUpdates(
     readonly plan: ProviderUpdatePlan
   }[],
 ) {
-  const nextManifest = JSON.parse(JSON.stringify(manifest)) as PreludeManifest
-  const providers = [...nextManifest.maintainProviders]
+  const providers = [...manifest.maintainProviders]
 
   for (const update of plannedUpdates) {
     const nextRecord = nextRecordForPlan(update.record, update.plan)
@@ -813,7 +815,7 @@ function applyManifestUpdates(
   }
 
   return {
-    ...nextManifest,
+    ...manifest,
     maintainProviders: providers,
   }
 }
@@ -871,7 +873,7 @@ function selectProviderReferences(
   if (providerId !== undefined) {
     const record = records.find(candidate => candidate.id === providerId)
     if (record === undefined) {
-      return Effect.fail(new LifecycleCommandError({
+      return Effect.fail(LifecycleCommandError.make({
         message: `No active lifecycle provider found for --provider ${providerId}`,
       }))
     }
@@ -889,13 +891,13 @@ function providerFor(
   const provider = registry[record.id]
 
   if (provider === undefined) {
-    return Effect.fail(new LifecycleCommandError({
+    return Effect.fail(LifecycleCommandError.make({
       message: `No lifecycle provider adapter registered for ${record.id}`,
     }))
   }
 
   if (provider.contractVersion !== 'discovered' && provider.contractVersion !== record.contractVersion) {
-    return Effect.fail(new LifecycleCommandError({
+    return Effect.fail(LifecycleCommandError.make({
       message: `Lifecycle provider ${record.id} contract transition ${record.contractVersion} -> ${provider.contractVersion} is unsupported; no declarative migration plan is registered`,
     }))
   }
@@ -939,7 +941,7 @@ function verifyFailureMessage(record: LifecycleProviderRecord, result: ProviderV
 
 function assertProviderVerifyPassed(record: LifecycleProviderRecord, result: ProviderVerifyResult): Effect.Effect<void, LifecycleCommandError> {
   if (result.status === 'failed') {
-    return Effect.fail(new LifecycleCommandError({
+    return Effect.fail(LifecycleCommandError.make({
       message: verifyFailureMessage(record, result),
     }))
   }
@@ -954,7 +956,7 @@ function assertPlanCoversRetainedSurfaces(
   const missingSurfaceIds = missingPlannedSurfaceIds(record, plan)
 
   if (missingSurfaceIds.length > 0) {
-    return Effect.fail(new LifecycleCommandError({
+    return Effect.fail(LifecycleCommandError.make({
       message: planCoverageMessage(record, missingSurfaceIds),
     }))
   }
@@ -1158,13 +1160,13 @@ export const runProviderLifecycleUpdate = Effect.fn('runProviderLifecycleUpdate'
       const nextRecord = nextRecordForPlan(update.record, update.plan)
       const pathToRecord = targetPath(options.targetDir, update.reference.recordPath)
       return Effect.gen(function* () {
-        yield* fs.ensureDir(path.dirname(pathToRecord))
+        yield* fs.ensureDir(pathDirname(pathToRecord))
         yield* fs.writeFileString(pathToRecord, encodeProviderRecord(nextRecord))
       })
     }, { concurrency: 1, discard: true })
 
     const pathToManifest = manifestPath(options.targetDir)
-    yield* fs.ensureDir(path.dirname(pathToManifest))
+    yield* fs.ensureDir(pathDirname(pathToManifest))
     yield* fs.writeFileString(pathToManifest, encodeManifest(nextManifest))
 
     return {

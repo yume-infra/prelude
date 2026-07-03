@@ -354,7 +354,7 @@ export function validateCreateSpec(spec: CreateSpec): Effect.Effect<void, Schema
   }
 
   if (issues.length > 0) {
-    return Effect.fail(new SchemaContractError({
+    return Effect.fail(SchemaContractError.make({
       schema: 'CreateSpec',
       message: `Unsupported CreateSpec for the minimal creation path: ${issues.join('; ')}`,
       issueCount: issues.length,
@@ -379,7 +379,7 @@ function resolveWorkspaceInternalDependencies(
       ? packages.find(candidate => candidate.id === dependency.target.value)
       : packages.find(candidate => candidate.name === dependency.target.value)
 
-    if (!target) {
+    if (target === undefined) {
       throw new Error(`unvalidated workspace dependency target: ${dependency.target.value}`)
     }
 

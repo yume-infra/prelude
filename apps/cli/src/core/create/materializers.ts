@@ -48,7 +48,7 @@ function providerManagedConflictError(input: {
   readonly surfaceId: string
   readonly target: string
 }) {
-  return new SchemaContractError({
+  return SchemaContractError.make({
     schema: input.surfaceId,
     issueCount: 1,
     message: `Conflicting provider-managed contribution for ${input.target}. Provider-managed files and blocks must have one writer.`,

@@ -1,10 +1,10 @@
 import type { ProviderArtifactContribution, WriteOperation } from '../model'
-import * as path from 'node:path'
 import { Effect } from 'effect'
 import { SchemaContractError } from '@/core/errors'
+import { pathIsAbsolute, pathNormalize } from '@/core/path-utils'
 
 function providerArtifactPathError(contribution: ProviderArtifactContribution) {
-  return new SchemaContractError({
+  return SchemaContractError.make({
     schema: contribution.surfaceId,
     issueCount: 1,
     message: `Provider ${contribution.providerId} declared unsupported artifact path "${contribution.path}". Provider artifacts must stay under .prelude/providers/${contribution.providerId}/.`,
@@ -12,11 +12,11 @@ function providerArtifactPathError(contribution: ProviderArtifactContribution) {
 }
 
 function isProviderNamespacePath(providerId: string, artifactPath: string) {
-  if (path.isAbsolute(artifactPath) || artifactPath.includes('\\')) {
+  if (pathIsAbsolute(artifactPath) || artifactPath.includes('\\')) {
     return false
   }
 
-  const normalized = path.posix.normalize(artifactPath)
+  const normalized = pathNormalize(artifactPath)
   const providerRoot = `.prelude/providers/${providerId}/`
 
   return normalized === artifactPath

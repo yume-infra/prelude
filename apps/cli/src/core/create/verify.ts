@@ -1,6 +1,6 @@
 import type { CreateFs, ResolvedGraph, VerificationResult, WritePlan } from './model'
-import * as path from 'node:path'
 import { Effect } from 'effect'
+import { pathJoin } from '@/core/path-utils'
 import {
   effectHarnessVerificationRecord,
   hasEffectHarnessProvider,
@@ -64,7 +64,7 @@ export const verifyCreateOutputs = Effect.fn('verifyCreateOutputs')(
     const missingPaths: string[] = []
 
     for (const requiredPath of requiredPaths) {
-      const exists = yield* fs.exists(path.join(baseDir, requiredPath)).pipe(Effect.orElseSucceed(() => false))
+      const exists = yield* fs.exists(pathJoin(baseDir, requiredPath)).pipe(Effect.orElseSucceed(() => false))
       if (!exists) {
         missingPaths.push(requiredPath)
       }

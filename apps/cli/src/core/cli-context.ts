@@ -1,5 +1,5 @@
 import type { ProjectName } from '@/brand/project-name'
-import { Context, Layer } from 'effect'
+import { Context } from 'effect'
 
 export interface CliArgs {
   readonly spec?: string
@@ -19,8 +19,4 @@ export interface CliContextShape {
   readonly isInteractive: boolean
 }
 
-export class CliContext extends Context.Service<CliContext, CliContextShape>()('@sayoriqwq/prelude/core/CliContext') {}
-
-export function CliContextLive(context: CliContextShape) {
-  return Layer.succeed(CliContext, CliContext.of(context))
-}
+export class CliContext extends Context.Service<CliContext, CliContextShape>()('@sayoriqwq/prelude/core/cli-context/CliContext') {}

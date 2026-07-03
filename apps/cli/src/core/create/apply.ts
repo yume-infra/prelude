@@ -1,7 +1,7 @@
 import type { CreateFs, WriteOperation, WritePlan } from './model'
-import * as path from 'node:path'
 import { Effect } from 'effect'
 import { makeTargetDir } from '@/brand/target-dir'
+import { pathDirname, pathJoin } from '@/core/path-utils'
 import { upsertManagedBlock } from './managed-block'
 
 function encodeJson(value: Record<string, unknown>) {
@@ -9,14 +9,14 @@ function encodeJson(value: Record<string, unknown>) {
 }
 
 function resolveTargetPath(baseDir: string, relativePath: string) {
-  return path.join(baseDir, relativePath)
+  return pathJoin(baseDir, relativePath)
 }
 
 const writeOperation = Effect.fn('writeOperation')(
   function* (fs: CreateFs, baseDir: string, operation: WriteOperation) {
     const targetPath = resolveTargetPath(baseDir, operation.path)
 
-    yield* fs.ensureDir(path.dirname(targetPath))
+    yield* fs.ensureDir(pathDirname(targetPath))
 
     switch (operation.kind) {
       case 'writeStructuredFile':
@@ -48,7 +48,7 @@ export function applyWritePlan(fs: CreateFs, baseDir: string, plan: WritePlan) {
 export function writeManifest(fs: CreateFs, baseDir: string, content: string) {
   const manifestPath = resolveTargetPath(baseDir, '.prelude/manifest.json')
 
-  return fs.ensureDir(path.dirname(manifestPath)).pipe(
+  return fs.ensureDir(pathDirname(manifestPath)).pipe(
     Effect.andThen(fs.writeFileString(makeTargetDir(manifestPath), content)),
   )
 }

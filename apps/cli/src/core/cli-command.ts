@@ -1,11 +1,11 @@
 import type { TargetDir } from '@/brand/target-dir'
 import type { CliArgs } from '@/core/cli-context'
 import process from 'node:process'
-import { Console, Effect, Option } from 'effect'
+import { Console, Effect, Option, Schema } from 'effect'
 import { Command, Flag } from 'effect/unstable/cli'
 import { decodeProjectName, formatProjectNameError } from '@/brand/project-name'
 import { makeTargetDir } from '@/brand/target-dir'
-import { CliContextLive } from '@/core/cli-context'
+import { CliContext } from '@/core/cli-context'
 import { runCreateRoute } from '@/core/create-route'
 import { SchemaContractError } from '@/core/errors'
 import { effectHarnessLifecycleProvider, runProviderLifecycleStatus, runProviderLifecycleUpdate, runProviderLifecycleVerify } from '@/core/lifecycle'
@@ -92,7 +92,7 @@ type MutableCliArgs = {
 }
 
 function removedFlagError(flag: string, message: string) {
-  return new SchemaContractError({
+  return SchemaContractError.make({
     schema: 'CliArgs',
     message: `CliArgs: ${flag} has been removed. ${message}`,
     issueCount: 1,
@@ -102,7 +102,7 @@ function removedFlagError(flag: string, message: string) {
 const decodeCliProjectName = Effect.fn('decodeCliProjectName')(
   function* (input: string) {
     return yield* decodeProjectName(input).pipe(
-      Effect.mapError(error => new SchemaContractError({
+      Effect.mapError(error => SchemaContractError.make({
         schema: 'CliArgs',
         message: `CliArgs: ${formatProjectNameError(error)}`,
         issueCount: schemaIssueCount(error),
@@ -191,13 +191,13 @@ function handlePreludeCommand(options: PreludeCommandOptions) {
   return Effect.fn('handlePreludeCommand')(
     function* (input: PreludeCommandInput) {
       const args = yield* cliArgsFromCommandInput(input)
-      const isInteractive = options.stdinIsTTY && !args.noInput && args.spec === undefined
+      const isInteractive = options.stdinIsTTY === true && args.noInput !== true && args.spec === undefined
       const routeOptions = options.targetDir === undefined
         ? { preludeVersion: options.preludeVersion, preferWorkbench: isInteractive }
         : { preludeVersion: options.preludeVersion, targetDir: options.targetDir, preferWorkbench: isInteractive }
 
       yield* runCreateRoute(routeOptions).pipe(
-        Effect.provide(CliContextLive({ args, isInteractive })),
+        Effect.provideService(CliContext, CliContext.of({ args, isInteractive })),
       )
     },
   )
@@ -265,7 +265,7 @@ export function formatPreludeCommandError(error: unknown) {
 }
 
 export function shouldPrintPreludeCommandHelp(error: unknown) {
-  return !(error instanceof SchemaContractError && error.schema === 'CreateWorkbench')
+  return !(Schema.is(SchemaContractError)(error) && error.schema === 'CreateWorkbench')
 }
 
 export const printPreludeCommandHelp = Effect.fn('printPreludeCommandHelp')(

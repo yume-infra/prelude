@@ -1,12 +1,16 @@
+import type { PlatformError } from 'effect'
 import assert from 'node:assert/strict'
-import { mkdir, readFile, rm, stat, writeFile } from 'node:fs/promises'
-import path from 'node:path'
 import process from 'node:process'
+import { NodeFileSystem } from '@effect/platform-node'
+import { Effect, FileSystem, ManagedRuntime, Schema } from 'effect'
 import { execa } from 'execa'
+import { pathJoin } from '@/core/path-utils'
 
-const repoRoot = path.resolve(import.meta.dirname, '../../..')
-const cliEntry = path.join(repoRoot, 'apps/cli/dist/index.js')
-const generatedRoot = path.join(repoRoot, 'apps/examples/.generated')
+const repoRoot = decodeURIComponent(new URL('../../..', import.meta.url).pathname).replace(/\/$/u, '')
+const cliEntry = pathJoin(repoRoot, 'apps/cli/dist/index.js')
+const generatedRoot = pathJoin(repoRoot, 'apps/examples/.generated')
+const fsRuntime = ManagedRuntime.make(NodeFileSystem.layer)
+const decodeJsonString = Schema.decodeUnknownSync(Schema.UnknownFromJsonString)
 const generatedWorkspace = `packages:
   - '*'
 
@@ -235,8 +239,39 @@ const smokeCoverageCases = [
   readonly externalChecks: readonly SmokeExternalCheck[]
 }[]
 
-async function readJson<T>(filePath: string) {
-  return JSON.parse(await readFile(filePath, 'utf8')) as T
+function runFileEffect<A>(effect: Effect.Effect<A, PlatformError.PlatformError, FileSystem.FileSystem>) {
+  return fsRuntime.runPromise(effect)
+}
+
+function withFileSystem<A>(f: (fs: FileSystem.FileSystem) => Effect.Effect<A, PlatformError.PlatformError>) {
+  return runFileEffect(Effect.gen(function* () {
+    const fs = yield* FileSystem.FileSystem
+    return yield* f(fs)
+  }))
+}
+
+function readFile(filePath: string, _encoding?: string) {
+  return withFileSystem(fs => fs.readFileString(filePath))
+}
+
+function writeFile(filePath: string, content: string) {
+  return withFileSystem(fs => fs.writeFileString(filePath, content))
+}
+
+function mkdir(filePath: string, options?: { readonly recursive?: boolean }) {
+  return withFileSystem(fs => fs.makeDirectory(filePath, options))
+}
+
+function rm(filePath: string, options?: { readonly recursive?: boolean, readonly force?: boolean }) {
+  return withFileSystem(fs => fs.remove(filePath, options))
+}
+
+function stat(filePath: string) {
+  return withFileSystem(fs => fs.stat(filePath))
+}
+
+function readJson<T>(filePath: string) {
+  return readFile(filePath, 'utf8').then(content => decodeJsonString(content) as T)
 }
 
 function smokeTargetName(spec: SmokeSpec) {
@@ -244,7 +279,7 @@ function smokeTargetName(spec: SmokeSpec) {
 }
 
 function assertSmokeCoverageContract() {
-  assert.equal(generatedRoot, path.join(repoRoot, 'apps/examples/.generated'))
+  assert.equal(generatedRoot, pathJoin(repoRoot, 'apps/examples/.generated'))
 
   const targetNames = new Set<string>()
   const coveredIntentAreas = new Set<SmokeIntentArea>()
@@ -304,97 +339,100 @@ function assertSmokeCoverageContract() {
   )
 }
 
-async function assertGeneratedSmokeTargetsRemainInspectable() {
-  for (const smokeCase of smokeCoverageCases) {
-    const target = await stat(path.join(generatedRoot, smokeCase.targetName))
-    assert.ok(target.isDirectory(), `${smokeCase.targetName} should remain inspectable after smoke assertions`)
-  }
+function assertGeneratedSmokeTargetsRemainInspectable() {
+  return Promise.all(
+    smokeCoverageCases.map(smokeCase =>
+      stat(pathJoin(generatedRoot, smokeCase.targetName)).then((target) => {
+        assert.equal(target.type, 'Directory', `${smokeCase.targetName} should remain inspectable after smoke assertions`)
+      }),
+    ),
+  )
 }
 
-async function assertPathDoesNotExist(filePath: string) {
-  try {
-    await stat(filePath)
-  }
-  catch {
-    return
-  }
-
-  assert.fail(`${filePath} should not be written during dry-run smoke`)
+function assertPathDoesNotExist(filePath: string) {
+  return stat(filePath).then(
+    () => assert.fail(`${filePath} should not be written during dry-run smoke`),
+    () => undefined,
+  )
 }
 
-async function assertDryRunDoesNotWrite(spec: SmokeSpec) {
+function assertDryRunDoesNotWrite(spec: SmokeSpec) {
   const targetName = 'dry-run-no-write'
-  const dryRunDir = path.join(generatedRoot, targetName)
+  const dryRunDir = pathJoin(generatedRoot, targetName)
 
-  await rm(dryRunDir, { recursive: true, force: true })
+  return rm(dryRunDir, { recursive: true, force: true }).then(() =>
+    execa('node', [
+      cliEntry,
+      '--spec',
+      JSON.stringify(spec),
+      '--name',
+      targetName,
+      '--no-input',
+      '--dry-run',
+    ], {
+      cwd: generatedRoot,
+      env: {
+        ...process.env,
+        CI: '1',
+        FORCE_COLOR: '0',
+      },
+      timeout: 120_000,
+    }),
+  ).then((result) => {
+    const output = JSON.parse(result.stdout) as {
+      readonly operations: readonly { readonly path: string, readonly kind: string }[]
+      readonly blockers: readonly unknown[]
+    }
 
-  const result = await execa('node', [
-    cliEntry,
-    '--spec',
-    JSON.stringify(spec),
-    '--name',
-    targetName,
-    '--no-input',
-    '--dry-run',
-  ], {
-    cwd: generatedRoot,
-    env: {
-      ...process.env,
-      CI: '1',
-      FORCE_COLOR: '0',
-    },
-    timeout: 120_000,
+    assert.deepEqual(output.blockers, [])
+    assert.ok(output.operations.some(operation => operation.path === 'package.json' && operation.kind === 'writeStructuredFile'))
+    assert.ok(output.operations.some(operation => operation.path === 'src/index.ts' && operation.kind === 'writeGeneratedUserFile'))
+    assert.match(result.stdout, /"operations"/u)
+    assert.match(result.stdout, /"blockers"/u)
+    assert.match(result.stdout, /package\.json/u)
+
+    return Promise.all([
+      assertPathDoesNotExist(dryRunDir),
+      assertPathDoesNotExist(pathJoin(dryRunDir, 'package.json')),
+      assertPathDoesNotExist(pathJoin(dryRunDir, '.prelude/manifest.json')),
+    ])
+  }).then(() => {
+    process.stdout.write(`Generated dry-run smoke target (not written): ${dryRunDir}\n`)
   })
-  const output = JSON.parse(result.stdout) as {
-    readonly operations: readonly { readonly path: string, readonly kind: string }[]
-    readonly blockers: readonly unknown[]
-  }
-
-  assert.deepEqual(output.blockers, [])
-  assert.ok(output.operations.some(operation => operation.path === 'package.json' && operation.kind === 'writeStructuredFile'))
-  assert.ok(output.operations.some(operation => operation.path === 'src/index.ts' && operation.kind === 'writeGeneratedUserFile'))
-  assert.match(result.stdout, /"operations"/u)
-  assert.match(result.stdout, /"blockers"/u)
-  assert.match(result.stdout, /package\.json/u)
-  await assertPathDoesNotExist(dryRunDir)
-  await assertPathDoesNotExist(path.join(dryRunDir, 'package.json'))
-  await assertPathDoesNotExist(path.join(dryRunDir, '.prelude/manifest.json'))
-
-  console.log(`Generated dry-run smoke target (not written): ${dryRunDir}`)
 }
 
-async function createFromSpec(spec: SmokeSpec) {
+function createFromSpec(spec: SmokeSpec) {
   const targetName = smokeTargetName(spec)
-  const generatedDir = path.join(generatedRoot, targetName)
+  const generatedDir = pathJoin(generatedRoot, targetName)
 
-  await rm(generatedDir, { recursive: true, force: true })
-
-  await execa('node', [
-    cliEntry,
-    '--spec',
-    JSON.stringify(spec),
-    '--name',
-    targetName,
-    '--no-input',
-  ], {
-    cwd: generatedRoot,
-    env: {
-      ...process.env,
-      CI: '1',
-      FORCE_COLOR: '0',
-    },
-    stdio: 'inherit',
-    timeout: 120_000,
+  return rm(generatedDir, { recursive: true, force: true }).then(() =>
+    execa('node', [
+      cliEntry,
+      '--spec',
+      JSON.stringify(spec),
+      '--name',
+      targetName,
+      '--no-input',
+    ], {
+      cwd: generatedRoot,
+      env: {
+        ...process.env,
+        CI: '1',
+        FORCE_COLOR: '0',
+      },
+      stdio: 'inherit',
+      timeout: 120_000,
+    }),
+  ).then(() => {
+    process.stdout.write(`Generated smoke target: ${generatedDir}\n`)
+    return generatedDir
   })
-
-  console.log(`Generated smoke target: ${generatedDir}`)
-  return generatedDir
 }
 
 assertSmokeCoverageContract()
 await rm(generatedRoot, { recursive: true, force: true })
 await mkdir(generatedRoot, { recursive: true })
-await writeFile(path.join(generatedRoot, 'pnpm-workspace.yaml'), generatedWorkspace)
+await writeFile(pathJoin(generatedRoot, 'pnpm-workspace.yaml'), generatedWorkspace)
 await assertDryRunDoesNotWrite(workerSpec)
 
 const workerDir = await createFromSpec(workerSpec)
@@ -402,23 +440,23 @@ const workerPackageJson = await readJson<{
   name: string
   scripts: Record<string, string>
   devDependencies: Record<string, string>
-}>(path.join(workerDir, 'package.json'))
+}>(pathJoin(workerDir, 'package.json'))
 const workerKnipConfig = await readJson<{
   ignoreDependencies?: readonly string[]
-}>(path.join(workerDir, 'knip.json'))
-const workerSource = await readFile(path.join(workerDir, 'src/index.ts'), 'utf8')
+}>(pathJoin(workerDir, 'knip.json'))
+const workerSource = await readFile(pathJoin(workerDir, 'src/index.ts'), 'utf8')
 const workerTsconfig = await readJson<{
   compilerOptions: { types: readonly string[], plugins: readonly { name: string }[] }
   include: readonly string[]
-}>(path.join(workerDir, 'tsconfig.json'))
+}>(pathJoin(workerDir, 'tsconfig.json'))
 const workerManifest = await readJson<{
   createSpec: typeof workerSpec
   maintainProviders: Array<{ id: string, recordPath: string }>
   generatedUserSurfaces: Array<{ path: string, authority: string }>
   verificationRecords: Array<{ id: string, checkedPaths: readonly string[] }>
-}>(path.join(workerDir, '.prelude/manifest.json'))
+}>(pathJoin(workerDir, '.prelude/manifest.json'))
 const providerRecord = await readJson<{ id: string, surfaces: Array<{ id: string, owner: string, lifecycle: string, path: string }> }>(
-  path.join(workerDir, '.prelude/providers/effect-harness/provider.json'),
+  pathJoin(workerDir, '.prelude/providers/effect-harness/provider.json'),
 )
 
 assert.equal(workerPackageJson.name, workerSpec.package.name)
@@ -451,12 +489,12 @@ assert.equal(providerRecord.surfaces.some(surface => surface.path === 'AGENTS.md
 assert.equal(providerRecord.surfaces.some(surface => surface.path.startsWith('repos/')), false)
 assert.equal(providerRecord.surfaces.some(surface => surface.path.startsWith('harness/')), false)
 assert.equal([...providerSurfaceIds].some(surfaceId => surfaceId.includes('AGENTS.md#effect-harness')), false)
-await assertPathDoesNotExist(path.join(workerDir, '.codex'))
-await assertPathDoesNotExist(path.join(workerDir, 'AGENTS.md'))
-await assertPathDoesNotExist(path.join(workerDir, '.effect-harness.json'))
-await assertPathDoesNotExist(path.join(workerDir, 'repos/effect/LLMS.md'))
-await assertPathDoesNotExist(path.join(workerDir, 'harness/effect-routes.md'))
-await assertPathDoesNotExist(path.join(workerDir, 'harness/tsgo-routes.md'))
+await assertPathDoesNotExist(pathJoin(workerDir, '.codex'))
+await assertPathDoesNotExist(pathJoin(workerDir, 'AGENTS.md'))
+await assertPathDoesNotExist(pathJoin(workerDir, '.effect-harness.json'))
+await assertPathDoesNotExist(pathJoin(workerDir, 'repos/effect/LLMS.md'))
+await assertPathDoesNotExist(pathJoin(workerDir, 'harness/effect-routes.md'))
+await assertPathDoesNotExist(pathJoin(workerDir, 'harness/tsgo-routes.md'))
 assert.ok(
   providerRecord.surfaces.every(surface =>
     surface.owner === 'provider:effect-harness'
@@ -480,21 +518,21 @@ const reactPackageJson = await readJson<{
   scripts: Record<string, string>
   dependencies: Record<string, string>
   devDependencies: Record<string, string>
-}>(path.join(reactDir, 'package.json'))
-const reactIndex = await readFile(path.join(reactDir, 'index.html'), 'utf8')
-const reactMain = await readFile(path.join(reactDir, 'src/main.tsx'), 'utf8')
-const reactApp = await readFile(path.join(reactDir, 'src/App.tsx'), 'utf8')
-const reactViteConfig = await readFile(path.join(reactDir, 'vite.config.ts'), 'utf8')
-const reactLessStyles = await readFile(path.join(reactDir, 'src/styles.less'), 'utf8')
-const reactTailwindStyles = await readFile(path.join(reactDir, 'src/styles.css'), 'utf8')
+}>(pathJoin(reactDir, 'package.json'))
+const reactIndex = await readFile(pathJoin(reactDir, 'index.html'), 'utf8')
+const reactMain = await readFile(pathJoin(reactDir, 'src/main.tsx'), 'utf8')
+const reactApp = await readFile(pathJoin(reactDir, 'src/App.tsx'), 'utf8')
+const reactViteConfig = await readFile(pathJoin(reactDir, 'vite.config.ts'), 'utf8')
+const reactLessStyles = await readFile(pathJoin(reactDir, 'src/styles.less'), 'utf8')
+const reactTailwindStyles = await readFile(pathJoin(reactDir, 'src/styles.css'), 'utf8')
 const reactTsconfig = await readJson<{
   compilerOptions: { jsx: string, types: readonly string[] }
   include: readonly string[]
-}>(path.join(reactDir, 'tsconfig.json'))
+}>(pathJoin(reactDir, 'tsconfig.json'))
 const reactManifest = await readJson<{
   createSpec: typeof reactSpec
   generatedUserSurfaces: Array<{ path: string, authority: string }>
-}>(path.join(reactDir, '.prelude/manifest.json'))
+}>(pathJoin(reactDir, '.prelude/manifest.json'))
 
 assert.equal(reactPackageJson.name, reactSpec.package.name)
 assert.equal(reactPackageJson.scripts.dev, 'vite')
@@ -551,22 +589,22 @@ const vuePackageJson = await readJson<{
   scripts: Record<string, string>
   dependencies: Record<string, string>
   devDependencies: Record<string, string>
-}>(path.join(vueDir, 'package.json'))
-const vueIndex = await readFile(path.join(vueDir, 'index.html'), 'utf8')
-const vueMain = await readFile(path.join(vueDir, 'src/main.ts'), 'utf8')
-const vueApp = await readFile(path.join(vueDir, 'src/App.vue'), 'utf8')
-const vueViteConfig = await readFile(path.join(vueDir, 'vite.config.ts'), 'utf8')
-const vueLessStyles = await readFile(path.join(vueDir, 'src/styles.less'), 'utf8')
-const vueTailwindStyles = await readFile(path.join(vueDir, 'src/styles.css'), 'utf8')
+}>(pathJoin(vueDir, 'package.json'))
+const vueIndex = await readFile(pathJoin(vueDir, 'index.html'), 'utf8')
+const vueMain = await readFile(pathJoin(vueDir, 'src/main.ts'), 'utf8')
+const vueApp = await readFile(pathJoin(vueDir, 'src/App.vue'), 'utf8')
+const vueViteConfig = await readFile(pathJoin(vueDir, 'vite.config.ts'), 'utf8')
+const vueLessStyles = await readFile(pathJoin(vueDir, 'src/styles.less'), 'utf8')
+const vueTailwindStyles = await readFile(pathJoin(vueDir, 'src/styles.css'), 'utf8')
 const vueTsconfig = await readJson<{
   compilerOptions: { types: readonly string[] }
   include: readonly string[]
-}>(path.join(vueDir, 'tsconfig.json'))
+}>(pathJoin(vueDir, 'tsconfig.json'))
 const vueManifest = await readJson<{
   createSpec: typeof vueSpec
   maintainProviders: readonly unknown[]
   generatedUserSurfaces: Array<{ path: string, authority: string }>
-}>(path.join(vueDir, '.prelude/manifest.json'))
+}>(pathJoin(vueDir, '.prelude/manifest.json'))
 
 assert.equal(vuePackageJson.name, vueSpec.package.name)
 assert.equal(vuePackageJson.scripts.dev, 'vite')
@@ -614,13 +652,13 @@ const backendPackageJson = await readJson<{
   files: readonly string[]
   scripts: Record<string, string>
   devDependencies: Record<string, string>
-}>(path.join(backendDir, 'package.json'))
-const backendSource = await readFile(path.join(backendDir, 'src/index.ts'), 'utf8')
+}>(pathJoin(backendDir, 'package.json'))
+const backendSource = await readFile(pathJoin(backendDir, 'src/index.ts'), 'utf8')
 const backendManifest = await readJson<{
   createSpec: typeof backendSpec
   maintainProviders: readonly unknown[]
   generatedUserSurfaces: Array<{ path: string, authority: string }>
-}>(path.join(backendDir, '.prelude/manifest.json'))
+}>(pathJoin(backendDir, '.prelude/manifest.json'))
 
 assert.equal(backendPackageJson.name, backendSpec.package.name)
 assert.equal(backendPackageJson.main, 'dist/index.js')
@@ -660,13 +698,13 @@ const libraryPackageJson = await readJson<{
   files: readonly string[]
   scripts: Record<string, string>
   devDependencies: Record<string, string>
-}>(path.join(libraryDir, 'package.json'))
-const librarySource = await readFile(path.join(libraryDir, 'src/index.ts'), 'utf8')
+}>(pathJoin(libraryDir, 'package.json'))
+const librarySource = await readFile(pathJoin(libraryDir, 'src/index.ts'), 'utf8')
 const libraryManifest = await readJson<{
   createSpec: typeof librarySpec
   maintainProviders: readonly unknown[]
   generatedUserSurfaces: Array<{ path: string, authority: string }>
-}>(path.join(libraryDir, '.prelude/manifest.json'))
+}>(pathJoin(libraryDir, '.prelude/manifest.json'))
 
 assert.equal(libraryPackageJson.name, librarySpec.package.name)
 assert.equal(libraryPackageJson.main, 'dist/index.js')
@@ -700,14 +738,14 @@ const cliPackageJson = await readJson<{
   bin: Record<string, string>
   scripts: Record<string, string>
   devDependencies: Record<string, string>
-}>(path.join(cliDir, 'package.json'))
-const cliSource = await readFile(path.join(cliDir, 'src/index.ts'), 'utf8')
-const cliEnsureShebang = await readFile(path.join(cliDir, 'scripts/ensure-shebang.mjs'), 'utf8')
+}>(pathJoin(cliDir, 'package.json'))
+const cliSource = await readFile(pathJoin(cliDir, 'src/index.ts'), 'utf8')
+const cliEnsureShebang = await readFile(pathJoin(cliDir, 'scripts/ensure-shebang.mjs'), 'utf8')
 const cliManifest = await readJson<{
   createSpec: typeof cliSpec
   maintainProviders: readonly unknown[]
   generatedUserSurfaces: Array<{ path: string, authority: string }>
-}>(path.join(cliDir, '.prelude/manifest.json'))
+}>(pathJoin(cliDir, '.prelude/manifest.json'))
 
 assert.equal(cliPackageJson.name, cliSpec.package.name)
 assert.equal(cliPackageJson.main, 'dist/index.js')
@@ -827,22 +865,22 @@ const workspaceRootPackageJson = await readJson<{
   private: boolean
   packageManager: string
   scripts: Record<string, string>
-}>(path.join(workspaceDir, 'package.json'))
-const workspaceYaml = await readFile(path.join(workspaceDir, 'pnpm-workspace.yaml'), 'utf8')
+}>(pathJoin(workspaceDir, 'package.json'))
+const workspaceYaml = await readFile(pathJoin(workspaceDir, 'pnpm-workspace.yaml'), 'utf8')
 const workspaceApiPackageJson = await readJson<{
   name: string
   dependencies: Record<string, string>
   scripts: Record<string, string>
-}>(path.join(workspaceDir, 'apps/api/package.json'))
+}>(pathJoin(workspaceDir, 'apps/api/package.json'))
 const workspaceToolPackageJson = await readJson<{
   name: string
   dependencies: Record<string, string>
   scripts: Record<string, string>
-}>(path.join(workspaceDir, 'apps/tool/package.json'))
+}>(pathJoin(workspaceDir, 'apps/tool/package.json'))
 const workspaceSharedPackageJson = await readJson<{
   name: string
   scripts: Record<string, string>
-}>(path.join(workspaceDir, 'libs/shared/package.json'))
+}>(pathJoin(workspaceDir, 'libs/shared/package.json'))
 const workspaceManifest = await readJson<{
   resolvedGraph: {
     topology: string
@@ -851,7 +889,7 @@ const workspaceManifest = await readJson<{
   }
   generatedUserSurfaces: Array<{ path: string, authority: string }>
   verificationRecords: Array<{ id: string }>
-}>(path.join(workspaceDir, '.prelude/manifest.json'))
+}>(pathJoin(workspaceDir, '.prelude/manifest.json'))
 
 assert.equal(workspaceRootPackageJson.private, true)
 assert.equal(workspaceRootPackageJson.packageManager, 'pnpm@10.33.4')
@@ -905,3 +943,4 @@ await execa('pnpm', ['--filter', workspaceSpec.packages[2].name, 'build'], {
 })
 
 await assertGeneratedSmokeTargetsRemainInspectable()
+await fsRuntime.dispose()

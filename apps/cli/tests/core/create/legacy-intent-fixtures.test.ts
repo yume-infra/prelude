@@ -1,5 +1,6 @@
 import assert from 'node:assert/strict'
 import { describe, it } from '@effect/vitest'
+import { Effect } from 'effect'
 import {
   enumerateRecoveredCreateSpecFixtureIds,
   findRecoveredCreateSpecFixture,
@@ -21,7 +22,7 @@ function assertSameMembers(actual: readonly string[], expected: readonly string[
 }
 
 describe('legacy main intent fixture catalog', () => {
-  it('states the recovery baselines and forbidden target concepts', () => {
+  it.effect('states the recovery baselines and forbidden target concepts', () => Effect.sync(() => {
     assert.equal(recoveredIntentInventory.baseline.intent, 'main')
     assert.equal(recoveredIntentInventory.baseline.implementation, 'docs/current')
 
@@ -47,9 +48,9 @@ describe('legacy main intent fixture catalog', () => {
     assert.match(forbidden, /preset registry/u)
     assert.match(forbidden, /capability-owned direct writes/u)
     assert.match(forbidden, /whole-project lifecycle update/u)
-  })
+  }))
 
-  it('loads and enumerates canonical recovered CreateSpec fixtures', () => {
+  it.effect('loads and enumerates canonical recovered CreateSpec fixtures', () => Effect.sync(() => {
     const fixtureIds = enumerateRecoveredCreateSpecFixtureIds()
 
     assert.ok(fixtureIds.length >= 17)
@@ -69,9 +70,9 @@ describe('legacy main intent fixture catalog', () => {
         assert.ok(Array.isArray(fixture.createSpec.packages))
       }
     }
-  })
+  }))
 
-  it('maps every legacy preset and compatibility alias from main', () => {
+  it.effect('maps every legacy preset and compatibility alias from main', () => Effect.sync(() => {
     assertSameMembers(legacyPresetMappings.map(mapping => mapping.legacyPreset), [
       'standalone-react-minimal',
       'standalone-react-full',
@@ -104,9 +105,9 @@ describe('legacy main intent fixture catalog', () => {
         assert.ok(fixtureIds.has(mapping.fixtureId), `${mapping.legacyPreset} maps to an existing fixture`)
       }
     }
-  })
+  }))
 
-  it('maps generated smoke cases and marks PlanSpec dry-run smoke out of scope', () => {
+  it.effect('maps generated smoke cases and marks PlanSpec dry-run smoke out of scope', () => Effect.sync(() => {
     const fixtureIds = new Set(enumerateRecoveredCreateSpecFixtureIds())
     const generatedSmokeMappings = legacySmokeCaseMappings.filter(mapping =>
       mapping.legacySmokeCase.startsWith('generated-projects:'),
@@ -159,9 +160,9 @@ describe('legacy main intent fixture catalog', () => {
         assert.match(mapping.reason, /not wire it into create|forbidden target architecture/u)
       }
     }
-  })
+  }))
 
-  it('covers guided variants, CLI intent, workspace graph invariants, and package contracts', () => {
+  it.effect('covers guided variants, CLI intent, workspace graph invariants, and package contracts', () => Effect.sync(() => {
     const guidedIds = new Set(legacyGuidedVariantInventory.map(entry => entry.id))
     assert.ok(guidedIds.has('react-guided-variant-space'))
     assert.ok(guidedIds.has('vue-guided-variant-space'))
@@ -206,9 +207,9 @@ describe('legacy main intent fixture catalog', () => {
     ])
     assert.match(legacyGeneratedSmokePolicy.minimalPolicy, /build-only/u)
     assert.match(legacyGeneratedSmokePolicy.fullPolicy, /zero warnings/u)
-  })
+  }))
 
-  it('keeps worker-app and old adapters explicitly out of scope', () => {
+  it.effect('keeps worker-app and old adapters explicitly out of scope', () => Effect.sync(() => {
     assertSameMembers(legacyOutOfScopeIntents.map(intent => intent.id), [
       'legacy-worker-app-schema-placeholder',
       'legacy-project-config-adapter',
@@ -220,13 +221,13 @@ describe('legacy main intent fixture catalog', () => {
         intent.id === 'legacy-worker-app-schema-placeholder' && intent.reason.includes('generation rejected'),
       ),
     )
-  })
+  }))
 
-  it('records fixture source paths for supplemental explorer evidence', () => {
+  it.effect('records fixture source paths for supplemental explorer evidence', () => Effect.sync(() => {
     assert.ok(recoveredIntentInventory.mainSourcePaths.includes('apps/cli/src/schema/project-config.ts'))
     assert.ok(recoveredIntentInventory.mainSourcePaths.includes('apps/cli/templates/fragments/cli/effect-index.ts.hbs'))
     assert.ok(recoveredIntentInventory.mainSourcePaths.includes('.trellis/spec/create-yume/workspace-packages/index.md'))
     assert.ok(recoveredIntentInventory.mainSourcePaths.includes('.agents/skills/generated-scaffold-audit/references/create-yume-generated-quality.md'))
     assert.ok(recoveredCreateSpecFixtures.some(fixture => fixture.id === 'legacy-workspace-fullstack-react'))
-  })
+  }))
 })

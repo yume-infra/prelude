@@ -6,8 +6,8 @@ import { sortImportLines, unique } from './shared'
 export function materializeFrontendEntry(surfaceId: string, contributions: readonly FrontendEntryContribution[]): Effect.Effect<WriteOperation, SchemaContractError> {
   const base = contributions.find(contribution => contribution.framework !== undefined)
 
-  if (!base?.framework) {
-    return Effect.fail(new SchemaContractError({
+  if (base?.framework === undefined) {
+    return Effect.fail(SchemaContractError.make({
       schema: surfaceId,
       issueCount: 1,
       message: `Frontend entry surface ${surfaceId} is missing a framework owner contribution.`,

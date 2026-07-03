@@ -12,7 +12,7 @@ interface AppConfigShape {
 const DEFAULT_CONCURRENCY = 8
 const MAX_CONCURRENCY = 32
 
-export class AppConfig extends Context.Service<AppConfig, AppConfigShape>()('@sayoriqwq/prelude/config/AppConfig') {
+export class AppConfig extends Context.Service<AppConfig, AppConfigShape>()('@sayoriqwq/prelude/config/app-config/AppConfig') {
   static readonly Default = Layer.effect(
     AppConfig,
     Config.all({

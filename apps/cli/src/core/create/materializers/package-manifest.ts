@@ -45,7 +45,7 @@ function packageManifestConflict(options: {
   readonly incomingOwner: string
   readonly incomingValue: JsonValue
 }) {
-  return new SchemaContractError({
+  return SchemaContractError.make({
     schema: options.surfaceId,
     issueCount: 1,
     message: [
@@ -60,7 +60,7 @@ function recordOwner(slots: Map<string, StructuredSlot>, path: readonly string[]
   const key = formatJsonPointer(path)
   const existing = slots.get(key)
 
-  if (existing) {
+  if (existing !== undefined) {
     if (!existing.owners.includes(owner)) {
       slots.set(key, {
         value: existing.value,
@@ -124,7 +124,7 @@ function mergeStructuredValue(options: {
         surfaceId: options.surfaceId,
       })
 
-      if (conflict) {
+      if (conflict !== undefined) {
         return conflict
       }
     }
@@ -198,7 +198,7 @@ function mergePackageManifestContributions(contributions: readonly PackageManife
         surfaceId,
       })
 
-      if (conflict) {
+      if (conflict !== undefined) {
         return Effect.fail(conflict)
       }
     }

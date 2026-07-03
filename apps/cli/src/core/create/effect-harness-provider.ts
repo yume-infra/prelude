@@ -11,8 +11,7 @@ import type {
   ResolvedProvider,
   VerificationRecord,
 } from './model'
-import * as fs from 'node:fs'
-import * as path from 'node:path'
+import { pathJoin } from '@/core/path-utils'
 
 const effectHarnessProviderId = 'effect-harness'
 const effectHarnessProviderPath = '.prelude/providers/effect-harness/provider.json'
@@ -48,6 +47,14 @@ function requiredStringArray(value: JsonValue | undefined, source: string): read
   }
 
   return value.map((entry, index) => requiredString(entry, `${source}[${index}]`))
+}
+
+function optionalStringArray(value: JsonValue | undefined, source: string): readonly string[] {
+  if (value === undefined) {
+    return []
+  }
+
+  return requiredStringArray(value, source)
 }
 
 function optionalString(value: JsonValue | undefined): string | undefined {
@@ -252,15 +259,13 @@ function normalizeProjectedContext(projectedContext: ProviderProjectedContext): 
   }
 }
 
-function discoveryManagedFileContent(discovery: EffectHarnessProviderDiscovery, file: Record<string, JsonValue>, source: string) {
+function discoveryManagedFileContent(file: Record<string, JsonValue>, source: string) {
   const inlineContent = optionalString(file.content)
   if (inlineContent !== undefined) {
     return inlineContent
   }
 
-  const sourcePath = requiredString(file.sourcePath, `${source}.sourcePath`)
-
-  return fs.readFileSync(path.join(discovery.artifactRoot, sourcePath), 'utf8')
+  throw new TypeError(`Invalid effect-harness provider discovery: expected ${source}.content string`)
 }
 
 function effectHarnessManagedFilesContribution(discovery: EffectHarnessProviderDiscovery, key: 'documentationBundle' | 'snippets') {
@@ -276,11 +281,11 @@ function effectHarnessManagedFilesContribution(discovery: EffectHarnessProviderD
     const source = `targetManagedSurfaces.${key}.files[${index}]`
     const file = requiredJsonRecord(fileValue, source)
     const targetPath = requiredString(file.targetPath, `${source}.targetPath`)
-    const pathInTarget = path.posix.join(targetBasePath, targetPath)
+    const pathInTarget = pathJoin(targetBasePath, targetPath)
 
     return {
       path: pathInTarget,
-      content: discoveryManagedFileContent(discovery, file, source),
+      content: discoveryManagedFileContent(file, source),
     }
   })
 }
@@ -338,13 +343,29 @@ function restrictedImportPatterns(imports: readonly string[]) {
     })
 }
 
-function restrictedImportPaths(imports: readonly string[]) {
-  return imports
-    .filter(name => !name.includes('*'))
+interface RestrictedImportPathRule {
+  readonly importNames?: readonly string[]
+  readonly message: string
+  readonly name: string
+}
+
+function restrictedImportPaths(imports: readonly string[], restrictedVitestImports: readonly string[]): RestrictedImportPathRule[] {
+  const paths: RestrictedImportPathRule[] = imports
+    .filter(name => !name.includes('*') && !(name === 'vitest' && restrictedVitestImports.length > 0))
     .map(name => ({
       name,
       message: restrictedImportMessage(name),
     }))
+
+  if (restrictedVitestImports.length > 0) {
+    paths.push({
+      name: 'vitest',
+      importNames: [...restrictedVitestImports],
+      message: 'Use @effect/vitest for Effect test entries. Import Vitest mock and lifecycle APIs directly from vitest when the runner requires it.',
+    })
+  }
+
+  return paths
 }
 
 function restrictedSyntaxRules(restrictedSyntax: readonly string[]) {
@@ -387,6 +408,7 @@ function effectHarnessEslintConfigContent(discovery: EffectHarnessProviderDiscov
   const { lintGuardrails } = effectHarnessPolicyContributions(discovery)
   const rules = requiredJsonRecord(lintGuardrails.rules, 'targetManagedSurfaces.contributions.lintGuardrails.rules')
   const restrictedImports = requiredStringArray(rules.restrictedImports, 'targetManagedSurfaces.contributions.lintGuardrails.rules.restrictedImports')
+  const restrictedVitestImports = optionalStringArray(rules.restrictedVitestImports, 'targetManagedSurfaces.contributions.lintGuardrails.rules.restrictedVitestImports')
   const restrictedSyntax = requiredStringArray(rules.restrictedSyntax, 'targetManagedSurfaces.contributions.lintGuardrails.rules.restrictedSyntax')
   const packageManifestPaths = effectHarnessPackageManifestPaths(discovery, projectedContext)
   const syntaxRules = restrictedSyntaxRules(restrictedSyntax)
@@ -459,7 +481,7 @@ export default [
       'no-restricted-imports': [
         'error',
         {
-          paths: ${jsLiteral(restrictedImportPaths(restrictedImports), 10)},
+          paths: ${jsLiteral(restrictedImportPaths(restrictedImports, restrictedVitestImports), 10)},
           patterns: ${jsLiteral(restrictedImportPatterns(restrictedImports), 10)},
         },
       ],

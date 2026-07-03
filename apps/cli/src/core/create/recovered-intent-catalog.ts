@@ -1351,7 +1351,7 @@ export function enumerateRecoveredCreateSpecFixtureIds(): readonly RecoveredCrea
 
 export function findRecoveredCreateSpecFixture(id: RecoveredCreateSpecFixtureId): RecoveredCreateSpecFixture {
   const fixture = recoveredCreateSpecFixtures.find(candidate => candidate.id === id)
-  if (!fixture) {
+  if (fixture === undefined) {
     throw new Error(`Recovered CreateSpec fixture not found: ${id}`)
   }
 

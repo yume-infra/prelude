@@ -54,7 +54,7 @@ const resolveProviderDiscoveries = Effect.fn('resolveProviderDiscoveries')(
 
     const discoveryService = yield* EffectHarnessProviderDiscoveryService
     const effectHarness = yield* discoveryService.discover.pipe(
-      Effect.mapError(error => new SchemaContractError({
+      Effect.mapError(error => SchemaContractError.make({
         schema: 'EffectHarnessProviderDiscovery',
         message: error.message,
         issueCount: 1,

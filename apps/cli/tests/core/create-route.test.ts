@@ -1,17 +1,15 @@
 import assert from 'node:assert/strict'
-import * as fs from 'node:fs/promises'
-import * as os from 'node:os'
-import * as path from 'node:path'
 import { NodeServices } from '@effect/platform-node'
 import { describe, it } from '@effect/vitest'
 import { Effect, Layer } from 'effect'
 import { beforeEach, vi } from 'vitest'
 import { makeProjectName } from '@/brand/project-name'
 import { makeTargetDir } from '@/brand/target-dir'
-import { CliContextLive } from '@/core/cli-context'
+import { CliContext } from '@/core/cli-context'
 import { runCreateRoute } from '@/core/create-route'
 import { loadCreateSpecFromInput } from '@/core/create-spec-input'
 import { FsLive } from '@/core/services/fs'
+import { assertPathDoesNotExist, makeTempProjectDir, parseJson, pathJoin, readJson, stringifyJson } from '../support/effect-files'
 import { EffectHarnessDiscoveryTestLayer } from '../support/effect-harness-discovery'
 
 const prompts = vi.hoisted(() => ({
@@ -33,192 +31,165 @@ const TestLayer = FsLive.pipe(
   Layer.provideMerge(EffectHarnessDiscoveryTestLayer),
 )
 
-async function makeTempProjectDir() {
-  return await fs.mkdtemp(path.join(os.tmpdir(), 'prelude-create-route-'))
-}
+function routeOutput(result: { readonly output?: string }) {
+  if (result.output !== undefined) {
+    return result.output
+  }
 
-async function readJson<T = unknown>(filePath: string) {
-  return JSON.parse(await fs.readFile(filePath, 'utf8')) as T
+  return assert.fail('expected create route to return output')
 }
 
 describe('canonical create CLI route', () => {
-  beforeEach(() => {
-    prompts.isCancel.mockReset()
-    prompts.multiselect.mockReset()
-    prompts.select.mockReset()
-    prompts.text.mockReset()
-    prompts.isCancel.mockReturnValue(false)
-  })
+  it.layer(TestLayer)((it) => {
+    beforeEach(() => {
+      prompts.isCancel.mockReset()
+      prompts.multiselect.mockReset()
+      prompts.select.mockReset()
+      prompts.text.mockReset()
+      prompts.isCancel.mockReturnValue(false)
+    })
 
-  it('creates from direct canonical --spec through the CreateSpec pipeline', async () => {
-    const targetDir = await makeTempProjectDir()
-    const spec = {
-      topology: 'single-package',
-      package: {
-        id: 'app',
-        name: 'direct-spec-app',
-        capabilities: ['minimal-node-package'],
-      },
-      rootCapabilities: [],
-      providers: [],
-      overrides: {},
-    }
+    it.effect('creates from direct canonical --spec through the CreateSpec pipeline', () => Effect.gen(function* () {
+      const targetDir = yield* makeTempProjectDir('prelude-create-route-')
+      const spec = {
+        topology: 'single-package',
+        package: {
+          id: 'app',
+          name: 'direct-spec-app',
+          capabilities: ['minimal-node-package'],
+        },
+        rootCapabilities: [],
+        providers: [],
+        overrides: {},
+      }
 
-    await Effect.runPromise(
-      runCreateRoute({
+      yield* runCreateRoute({
         preludeVersion: '0.0.0-test',
         targetDir: makeTargetDir(targetDir),
       }).pipe(
-        Effect.provide(
-          Layer.mergeAll(
-            TestLayer,
-            CliContextLive({
-              args: {
-                spec: JSON.stringify(spec),
-                name: makeProjectName('ignored-target-name'),
-                noInput: true,
-              },
-              isInteractive: false,
-            }),
-          ),
-        ),
-      ),
-    )
-
-    const manifest = await readJson<{
-      createSpec: unknown
-      resolvedGraph: { packageCapabilities: unknown }
-    }>(path.join(targetDir, '.prelude/manifest.json'))
-
-    assert.deepEqual(manifest.createSpec, spec)
-    assert.deepEqual(manifest.resolvedGraph.packageCapabilities, {
-      app: ['minimal-node-package'],
-    })
-  })
-
-  it('uses the prompted project name as the target directory for guided creation', async () => {
-    const originalCwd = process.cwd()
-    const parentDir = await makeTempProjectDir()
-    prompts.text.mockResolvedValue('guided-spec-app')
-    prompts.select.mockResolvedValue('single-package')
-    prompts.multiselect
-      .mockResolvedValueOnce(['minimal-node-package'])
-      .mockResolvedValueOnce([])
-
-    try {
-      process.chdir(parentDir)
-
-      await Effect.runPromise(
-        runCreateRoute({
-          preludeVersion: '0.0.0-test',
-        }).pipe(
-          Effect.provide(
-            Layer.mergeAll(
-              TestLayer,
-              CliContextLive({
-                args: {},
-                isInteractive: true,
-              }),
-            ),
-          ),
-        ),
+        Effect.provideService(CliContext, CliContext.of({
+          args: {
+            spec: stringifyJson(spec),
+            name: makeProjectName('ignored-target-name'),
+            noInput: true,
+          },
+          isInteractive: false,
+        })),
       )
 
-      const manifest = await readJson<{
-        createSpec: {
-          package: { name: string }
-        }
-      }>(path.join(parentDir, 'guided-spec-app/.prelude/manifest.json'))
+      const manifest = yield* readJson<{
+        createSpec: unknown
+        resolvedGraph: { packageCapabilities: unknown }
+      }>(yield* pathJoin(targetDir, '.prelude/manifest.json'))
 
-      assert.equal(manifest.createSpec.package.name, 'guided-spec-app')
-      assert.ok(prompts.select.mock.invocationCallOrder[0]! < prompts.multiselect.mock.invocationCallOrder[0]!)
-    }
-    finally {
-      process.chdir(originalCwd)
-    }
-  })
+      assert.deepEqual(manifest.createSpec, spec)
+      assert.deepEqual(manifest.resolvedGraph.packageCapabilities, {
+        app: ['minimal-node-package'],
+      })
+    }))
 
-  const guidedSinglePackageScenarios = [
-    {
-      label: 'React',
-      projectName: 'guided-react-app',
-      capabilities: ['react-app', 'css:less', 'css:tailwind', 'router:react-router', 'state:jotai'],
-      rootCapabilities: ['package-manager:pnpm', 'linting', 'knip'],
-      providers: [],
-    },
-    {
-      label: 'Vue',
-      projectName: 'guided-vue-app',
-      capabilities: ['vue-app', 'css:less', 'css:tailwind', 'router:vue-router', 'state:pinia'],
-      rootCapabilities: ['package-manager:pnpm', 'linting', 'knip'],
-      providers: [],
-    },
-    {
-      label: 'Node backend',
-      projectName: 'guided-node-backend',
-      capabilities: ['node-backend'],
-      rootCapabilities: ['package-manager:pnpm', 'linting', 'knip'],
-      providers: [],
-    },
-    {
-      label: 'library',
-      projectName: 'guided-library',
-      capabilities: ['library'],
-      rootCapabilities: ['package-manager:pnpm'],
-      providers: [],
-    },
-    {
-      label: 'CLI',
-      projectName: 'guided-cli',
-      capabilities: ['cli-tool'],
-      rootCapabilities: ['package-manager:pnpm'],
-      providers: [],
-    },
-    {
-      label: 'Effect',
-      projectName: 'guided-effect-worker',
-      capabilities: ['effect-package'],
-      rootCapabilities: ['package-manager:pnpm', 'ai-harness'],
-      providers: ['effect-harness'],
-    },
-  ] as const
-
-  for (const scenario of guidedSinglePackageScenarios) {
-    it(`prints guided ${scenario.label} CreateSpec without writing files`, async () => {
-      const targetDir = await makeTempProjectDir()
-      const lines: string[] = []
-      const originalLog = console.log
-      prompts.text.mockResolvedValue(scenario.projectName)
+    it.effect('uses the prompted project name as the target directory for guided creation', () => Effect.gen(function* () {
+      const originalCwd = process.cwd()
+      const parentDir = yield* makeTempProjectDir('prelude-create-route-')
+      prompts.text.mockResolvedValue('guided-spec-app')
       prompts.select.mockResolvedValue('single-package')
       prompts.multiselect
-        .mockResolvedValueOnce([...scenario.capabilities])
-        .mockResolvedValueOnce([...scenario.rootCapabilities])
+        .mockResolvedValueOnce(['minimal-node-package'])
+        .mockResolvedValueOnce([])
 
       try {
-        console.log = (line?: unknown) => {
-          lines.push(String(line))
-        }
+        process.chdir(parentDir)
 
-        const result = await Effect.runPromise(
-          runCreateRoute({
-            preludeVersion: '0.0.0-test',
-            targetDir: makeTargetDir(targetDir),
-          }).pipe(
-            Effect.provide(
-              Layer.mergeAll(
-                TestLayer,
-                CliContextLive({
-                  args: {
-                    printSpec: true,
-                  },
-                  isInteractive: true,
-                }),
-              ),
-            ),
-          ),
+        yield* runCreateRoute({
+          preludeVersion: '0.0.0-test',
+        }).pipe(
+          Effect.provideService(CliContext, CliContext.of({
+            args: {},
+            isInteractive: true,
+          })),
         )
 
-        const spec = JSON.parse(lines.join('\n')) as {
+        const manifest = yield* readJson<{
+          createSpec: {
+            package: { name: string }
+          }
+        }>(yield* pathJoin(parentDir, 'guided-spec-app/.prelude/manifest.json'))
+
+        assert.equal(manifest.createSpec.package.name, 'guided-spec-app')
+        assert.ok(prompts.select.mock.invocationCallOrder[0]! < prompts.multiselect.mock.invocationCallOrder[0]!)
+      }
+      finally {
+        process.chdir(originalCwd)
+      }
+    }))
+
+    const guidedSinglePackageScenarios = [
+      {
+        label: 'React',
+        projectName: 'guided-react-app',
+        capabilities: ['react-app', 'css:less', 'css:tailwind', 'router:react-router', 'state:jotai'],
+        rootCapabilities: ['package-manager:pnpm', 'linting', 'knip'],
+        providers: [],
+      },
+      {
+        label: 'Vue',
+        projectName: 'guided-vue-app',
+        capabilities: ['vue-app', 'css:less', 'css:tailwind', 'router:vue-router', 'state:pinia'],
+        rootCapabilities: ['package-manager:pnpm', 'linting', 'knip'],
+        providers: [],
+      },
+      {
+        label: 'Node backend',
+        projectName: 'guided-node-backend',
+        capabilities: ['node-backend'],
+        rootCapabilities: ['package-manager:pnpm', 'linting', 'knip'],
+        providers: [],
+      },
+      {
+        label: 'library',
+        projectName: 'guided-library',
+        capabilities: ['library'],
+        rootCapabilities: ['package-manager:pnpm'],
+        providers: [],
+      },
+      {
+        label: 'CLI',
+        projectName: 'guided-cli',
+        capabilities: ['cli-tool'],
+        rootCapabilities: ['package-manager:pnpm'],
+        providers: [],
+      },
+      {
+        label: 'Effect',
+        projectName: 'guided-effect-worker',
+        capabilities: ['effect-package'],
+        rootCapabilities: ['package-manager:pnpm', 'ai-harness'],
+        providers: ['effect-harness'],
+      },
+    ] as const
+
+    for (const scenario of guidedSinglePackageScenarios) {
+      it.effect(`prints guided ${scenario.label} CreateSpec without writing files`, () => Effect.gen(function* () {
+        const targetDir = yield* makeTempProjectDir('prelude-create-route-')
+        prompts.text.mockResolvedValue(scenario.projectName)
+        prompts.select.mockResolvedValue('single-package')
+        prompts.multiselect
+          .mockResolvedValueOnce([...scenario.capabilities])
+          .mockResolvedValueOnce([...scenario.rootCapabilities])
+
+        const result = yield* runCreateRoute({
+          preludeVersion: '0.0.0-test',
+          targetDir: makeTargetDir(targetDir),
+        }).pipe(
+          Effect.provideService(CliContext, CliContext.of({
+            args: {
+              printSpec: true,
+            },
+            isInteractive: true,
+          })),
+        )
+
+        const spec = parseJson(routeOutput(result)) as {
           topology: string
           package: { id: string, name: string, capabilities: readonly string[] }
           rootCapabilities: readonly string[]
@@ -234,49 +205,31 @@ describe('canonical create CLI route', () => {
         })
         assert.deepEqual(spec.rootCapabilities, scenario.rootCapabilities)
         assert.deepEqual(spec.providers, scenario.providers)
-        await assert.rejects(fs.access(path.join(targetDir, '.prelude/manifest.json')))
-      }
-      finally {
-        console.log = originalLog
-      }
-    })
-  }
+        yield* assertPathDoesNotExist(yield* pathJoin(targetDir, '.prelude/manifest.json'))
+      }))
+    }
 
-  it('prints guided workspace CreateSpec with explicit package graph and internal dependencies', async () => {
-    const targetDir = await makeTempProjectDir()
-    const lines: string[] = []
-    const originalLog = console.log
-    prompts.text.mockResolvedValue('guided-workspace')
-    prompts.select
-      .mockResolvedValueOnce('workspace')
-      .mockResolvedValueOnce('fullstack-react')
-    prompts.multiselect.mockResolvedValueOnce(['package-manager:pnpm', 'linting', 'knip'])
+    it.effect('prints guided workspace CreateSpec with explicit package graph and internal dependencies', () => Effect.gen(function* () {
+      const targetDir = yield* makeTempProjectDir('prelude-create-route-')
+      prompts.text.mockResolvedValue('guided-workspace')
+      prompts.select
+        .mockResolvedValueOnce('workspace')
+        .mockResolvedValueOnce('fullstack-react')
+      prompts.multiselect.mockResolvedValueOnce(['package-manager:pnpm', 'linting', 'knip'])
 
-    try {
-      console.log = (line?: unknown) => {
-        lines.push(String(line))
-      }
-
-      const result = await Effect.runPromise(
-        runCreateRoute({
-          preludeVersion: '0.0.0-test',
-          targetDir: makeTargetDir(targetDir),
-        }).pipe(
-          Effect.provide(
-            Layer.mergeAll(
-              TestLayer,
-              CliContextLive({
-                args: {
-                  printSpec: true,
-                },
-                isInteractive: true,
-              }),
-            ),
-          ),
-        ),
+      const result = yield* runCreateRoute({
+        preludeVersion: '0.0.0-test',
+        targetDir: makeTargetDir(targetDir),
+      }).pipe(
+        Effect.provideService(CliContext, CliContext.of({
+          args: {
+            printSpec: true,
+          },
+          isInteractive: true,
+        })),
       )
 
-      const spec = JSON.parse(lines.join('\n')) as {
+      const spec = parseJson(routeOutput(result)) as {
         topology: string
         packages: Array<{
           id: string
@@ -319,156 +272,112 @@ describe('canonical create CLI route', () => {
           target: { by: 'name', value: '@guided-workspace/shared' },
         },
       ])
-      await assert.rejects(fs.access(path.join(targetDir, '.prelude/manifest.json')))
-    }
-    finally {
-      console.log = originalLog
-    }
-  })
+      yield* assertPathDoesNotExist(yield* pathJoin(targetDir, '.prelude/manifest.json'))
+    }))
 
-  it('prints the canonical --spec without creating files', async () => {
-    const targetDir = await makeTempProjectDir()
-    const spec = {
-      topology: 'single-package',
-      package: {
-        id: 'app',
-        name: 'printed-spec-app',
-        capabilities: ['minimal-node-package'],
-      },
-      rootCapabilities: [],
-      providers: [],
-      overrides: {},
-    }
-    const lines: string[] = []
-    const originalLog = console.log
-
-    try {
-      console.log = (line?: unknown) => {
-        lines.push(String(line))
+    it.effect('prints the canonical --spec without creating files', () => Effect.gen(function* () {
+      const targetDir = yield* makeTempProjectDir('prelude-create-route-')
+      const spec = {
+        topology: 'single-package',
+        package: {
+          id: 'app',
+          name: 'printed-spec-app',
+          capabilities: ['minimal-node-package'],
+        },
+        rootCapabilities: [],
+        providers: [],
+        overrides: {},
       }
 
-      const result = await Effect.runPromise(
-        runCreateRoute({
-          preludeVersion: '0.0.0-test',
-          targetDir: makeTargetDir(targetDir),
-        }).pipe(
-          Effect.provide(
-            Layer.mergeAll(
-              TestLayer,
-              CliContextLive({
-                args: {
-                  spec: JSON.stringify(spec),
-                  printSpec: true,
-                  noInput: true,
-                },
-                isInteractive: false,
-              }),
-            ),
-          ),
-        ),
+      const result = yield* runCreateRoute({
+        preludeVersion: '0.0.0-test',
+        targetDir: makeTargetDir(targetDir),
+      }).pipe(
+        Effect.provideService(CliContext, CliContext.of({
+          args: {
+            spec: stringifyJson(spec),
+            printSpec: true,
+            noInput: true,
+          },
+          isInteractive: false,
+        })),
       )
 
       assert.equal(result.kind, 'printed-spec')
-      assert.deepEqual(JSON.parse(lines.join('\n')), spec)
-      await assert.rejects(fs.access(path.join(targetDir, '.prelude/manifest.json')))
-    }
-    finally {
-      console.log = originalLog
-    }
-  })
+      assert.deepEqual(parseJson(routeOutput(result)), spec)
+      yield* assertPathDoesNotExist(yield* pathJoin(targetDir, '.prelude/manifest.json'))
+    }))
 
-  it('rejects legacy structured spec shapes instead of adapting them', async () => {
-    const result = await Effect.runPromise(
-      Effect.result(loadCreateSpecFromInput(JSON.stringify({
+    it.effect('rejects legacy structured spec shapes instead of adapting them', () => Effect.gen(function* () {
+      const result = yield* Effect.result(loadCreateSpecFromInput(stringifyJson({
         shape: 'standalone',
         package: {
           id: 'app',
           name: 'old-spec-app',
           kind: 'backend-app',
         },
-      }))),
-    )
+      })))
 
-    assert.equal(result._tag, 'Failure')
-    if (result._tag === 'Failure') {
-      assert.equal(result.failure._tag, 'SchemaContractError')
-      assert.match(result.failure.message, /CanonicalCreateSpec/)
-    }
-  })
-
-  it('rejects preset input as a removed active API', async () => {
-    const result = await Effect.runPromise(
-      Effect.result(
-        runCreateRoute({
-          preludeVersion: '0.0.0-test',
-          targetDir: makeTargetDir(await makeTempProjectDir()),
-        }).pipe(
-          Effect.provide(
-            Layer.mergeAll(
-              TestLayer,
-              CliContextLive({
-                args: {
-                  preset: 'react-full',
-                  name: makeProjectName('removed-preset-app'),
-                },
-                isInteractive: false,
-              }),
-            ),
-          ),
-        ),
-      ),
-    )
-
-    assert.equal(result._tag, 'Failure')
-    if (result._tag === 'Failure') {
-      assert.equal(result.failure._tag, 'SchemaContractError')
-      assert.match(result.failure.message, /--preset has been removed/)
-    }
-  })
-
-  it('prints the WritePlan for dry-run without creating files', async () => {
-    const targetDir = await makeTempProjectDir()
-    const spec = {
-      topology: 'single-package',
-      package: {
-        id: 'app',
-        name: 'dry-run-app',
-        capabilities: ['minimal-node-package'],
-      },
-      rootCapabilities: [],
-      providers: [],
-      overrides: {},
-    }
-    const lines: string[] = []
-    const originalLog = console.log
-
-    try {
-      console.log = (line?: unknown) => {
-        lines.push(String(line))
+      assert.equal(result._tag, 'Failure')
+      if (result._tag === 'Failure') {
+        assert.equal(result.failure._tag, 'SchemaContractError')
+        assert.match(result.failure.message, /CanonicalCreateSpec/)
       }
+    }))
 
-      const result = await Effect.runPromise(
+    it.effect('rejects preset input as a removed active API', () => Effect.gen(function* () {
+      const targetDir = yield* makeTempProjectDir('prelude-create-route-')
+      const result = yield* Effect.result(
         runCreateRoute({
           preludeVersion: '0.0.0-test',
           targetDir: makeTargetDir(targetDir),
         }).pipe(
-          Effect.provide(
-            Layer.mergeAll(
-              TestLayer,
-              CliContextLive({
-                args: {
-                  spec: JSON.stringify(spec),
-                  dryRun: true,
-                  noInput: true,
-                },
-                isInteractive: false,
-              }),
-            ),
-          ),
+          Effect.provideService(CliContext, CliContext.of({
+            args: {
+              preset: 'react-full',
+              name: makeProjectName('removed-preset-app'),
+            },
+            isInteractive: false,
+          })),
         ),
       )
 
-      const output = JSON.parse(lines.join('\n')) as {
+      assert.equal(result._tag, 'Failure')
+      if (result._tag === 'Failure') {
+        assert.equal(result.failure._tag, 'SchemaContractError')
+        assert.match(result.failure.message, /--preset has been removed/)
+      }
+    }))
+
+    it.effect('prints the WritePlan for dry-run without creating files', () => Effect.gen(function* () {
+      const targetDir = yield* makeTempProjectDir('prelude-create-route-')
+      const spec = {
+        topology: 'single-package',
+        package: {
+          id: 'app',
+          name: 'dry-run-app',
+          capabilities: ['minimal-node-package'],
+        },
+        rootCapabilities: [],
+        providers: [],
+        overrides: {},
+      }
+
+      const result = yield* runCreateRoute({
+        preludeVersion: '0.0.0-test',
+        targetDir: makeTargetDir(targetDir),
+      }).pipe(
+        Effect.provideService(CliContext, CliContext.of({
+          args: {
+            spec: stringifyJson(spec),
+            dryRun: true,
+            noInput: true,
+          },
+          isInteractive: false,
+        })),
+      )
+
+      const output = parseJson(routeOutput(result)) as {
         operations: Array<{ path: string, kind: string }>
         blockers: unknown[]
       }
@@ -478,56 +387,38 @@ describe('canonical create CLI route', () => {
       assert.deepEqual(output.blockers, [])
       assert.deepEqual(output.operations.map(operation => operation.path), ['package.json', 'src/index.ts'])
       assert.deepEqual(output.operations.map(operation => operation.kind), ['writeStructuredFile', 'writeGeneratedUserFile'])
-      await assert.rejects(fs.access(path.join(targetDir, 'package.json')))
-      await assert.rejects(fs.access(path.join(targetDir, '.prelude/manifest.json')))
-    }
-    finally {
-      console.log = originalLog
-    }
-  })
+      yield* assertPathDoesNotExist(yield* pathJoin(targetDir, 'package.json'))
+      yield* assertPathDoesNotExist(yield* pathJoin(targetDir, '.prelude/manifest.json'))
+    }))
 
-  it('prints dry-run blockers from the canonical planning pipeline', async () => {
-    const targetDir = await makeTempProjectDir()
-    const lines: string[] = []
-    const originalLog = console.log
+    it.effect('prints dry-run blockers from the canonical planning pipeline', () => Effect.gen(function* () {
+      const targetDir = yield* makeTempProjectDir('prelude-create-route-')
 
-    try {
-      console.log = (line?: unknown) => {
-        lines.push(String(line))
-      }
-
-      const result = await Effect.runPromise(
-        runCreateRoute({
-          preludeVersion: '0.0.0-test',
-          targetDir: makeTargetDir(targetDir),
-        }).pipe(
-          Effect.provide(
-            Layer.mergeAll(
-              TestLayer,
-              CliContextLive({
-                args: {
-                  spec: JSON.stringify({
-                    topology: 'single-package',
-                    package: {
-                      id: 'app',
-                      name: 'blocked-workspace-app',
-                      capabilities: ['minimal-node-package'],
-                    },
-                    rootCapabilities: ['unsupported-root-capability'],
-                    providers: ['effect-harness'],
-                    overrides: {},
-                  }),
-                  dryRun: true,
-                  noInput: true,
-                },
-                isInteractive: false,
-              }),
-            ),
-          ),
-        ),
+      const result = yield* runCreateRoute({
+        preludeVersion: '0.0.0-test',
+        targetDir: makeTargetDir(targetDir),
+      }).pipe(
+        Effect.provideService(CliContext, CliContext.of({
+          args: {
+            spec: stringifyJson({
+              topology: 'single-package',
+              package: {
+                id: 'app',
+                name: 'blocked-workspace-app',
+                capabilities: ['minimal-node-package'],
+              },
+              rootCapabilities: ['unsupported-root-capability'],
+              providers: ['effect-harness'],
+              overrides: {},
+            }),
+            dryRun: true,
+            noInput: true,
+          },
+          isInteractive: false,
+        })),
       )
 
-      const output = JSON.parse(lines.join('\n')) as {
+      const output = parseJson(routeOutput(result)) as {
         operations: unknown[]
         blockers: Array<{ message: string, schema: string }>
       }
@@ -536,42 +427,33 @@ describe('canonical create CLI route', () => {
       assert.deepEqual(output.operations, [])
       assert.equal(output.blockers[0]!.schema, 'CreateSpec')
       assert.match(output.blockers[0]!.message, /unsupported root capabilities: unsupported-root-capability/u)
-      await assert.rejects(fs.access(path.join(targetDir, '.prelude/manifest.json')))
-    }
-    finally {
-      console.log = originalLog
-    }
-  })
+      yield* assertPathDoesNotExist(yield* pathJoin(targetDir, '.prelude/manifest.json'))
+    }))
 
-  it('fails no-input automation clearly when --spec is missing and does not prompt', async () => {
-    const result = await Effect.runPromise(
-      Effect.result(
+    it.effect('fails no-input automation clearly when --spec is missing and does not prompt', () => Effect.gen(function* () {
+      const targetDir = yield* makeTempProjectDir('prelude-create-route-')
+      const result = yield* Effect.result(
         runCreateRoute({
           preludeVersion: '0.0.0-test',
-          targetDir: makeTargetDir(await makeTempProjectDir()),
+          targetDir: makeTargetDir(targetDir),
         }).pipe(
-          Effect.provide(
-            Layer.mergeAll(
-              TestLayer,
-              CliContextLive({
-                args: {
-                  noInput: true,
-                },
-                isInteractive: false,
-              }),
-            ),
-          ),
+          Effect.provideService(CliContext, CliContext.of({
+            args: {
+              noInput: true,
+            },
+            isInteractive: false,
+          })),
         ),
-      ),
-    )
+      )
 
-    assert.equal(result._tag, 'Failure')
-    if (result._tag === 'Failure') {
-      assert.equal(result.failure._tag, 'SchemaContractError')
-      assert.match(result.failure.message, /non-interactive mode requires --spec/)
-    }
-    assert.equal(prompts.text.mock.calls.length, 0)
-    assert.equal(prompts.select.mock.calls.length, 0)
-    assert.equal(prompts.multiselect.mock.calls.length, 0)
+      assert.equal(result._tag, 'Failure')
+      if (result._tag === 'Failure') {
+        assert.equal(result.failure._tag, 'SchemaContractError')
+        assert.match(result.failure.message, /non-interactive mode requires --spec/)
+      }
+      assert.equal(prompts.text.mock.calls.length, 0)
+      assert.equal(prompts.select.mock.calls.length, 0)
+      assert.equal(prompts.multiselect.mock.calls.length, 0)
+    }))
   })
 })

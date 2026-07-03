@@ -1,23 +1,15 @@
 #!/usr/bin/env node
 
-import { readFileSync } from 'node:fs'
 import process from 'node:process'
 import { NodeRuntime, NodeServices } from '@effect/platform-node'
-import { Console, Effect, Layer, Logger, References } from 'effect'
+import { Console, Effect, Layer, Logger, ManagedRuntime, References } from 'effect'
 import { DevTools } from 'effect/unstable/devtools'
 import { AppConfig } from '@/config/app-config'
 import { formatPreludeCommandError, printPreludeCommandHelp, runPreludeCommand, shouldPrintPreludeCommandHelp } from '@/core/cli-command'
 import { EffectHarnessProviderDiscoveryService } from '@/core/create/effect-harness-discovery'
 import { TracingLive } from '@/core/services/tracing'
 import { FsLive } from '~/fs'
-
-function readPackageVersion() {
-  const packageJson = JSON.parse(
-    readFileSync(new URL('../package.json', import.meta.url), 'utf8'),
-  ) as { version?: string }
-
-  return packageJson.version ?? '0.0.0'
-}
+import packageManifest from '../package.json' with { type: 'json' }
 
 const DevToolsLive = Layer.unwrap(
   Effect.gen(function* () {
@@ -48,7 +40,7 @@ const BaseLayer = Layer.mergeAll(
 ).pipe(Layer.provideMerge(PlatformLayer))
 
 const commandOptions = {
-  preludeVersion: readPackageVersion(),
+  preludeVersion: packageManifest.version ?? '0.0.0',
   stdinIsTTY: process.stdin.isTTY === true,
 }
 
@@ -66,8 +58,13 @@ const program = main.pipe(
         process.exitCode = shouldPrintPreludeCommandHelp(error) ? 2 : 0
       })
     })),
-  Effect.provide(BaseLayer),
 )
 
+const runtime = ManagedRuntime.make(BaseLayer)
+
 // https://effect.website/docs/platform/runtime/#running-your-main-program-with-runmain
-NodeRuntime.runMain(program)
+NodeRuntime.runMain(
+  Effect.promise(() => runtime.runPromise(program)).pipe(
+    Effect.ensuring(runtime.disposeEffect),
+  ),
+)

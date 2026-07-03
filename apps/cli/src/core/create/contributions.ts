@@ -14,7 +14,7 @@ function packageManifestSurfaceId(pkg: ResolvedPackage) {
 }
 
 function workspaceInternalDependencyEntries(pkg: ResolvedPackage): Record<string, JsonValue> | undefined {
-  if (!pkg.internalDependencies || pkg.internalDependencies.length === 0) {
+  if (pkg.internalDependencies === undefined || pkg.internalDependencies.length === 0) {
     return undefined
   }
 
@@ -47,7 +47,7 @@ function collectWorkspacePackageContributions(graph: ResolvedGraph, pkg: Resolve
   const contributions: CapabilityContribution[] = []
   const internalDependencyEntries = workspaceInternalDependencyEntries(pkg)
 
-  if (internalDependencyEntries) {
+  if (internalDependencyEntries !== undefined) {
     contributions.push({
       kind: 'packageManifest',
       surfaceId: packageManifestSurfaceId(pkg),
