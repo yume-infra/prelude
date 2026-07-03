@@ -171,8 +171,9 @@ describe('recovered main intent create pipeline', () => {
         }
 
         const operationPaths = result.result.writePlan.operations.map(operation => operation.path)
-        assert.deepStrictEqual(operationPaths.slice(0, 5), [
+        assert.deepStrictEqual(operationPaths.slice(0, 6), [
           'package.json',
+          'eslint.config.mjs',
           'knip.json',
           'src/index.ts',
           'tsconfig.json',
@@ -189,14 +190,19 @@ describe('recovered main intent create pipeline', () => {
           }>(path.join(targetDir, 'package.json')),
         )
         assert.strictEqual(packageJson.scripts.build, 'tsgo --noEmit')
+        assert.strictEqual(packageJson.scripts.lint, 'eslint')
         assert.strictEqual(packageJson.scripts.prepare, 'effect-tsgo patch')
+        assert.strictEqual(packageJson.scripts.test, 'vitest run')
         assert.strictEqual(packageJson.scripts.typecheck, 'tsgo --noEmit')
-        assert.strictEqual(packageJson.scripts.verify, 'pnpm build && pnpm typecheck && pnpm knip')
+        assert.strictEqual(packageJson.scripts.verify, 'pnpm build && pnpm typecheck && pnpm test && pnpm lint --max-warnings 0 && pnpm knip')
         assert.strictEqual(packageJson.scripts['effect:verify'], undefined)
         assert.strictEqual(packageJson.dependencies.effect, '4.0.0-beta.92')
         assert.strictEqual(packageJson.dependencies['@effect/platform-node'], '4.0.0-beta.92')
         assert.strictEqual(packageJson.devDependencies['@effect/tsgo'], '0.15.0')
         assert.strictEqual(packageJson.devDependencies['@effect/vitest'], '4.0.0-beta.92')
+        assert.strictEqual(packageJson.devDependencies['@antfu/eslint-config'], '^9.0.0')
+        assert.strictEqual(packageJson.devDependencies.eslint, '^10.3.0')
+        assert.strictEqual(packageJson.devDependencies.vitest, '^4.1.8')
 
         const knipConfig = yield* Effect.promise(() =>
           readJson<{
@@ -215,6 +221,7 @@ describe('recovered main intent create pipeline', () => {
             id: string
             projectedContext: {
               packageScopes: readonly string[]
+              packagePaths: Record<string, string>
               packageCapabilities: Record<string, readonly string[]>
             }
             surfaces: readonly { id: string, owner: string, lifecycle: string, path: string }[]
@@ -222,11 +229,16 @@ describe('recovered main intent create pipeline', () => {
         )
         assert.strictEqual(providerRecord.id, 'effect-harness')
         assert.deepStrictEqual(providerRecord.projectedContext.packageScopes, ['cli'])
+        assert.deepStrictEqual(providerRecord.projectedContext.packagePaths, {})
         assert.deepStrictEqual(providerRecord.projectedContext.packageCapabilities, {
           cli: ['effect-package'],
         })
         const providerSurfaceIds = new Set(providerRecord.surfaces.map(surface => surface.id))
         assert.ok(providerSurfaceIds.has('package-manifest:root:/dependencies/effect'))
+        assert.ok(providerSurfaceIds.has('package-manifest:root:/scripts/test'))
+        assert.ok(providerSurfaceIds.has('package-manifest:root:/scripts/lint'))
+        assert.ok(providerSurfaceIds.has('tsconfig:root:/compilerOptions/plugins'))
+        assert.ok(providerSurfaceIds.has('provider-managed-file:effect-harness:.prelude/providers/effect-harness/eslint.config.mjs'))
         assert.ok(providerSurfaceIds.has('provider-managed-file:effect-harness:.prelude/providers/effect-harness/docs/discovery.md'))
         assert.ok(providerSurfaceIds.has('provider-managed-file:effect-harness:.prelude/providers/effect-harness/snippets/agents.md'))
         assert.equal([...providerSurfaceIds].some(surfaceId => surfaceId.includes('.codex/')), false)
@@ -255,6 +267,7 @@ describe('recovered main intent create pipeline', () => {
           manifest.generatedUserSurfaces.map(surface => ({ path: surface.path, authority: surface.authority })),
           [
             { path: 'package.json', authority: 'none' },
+            { path: 'eslint.config.mjs', authority: 'none' },
             { path: 'knip.json', authority: 'none' },
             { path: 'src/index.ts', authority: 'none' },
             { path: 'tsconfig.json', authority: 'none' },
@@ -269,7 +282,7 @@ describe('recovered main intent create pipeline', () => {
           {
             id: 'root-engineering-files-present',
             status: 'passed',
-            checkedPaths: ['knip.json'],
+            checkedPaths: ['eslint.config.mjs', 'knip.json'],
           },
           {
             id: 'provider:effect-harness:create-contract',

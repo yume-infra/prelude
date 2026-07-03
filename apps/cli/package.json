@@ -25,29 +25,32 @@
   "scripts": {
     "build": "tsdown --config tsdown.config.ts",
     "dev": "tsdown --config tsdown.config.ts --watch",
-    "typecheck": "tsgo --noEmit --project tsconfig.json",
+    "typecheck": "tsgo --noEmit",
     "typecheck:tsc": "tsc -p tsconfig.json --noEmit",
     "test": "vitest run",
     "prototype:create-workbench": "tsx src/core/create-workbench-prototype/index.ts",
     "smoke:generated": "pnpm build && tsx tests/generated-projects.smoke.ts",
     "smoke:examples": "pnpm build && tsx tests/generated-projects.smoke.ts",
-    "prepare": "effect-language-service patch --dir ../../node_modules/typescript",
+    "prepare": "effect-tsgo patch",
     "link:global": "pnpm link --global",
     "unlink:global": "pnpm unlink --global"
   },
   "dependencies": {
     "@clack/prompts": "catalog:",
-    "@effect/platform-node": "catalog:",
-    "effect": "catalog:"
+    "@effect/platform-node": "4.0.0-beta.92",
+    "effect": "4.0.0-beta.92",
+    "strip-json-comments": "catalog:"
   },
   "devDependencies": {
-    "@effect/language-service": "catalog:",
-    "@effect/vitest": "catalog:",
+    "@effect/language-service": "0.86.2",
+    "@effect/tsgo": "0.15.0",
+    "@effect/vitest": "4.0.0-beta.92",
     "@types/node": "catalog:",
+    "@typescript/native-preview": "7.0.0-dev.20260630.1",
     "execa": "catalog:",
     "tsdown": "catalog:",
     "tsx": "catalog:",
     "typescript": "catalog:",
-    "vitest": "catalog:"
+    "vitest": "^4.1.8"
   }
 }

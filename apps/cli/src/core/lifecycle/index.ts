@@ -3,6 +3,7 @@ import type { CreateFs, EffectHarnessProviderDiscovery, JsonValue, LifecycleProv
 import type { FileIOError } from '@/core/errors'
 import * as path from 'node:path'
 import { Effect, Schema } from 'effect'
+import stripJsonComments from 'strip-json-comments'
 import { EffectHarnessProviderDiscoveryService } from '@/core/create/effect-harness-discovery'
 import {
   effectHarnessProviderRecordForProjectedContext,
@@ -543,7 +544,7 @@ function snapshotOf(value: JsonValue | undefined) {
 
 function parseJsonFile(content: string, relativePath: string): Effect.Effect<JsonValue, LifecycleCommandError> {
   try {
-    const parsed = JSON.parse(content) as JsonValue
+    const parsed = JSON.parse(stripJsonComments(content)) as JsonValue
     return Effect.succeed(parsed)
   }
   catch (error) {

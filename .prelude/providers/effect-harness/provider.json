@@ -211,6 +211,9 @@
       "cli": [
         "cli-tool"
       ]
+    },
+    "packagePaths": {
+      "cli": "apps/cli"
     }
   },
   "options": {
@@ -221,9 +224,12 @@
         "effect": "4.0.0-beta.92",
         "@effect/platform-node": "4.0.0-beta.92",
         "@effect/vitest": "4.0.0-beta.92",
+        "vitest": "^4.1.8",
         "@effect/tsgo": "0.15.0",
         "@effect/language-service": "0.86.2",
-        "@typescript/native-preview": "7.0.0-dev.20260630.1"
+        "@typescript/native-preview": "7.0.0-dev.20260630.1",
+        "@antfu/eslint-config": "^9.0.0",
+        "eslint": "^10.3.0"
       }
     },
     "languageService": {
@@ -390,10 +396,10 @@
         "mode": "command-policy",
         "stage": "tests",
         "command": "pnpm test",
-        "packageScript": "vitest run tests/*.test.ts",
+        "packageScript": "vitest run",
         "framework": "@effect/vitest",
         "expectedEntries": [
-          "tests/*.test.ts"
+          "tests/**/*.test.ts"
         ],
         "effectEntrypoints": [
           "it.effect",
@@ -507,6 +513,8 @@
         "package.json dependency and devDependency structured pointers",
         "tsconfig.json @effect/language-service plugin structured pointer",
         "editor policy structured pointer for target editor settings",
+        "eslint package baseline and lint script structured pointers",
+        "test package baseline and test script structured pointers",
         "lint, test, and verification policy records",
         "provider-managed docs bundle at .prelude/providers/effect-harness/docs",
         "provider-managed snippets at .prelude/providers/effect-harness/snippets"
@@ -617,7 +625,8 @@
             "testing": {
               "field": "devDependencies",
               "packages": {
-                "@effect/vitest": "4.0.0-beta.92"
+                "@effect/vitest": "4.0.0-beta.92",
+                "vitest": "^4.1.8"
               }
             },
             "diagnostics": {
@@ -632,6 +641,13 @@
               "packages": {
                 "@typescript/native-preview": "7.0.0-dev.20260630.1"
               }
+            },
+            "linting": {
+              "field": "devDependencies",
+              "packages": {
+                "@antfu/eslint-config": "^9.0.0",
+                "eslint": "^10.3.0"
+              }
             }
           },
           "scripts": {
@@ -642,6 +658,14 @@
             "typecheck": {
               "semantic": "primary Effect diagnostics",
               "defaultCommand": "tsgo --noEmit"
+            },
+            "test": {
+              "semantic": "run Effect tests",
+              "defaultCommand": "vitest run"
+            },
+            "lint": {
+              "semantic": "run ESLint guardrails",
+              "defaultCommand": "eslint"
             }
           }
         },
@@ -951,10 +975,10 @@
           "mode": "command-policy",
           "stage": "tests",
           "command": "pnpm test",
-          "packageScript": "vitest run tests/*.test.ts",
+          "packageScript": "vitest run",
           "framework": "@effect/vitest",
           "expectedEntries": [
-            "tests/*.test.ts"
+            "tests/**/*.test.ts"
           ],
           "effectEntrypoints": [
             "it.effect",
@@ -1026,11 +1050,62 @@
   },
   "surfaces": [
     {
-      "id": "package-manifest:root:/dependencies/effect",
+      "id": "package-manifest:root:/devDependencies/@antfu~1eslint-config",
       "owner": "provider:effect-harness",
       "lifecycle": "managed",
       "scope": "entry",
-      "locator": "package.json#/dependencies/effect",
+      "locator": "package.json#/devDependencies/@antfu~1eslint-config",
+      "conflictPolicy": "block",
+      "contractVersion": "1",
+      "implementationVersion": "0.1.0",
+      "base": "^9.0.0",
+      "snapshot": "^9.0.0",
+      "authority": "bounded",
+      "kind": "structuredPointer",
+      "path": "package.json",
+      "pointer": "/devDependencies/@antfu~1eslint-config",
+      "operationId": "write-package-json"
+    },
+    {
+      "id": "package-manifest:root:/devDependencies/eslint",
+      "owner": "provider:effect-harness",
+      "lifecycle": "managed",
+      "scope": "entry",
+      "locator": "package.json#/devDependencies/eslint",
+      "conflictPolicy": "block",
+      "contractVersion": "1",
+      "implementationVersion": "0.1.0",
+      "base": "^10.3.0",
+      "snapshot": "^10.3.0",
+      "authority": "bounded",
+      "kind": "structuredPointer",
+      "path": "package.json",
+      "pointer": "/devDependencies/eslint",
+      "operationId": "write-package-json"
+    },
+    {
+      "id": "package-manifest:root:/scripts/lint",
+      "owner": "provider:effect-harness",
+      "lifecycle": "managed",
+      "scope": "entry",
+      "locator": "package.json#/scripts/lint",
+      "conflictPolicy": "block",
+      "contractVersion": "1",
+      "implementationVersion": "0.1.0",
+      "base": "eslint",
+      "snapshot": "eslint",
+      "authority": "bounded",
+      "kind": "structuredPointer",
+      "path": "package.json",
+      "pointer": "/scripts/lint",
+      "operationId": "write-package-json"
+    },
+    {
+      "id": "package-manifest:apps/cli:/dependencies/effect",
+      "owner": "provider:effect-harness",
+      "lifecycle": "managed",
+      "scope": "entry",
+      "locator": "apps/cli/package.json#/dependencies/effect",
       "conflictPolicy": "block",
       "contractVersion": "1",
       "implementationVersion": "0.1.0",
@@ -1038,16 +1113,16 @@
       "snapshot": "4.0.0-beta.92",
       "authority": "bounded",
       "kind": "structuredPointer",
-      "path": "package.json",
+      "path": "apps/cli/package.json",
       "pointer": "/dependencies/effect",
       "operationId": "write-package-json"
     },
     {
-      "id": "package-manifest:root:/dependencies/@effect~1platform-node",
+      "id": "package-manifest:apps/cli:/dependencies/@effect~1platform-node",
       "owner": "provider:effect-harness",
       "lifecycle": "managed",
       "scope": "entry",
-      "locator": "package.json#/dependencies/@effect~1platform-node",
+      "locator": "apps/cli/package.json#/dependencies/@effect~1platform-node",
       "conflictPolicy": "block",
       "contractVersion": "1",
       "implementationVersion": "0.1.0",
@@ -1055,16 +1130,16 @@
       "snapshot": "4.0.0-beta.92",
       "authority": "bounded",
       "kind": "structuredPointer",
-      "path": "package.json",
+      "path": "apps/cli/package.json",
       "pointer": "/dependencies/@effect~1platform-node",
       "operationId": "write-package-json"
     },
     {
-      "id": "package-manifest:root:/devDependencies/@effect~1vitest",
+      "id": "package-manifest:apps/cli:/devDependencies/@effect~1vitest",
       "owner": "provider:effect-harness",
       "lifecycle": "managed",
       "scope": "entry",
-      "locator": "package.json#/devDependencies/@effect~1vitest",
+      "locator": "apps/cli/package.json#/devDependencies/@effect~1vitest",
       "conflictPolicy": "block",
       "contractVersion": "1",
       "implementationVersion": "0.1.0",
@@ -1072,16 +1147,33 @@
       "snapshot": "4.0.0-beta.92",
       "authority": "bounded",
       "kind": "structuredPointer",
-      "path": "package.json",
+      "path": "apps/cli/package.json",
       "pointer": "/devDependencies/@effect~1vitest",
       "operationId": "write-package-json"
     },
     {
-      "id": "package-manifest:root:/devDependencies/@effect~1tsgo",
+      "id": "package-manifest:apps/cli:/devDependencies/vitest",
       "owner": "provider:effect-harness",
       "lifecycle": "managed",
       "scope": "entry",
-      "locator": "package.json#/devDependencies/@effect~1tsgo",
+      "locator": "apps/cli/package.json#/devDependencies/vitest",
+      "conflictPolicy": "block",
+      "contractVersion": "1",
+      "implementationVersion": "0.1.0",
+      "base": "^4.1.8",
+      "snapshot": "^4.1.8",
+      "authority": "bounded",
+      "kind": "structuredPointer",
+      "path": "apps/cli/package.json",
+      "pointer": "/devDependencies/vitest",
+      "operationId": "write-package-json"
+    },
+    {
+      "id": "package-manifest:apps/cli:/devDependencies/@effect~1tsgo",
+      "owner": "provider:effect-harness",
+      "lifecycle": "managed",
+      "scope": "entry",
+      "locator": "apps/cli/package.json#/devDependencies/@effect~1tsgo",
       "conflictPolicy": "block",
       "contractVersion": "1",
       "implementationVersion": "0.1.0",
@@ -1089,16 +1181,16 @@
       "snapshot": "0.15.0",
       "authority": "bounded",
       "kind": "structuredPointer",
-      "path": "package.json",
+      "path": "apps/cli/package.json",
       "pointer": "/devDependencies/@effect~1tsgo",
       "operationId": "write-package-json"
     },
     {
-      "id": "package-manifest:root:/devDependencies/@effect~1language-service",
+      "id": "package-manifest:apps/cli:/devDependencies/@effect~1language-service",
       "owner": "provider:effect-harness",
       "lifecycle": "managed",
       "scope": "entry",
-      "locator": "package.json#/devDependencies/@effect~1language-service",
+      "locator": "apps/cli/package.json#/devDependencies/@effect~1language-service",
       "conflictPolicy": "block",
       "contractVersion": "1",
       "implementationVersion": "0.1.0",
@@ -1106,16 +1198,16 @@
       "snapshot": "0.86.2",
       "authority": "bounded",
       "kind": "structuredPointer",
-      "path": "package.json",
+      "path": "apps/cli/package.json",
       "pointer": "/devDependencies/@effect~1language-service",
       "operationId": "write-package-json"
     },
     {
-      "id": "package-manifest:root:/devDependencies/@typescript~1native-preview",
+      "id": "package-manifest:apps/cli:/devDependencies/@typescript~1native-preview",
       "owner": "provider:effect-harness",
       "lifecycle": "managed",
       "scope": "entry",
-      "locator": "package.json#/devDependencies/@typescript~1native-preview",
+      "locator": "apps/cli/package.json#/devDependencies/@typescript~1native-preview",
       "conflictPolicy": "block",
       "contractVersion": "1",
       "implementationVersion": "0.1.0",
@@ -1123,16 +1215,16 @@
       "snapshot": "7.0.0-dev.20260630.1",
       "authority": "bounded",
       "kind": "structuredPointer",
-      "path": "package.json",
+      "path": "apps/cli/package.json",
       "pointer": "/devDependencies/@typescript~1native-preview",
       "operationId": "write-package-json"
     },
     {
-      "id": "package-manifest:root:/scripts/prepare",
+      "id": "package-manifest:apps/cli:/scripts/prepare",
       "owner": "provider:effect-harness",
       "lifecycle": "managed",
       "scope": "entry",
-      "locator": "package.json#/scripts/prepare",
+      "locator": "apps/cli/package.json#/scripts/prepare",
       "conflictPolicy": "block",
       "contractVersion": "1",
       "implementationVersion": "0.1.0",
@@ -1140,9 +1232,76 @@
       "snapshot": "effect-tsgo patch",
       "authority": "bounded",
       "kind": "structuredPointer",
-      "path": "package.json",
+      "path": "apps/cli/package.json",
       "pointer": "/scripts/prepare",
       "operationId": "write-package-json"
+    },
+    {
+      "id": "package-manifest:apps/cli:/scripts/typecheck",
+      "owner": "provider:effect-harness",
+      "lifecycle": "managed",
+      "scope": "entry",
+      "locator": "apps/cli/package.json#/scripts/typecheck",
+      "conflictPolicy": "block",
+      "contractVersion": "1",
+      "implementationVersion": "0.1.0",
+      "base": "tsgo --noEmit",
+      "snapshot": "tsgo --noEmit",
+      "authority": "bounded",
+      "kind": "structuredPointer",
+      "path": "apps/cli/package.json",
+      "pointer": "/scripts/typecheck",
+      "operationId": "write-package-json"
+    },
+    {
+      "id": "package-manifest:apps/cli:/scripts/test",
+      "owner": "provider:effect-harness",
+      "lifecycle": "managed",
+      "scope": "entry",
+      "locator": "apps/cli/package.json#/scripts/test",
+      "conflictPolicy": "block",
+      "contractVersion": "1",
+      "implementationVersion": "0.1.0",
+      "base": "vitest run",
+      "snapshot": "vitest run",
+      "authority": "bounded",
+      "kind": "structuredPointer",
+      "path": "apps/cli/package.json",
+      "pointer": "/scripts/test",
+      "operationId": "write-package-json"
+    },
+    {
+      "id": "tsconfig:apps/cli:/compilerOptions/plugins",
+      "owner": "provider:effect-harness",
+      "lifecycle": "managed",
+      "scope": "entry",
+      "locator": "apps/cli/tsconfig.json#/compilerOptions/plugins",
+      "conflictPolicy": "block",
+      "contractVersion": "1",
+      "implementationVersion": "0.1.0",
+      "base": "[{\"name\":\"@effect/language-service\",\"diagnostics\":true,\"includeSuggestionsInTsc\":true,\"ignoreEffectSuggestionsInTscExitCode\":false,\"ignoreEffectWarningsInTscExitCode\":false,\"ignoreEffectErrorsInTscExitCode\":false,\"diagnosticSeverity\":{\"anyUnknownInErrorContext\":\"error\",\"asyncFunction\":\"warning\",\"catchAllToMapError\":\"suggestion\",\"catchToOrElseSucceed\":\"suggestion\",\"catchUnfailableEffect\":\"suggestion\",\"classSelfMismatch\":\"error\",\"cryptoRandomUUID\":\"warning\",\"cryptoRandomUUIDInEffect\":\"warning\",\"deterministicKeys\":\"warning\",\"duplicatePackage\":\"warning\",\"effectDoNotation\":\"warning\",\"effectFnIife\":\"warning\",\"effectFnImplicitAny\":\"error\",\"effectFnOpportunity\":\"suggestion\",\"effectGenUsesAdapter\":\"warning\",\"effectInFailure\":\"warning\",\"effectInVoidSuccess\":\"warning\",\"effectMapFlatten\":\"suggestion\",\"effectMapVoid\":\"suggestion\",\"effectSucceedWithVoid\":\"suggestion\",\"extendsNativeError\":\"warning\",\"floatingEffect\":\"error\",\"genericEffectServices\":\"warning\",\"globalConsole\":\"warning\",\"globalConsoleInEffect\":\"warning\",\"globalDate\":\"warning\",\"globalDateInEffect\":\"warning\",\"globalErrorInEffectCatch\":\"warning\",\"globalErrorInEffectFailure\":\"warning\",\"globalFetch\":\"warning\",\"globalFetchInEffect\":\"warning\",\"globalRandom\":\"warning\",\"globalRandomInEffect\":\"warning\",\"globalTimers\":\"warning\",\"globalTimersInEffect\":\"warning\",\"instanceOfSchema\":\"warning\",\"layerMergeAllWithDependencies\":\"warning\",\"lazyEffect\":\"suggestion\",\"lazyPromiseInEffectSync\":\"warning\",\"leakingRequirements\":\"suggestion\",\"missedPipeableOpportunity\":\"warning\",\"missingEffectContext\":\"error\",\"missingEffectError\":\"error\",\"missingLayerContext\":\"error\",\"missingReturnYieldStar\":\"error\",\"missingStarInYieldEffectGen\":\"error\",\"multipleCatchTag\":\"suggestion\",\"multipleEffectProvide\":\"warning\",\"nestedEffectGenYield\":\"warning\",\"newPromise\":\"warning\",\"newSchemaClass\":\"warning\",\"nodeBuiltinImport\":\"warning\",\"outdatedApi\":\"warning\",\"overriddenSchemaConstructor\":\"error\",\"preferSchemaOverJson\":\"warning\",\"processEnv\":\"warning\",\"processEnvInEffect\":\"warning\",\"redundantMapError\":\"suggestion\",\"redundantOrDie\":\"suggestion\",\"redundantSchemaTagIdentifier\":\"suggestion\",\"returnEffectInGen\":\"suggestion\",\"runEffectInsideEffect\":\"suggestion\",\"schemaNumber\":\"suggestion\",\"schemaStructWithTag\":\"suggestion\",\"serviceNotAsClass\":\"warning\",\"strictBooleanExpressions\":\"warning\",\"strictEffectProvide\":\"warning\",\"tryCatchInEffectGen\":\"suggestion\",\"unknownInEffectCatch\":\"warning\",\"unnecessaryArrowBlock\":\"warning\",\"unnecessaryEffectGen\":\"suggestion\",\"unnecessaryFailYieldableError\":\"suggestion\",\"unnecessaryPipe\":\"suggestion\",\"unnecessaryPipeChain\":\"suggestion\",\"unnecessaryTypeofType\":\"suggestion\",\"unsafeEffectTypeAssertion\":\"warning\"},\"barrelImportPackages\":[\"effect\"],\"topLevelNamedReexports\":\"follow\",\"effectFn\":[\"span\"],\"keyPatterns\":[{\"target\":\"service\",\"pattern\":\"default\",\"skipLeadingPath\":[\"src/\"]},{\"target\":\"error\",\"pattern\":\"default\",\"skipLeadingPath\":[\"src/\"]},{\"target\":\"custom\",\"pattern\":\"default\",\"skipLeadingPath\":[\"src/\"]}],\"extendedKeyDetection\":true,\"layerGraphFollowDepth\":1,\"noExternal\":true,\"inlays\":true,\"allowedDuplicatedPackages\":[],\"pipeableMinArgCount\":2}]",
+      "snapshot": "[{\"name\":\"@effect/language-service\",\"diagnostics\":true,\"includeSuggestionsInTsc\":true,\"ignoreEffectSuggestionsInTscExitCode\":false,\"ignoreEffectWarningsInTscExitCode\":false,\"ignoreEffectErrorsInTscExitCode\":false,\"diagnosticSeverity\":{\"anyUnknownInErrorContext\":\"error\",\"asyncFunction\":\"warning\",\"catchAllToMapError\":\"suggestion\",\"catchToOrElseSucceed\":\"suggestion\",\"catchUnfailableEffect\":\"suggestion\",\"classSelfMismatch\":\"error\",\"cryptoRandomUUID\":\"warning\",\"cryptoRandomUUIDInEffect\":\"warning\",\"deterministicKeys\":\"warning\",\"duplicatePackage\":\"warning\",\"effectDoNotation\":\"warning\",\"effectFnIife\":\"warning\",\"effectFnImplicitAny\":\"error\",\"effectFnOpportunity\":\"suggestion\",\"effectGenUsesAdapter\":\"warning\",\"effectInFailure\":\"warning\",\"effectInVoidSuccess\":\"warning\",\"effectMapFlatten\":\"suggestion\",\"effectMapVoid\":\"suggestion\",\"effectSucceedWithVoid\":\"suggestion\",\"extendsNativeError\":\"warning\",\"floatingEffect\":\"error\",\"genericEffectServices\":\"warning\",\"globalConsole\":\"warning\",\"globalConsoleInEffect\":\"warning\",\"globalDate\":\"warning\",\"globalDateInEffect\":\"warning\",\"globalErrorInEffectCatch\":\"warning\",\"globalErrorInEffectFailure\":\"warning\",\"globalFetch\":\"warning\",\"globalFetchInEffect\":\"warning\",\"globalRandom\":\"warning\",\"globalRandomInEffect\":\"warning\",\"globalTimers\":\"warning\",\"globalTimersInEffect\":\"warning\",\"instanceOfSchema\":\"warning\",\"layerMergeAllWithDependencies\":\"warning\",\"lazyEffect\":\"suggestion\",\"lazyPromiseInEffectSync\":\"warning\",\"leakingRequirements\":\"suggestion\",\"missedPipeableOpportunity\":\"warning\",\"missingEffectContext\":\"error\",\"missingEffectError\":\"error\",\"missingLayerContext\":\"error\",\"missingReturnYieldStar\":\"error\",\"missingStarInYieldEffectGen\":\"error\",\"multipleCatchTag\":\"suggestion\",\"multipleEffectProvide\":\"warning\",\"nestedEffectGenYield\":\"warning\",\"newPromise\":\"warning\",\"newSchemaClass\":\"warning\",\"nodeBuiltinImport\":\"warning\",\"outdatedApi\":\"warning\",\"overriddenSchemaConstructor\":\"error\",\"preferSchemaOverJson\":\"warning\",\"processEnv\":\"warning\",\"processEnvInEffect\":\"warning\",\"redundantMapError\":\"suggestion\",\"redundantOrDie\":\"suggestion\",\"redundantSchemaTagIdentifier\":\"suggestion\",\"returnEffectInGen\":\"suggestion\",\"runEffectInsideEffect\":\"suggestion\",\"schemaNumber\":\"suggestion\",\"schemaStructWithTag\":\"suggestion\",\"serviceNotAsClass\":\"warning\",\"strictBooleanExpressions\":\"warning\",\"strictEffectProvide\":\"warning\",\"tryCatchInEffectGen\":\"suggestion\",\"unknownInEffectCatch\":\"warning\",\"unnecessaryArrowBlock\":\"warning\",\"unnecessaryEffectGen\":\"suggestion\",\"unnecessaryFailYieldableError\":\"suggestion\",\"unnecessaryPipe\":\"suggestion\",\"unnecessaryPipeChain\":\"suggestion\",\"unnecessaryTypeofType\":\"suggestion\",\"unsafeEffectTypeAssertion\":\"warning\"},\"barrelImportPackages\":[\"effect\"],\"topLevelNamedReexports\":\"follow\",\"effectFn\":[\"span\"],\"keyPatterns\":[{\"target\":\"service\",\"pattern\":\"default\",\"skipLeadingPath\":[\"src/\"]},{\"target\":\"error\",\"pattern\":\"default\",\"skipLeadingPath\":[\"src/\"]},{\"target\":\"custom\",\"pattern\":\"default\",\"skipLeadingPath\":[\"src/\"]}],\"extendedKeyDetection\":true,\"layerGraphFollowDepth\":1,\"noExternal\":true,\"inlays\":true,\"allowedDuplicatedPackages\":[],\"pipeableMinArgCount\":2}]",
+      "authority": "bounded",
+      "kind": "structuredPointer",
+      "path": "apps/cli/tsconfig.json",
+      "pointer": "/compilerOptions/plugins",
+      "operationId": "write-tsconfig"
+    },
+    {
+      "id": "provider-managed-file:effect-harness:.prelude/providers/effect-harness/eslint.config.mjs",
+      "owner": "provider:effect-harness",
+      "lifecycle": "managed",
+      "scope": "file",
+      "locator": ".prelude/providers/effect-harness/eslint.config.mjs",
+      "conflictPolicy": "block",
+      "contractVersion": "1",
+      "implementationVersion": "0.1.0",
+      "base": "const noDisableValidationRule = {\n  meta: {\n    type: 'problem',\n    docs: {\n      description: 'Disallow disabling Effect Schema validation.',\n    },\n    messages: {\n      noDisableValidation: 'Do not use { disableValidation: true }. Fix the data or schema instead of disabling validation.',\n    },\n    schema: [],\n  },\n  create(context) {\n    return {\n      Property(node) {\n        if (\n          node.key\n          && (\n            (node.key.type === 'Identifier' && node.key.name === 'disableValidation')\n            || (node.key.type === 'Literal' && node.key.value === 'disableValidation')\n          )\n          && node.value\n          && node.value.type === 'Literal'\n          && node.value.value === true\n        ) {\n          context.report({\n            node,\n            messageId: 'noDisableValidation',\n          })\n        }\n      },\n    }\n  },\n}\n\nconst localPlugin = {\n  rules: {\n    'no-disable-validation': noDisableValidationRule,\n  },\n}\n\nexport default [\n  {\n    name: 'effect-harness/package-baseline',\n    files: [\n      \"package.json\",\n      \"apps/cli/package.json\"\n    ],\n    rules: {\n      'pnpm/json-enforce-catalog': 'off',\n    },\n  },\n  {\n    name: 'effect-harness/source',\n    files: ['**/bin/**/*.ts', '**/src/**/*.ts', '**/tests/**/*.{js,mjs,ts}'],\n    plugins: {\n      local: localPlugin,\n    },\n    rules: {\n      'local/no-disable-validation': 'error',\n      'no-restricted-imports': [\n        'error',\n        {\n          paths: [\n            {\n              \"name\": \"node:test\",\n              \"message\": \"Use @effect/vitest for Effect harness tests.\"\n            },\n            {\n              \"name\": \"vitest\",\n              \"message\": \"Use @effect/vitest for Effect harness tests.\"\n            },\n            {\n              \"name\": \"@effect/cli\",\n              \"message\": \"Use effect/unstable/cli for Effect v4 beta.\"\n            }\n          ],\n          patterns: [\n            {\n              \"group\": [\n                \"@effect/cli/*\"\n              ],\n              \"message\": \"Use effect/unstable/cli for Effect v4 beta.\"\n            },\n            {\n              \"group\": [\n                \"repos/effect/**\"\n              ],\n              \"message\": \"repos/effect is read-only reference material; import installed packages instead.\"\n            },\n            {\n              \"group\": [\n                \"**/repos/effect/**\"\n              ],\n              \"message\": \"repos/effect is read-only reference material; import installed packages instead.\"\n            },\n            {\n              \"group\": [\n                \"repos/tsgo/**\"\n              ],\n              \"message\": \"repos/tsgo is read-only reference material; use installed packages and CLI instead.\"\n            },\n            {\n              \"group\": [\n                \"**/repos/tsgo/**\"\n              ],\n              \"message\": \"repos/tsgo is read-only reference material; use installed packages and CLI instead.\"\n            }\n          ],\n        },\n      ],\n      'no-restricted-syntax': [\n        'error',\n        {\"selector\":\"MemberExpression[object.name=\\\"Context\\\"][property.name=\\\"Tag\\\"]\",\"message\":\"Use Context.Service for v4 beta service definitions.\"},\n        {\"selector\":\"MemberExpression[object.name=\\\"Effect\\\"][property.name=/^(catchAllCause|ignore|serviceOption)$/]\",\"message\":\"This Effect member is banned by the harness guardrails; use the Effect-native safer pattern.\"},\n      ],\n      'test/no-import-node-test': 'off',\n    },\n  },\n  {\n    name: 'effect-harness/effect-vitest-tests',\n    files: ['**/tests/**/*.test.{js,mjs,ts}'],\n    rules: {\n      'no-restricted-syntax': [\n        'error',\n        {\"selector\":\"MemberExpression[object.name=\\\"Context\\\"][property.name=\\\"Tag\\\"]\",\"message\":\"Use Context.Service for v4 beta service definitions.\"},\n        {\"selector\":\"MemberExpression[object.name=\\\"Effect\\\"][property.name=/^(catchAllCause|ignore|serviceOption)$/]\",\"message\":\"This Effect member is banned by the harness guardrails; use the Effect-native safer pattern.\"},\n        {\"selector\":\"CallExpression[callee.name=\\\"it\\\"]\",\"message\":\"Use it.effect, it.live, or layer from @effect/vitest for Effect harness tests.\"},\n      ],\n    },\n  },\n]\n",
+      "snapshot": "const noDisableValidationRule = {\n  meta: {\n    type: 'problem',\n    docs: {\n      description: 'Disallow disabling Effect Schema validation.',\n    },\n    messages: {\n      noDisableValidation: 'Do not use { disableValidation: true }. Fix the data or schema instead of disabling validation.',\n    },\n    schema: [],\n  },\n  create(context) {\n    return {\n      Property(node) {\n        if (\n          node.key\n          && (\n            (node.key.type === 'Identifier' && node.key.name === 'disableValidation')\n            || (node.key.type === 'Literal' && node.key.value === 'disableValidation')\n          )\n          && node.value\n          && node.value.type === 'Literal'\n          && node.value.value === true\n        ) {\n          context.report({\n            node,\n            messageId: 'noDisableValidation',\n          })\n        }\n      },\n    }\n  },\n}\n\nconst localPlugin = {\n  rules: {\n    'no-disable-validation': noDisableValidationRule,\n  },\n}\n\nexport default [\n  {\n    name: 'effect-harness/package-baseline',\n    files: [\n      \"package.json\",\n      \"apps/cli/package.json\"\n    ],\n    rules: {\n      'pnpm/json-enforce-catalog': 'off',\n    },\n  },\n  {\n    name: 'effect-harness/source',\n    files: ['**/bin/**/*.ts', '**/src/**/*.ts', '**/tests/**/*.{js,mjs,ts}'],\n    plugins: {\n      local: localPlugin,\n    },\n    rules: {\n      'local/no-disable-validation': 'error',\n      'no-restricted-imports': [\n        'error',\n        {\n          paths: [\n            {\n              \"name\": \"node:test\",\n              \"message\": \"Use @effect/vitest for Effect harness tests.\"\n            },\n            {\n              \"name\": \"vitest\",\n              \"message\": \"Use @effect/vitest for Effect harness tests.\"\n            },\n            {\n              \"name\": \"@effect/cli\",\n              \"message\": \"Use effect/unstable/cli for Effect v4 beta.\"\n            }\n          ],\n          patterns: [\n            {\n              \"group\": [\n                \"@effect/cli/*\"\n              ],\n              \"message\": \"Use effect/unstable/cli for Effect v4 beta.\"\n            },\n            {\n              \"group\": [\n                \"repos/effect/**\"\n              ],\n              \"message\": \"repos/effect is read-only reference material; import installed packages instead.\"\n            },\n            {\n              \"group\": [\n                \"**/repos/effect/**\"\n              ],\n              \"message\": \"repos/effect is read-only reference material; import installed packages instead.\"\n            },\n            {\n              \"group\": [\n                \"repos/tsgo/**\"\n              ],\n              \"message\": \"repos/tsgo is read-only reference material; use installed packages and CLI instead.\"\n            },\n            {\n              \"group\": [\n                \"**/repos/tsgo/**\"\n              ],\n              \"message\": \"repos/tsgo is read-only reference material; use installed packages and CLI instead.\"\n            }\n          ],\n        },\n      ],\n      'no-restricted-syntax': [\n        'error',\n        {\"selector\":\"MemberExpression[object.name=\\\"Context\\\"][property.name=\\\"Tag\\\"]\",\"message\":\"Use Context.Service for v4 beta service definitions.\"},\n        {\"selector\":\"MemberExpression[object.name=\\\"Effect\\\"][property.name=/^(catchAllCause|ignore|serviceOption)$/]\",\"message\":\"This Effect member is banned by the harness guardrails; use the Effect-native safer pattern.\"},\n      ],\n      'test/no-import-node-test': 'off',\n    },\n  },\n  {\n    name: 'effect-harness/effect-vitest-tests',\n    files: ['**/tests/**/*.test.{js,mjs,ts}'],\n    rules: {\n      'no-restricted-syntax': [\n        'error',\n        {\"selector\":\"MemberExpression[object.name=\\\"Context\\\"][property.name=\\\"Tag\\\"]\",\"message\":\"Use Context.Service for v4 beta service definitions.\"},\n        {\"selector\":\"MemberExpression[object.name=\\\"Effect\\\"][property.name=/^(catchAllCause|ignore|serviceOption)$/]\",\"message\":\"This Effect member is banned by the harness guardrails; use the Effect-native safer pattern.\"},\n        {\"selector\":\"CallExpression[callee.name=\\\"it\\\"]\",\"message\":\"Use it.effect, it.live, or layer from @effect/vitest for Effect harness tests.\"},\n      ],\n    },\n  },\n]\n",
+      "authority": "owner",
+      "kind": "ownedFile",
+      "path": ".prelude/providers/effect-harness/eslint.config.mjs",
+      "operationId": "write-effect-harness-prelude-providers-effect-harness-eslint-config-mjs"
     },
     {
       "id": "provider-managed-file:effect-harness:.prelude/providers/effect-harness/docs/effect-code.md",
@@ -1233,8 +1392,8 @@
       "conflictPolicy": "block",
       "contractVersion": "1",
       "implementationVersion": "0.1.0",
-      "base": "---\naudience: [agent, human]\nauthors:\n  - codex\nreviewed_by: []\npurpose: 说明 target 接入 effect-harness 后 package 与 TypeScript 配置的受管口径。\nstatus: active\nsources:\n  - provider/effect-harness.provider.json\n  - harness/tsgo.md\nupdated: 2026-07-02\n---\n\n# Package Config\n\n## Package\n\ntarget 的 runtime dependencies MUST 包含 `effect` 和 `@effect/platform-node`。\n\ntarget 的 Effect testing dependency MUST 包含 `@effect/vitest`。\n\ntarget 的 diagnostics dependencies MUST 包含 `@effect/tsgo` 和 `@effect/language-service`。\n\ntarget 的 native backend dependency MUST 包含 `@typescript/native-preview`。\n\n版本基线由 provider profile 管理。target 不应该用局部版本覆盖降低 Effect v4 beta、tsgo 或\nlanguage-service baseline。\n\n## Scripts\n\ntarget 的 native backend setup script SHOULD 指向：\n\n```bash\neffect-tsgo patch\n```\n\ntarget 的 primary diagnostics script SHOULD 指向：\n\n```bash\ntsgo --noEmit\n```\n\n这些 script 是 provider-managed 指针。Prelude materialization 和 maintain 应按 provider record\n判断本地 drift。\n\n## Tsconfig\n\ntarget 的 `tsconfig.json` MUST 包含 `@effect/language-service` plugin。\n\nplugin fields MUST 保持 provider profile 声明的 strict v4 policy。\n\n`diagnosticSeverity` MUST 是 provider profile 投影出的显式 rule map。\n\ntarget SHOULD 修复 diagnostics，而不是在 `tsconfig.json` 里添加 local override、关闭\n`diagnosticSeverity` 或降低 diagnostic gate。\n",
-      "snapshot": "---\naudience: [agent, human]\nauthors:\n  - codex\nreviewed_by: []\npurpose: 说明 target 接入 effect-harness 后 package 与 TypeScript 配置的受管口径。\nstatus: active\nsources:\n  - provider/effect-harness.provider.json\n  - harness/tsgo.md\nupdated: 2026-07-02\n---\n\n# Package Config\n\n## Package\n\ntarget 的 runtime dependencies MUST 包含 `effect` 和 `@effect/platform-node`。\n\ntarget 的 Effect testing dependency MUST 包含 `@effect/vitest`。\n\ntarget 的 diagnostics dependencies MUST 包含 `@effect/tsgo` 和 `@effect/language-service`。\n\ntarget 的 native backend dependency MUST 包含 `@typescript/native-preview`。\n\n版本基线由 provider profile 管理。target 不应该用局部版本覆盖降低 Effect v4 beta、tsgo 或\nlanguage-service baseline。\n\n## Scripts\n\ntarget 的 native backend setup script SHOULD 指向：\n\n```bash\neffect-tsgo patch\n```\n\ntarget 的 primary diagnostics script SHOULD 指向：\n\n```bash\ntsgo --noEmit\n```\n\n这些 script 是 provider-managed 指针。Prelude materialization 和 maintain 应按 provider record\n判断本地 drift。\n\n## Tsconfig\n\ntarget 的 `tsconfig.json` MUST 包含 `@effect/language-service` plugin。\n\nplugin fields MUST 保持 provider profile 声明的 strict v4 policy。\n\n`diagnosticSeverity` MUST 是 provider profile 投影出的显式 rule map。\n\ntarget SHOULD 修复 diagnostics，而不是在 `tsconfig.json` 里添加 local override、关闭\n`diagnosticSeverity` 或降低 diagnostic gate。\n",
+      "base": "---\naudience: [agent, human]\nauthors:\n  - codex\nreviewed_by: []\npurpose: 说明 target 接入 effect-harness 后 package 与 TypeScript 配置的受管口径。\nstatus: active\nsources:\n  - provider/effect-harness.provider.json\n  - harness/tsgo.md\nupdated: 2026-07-02\n---\n\n# Package Config\n\n## Package\n\ntarget 的 runtime dependencies MUST 包含 `effect` 和 `@effect/platform-node`。\n\ntarget 的 Effect testing dependency MUST 包含 `@effect/vitest`。\n\ntarget 的 test runner dependency MUST 包含 `vitest`。\n\ntarget 的 diagnostics dependencies MUST 包含 `@effect/tsgo` 和 `@effect/language-service`。\n\ntarget 的 native backend dependency MUST 包含 `@typescript/native-preview`。\n\ntarget 的 lint dependencies MUST 包含 `eslint` 和 `@antfu/eslint-config`。\n\n版本基线由 provider profile 管理。target 不应该用局部版本覆盖降低 Effect v4 beta、tsgo 或\nlanguage-service baseline。\n\n## Scripts\n\ntarget 的 native backend setup script SHOULD 指向：\n\n```bash\neffect-tsgo patch\n```\n\ntarget 的 primary diagnostics script SHOULD 指向：\n\n```bash\ntsgo --noEmit\n```\n\ntarget 的 test script SHOULD 指向：\n\n```bash\nvitest run\n```\n\ntarget 的 lint script SHOULD 指向：\n\n```bash\neslint\n```\n\n这些 script 是 provider-managed 指针。Prelude materialization 和 maintain 应按 provider record\n判断本地 drift。\n\n## Tsconfig\n\ntarget 的 `tsconfig.json` MUST 包含 `@effect/language-service` plugin。\n\nplugin fields MUST 保持 provider profile 声明的 strict v4 policy。\n\n`diagnosticSeverity` MUST 是 provider profile 投影出的显式 rule map。\n\ntarget SHOULD 修复 diagnostics，而不是在 `tsconfig.json` 里添加 local override、关闭\n`diagnosticSeverity` 或降低 diagnostic gate。\n",
+      "snapshot": "---\naudience: [agent, human]\nauthors:\n  - codex\nreviewed_by: []\npurpose: 说明 target 接入 effect-harness 后 package 与 TypeScript 配置的受管口径。\nstatus: active\nsources:\n  - provider/effect-harness.provider.json\n  - harness/tsgo.md\nupdated: 2026-07-02\n---\n\n# Package Config\n\n## Package\n\ntarget 的 runtime dependencies MUST 包含 `effect` 和 `@effect/platform-node`。\n\ntarget 的 Effect testing dependency MUST 包含 `@effect/vitest`。\n\ntarget 的 test runner dependency MUST 包含 `vitest`。\n\ntarget 的 diagnostics dependencies MUST 包含 `@effect/tsgo` 和 `@effect/language-service`。\n\ntarget 的 native backend dependency MUST 包含 `@typescript/native-preview`。\n\ntarget 的 lint dependencies MUST 包含 `eslint` 和 `@antfu/eslint-config`。\n\n版本基线由 provider profile 管理。target 不应该用局部版本覆盖降低 Effect v4 beta、tsgo 或\nlanguage-service baseline。\n\n## Scripts\n\ntarget 的 native backend setup script SHOULD 指向：\n\n```bash\neffect-tsgo patch\n```\n\ntarget 的 primary diagnostics script SHOULD 指向：\n\n```bash\ntsgo --noEmit\n```\n\ntarget 的 test script SHOULD 指向：\n\n```bash\nvitest run\n```\n\ntarget 的 lint script SHOULD 指向：\n\n```bash\neslint\n```\n\n这些 script 是 provider-managed 指针。Prelude materialization 和 maintain 应按 provider record\n判断本地 drift。\n\n## Tsconfig\n\ntarget 的 `tsconfig.json` MUST 包含 `@effect/language-service` plugin。\n\nplugin fields MUST 保持 provider profile 声明的 strict v4 policy。\n\n`diagnosticSeverity` MUST 是 provider profile 投影出的显式 rule map。\n\ntarget SHOULD 修复 diagnostics，而不是在 `tsconfig.json` 里添加 local override、关闭\n`diagnosticSeverity` 或降低 diagnostic gate。\n",
       "authority": "owner",
       "kind": "ownedFile",
       "path": ".prelude/providers/effect-harness/docs/package-config.md",
@@ -1249,8 +1408,8 @@
       "conflictPolicy": "block",
       "contractVersion": "1",
       "implementationVersion": "0.1.0",
-      "base": "---\naudience: [agent, human]\nauthors:\n  - codex\nreviewed_by: []\npurpose: 说明 target 接入 effect-harness 后 lint、test 与 verify policy 的受管口径。\nstatus: active\nsources:\n  - provider/effect-harness.provider.json\n  - harness/diagnostic-layers.md\n  - harness/feedback-loop.md\n  - harness/effect-routes.md\nupdated: 2026-07-02\n---\n\n# Quality Policy\n\n## Lint\n\nlint policy 负责 repository boundary 和 syntax-level guardrails。\n\nlint policy SHOULD block provider-internal source imports、`@effect/cli` imports、普通 `vitest` imports、\n`node:test` imports、`Context.Tag` service definitions、指定 Effect member，以及关闭 Schema validation\n的写法。\n\nlint policy MUST NOT 替代 tsgo diagnostics。Effect semantic diagnostics、type requirement diagnostics 和\nstrict rule severity map 由 tsgo policy 负责。\n\n## Tests\n\ntest policy 使用 `@effect/vitest`。\n\nEffect tests SHOULD 使用 `it.effect`、`it.live` 或 layer 组织。\n\ntarget SHOULD 保留 provider record 中声明的 test entry pattern，并通过 package script 执行测试。\n\n## Verification\n\n`pnpm verify` 是 completion gate。\n\nverification policy 描述 local diagnostic commands 和 stage semantics，但不实现 Prelude target lifecycle。\n\nPrelude 仍负责 target materialization、provider record maintain、drift handling 和 target-level verify\norchestration。\n\n## Stages\n\nsource-pins stage 负责 source identity 与 pinned upstream source contract。\n\nharness-contract stage 负责 provider contract 与 self-conformance。\n\ntsgo-diagnostics stage 负责 Effect semantic diagnostics。\n\ntests stage 负责 behavior regression。\n\nlint stage 负责 repository boundary 和 syntax-level guardrails。\n\nknip stage 负责 package surface hygiene。\n",
-      "snapshot": "---\naudience: [agent, human]\nauthors:\n  - codex\nreviewed_by: []\npurpose: 说明 target 接入 effect-harness 后 lint、test 与 verify policy 的受管口径。\nstatus: active\nsources:\n  - provider/effect-harness.provider.json\n  - harness/diagnostic-layers.md\n  - harness/feedback-loop.md\n  - harness/effect-routes.md\nupdated: 2026-07-02\n---\n\n# Quality Policy\n\n## Lint\n\nlint policy 负责 repository boundary 和 syntax-level guardrails。\n\nlint policy SHOULD block provider-internal source imports、`@effect/cli` imports、普通 `vitest` imports、\n`node:test` imports、`Context.Tag` service definitions、指定 Effect member，以及关闭 Schema validation\n的写法。\n\nlint policy MUST NOT 替代 tsgo diagnostics。Effect semantic diagnostics、type requirement diagnostics 和\nstrict rule severity map 由 tsgo policy 负责。\n\n## Tests\n\ntest policy 使用 `@effect/vitest`。\n\nEffect tests SHOULD 使用 `it.effect`、`it.live` 或 layer 组织。\n\ntarget SHOULD 保留 provider record 中声明的 test entry pattern，并通过 package script 执行测试。\n\n## Verification\n\n`pnpm verify` 是 completion gate。\n\nverification policy 描述 local diagnostic commands 和 stage semantics，但不实现 Prelude target lifecycle。\n\nPrelude 仍负责 target materialization、provider record maintain、drift handling 和 target-level verify\norchestration。\n\n## Stages\n\nsource-pins stage 负责 source identity 与 pinned upstream source contract。\n\nharness-contract stage 负责 provider contract 与 self-conformance。\n\ntsgo-diagnostics stage 负责 Effect semantic diagnostics。\n\ntests stage 负责 behavior regression。\n\nlint stage 负责 repository boundary 和 syntax-level guardrails。\n\nknip stage 负责 package surface hygiene。\n",
+      "base": "---\naudience: [agent, human]\nauthors:\n  - codex\nreviewed_by: []\npurpose: 说明 target 接入 effect-harness 后 lint、test 与 verify policy 的受管口径。\nstatus: active\nsources:\n  - provider/effect-harness.provider.json\n  - harness/diagnostic-layers.md\n  - harness/feedback-loop.md\n  - harness/effect-routes.md\nupdated: 2026-07-02\n---\n\n# Quality Policy\n\n## Lint\n\nlint policy 负责 repository boundary 和 syntax-level guardrails。\n\ntarget 的 lint entry 由 provider package contribution 暴露为 `pnpm lint`，底层脚本是 `eslint`。\n需要 hard gate 时，verification policy 使用 `pnpm lint --max-warnings 0`。\n\nlint policy SHOULD block provider-internal source imports、`@effect/cli` imports、普通 `vitest` imports、\n`node:test` imports、`Context.Tag` service definitions、指定 Effect member，以及关闭 Schema validation\n的写法。\n\nlint policy MUST NOT 替代 tsgo diagnostics。Effect semantic diagnostics、type requirement diagnostics 和\nstrict rule severity map 由 tsgo policy 负责。\n\n## Tests\n\ntest policy 使用 `@effect/vitest`。\n\ntarget 的 test entry 由 provider package contribution 暴露为 `pnpm test`，底层脚本是\n`vitest run`。\n\nEffect tests SHOULD 使用 `it.effect`、`it.live` 或 layer 组织。\n\ntarget SHOULD 保留 provider record 中声明的 test entry pattern，并通过 package script 执行测试。\n\n## Verification\n\n`pnpm verify` 是 completion gate。\n\nverification policy 描述 local diagnostic commands 和 stage semantics，但不实现 Prelude target lifecycle。\n\nPrelude 仍负责 target materialization、provider record maintain、drift handling 和 target-level verify\norchestration。target 的总 `pnpm verify` MAY include build、knip 或 release gates；effect-harness\n必须至少把 `pnpm typecheck`、`pnpm test` 和 `pnpm lint --max-warnings 0` 组合进 target verify。\n\n## Stages\n\nsource-pins stage 负责 source identity 与 pinned upstream source contract。\n\nharness-contract stage 负责 provider contract 与 self-conformance。\n\ntsgo-diagnostics stage 负责 Effect semantic diagnostics。\n\ntests stage 负责 behavior regression。\n\nlint stage 负责 repository boundary 和 syntax-level guardrails。\n\nknip stage 负责 package surface hygiene。\n",
+      "snapshot": "---\naudience: [agent, human]\nauthors:\n  - codex\nreviewed_by: []\npurpose: 说明 target 接入 effect-harness 后 lint、test 与 verify policy 的受管口径。\nstatus: active\nsources:\n  - provider/effect-harness.provider.json\n  - harness/diagnostic-layers.md\n  - harness/feedback-loop.md\n  - harness/effect-routes.md\nupdated: 2026-07-02\n---\n\n# Quality Policy\n\n## Lint\n\nlint policy 负责 repository boundary 和 syntax-level guardrails。\n\ntarget 的 lint entry 由 provider package contribution 暴露为 `pnpm lint`，底层脚本是 `eslint`。\n需要 hard gate 时，verification policy 使用 `pnpm lint --max-warnings 0`。\n\nlint policy SHOULD block provider-internal source imports、`@effect/cli` imports、普通 `vitest` imports、\n`node:test` imports、`Context.Tag` service definitions、指定 Effect member，以及关闭 Schema validation\n的写法。\n\nlint policy MUST NOT 替代 tsgo diagnostics。Effect semantic diagnostics、type requirement diagnostics 和\nstrict rule severity map 由 tsgo policy 负责。\n\n## Tests\n\ntest policy 使用 `@effect/vitest`。\n\ntarget 的 test entry 由 provider package contribution 暴露为 `pnpm test`，底层脚本是\n`vitest run`。\n\nEffect tests SHOULD 使用 `it.effect`、`it.live` 或 layer 组织。\n\ntarget SHOULD 保留 provider record 中声明的 test entry pattern，并通过 package script 执行测试。\n\n## Verification\n\n`pnpm verify` 是 completion gate。\n\nverification policy 描述 local diagnostic commands 和 stage semantics，但不实现 Prelude target lifecycle。\n\nPrelude 仍负责 target materialization、provider record maintain、drift handling 和 target-level verify\norchestration。target 的总 `pnpm verify` MAY include build、knip 或 release gates；effect-harness\n必须至少把 `pnpm typecheck`、`pnpm test` 和 `pnpm lint --max-warnings 0` 组合进 target verify。\n\n## Stages\n\nsource-pins stage 负责 source identity 与 pinned upstream source contract。\n\nharness-contract stage 负责 provider contract 与 self-conformance。\n\ntsgo-diagnostics stage 负责 Effect semantic diagnostics。\n\ntests stage 负责 behavior regression。\n\nlint stage 负责 repository boundary 和 syntax-level guardrails。\n\nknip stage 负责 package surface hygiene。\n",
       "authority": "owner",
       "kind": "ownedFile",
       "path": ".prelude/providers/effect-harness/docs/quality-policy.md",

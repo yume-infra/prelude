@@ -126,7 +126,7 @@ describe('fullscreen create workbench v1 acceptance fixtures', () => {
       assert.ok(operationKinds.has('writeGeneratedUserFile'))
       assert.ok(operationKinds.has('writeManagedFile'))
       assert.equal(operationKinds.has('writeManagedBlock'), false)
-      assert.equal(packageJsonOperation?.value?.scripts?.verify, 'pnpm build && pnpm typecheck && pnpm lint --max-warnings 0 && pnpm knip')
+      assert.equal(packageJsonOperation?.value?.scripts?.verify, 'pnpm build && pnpm typecheck && pnpm test && pnpm lint --max-warnings 0 && pnpm knip')
       assert.equal(packageJsonOperation?.value?.scripts?.prepare, 'effect-tsgo patch')
       assert.equal(packageJsonOperation?.value?.scripts?.typecheck, 'tsgo --noEmit')
       assert.equal(packageJsonOperation?.value?.dependencies?.effect, '4.0.0-beta.92')
@@ -304,6 +304,7 @@ describe('fullscreen create workbench v1 acceptance fixtures', () => {
             projectedContext?: {
               topology: string
               packageScopes: readonly string[]
+              packagePaths?: Record<string, string>
             }
             surfaces?: readonly { id: string }[]
           }
@@ -312,6 +313,7 @@ describe('fullscreen create workbench v1 acceptance fixtures', () => {
       }
       const paths = output.operations.map(operation => operation.path)
       const rootPackageJsonOperation = output.operations.find(operation => operation.path === 'package.json')
+      const nodePackageJsonOperation = output.operations.find(operation => operation.path === 'apps/node/package.json')
       const workspaceManifestOperation = output.operations.find(operation => operation.path === 'pnpm-workspace.yaml')
       const providerOperation = output.operations.find(operation => operation.path === '.prelude/providers/effect-harness/provider.json')
 
@@ -330,19 +332,26 @@ describe('fullscreen create workbench v1 acceptance fixtures', () => {
       assert.equal(paths.some(path => path.startsWith('.codex/')), false)
       assert.equal(rootPackageJsonOperation?.value?.scripts?.build, 'turbo run build')
       assert.equal(rootPackageJsonOperation?.value?.scripts?.typecheck, 'turbo run typecheck')
-      assert.equal(rootPackageJsonOperation?.value?.scripts?.lint, 'eslint .')
+      assert.equal(rootPackageJsonOperation?.value?.scripts?.lint, 'eslint')
       assert.equal(rootPackageJsonOperation?.value?.scripts?.knip, 'knip')
       assert.equal(rootPackageJsonOperation?.value?.scripts?.['effect:verify'], undefined)
-      assert.equal(rootPackageJsonOperation?.value?.scripts?.verify, 'pnpm build && pnpm typecheck && pnpm lint --max-warnings 0 && pnpm knip')
-      assert.equal(rootPackageJsonOperation?.value?.dependencies?.effect, '4.0.0-beta.92')
+      assert.equal(rootPackageJsonOperation?.value?.scripts?.verify, 'pnpm build && pnpm typecheck && pnpm -r --if-present test && pnpm lint --max-warnings 0 && pnpm knip')
       assert.equal(rootPackageJsonOperation?.value?.devDependencies?.turbo, 'catalog:')
-      assert.equal(rootPackageJsonOperation?.value?.devDependencies?.['@effect/tsgo'], '0.15.0')
+      assert.equal(rootPackageJsonOperation?.value?.devDependencies?.['@antfu/eslint-config'], '^9.0.0')
+      assert.equal(rootPackageJsonOperation?.value?.devDependencies?.eslint, '^10.3.0')
+      assert.equal(nodePackageJsonOperation?.value?.dependencies?.effect, '4.0.0-beta.92')
+      assert.equal(nodePackageJsonOperation?.value?.devDependencies?.['@effect/tsgo'], '0.15.0')
+      assert.equal(nodePackageJsonOperation?.value?.scripts?.test, 'vitest run')
       assert.match(workspaceManifestOperation?.content ?? '', / {2}- apps\/\*/u)
       assert.match(workspaceManifestOperation?.content ?? '', /turbo: \^2\.9\.9/u)
       assert.match(workspaceManifestOperation?.content ?? '', /'@types\/node': 25\.6\.0/u)
       assert.equal(providerOperation?.value?.projectedContext?.topology, 'workspace')
       assert.deepStrictEqual(providerOperation?.value?.projectedContext?.packageScopes, ['node'])
+      assert.deepStrictEqual(providerOperation?.value?.projectedContext?.packagePaths, {
+        node: 'apps/node',
+      })
       assert.equal(providerOperation?.value?.surfaces?.some(surface => surface.id.startsWith('tsconfig:root:')), false)
+      assert.equal(providerOperation?.value?.surfaces?.some(surface => surface.id === 'tsconfig:apps/node:/compilerOptions/plugins'), true)
       assert.equal(yield* pathExists(path.join(targetDir, '.prelude/manifest.json')), false)
     }))
 })

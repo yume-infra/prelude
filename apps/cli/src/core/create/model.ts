@@ -128,6 +128,7 @@ export interface EslintRootContribution {
   readonly kind: 'eslintRoot'
   readonly surfaceId: 'eslint-root'
   readonly owner: string
+  readonly providerConfigImports?: readonly string[]
 }
 
 export interface KnipRootContribution {
@@ -374,6 +375,7 @@ export interface ProviderDiscoveries {
 export interface ProviderProjectedContext {
   readonly topology: Topology
   readonly packageScopes: readonly string[]
+  readonly packagePaths?: Record<string, string>
   readonly rootCapabilities: readonly RootCapabilityId[]
   readonly packageCapabilities: Record<string, readonly CapabilityId[]>
 }

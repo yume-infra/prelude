@@ -1,60 +1,175 @@
 {
-  // 编辑器/类型检查配置：不产出 JS，偏向 bundler 解析与 tree-shaking
   "compilerOptions": {
-    // 语言与平台能力
-    "target": "ES2022", // 输出语法级别（Node 22+ 友好）
-    "lib": ["ES2022"], // 引入 ES2022 内置 API 类型
+    "target": "ES2022",
+    "lib": [
+      "ES2022"
+    ],
     "ignoreDeprecations": "6.0",
-
-    "moduleDetection": "force", // 强制识别为模块（顶层 import/export 更稳）
-
-    "useDefineForClassFields": true, // 标准类字段语义，和 Babel/规范一致
-    // 模块与解析（面向打包器）
-    "module": "ESNext", // 生成 ES 模块
-    "moduleResolution": "bundler", // bundler 风格解析（尊重 exports/conditions）
+    "moduleDetection": "force",
+    "useDefineForClassFields": true,
+    "module": "ESNext",
+    "moduleResolution": "bundler",
     "paths": {
-      "@/*": ["./src/*"],
-      "~/*": ["./src/core/services/*"]
+      "@/*": [
+        "./src/*"
+      ],
+      "~/*": [
+        "./src/core/services/*"
+      ]
     },
-    // Effect LSP：提供悬停信息、诊断与重构能力
     "plugins": [
       {
         "name": "@effect/language-service",
-        "options": {
-          "diagnosticSeverity": {
-            "floatingEffect": "error"
+        "diagnostics": true,
+        "includeSuggestionsInTsc": true,
+        "ignoreEffectSuggestionsInTscExitCode": false,
+        "ignoreEffectWarningsInTscExitCode": false,
+        "ignoreEffectErrorsInTscExitCode": false,
+        "diagnosticSeverity": {
+          "anyUnknownInErrorContext": "error",
+          "asyncFunction": "warning",
+          "catchAllToMapError": "suggestion",
+          "catchToOrElseSucceed": "suggestion",
+          "catchUnfailableEffect": "suggestion",
+          "classSelfMismatch": "error",
+          "cryptoRandomUUID": "warning",
+          "cryptoRandomUUIDInEffect": "warning",
+          "deterministicKeys": "warning",
+          "duplicatePackage": "warning",
+          "effectDoNotation": "warning",
+          "effectFnIife": "warning",
+          "effectFnImplicitAny": "error",
+          "effectFnOpportunity": "suggestion",
+          "effectGenUsesAdapter": "warning",
+          "effectInFailure": "warning",
+          "effectInVoidSuccess": "warning",
+          "effectMapFlatten": "suggestion",
+          "effectMapVoid": "suggestion",
+          "effectSucceedWithVoid": "suggestion",
+          "extendsNativeError": "warning",
+          "floatingEffect": "error",
+          "genericEffectServices": "warning",
+          "globalConsole": "warning",
+          "globalConsoleInEffect": "warning",
+          "globalDate": "warning",
+          "globalDateInEffect": "warning",
+          "globalErrorInEffectCatch": "warning",
+          "globalErrorInEffectFailure": "warning",
+          "globalFetch": "warning",
+          "globalFetchInEffect": "warning",
+          "globalRandom": "warning",
+          "globalRandomInEffect": "warning",
+          "globalTimers": "warning",
+          "globalTimersInEffect": "warning",
+          "instanceOfSchema": "warning",
+          "layerMergeAllWithDependencies": "warning",
+          "lazyEffect": "suggestion",
+          "lazyPromiseInEffectSync": "warning",
+          "leakingRequirements": "suggestion",
+          "missedPipeableOpportunity": "warning",
+          "missingEffectContext": "error",
+          "missingEffectError": "error",
+          "missingLayerContext": "error",
+          "missingReturnYieldStar": "error",
+          "missingStarInYieldEffectGen": "error",
+          "multipleCatchTag": "suggestion",
+          "multipleEffectProvide": "warning",
+          "nestedEffectGenYield": "warning",
+          "newPromise": "warning",
+          "newSchemaClass": "warning",
+          "nodeBuiltinImport": "warning",
+          "outdatedApi": "warning",
+          "overriddenSchemaConstructor": "error",
+          "preferSchemaOverJson": "warning",
+          "processEnv": "warning",
+          "processEnvInEffect": "warning",
+          "redundantMapError": "suggestion",
+          "redundantOrDie": "suggestion",
+          "redundantSchemaTagIdentifier": "suggestion",
+          "returnEffectInGen": "suggestion",
+          "runEffectInsideEffect": "suggestion",
+          "schemaNumber": "suggestion",
+          "schemaStructWithTag": "suggestion",
+          "serviceNotAsClass": "warning",
+          "strictBooleanExpressions": "warning",
+          "strictEffectProvide": "warning",
+          "tryCatchInEffectGen": "suggestion",
+          "unknownInEffectCatch": "warning",
+          "unnecessaryArrowBlock": "warning",
+          "unnecessaryEffectGen": "suggestion",
+          "unnecessaryFailYieldableError": "suggestion",
+          "unnecessaryPipe": "suggestion",
+          "unnecessaryPipeChain": "suggestion",
+          "unnecessaryTypeofType": "suggestion",
+          "unsafeEffectTypeAssertion": "warning"
+        },
+        "barrelImportPackages": [
+          "effect"
+        ],
+        "topLevelNamedReexports": "follow",
+        "effectFn": [
+          "span"
+        ],
+        "keyPatterns": [
+          {
+            "target": "service",
+            "pattern": "default",
+            "skipLeadingPath": [
+              "src/"
+            ]
+          },
+          {
+            "target": "error",
+            "pattern": "default",
+            "skipLeadingPath": [
+              "src/"
+            ]
+          },
+          {
+            "target": "custom",
+            "pattern": "default",
+            "skipLeadingPath": [
+              "src/"
+            ]
           }
-        }
+        ],
+        "extendedKeyDetection": true,
+        "layerGraphFollowDepth": 1,
+        "noExternal": true,
+        "inlays": true,
+        "allowedDuplicatedPackages": [],
+        "pipeableMinArgCount": 2
       }
     ],
-
-    "resolveJsonModule": true, // 允许 import JSON（具静态类型）
-
-    // 环境类型
-    "types": ["node"],
-    // 互操作与语法约束
-    "allowImportingTsExtensions": true, // 允许 import './x.ts'（与 ESM 协作）
-    "allowJs": false, // 仅 TS 源码，避免混入 JS
-    // 项目严格性
+    "resolveJsonModule": true,
+    "types": [
+      "node"
+    ],
+    "allowImportingTsExtensions": true,
+    "allowJs": false,
     "strict": true,
-    "exactOptionalPropertyTypes": true, // 可选属性语义更精确
-    "noFallthroughCasesInSwitch": true, // 防止 switch 穿透
-    "noImplicitOverride": true, // 重写需显式 override
-    "noImplicitReturns": true, // 所有路径需 return
-    "noUncheckedIndexedAccess": true, // a[i] 返回 T | undefined，迫使判空
-    "noUnusedLocals": true, // 未用局部变量报错
-    "noUnusedParameters": true, // 未用参数报错
-    "useUnknownInCatchVariables": true, // catch (e) 为 unknown 需缩小
-
-    // 仅类型检查，不产 JS（交给打包器）
+    "exactOptionalPropertyTypes": true,
+    "noFallthroughCasesInSwitch": true,
+    "noImplicitOverride": true,
+    "noImplicitReturns": true,
+    "noUncheckedIndexedAccess": true,
+    "noUnusedLocals": true,
+    "noUnusedParameters": true,
+    "useUnknownInCatchVariables": true,
     "noEmit": true,
-    "allowSyntheticDefaultImports": true, // CJS 无默认导出也可默认导入
-    "esModuleInterop": true, // CJS/ESM 互操作，import 体验更好
-    "forceConsistentCasingInFileNames": true, // 文件名大小写一致
-    "isolatedModules": true, // 单文件可编译限制，适配 esbuild/swc/tsdown
-    "verbatimModuleSyntax": true, // 保留导入导出原样，防止类型/值混用
-    "skipLibCheck": true // 跳过 d.ts 检查，加速类型检查
+    "allowSyntheticDefaultImports": true,
+    "esModuleInterop": true,
+    "forceConsistentCasingInFileNames": true,
+    "isolatedModules": true,
+    "verbatimModuleSyntax": true,
+    "skipLibCheck": true
   },
-  "include": ["src/**/*", "tests/**/*"],
-  "exclude": ["node_modules", "dist"]
+  "include": [
+    "src/**/*",
+    "tests/**/*"
+  ],
+  "exclude": [
+    "node_modules",
+    "dist"
+  ]
 }

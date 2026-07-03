@@ -32,6 +32,7 @@ export interface PackageCapabilityContext {
 
 interface RootCapabilityContext {
   readonly graph: ResolvedGraph
+  readonly effectHarnessDiscovery?: EffectHarnessProviderDiscovery
 }
 
 export interface PackageCapabilityDefinition {

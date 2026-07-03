@@ -42,6 +42,14 @@ function requiredString(value: JsonValue | undefined, source: string): string {
   return value
 }
 
+function requiredStringArray(value: JsonValue | undefined, source: string): readonly string[] {
+  if (!Array.isArray(value)) {
+    throw new TypeError(`Invalid effect-harness provider discovery: expected ${source} string array`)
+  }
+
+  return value.map((entry, index) => requiredString(entry, `${source}[${index}]`))
+}
+
 function optionalString(value: JsonValue | undefined): string | undefined {
   return typeof value === 'string' ? value : undefined
 }
@@ -131,23 +139,41 @@ export function effectHarnessTsgoPluginForDiscovery(discovery: EffectHarnessProv
   return plugins
 }
 
-export function effectHarnessProviderVerificationCommands(discovery: EffectHarnessProviderDiscovery): readonly string[] {
+export function effectHarnessProviderVerificationCommands(discovery: EffectHarnessProviderDiscovery, graph?: ResolvedGraph): readonly string[] {
   const { verificationPolicy } = effectHarnessPolicyContributions(discovery)
   const localCommands = requiredJsonRecord(verificationPolicy.localCommands, 'targetManagedSurfaces.contributions.verificationPolicy.localCommands')
-  const diagnostics = localCommands.diagnostics
+  const commandGroups = ['diagnostics', 'tests', 'lint'] as const
 
-  if (!Array.isArray(diagnostics)) {
-    return ['pnpm typecheck']
-  }
-
-  return diagnostics.map((command, index) =>
-    requiredString(command, `targetManagedSurfaces.contributions.verificationPolicy.localCommands.diagnostics[${index}]`))
+  return commandGroups.flatMap(group =>
+    requiredStringArray(localCommands[group], `targetManagedSurfaces.contributions.verificationPolicy.localCommands.${group}`)
+      .map(command => graph?.topology === 'workspace' && command === 'pnpm test' ? 'pnpm -r --if-present test' : command))
 }
 
 export function effectHarnessProviderLintCommand(discovery: EffectHarnessProviderDiscovery) {
   const { lintGuardrails } = effectHarnessPolicyContributions(discovery)
 
   return requiredString(lintGuardrails.command, 'targetManagedSurfaces.contributions.lintGuardrails.command')
+}
+
+export function effectHarnessProviderLintPackageEntries(discovery: EffectHarnessProviderDiscovery): Record<string, JsonValue> {
+  const dependencyGroups = effectHarnessPackageDependencyGroups(discovery)
+  const lintingGroup = requiredJsonRecord(dependencyGroups.linting, 'targetManagedSurfaces.contributions.packageJson.dependencyGroups.linting')
+  const lintingField = requiredString(lintingGroup.field, 'targetManagedSurfaces.contributions.packageJson.dependencyGroups.linting.field')
+  const lintingPackages = requiredJsonRecord(lintingGroup.packages, 'targetManagedSurfaces.contributions.packageJson.dependencyGroups.linting.packages')
+  const scripts = effectHarnessPackageScripts(discovery)
+  const lintScript = requiredJsonRecord(scripts.lint, 'targetManagedSurfaces.contributions.packageJson.scripts.lint')
+
+  return {
+    scripts: {
+      lint: requiredString(lintScript.defaultCommand, 'targetManagedSurfaces.contributions.packageJson.scripts.lint.defaultCommand'),
+    },
+    [lintingField]: Object.fromEntries(
+      Object.entries(lintingPackages).map(([name, version]) => [
+        name,
+        requiredString(version, `targetManagedSurfaces.contributions.packageJson.dependencyGroups.linting.packages.${name}`),
+      ]),
+    ) as Record<string, JsonValue>,
+  }
 }
 
 function effectHarnessArtifact(discovery: EffectHarnessProviderDiscovery): ProviderArtifactRecord {
@@ -194,8 +220,35 @@ function effectHarnessProjectedContext(graph: ResolvedGraph): ProviderProjectedC
   return {
     topology: graph.topology,
     packageScopes: graph.providers.find(provider => provider.id === effectHarnessProviderId)?.packageScopes ?? [],
+    packagePaths: Object.fromEntries(graph.packages.map(pkg => [pkg.id, pkg.path])),
     rootCapabilities: graph.rootCapabilities,
     packageCapabilities: graph.packageCapabilities,
+  }
+}
+
+function packagePathForProjectedScope(projectedContext: ProviderProjectedContext, scope: string) {
+  const explicitPath = projectedContext.packagePaths?.[scope]
+  if (explicitPath !== undefined) {
+    return explicitPath
+  }
+
+  const capabilities = projectedContext.packageCapabilities[scope] ?? []
+  return capabilities.includes('library') ? `libs/${scope}` : `apps/${scope}`
+}
+
+function normalizeProjectedContext(projectedContext: ProviderProjectedContext): ProviderProjectedContext {
+  if (projectedContext.topology !== 'workspace') {
+    return {
+      ...projectedContext,
+      packagePaths: projectedContext.packagePaths ?? {},
+    }
+  }
+
+  return {
+    ...projectedContext,
+    packagePaths: Object.fromEntries(
+      projectedContext.packageScopes.map(scope => [scope, packagePathForProjectedScope(projectedContext, scope)]),
+    ),
   }
 }
 
@@ -232,8 +285,9 @@ function effectHarnessManagedFilesContribution(discovery: EffectHarnessProviderD
   })
 }
 
-function effectHarnessDiscoveryManagedFileArtifacts(discovery: EffectHarnessProviderDiscovery) {
+function effectHarnessDiscoveryManagedFileArtifacts(discovery: EffectHarnessProviderDiscovery, projectedContext: ProviderProjectedContext) {
   return [
+    effectHarnessEslintConfigArtifact(discovery, projectedContext),
     ...effectHarnessManagedFilesContribution(discovery, 'documentationBundle'),
     ...effectHarnessManagedFilesContribution(discovery, 'snippets'),
   ]
@@ -248,24 +302,246 @@ function managedFileOperationId(filePath: string) {
   return `write-effect-harness-${slug}`
 }
 
-function packagePointerSurfaceId(pointer: string) {
-  return `package-manifest:root:${pointer}`
+const effectHarnessEslintConfigPath = '.prelude/providers/effect-harness/eslint.config.mjs'
+
+function restrictedImportMessage(name: string) {
+  if (name === 'node:test' || name === 'vitest') {
+    return 'Use @effect/vitest for Effect harness tests.'
+  }
+
+  if (name === '@effect/cli' || name.startsWith('@effect/cli/')) {
+    return 'Use effect/unstable/cli for Effect v4 beta.'
+  }
+
+  if (name.includes('repos/effect')) {
+    return 'repos/effect is read-only reference material; import installed packages instead.'
+  }
+
+  if (name.includes('repos/tsgo')) {
+    return 'repos/tsgo is read-only reference material; use installed packages and CLI instead.'
+  }
+
+  return 'This import is blocked by the effect-harness provider guardrails.'
 }
 
-function tsconfigPointerSurfaceId(pointer: string) {
-  return `tsconfig:root:${pointer}`
+function restrictedImportPatterns(imports: readonly string[]) {
+  return imports
+    .filter(name => name.includes('*'))
+    .flatMap((name) => {
+      const group = name.startsWith('repos/')
+        ? [name, `**/${name}`]
+        : [name]
+      return group.map(pattern => ({
+        group: [pattern],
+        message: restrictedImportMessage(pattern),
+      }))
+    })
 }
+
+function restrictedImportPaths(imports: readonly string[]) {
+  return imports
+    .filter(name => !name.includes('*'))
+    .map(name => ({
+      name,
+      message: restrictedImportMessage(name),
+    }))
+}
+
+function restrictedSyntaxRules(restrictedSyntax: readonly string[]) {
+  const rules: { readonly selector: string, readonly message: string }[] = []
+
+  if (restrictedSyntax.includes('Context.Tag')) {
+    rules.push({
+      selector: 'MemberExpression[object.name="Context"][property.name="Tag"]',
+      message: 'Use Context.Service for v4 beta service definitions.',
+    })
+  }
+
+  const bannedEffectMembers = restrictedSyntax
+    .filter(rule => rule.startsWith('Effect.'))
+    .map(rule => rule.slice('Effect.'.length))
+
+  if (bannedEffectMembers.length > 0) {
+    rules.push({
+      selector: `MemberExpression[object.name="Effect"][property.name=/^(${bannedEffectMembers.join('|')})$/]`,
+      message: 'This Effect member is banned by the harness guardrails; use the Effect-native safer pattern.',
+    })
+  }
+
+  return rules
+}
+
+function jsLiteral(value: unknown, indentation: number) {
+  const padding = ' '.repeat(indentation)
+  return JSON.stringify(value, null, 2)
+    .split('\n')
+    .map((line, index) => index === 0 ? line : `${padding}${line}`)
+    .join('\n')
+}
+
+function effectHarnessPackageManifestPaths(discovery: EffectHarnessProviderDiscovery, projectedContext: ProviderProjectedContext) {
+  return [...new Set(effectHarnessPackageSurfacesForProjectedContext(discovery, projectedContext).map(surface => surface.path))]
+}
+
+function effectHarnessEslintConfigContent(discovery: EffectHarnessProviderDiscovery, projectedContext: ProviderProjectedContext) {
+  const { lintGuardrails } = effectHarnessPolicyContributions(discovery)
+  const rules = requiredJsonRecord(lintGuardrails.rules, 'targetManagedSurfaces.contributions.lintGuardrails.rules')
+  const restrictedImports = requiredStringArray(rules.restrictedImports, 'targetManagedSurfaces.contributions.lintGuardrails.rules.restrictedImports')
+  const restrictedSyntax = requiredStringArray(rules.restrictedSyntax, 'targetManagedSurfaces.contributions.lintGuardrails.rules.restrictedSyntax')
+  const packageManifestPaths = effectHarnessPackageManifestPaths(discovery, projectedContext)
+  const syntaxRules = restrictedSyntaxRules(restrictedSyntax)
+  const testSyntaxRules = restrictedSyntax.includes('plain it() in tests')
+    ? [
+        ...syntaxRules,
+        {
+          selector: 'CallExpression[callee.name="it"]',
+          message: 'Use it.effect, it.live, or layer from @effect/vitest for Effect harness tests.',
+        },
+      ]
+    : syntaxRules
+
+  return `const noDisableValidationRule = {
+  meta: {
+    type: 'problem',
+    docs: {
+      description: 'Disallow disabling Effect Schema validation.',
+    },
+    messages: {
+      noDisableValidation: 'Do not use { disableValidation: true }. Fix the data or schema instead of disabling validation.',
+    },
+    schema: [],
+  },
+  create(context) {
+    return {
+      Property(node) {
+        if (
+          node.key
+          && (
+            (node.key.type === 'Identifier' && node.key.name === 'disableValidation')
+            || (node.key.type === 'Literal' && node.key.value === 'disableValidation')
+          )
+          && node.value
+          && node.value.type === 'Literal'
+          && node.value.value === true
+        ) {
+          context.report({
+            node,
+            messageId: 'noDisableValidation',
+          })
+        }
+      },
+    }
+  },
+}
+
+const localPlugin = {
+  rules: {
+    'no-disable-validation': noDisableValidationRule,
+  },
+}
+
+export default [
+  {
+    name: 'effect-harness/package-baseline',
+    files: ${jsLiteral(packageManifestPaths, 4)},
+    rules: {
+      'pnpm/json-enforce-catalog': 'off',
+    },
+  },
+  {
+    name: 'effect-harness/source',
+    files: ['**/bin/**/*.ts', '**/src/**/*.ts', '**/tests/**/*.{js,mjs,ts}'],
+    plugins: {
+      local: localPlugin,
+    },
+    rules: {
+      'local/no-disable-validation': 'error',
+      'no-restricted-imports': [
+        'error',
+        {
+          paths: ${jsLiteral(restrictedImportPaths(restrictedImports), 10)},
+          patterns: ${jsLiteral(restrictedImportPatterns(restrictedImports), 10)},
+        },
+      ],
+      'no-restricted-syntax': [
+        'error',
+${syntaxRules.map(rule => `        ${JSON.stringify(rule)},`).join('\n')}
+      ],
+      'test/no-import-node-test': 'off',
+    },
+  },
+  {
+    name: 'effect-harness/effect-vitest-tests',
+    files: ['**/tests/**/*.test.{js,mjs,ts}'],
+    rules: {
+      'no-restricted-syntax': [
+        'error',
+${testSyntaxRules.map(rule => `        ${JSON.stringify(rule)},`).join('\n')}
+      ],
+    },
+  },
+]
+`
+}
+
+function effectHarnessEslintConfigArtifact(discovery: EffectHarnessProviderDiscovery, projectedContext: ProviderProjectedContext) {
+  return {
+    path: effectHarnessEslintConfigPath,
+    content: effectHarnessEslintConfigContent(discovery, projectedContext),
+  }
+}
+
+function packagePointerSurfaceId(targetPath: string, pointer: string) {
+  const scope = targetPath === 'package.json' ? 'root' : targetPath.replace(/\/package\.json$/u, '')
+  return `package-manifest:${scope}:${pointer}`
+}
+
+function tsconfigPointerSurfaceId(targetPath: string, pointer: string) {
+  const scope = targetPath === 'tsconfig.json' ? 'root' : targetPath.replace(/\/tsconfig\.json$/u, '')
+  return `tsconfig:${scope}:${pointer}`
+}
+
+type PackageSurfaceInput
+  = | {
+    readonly kind: 'dependency'
+    readonly groupName: string
+    readonly packageName: string
+  }
+  | {
+    readonly kind: 'script'
+    readonly scriptName: string
+  }
 
 function effectHarnessPackageSurfacesForProjectedContext(discovery: EffectHarnessProviderDiscovery, projectedContext: ProviderProjectedContext) {
-  return projectedContext.topology === 'workspace'
-    ? effectHarnessPackageSurfaces(discovery).filter(surface => surface.pointer !== '/scripts/typecheck')
-    : effectHarnessPackageSurfaces(discovery)
+  if (projectedContext.topology !== 'workspace') {
+    return effectHarnessPackageSurfaces(discovery, 'package.json')
+  }
+
+  return [
+    ...effectHarnessPackageSurfaces(discovery, 'package.json', input =>
+      (input.kind === 'dependency' && input.groupName === 'linting')
+      || (input.kind === 'script' && input.scriptName === 'lint')),
+    ...projectedContext.packageScopes.flatMap((scope) => {
+      const packagePath = projectedContext.packagePaths?.[scope]
+      return packagePath === undefined
+        ? []
+        : effectHarnessPackageSurfaces(discovery, `${packagePath}/package.json`, input =>
+            !((input.kind === 'dependency' && input.groupName === 'linting') || (input.kind === 'script' && input.scriptName === 'lint')))
+    }),
+  ]
 }
 
 function effectHarnessTsconfigSurfacesForProjectedContext(discovery: EffectHarnessProviderDiscovery, projectedContext: ProviderProjectedContext) {
-  return projectedContext.topology === 'workspace'
-    ? []
-    : effectHarnessTsconfigSurfaces(discovery)
+  if (projectedContext.topology !== 'workspace') {
+    return effectHarnessTsconfigSurfaces(discovery, 'tsconfig.json')
+  }
+
+  return projectedContext.packageScopes.flatMap((scope) => {
+    const packagePath = projectedContext.packagePaths?.[scope]
+    return packagePath === undefined
+      ? []
+      : effectHarnessTsconfigSurfaces(discovery, `${packagePath}/tsconfig.json`)
+  })
 }
 
 function lifecycleSurfaceMetadata(input: {
@@ -292,8 +568,12 @@ function snapshotJsonValue(value: JsonValue) {
   return typeof value === 'string' ? value : JSON.stringify(value)
 }
 
-function effectHarnessPackageSurfaces(discovery: EffectHarnessProviderDiscovery) {
-  const surfaces: { readonly id: string, readonly pointer: string, readonly value: JsonValue }[] = []
+function effectHarnessPackageSurfaces(
+  discovery: EffectHarnessProviderDiscovery,
+  targetPath: string,
+  include: (input: PackageSurfaceInput) => boolean = () => true,
+) {
+  const surfaces: { readonly id: string, readonly path: string, readonly pointer: string, readonly value: JsonValue }[] = []
 
   for (const [groupName, groupValue] of Object.entries(effectHarnessPackageDependencyGroups(discovery))) {
     const group = requiredJsonRecord(groupValue, `targetManagedSurfaces.contributions.packageJson.dependencyGroups.${groupName}`)
@@ -305,9 +585,14 @@ function effectHarnessPackageSurfaces(discovery: EffectHarnessProviderDiscovery)
     }
 
     for (const [packageName, version] of Object.entries(packages)) {
+      if (!include({ kind: 'dependency', groupName, packageName })) {
+        continue
+      }
+
       const pointer = `/${field}/${jsonPointerSegment(packageName)}`
       surfaces.push({
-        id: packagePointerSurfaceId(pointer),
+        id: packagePointerSurfaceId(targetPath, pointer),
+        path: targetPath,
         pointer,
         value: requiredString(version, `targetManagedSurfaces.contributions.packageJson.dependencyGroups.${groupName}.packages.${packageName}`),
       })
@@ -315,10 +600,15 @@ function effectHarnessPackageSurfaces(discovery: EffectHarnessProviderDiscovery)
   }
 
   for (const [scriptName, scriptValue] of Object.entries(effectHarnessPackageScripts(discovery))) {
+    if (!include({ kind: 'script', scriptName })) {
+      continue
+    }
+
     const script = requiredJsonRecord(scriptValue, `targetManagedSurfaces.contributions.packageJson.scripts.${scriptName}`)
     const pointer = `/scripts/${jsonPointerSegment(scriptName)}`
     surfaces.push({
-      id: packagePointerSurfaceId(pointer),
+      id: packagePointerSurfaceId(targetPath, pointer),
+      path: targetPath,
       pointer,
       value: requiredString(script.defaultCommand, `targetManagedSurfaces.contributions.packageJson.scripts.${scriptName}.defaultCommand`),
     })
@@ -327,14 +617,15 @@ function effectHarnessPackageSurfaces(discovery: EffectHarnessProviderDiscovery)
   return surfaces
 }
 
-function effectHarnessTsconfigSurfaces(discovery: EffectHarnessProviderDiscovery) {
+function effectHarnessTsconfigSurfaces(discovery: EffectHarnessProviderDiscovery, targetPath: string) {
   return [
     {
-      id: tsconfigPointerSurfaceId('/compilerOptions/plugins'),
+      id: tsconfigPointerSurfaceId(targetPath, '/compilerOptions/plugins'),
+      path: targetPath,
       pointer: '/compilerOptions/plugins',
       value: effectHarnessTsgoPluginForDiscovery(discovery),
     },
-  ] as const satisfies readonly { readonly id: string, readonly pointer: string, readonly value: JsonValue }[]
+  ] as const satisfies readonly { readonly id: string, readonly path: string, readonly pointer: string, readonly value: JsonValue }[]
 }
 
 function effectHarnessLifecycleSurfacesForProjectedContext(discovery: EffectHarnessProviderDiscovery, projectedContext: ProviderProjectedContext): readonly LifecycleSurfaceRecord[] {
@@ -343,19 +634,19 @@ function effectHarnessLifecycleSurfacesForProjectedContext(discovery: EffectHarn
       structuredPointerSurface({
         discovery,
         surface,
-        path: 'package.json',
-        locator: `package.json#${surface.pointer}`,
+        path: surface.path,
+        locator: `${surface.path}#${surface.pointer}`,
         operationId: 'write-package-json',
       })),
     ...effectHarnessTsconfigSurfacesForProjectedContext(discovery, projectedContext).map(surface =>
       structuredPointerSurface({
         discovery,
         surface,
-        path: 'tsconfig.json',
-        locator: `tsconfig.json#${surface.pointer}`,
+        path: surface.path,
+        locator: `${surface.path}#${surface.pointer}`,
         operationId: 'write-tsconfig',
       })),
-    ...effectHarnessDiscoveryManagedFileArtifacts(discovery).map(artifact =>
+    ...effectHarnessDiscoveryManagedFileArtifacts(discovery, projectedContext).map(artifact =>
       ownedFileSurface({
         discovery,
         id: effectHarnessManagedFileSurfaceId(artifact.path),
@@ -430,7 +721,8 @@ export function effectHarnessMaintainProviderReference(record: LifecycleProvider
 }
 
 export function effectHarnessProviderRecordForProjectedContext(discovery: EffectHarnessProviderDiscovery, projectedContext: ProviderProjectedContext): LifecycleProviderRecord {
-  const surfaces = effectHarnessLifecycleSurfacesForProjectedContext(discovery, projectedContext)
+  const normalizedProjectedContext = normalizeProjectedContext(projectedContext)
+  const surfaces = effectHarnessLifecycleSurfacesForProjectedContext(discovery, normalizedProjectedContext)
   const artifact = effectHarnessArtifact(discovery)
 
   return {
@@ -440,7 +732,7 @@ export function effectHarnessProviderRecordForProjectedContext(discovery: Effect
     providerVersion: discovery.provider.providerVersion,
     profile: discovery.selectedProfile,
     artifact,
-    projectedContext,
+    projectedContext: normalizedProjectedContext,
     options: {
       lifecycleOwner: optionalString(discovery.discovery.targetLifecycleOwner) ?? 'prelude',
       effect: {
@@ -451,7 +743,7 @@ export function effectHarnessProviderRecordForProjectedContext(discovery: Effect
         enabled: effectHarnessTsgoPluginForDiscovery(discovery).length > 0,
         floatingEffect: effectHarnessLanguageServiceFloatingEffect(discovery),
       },
-      packageScopes: projectedContext.packageScopes,
+      packageScopes: normalizedProjectedContext.packageScopes,
       policies: effectHarnessPolicyContributions(discovery),
     },
     runtime: effectHarnessRuntime(discovery),
@@ -476,8 +768,14 @@ function providerJsonValue(discovery: EffectHarnessProviderDiscovery, graph: Res
   return providerJsonValueForProjectedContext(discovery, effectHarnessProjectedContext(graph))
 }
 
-function packageManifestEntriesFromSurfaces(surfaces: readonly { readonly pointer: string, readonly value: JsonValue }[]) {
-  const entries: Record<string, JsonValue> = {}
+function packageManifestSurfaceIdForPath(targetPath: string) {
+  return targetPath === 'package.json'
+    ? 'package-manifest:root'
+    : `package-manifest:${targetPath.replace(/\/package\.json$/u, '')}`
+}
+
+function packageManifestEntriesFromSurfaces(surfaces: readonly { readonly path: string, readonly pointer: string, readonly value: JsonValue }[]) {
+  const manifests = new Map<string, Record<string, JsonValue>>()
 
   for (const surface of surfaces) {
     const [, section, rawKey] = surface.pointer.split('/')
@@ -486,14 +784,17 @@ function packageManifestEntriesFromSurfaces(surfaces: readonly { readonly pointe
     }
 
     const key = rawKey.replaceAll('~1', '/').replaceAll('~0', '~')
+    const surfaceId = packageManifestSurfaceIdForPath(surface.path)
+    const entries = manifests.get(surfaceId) ?? {}
     const sectionEntries = isJsonRecord(entries[section]) ? entries[section] : {}
     entries[section] = {
       ...sectionEntries,
       [key]: surface.value,
     }
+    manifests.set(surfaceId, entries)
   }
 
-  return entries
+  return [...manifests.entries()].map(([surfaceId, entries]) => ({ surfaceId, entries }))
 }
 
 export function effectHarnessContributions(discovery: EffectHarnessProviderDiscovery, graph: ResolvedGraph): readonly CapabilityContribution[] {
@@ -501,12 +802,12 @@ export function effectHarnessContributions(discovery: EffectHarnessProviderDisco
   const packageEntries = packageManifestEntriesFromSurfaces(effectHarnessPackageSurfacesForProjectedContext(discovery, projectedContext))
 
   return [
-    {
+    ...packageEntries.map(({ entries, surfaceId }) => ({
       kind: 'packageManifest',
-      surfaceId: 'package-manifest:root',
+      surfaceId: surfaceId as `package-manifest:${string}`,
       owner: 'provider:effect-harness',
-      entries: packageEntries,
-    },
+      entries,
+    } satisfies CapabilityContribution)),
     {
       kind: 'providerArtifact',
       surfaceId: 'provider:effect-harness',
@@ -515,7 +816,13 @@ export function effectHarnessContributions(discovery: EffectHarnessProviderDisco
       path: effectHarnessProviderPath,
       value: providerJsonValue(discovery, graph),
     },
-    ...effectHarnessDiscoveryManagedFileArtifacts(discovery).map(artifact => ({
+    {
+      kind: 'eslintRoot',
+      surfaceId: 'eslint-root',
+      owner: 'provider:effect-harness',
+      providerConfigImports: [`./${effectHarnessEslintConfigPath}`],
+    },
+    ...effectHarnessDiscoveryManagedFileArtifacts(discovery, projectedContext).map(artifact => ({
       kind: 'providerManagedFile' as const,
       surfaceId: effectHarnessManagedFileSurfaceId(artifact.path),
       operationId: managedFileOperationId(artifact.path),

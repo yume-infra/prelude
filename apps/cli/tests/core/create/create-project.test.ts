@@ -657,12 +657,19 @@ export default defineConfig({
           path: operation.path,
           authority: operation.authority,
         }))
-        assert.deepEqual(writeOperations.slice(0, 4), [
+        assert.includeDeepMembers(writeOperations, [
           {
             id: 'write-package-json',
             kind: 'writeStructuredFile',
             owner: 'materializer:package-json',
             path: 'package.json',
+            authority: 'none',
+          },
+          {
+            id: 'write-eslint-config',
+            kind: 'writeManagedFile',
+            owner: 'materializer:eslint-config',
+            path: 'eslint.config.mjs',
             authority: 'none',
           },
           {
@@ -698,9 +705,11 @@ export default defineConfig({
           packageManager: 'pnpm@10.33.4',
           scripts: {
             build: 'tsgo --noEmit',
+            lint: 'eslint',
             prepare: 'effect-tsgo patch',
+            test: 'vitest run',
             typecheck: 'tsgo --noEmit',
-            verify: 'pnpm build && pnpm typecheck',
+            verify: 'pnpm build && pnpm typecheck && pnpm test && pnpm lint --max-warnings 0',
           },
           dependencies: {
             '@effect/platform-node': '4.0.0-beta.92',
@@ -710,9 +719,12 @@ export default defineConfig({
             '@effect/language-service': '0.86.2',
             '@effect/tsgo': '0.15.0',
             '@effect/vitest': '4.0.0-beta.92',
+            '@antfu/eslint-config': '^9.0.0',
             '@types/node': 'catalog:',
             '@typescript/native-preview': '7.0.0-dev.20260630.1',
+            'eslint': '^10.3.0',
             'typescript': 'catalog:',
+            'vitest': '^4.1.8',
           },
         })
 
@@ -768,6 +780,7 @@ NodeRuntime.runMain(main())
         assert.deepEqual(providerRecord.projectedContext, {
           topology: 'single-package',
           packageScopes: ['worker'],
+          packagePaths: {},
           rootCapabilities: ['package-manager:pnpm', 'ai-harness'],
           packageCapabilities: {
             worker: ['effect-package'],
@@ -777,8 +790,11 @@ NodeRuntime.runMain(main())
         assert.ok(providerSurfaceIds.has('package-manifest:root:/dependencies/effect'))
         assert.ok(providerSurfaceIds.has('package-manifest:root:/scripts/prepare'))
         assert.ok(providerSurfaceIds.has('package-manifest:root:/scripts/typecheck'))
+        assert.ok(providerSurfaceIds.has('package-manifest:root:/scripts/test'))
+        assert.ok(providerSurfaceIds.has('package-manifest:root:/scripts/lint'))
         assert.isFalse(providerSurfaceIds.has('package-manifest:root:/scripts/effect:verify'))
         assert.ok(providerSurfaceIds.has('tsconfig:root:/compilerOptions/plugins'))
+        assert.ok(providerSurfaceIds.has('provider-managed-file:effect-harness:.prelude/providers/effect-harness/eslint.config.mjs'))
         assert.ok(providerSurfaceIds.has('provider-managed-file:effect-harness:.prelude/providers/effect-harness/docs/discovery.md'))
         assert.ok(providerSurfaceIds.has('provider-managed-file:effect-harness:.prelude/providers/effect-harness/snippets/agents.md'))
         assert.isFalse([...providerSurfaceIds].some(surfaceId => surfaceId.includes('.codex/')))
@@ -790,6 +806,9 @@ NodeRuntime.runMain(main())
           '@effect/tsgo': '0.15.0',
           '@effect/language-service': '0.86.2',
           '@typescript/native-preview': '7.0.0-dev.20260630.1',
+          '@antfu/eslint-config': '^9.0.0',
+          'eslint': '^10.3.0',
+          'vitest': '^4.1.8',
         })
         assert.deepEqual(Object.keys(providerRecord.options.policies).sort(), [
           'editorPolicy',
@@ -875,6 +894,7 @@ NodeRuntime.runMain(main())
           manifest.generatedUserSurfaces.map(surface => ({ path: surface.path, authority: surface.authority })),
           [
             { path: 'package.json', authority: 'none' },
+            { path: 'eslint.config.mjs', authority: 'none' },
             { path: 'src/index.ts', authority: 'none' },
             { path: 'tsconfig.json', authority: 'none' },
           ],

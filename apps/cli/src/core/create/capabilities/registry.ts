@@ -82,7 +82,7 @@ export function rootCapabilityContributions(
   graph: ResolvedGraph,
   effectHarnessDiscovery: EffectHarnessProviderDiscovery | undefined,
 ): readonly CapabilityContribution[] {
-  const context = { graph }
+  const context = { graph, ...(effectHarnessDiscovery === undefined ? {} : { effectHarnessDiscovery }) }
   const rootContributions = graph.rootCapabilities.flatMap((capability) => {
     const definition = rootCapabilityDefinition(capability)
     return definition?.contribute(context) ?? []

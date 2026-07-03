@@ -1,19 +1,24 @@
 import type { EffectHarnessProviderDiscovery, JsonValue, ResolvedGraph } from '../model'
 import type { PackageManifestEntries, RootCapabilityDefinition } from './types'
-import { effectHarnessProviderLintCommand, effectHarnessProviderVerificationCommands } from '../effect-harness-provider'
+import {
+  effectHarnessProviderLintCommand,
+  effectHarnessProviderLintPackageEntries,
+  effectHarnessProviderVerificationCommands,
+} from '../effect-harness-provider'
 
 function verifyScriptFor(graph: ResolvedGraph, effectHarnessDiscovery?: EffectHarnessProviderDiscovery): string | undefined {
   const commands = ['pnpm build']
+  const hasEffectHarness = graph.providers.some(provider => provider.id === 'effect-harness')
 
-  if (graph.providers.some(provider => provider.id === 'effect-harness')) {
+  if (hasEffectHarness) {
     if (effectHarnessDiscovery === undefined) {
       throw new Error('effect-harness provider discovery must be loaded before collecting provider verification contributions')
     }
 
-    commands.push(...effectHarnessProviderVerificationCommands(effectHarnessDiscovery))
+    commands.push(...effectHarnessProviderVerificationCommands(effectHarnessDiscovery, graph))
   }
 
-  if (graph.rootCapabilities.includes('linting')) {
+  if (!hasEffectHarness && graph.rootCapabilities.includes('linting')) {
     commands.push(effectHarnessDiscovery === undefined ? 'pnpm lint' : effectHarnessProviderLintCommand(effectHarnessDiscovery))
   }
 
@@ -171,28 +176,35 @@ export const rootCapabilityDefinitions: readonly RootCapabilityDefinition[] = [
         owner: 'capability:linting',
       },
     ],
-    contribute: () => [
-      {
-        kind: 'packageManifest',
-        surfaceId: 'package-manifest:root',
-        owner: 'capability:linting',
-        entries: {
-          scripts: {
-            lint: 'eslint .',
-          },
-          devDependencies: {
-            '@antfu/eslint-config': 'catalog:',
-            'eslint': 'catalog:',
-            'typescript': 'catalog:',
+    contribute: (context) => {
+      const hasEffectHarness = context.graph.providers.some(provider => provider.id === 'effect-harness')
+      const providerEntries = hasEffectHarness && context.effectHarnessDiscovery !== undefined
+        ? effectHarnessProviderLintPackageEntries(context.effectHarnessDiscovery)
+        : undefined
+
+      return [
+        {
+          kind: 'packageManifest' as const,
+          surfaceId: 'package-manifest:root',
+          owner: 'capability:linting',
+          entries: providerEntries ?? {
+            scripts: {
+              lint: 'eslint .',
+            },
+            devDependencies: {
+              '@antfu/eslint-config': 'catalog:',
+              'eslint': 'catalog:',
+              'typescript': 'catalog:',
+            },
           },
         },
-      },
-      {
-        kind: 'eslintRoot',
-        surfaceId: 'eslint-root',
-        owner: 'capability:linting',
-      },
-    ],
+        {
+          kind: 'eslintRoot' as const,
+          surfaceId: 'eslint-root',
+          owner: 'capability:linting',
+        },
+      ]
+    },
   },
   {
     id: 'knip',

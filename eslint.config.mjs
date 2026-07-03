@@ -1,4 +1,5 @@
 import antfu from '@antfu/eslint-config'
+import effectHarnessProviderConfig from './.prelude/providers/effect-harness/eslint.config.mjs'
 
 export default antfu(
   {
@@ -11,6 +12,7 @@ export default antfu(
     lib: true,
     typescript: true,
   },
+  ...effectHarnessProviderConfig,
   { rules: {
     // yield 出去的，声明时候也有不用 new 的情况
     'unicorn/throw-new-error': 'off',
@@ -22,23 +24,6 @@ export default antfu(
       // Root package is a prelude target. effect-harness verifies exact package pins here,
       // while apps/cli keeps its app runtime dependencies on the shared catalog.
       'pnpm/json-enforce-catalog': 'off',
-    },
-  },
-  {
-    name: 'prelude/effect-import-boundary',
-    files: ['apps/cli/src/**/*.ts', 'apps/cli/tests/**/*.ts'],
-    rules: {
-      'no-restricted-imports': [
-        'error',
-        {
-          patterns: [
-            {
-              group: ['**/repos/effect/**', 'repos/effect/**'],
-              message: 'Do not import from the effect-harness source pin; use installed dependencies.',
-            },
-          ],
-        },
-      ],
     },
   },
 )

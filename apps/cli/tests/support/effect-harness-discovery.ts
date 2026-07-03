@@ -170,6 +170,7 @@ export const effectHarnessDiscoveryFixture = {
             field: 'devDependencies',
             packages: {
               '@effect/vitest': '4.0.0-beta.92',
+              'vitest': '^4.1.8',
             },
           },
           diagnostics: {
@@ -185,6 +186,13 @@ export const effectHarnessDiscoveryFixture = {
               '@typescript/native-preview': '7.0.0-dev.20260630.1',
             },
           },
+          linting: {
+            field: 'devDependencies',
+            packages: {
+              '@antfu/eslint-config': '^9.0.0',
+              'eslint': '^10.3.0',
+            },
+          },
         },
         scripts: {
           prepare: {
@@ -194,6 +202,14 @@ export const effectHarnessDiscoveryFixture = {
           typecheck: {
             semantic: 'primary Effect diagnostics',
             defaultCommand: 'tsgo --noEmit',
+          },
+          test: {
+            semantic: 'run Effect tests',
+            defaultCommand: 'vitest run',
+          },
+          lint: {
+            semantic: 'run ESLint guardrails',
+            defaultCommand: 'eslint',
           },
         },
       },
@@ -296,9 +312,9 @@ export const effectHarnessDiscoveryFixture = {
         mode: 'command-policy',
         stage: 'tests',
         command: 'pnpm test',
-        packageScript: 'vitest run tests/*.test.ts',
+        packageScript: 'vitest run',
         framework: '@effect/vitest',
-        expectedEntries: ['tests/*.test.ts'],
+        expectedEntries: ['tests/**/*.test.ts'],
         effectEntrypoints: ['it.effect', 'it.live', 'layer'],
         disallowedImports: ['node:test', 'vitest'],
       },

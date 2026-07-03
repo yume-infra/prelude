@@ -423,11 +423,11 @@ const providerRecord = await readJson<{ id: string, surfaces: Array<{ id: string
 
 assert.equal(workerPackageJson.name, workerSpec.package.name)
 assert.equal(workerPackageJson.scripts.build, 'tsgo --noEmit')
-assert.equal(workerPackageJson.scripts.lint, 'eslint .')
+assert.equal(workerPackageJson.scripts.lint, 'eslint')
 assert.equal(workerPackageJson.scripts.knip, 'knip')
 assert.equal(workerPackageJson.scripts.prepare, 'effect-tsgo patch')
 assert.equal(workerPackageJson.scripts.typecheck, 'tsgo --noEmit')
-assert.equal(workerPackageJson.scripts.verify, 'pnpm build && pnpm typecheck && pnpm lint --max-warnings 0 && pnpm knip')
+assert.equal(workerPackageJson.scripts.verify, 'pnpm build && pnpm typecheck && pnpm test && pnpm lint --max-warnings 0 && pnpm knip')
 assert.equal(workerPackageJson.scripts['effect:verify'], undefined)
 assert.equal(workerPackageJson.devDependencies['@effect/tsgo'], '0.15.0')
 assert.deepEqual(workerKnipConfig.ignoreDependencies, ['@effect/tsgo', '@effect/vitest'])

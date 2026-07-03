@@ -1,9 +1,8 @@
 import type { CapabilityId, EffectHarnessProviderDiscovery, JsonValue } from '../model'
-import type { PackageCapabilityDefinition, PackageManifestEntries } from './types'
+import type { PackageCapabilityContext, PackageCapabilityDefinition, PackageManifestEntries } from './types'
 import {
   effectHarnessTsgoPluginForDiscovery,
   effectHarnessTypecheckCommandForDiscovery,
-  hasEffectHarnessProvider,
 } from '../effect-harness-provider'
 import {
   sourceSurface,
@@ -42,23 +41,39 @@ NodeRuntime.runMain(main())
 `
 }
 
-function effectPackageBuildScript(hasProvider: boolean, discovery?: EffectHarnessProviderDiscovery) {
-  if (hasProvider) {
-    if (discovery === undefined) {
-      throw new Error('effect-harness provider discovery must be loaded before collecting effect-package contributions')
-    }
+function effectHarnessDiscoveryForPackage(context: PackageCapabilityContext) {
+  const packageScopeCandidates = [context.pkg.id, context.packageId, context.pkg.path]
+  const provider = context.graph.providers.find(candidate =>
+    candidate.id === 'effect-harness' && packageScopeCandidates.some(scope => candidate.packageScopes.includes(scope)))
 
+  if (provider === undefined) {
+    return undefined
+  }
+
+  if (context.effectHarnessDiscovery === undefined) {
+    throw new Error('effect-harness provider discovery must be loaded before collecting provider-scoped package contributions')
+  }
+
+  return context.effectHarnessDiscovery
+}
+
+function effectPackageBuildScript(discovery?: EffectHarnessProviderDiscovery) {
+  if (discovery !== undefined) {
     return effectHarnessTypecheckCommandForDiscovery(discovery)
   }
 
   return 'tsc --noEmit --project tsconfig.json'
 }
 
-function effectPackageTsconfig(hasProvider: boolean, discovery?: EffectHarnessProviderDiscovery) {
-  if (hasProvider && discovery === undefined) {
-    throw new Error('effect-harness provider discovery must be loaded before collecting effect-package tsconfig contributions')
+function packageTypecheckScript(discovery?: EffectHarnessProviderDiscovery) {
+  if (discovery !== undefined) {
+    return effectHarnessTypecheckCommandForDiscovery(discovery)
   }
 
+  return 'tsc --noEmit --project tsconfig.json'
+}
+
+function effectPackageTsconfig(discovery?: EffectHarnessProviderDiscovery) {
   return `${JSON.stringify({
     compilerOptions: {
       target: 'ES2022',
@@ -67,10 +82,24 @@ function effectPackageTsconfig(hasProvider: boolean, discovery?: EffectHarnessPr
       strict: true,
       skipLibCheck: true,
       types: ['node'],
-      ...(hasProvider && discovery !== undefined ? { plugins: effectHarnessTsgoPluginForDiscovery(discovery) } : {}),
+      ...(discovery !== undefined ? { plugins: effectHarnessTsgoPluginForDiscovery(discovery) } : {}),
     },
     include: ['src/**/*.ts'],
   }, null, 2)}\n`
+}
+
+function typeScriptPackageTsconfigOptions(
+  nodeTypes: boolean,
+  discovery?: EffectHarnessProviderDiscovery,
+): { readonly nodeTypes: boolean, readonly plugins?: readonly JsonValue[] } {
+  if (discovery === undefined) {
+    return { nodeTypes }
+  }
+
+  return {
+    nodeTypes,
+    plugins: effectHarnessTsgoPluginForDiscovery(discovery),
+  }
 }
 
 function distPackageManifestEntries(packageName: string, options: {
@@ -78,6 +107,7 @@ function distPackageManifestEntries(packageName: string, options: {
   readonly binName?: string
   readonly buildSuffix?: string
   readonly smokeBin?: string
+  readonly typecheckScript?: string
 }): PackageManifestEntries {
   const buildScript = `tsdown --config tsdown.config.ts${options.buildSuffix ?? ''}`
 
@@ -103,7 +133,7 @@ function distPackageManifestEntries(packageName: string, options: {
         }),
     scripts: {
       build: buildScript,
-      typecheck: 'tsc --noEmit --project tsconfig.json',
+      typecheck: options.typecheckScript ?? 'tsc --noEmit --project tsconfig.json',
       ...(options.startScript ? { start: 'node dist/index.js' } : {}),
       ...(options.smokeBin === undefined ? {} : { 'smoke:bin': options.smokeBin }),
       prepack: 'pnpm build',
@@ -116,7 +146,7 @@ function distPackageManifestEntries(packageName: string, options: {
   }
 }
 
-function typeScriptPackageTsconfig(options: { readonly nodeTypes: boolean }): Record<string, JsonValue> {
+function typeScriptPackageTsconfig(options: { readonly nodeTypes: boolean, readonly plugins?: readonly JsonValue[] }): Record<string, JsonValue> {
   return {
     compilerOptions: {
       target: 'ES2022',
@@ -128,14 +158,18 @@ function typeScriptPackageTsconfig(options: { readonly nodeTypes: boolean }): Re
       verbatimModuleSyntax: true,
       skipLibCheck: true,
       ...(options.nodeTypes ? { types: ['node'] } : {}),
+      ...(options.plugins === undefined ? {} : { plugins: options.plugins }),
     },
     include: ['src/**/*.ts'],
   }
 }
 
-function nodeAppManifestEntries(packageName: string): PackageManifestEntries {
+function nodeAppManifestEntries(packageName: string, discovery?: EffectHarnessProviderDiscovery): PackageManifestEntries {
   return {
-    ...distPackageManifestEntries(packageName, { startScript: false }),
+    ...distPackageManifestEntries(packageName, {
+      startScript: false,
+      typecheckScript: packageTypecheckScript(discovery),
+    }),
     devDependencies: {
       '@types/node': 'catalog:',
       'tsdown': 'catalog:',
@@ -284,36 +318,40 @@ export const packageRuntimeCapabilityDefinitions: readonly PackageCapabilityDefi
       typeScriptConfigSurface(context.packageManifestScope),
       tsdownConfigSurface(context.packageManifestScope),
     ],
-    contribute: context => [
-      {
-        kind: 'packageManifest',
-        surfaceId: context.packageManifestSurfaceId,
-        owner: 'capability:node-app',
-        entries: nodeAppManifestEntries(context.packageName),
-      },
-      {
-        kind: 'generatedUserFile',
-        surfaceId: context.pkg.path === '.'
-          ? 'source:root/src/index.ts'
-          : `source:${context.pkg.path}/src/index.ts`,
-        owner: 'capability:node-app',
-        path: context.scopedPath('src/index.ts'),
-        operationId: 'write-node-app-source',
-        operationOwner: 'capability:node-app',
-        content: 'export {}\n',
-      },
-      {
-        kind: 'typescriptConfig',
-        surfaceId: context.scopedTypeScriptConfigSurfaceId,
-        owner: 'capability:node-app',
-        value: typeScriptPackageTsconfig({ nodeTypes: true }),
-      },
-      {
-        kind: 'tsdownConfig',
-        surfaceId: context.scopedTsdownConfigSurfaceId,
-        owner: 'capability:node-app',
-      },
-    ],
+    contribute: (context) => {
+      const discovery = effectHarnessDiscoveryForPackage(context)
+
+      return [
+        {
+          kind: 'packageManifest' as const,
+          surfaceId: context.packageManifestSurfaceId,
+          owner: 'capability:node-app',
+          entries: nodeAppManifestEntries(context.packageName, discovery),
+        },
+        {
+          kind: 'generatedUserFile' as const,
+          surfaceId: context.pkg.path === '.'
+            ? 'source:root/src/index.ts'
+            : `source:${context.pkg.path}/src/index.ts`,
+          owner: 'capability:node-app',
+          path: context.scopedPath('src/index.ts'),
+          operationId: 'write-node-app-source',
+          operationOwner: 'capability:node-app',
+          content: 'export {}\n',
+        },
+        {
+          kind: 'typescriptConfig' as const,
+          surfaceId: context.scopedTypeScriptConfigSurfaceId,
+          owner: 'capability:node-app',
+          value: typeScriptPackageTsconfig(typeScriptPackageTsconfigOptions(true, discovery)),
+        },
+        {
+          kind: 'tsdownConfig' as const,
+          surfaceId: context.scopedTsdownConfigSurfaceId,
+          owner: 'capability:node-app',
+        },
+      ]
+    },
   },
   {
     id: 'effect-package',
@@ -341,8 +379,8 @@ export const packageRuntimeCapabilityDefinitions: readonly PackageCapabilityDefi
           },
     ],
     contribute: (context) => {
-      const hasProvider = hasEffectHarnessProvider(context.graph)
-      const discovery = hasProvider ? context.effectHarnessDiscovery : undefined
+      const discovery = effectHarnessDiscoveryForPackage(context)
+      const hasProvider = discovery !== undefined
 
       return [
         {
@@ -354,7 +392,7 @@ export const packageRuntimeCapabilityDefinitions: readonly PackageCapabilityDefi
             type: 'module',
             version: '0.0.0',
             scripts: {
-              build: effectPackageBuildScript(hasProvider, discovery),
+              build: effectPackageBuildScript(discovery),
             },
             devDependencies: {
               '@types/node': 'catalog:',
@@ -382,7 +420,7 @@ export const packageRuntimeCapabilityDefinitions: readonly PackageCapabilityDefi
           path: context.scopedPath('tsconfig.json'),
           operationId: 'write-tsconfig',
           operationOwner: 'capability:effect-package',
-          content: effectPackageTsconfig(hasProvider, discovery),
+          content: effectPackageTsconfig(discovery),
         },
       ]
     },
@@ -398,36 +436,43 @@ export const packageRuntimeCapabilityDefinitions: readonly PackageCapabilityDefi
       typeScriptConfigSurface(context.packageManifestScope),
       tsdownConfigSurface(context.packageManifestScope),
     ],
-    contribute: context => [
-      {
-        kind: 'packageManifest',
-        surfaceId: context.packageManifestSurfaceId,
-        owner: 'capability:node-backend',
-        entries: distPackageManifestEntries(context.packageName, { startScript: true }),
-      },
-      {
-        kind: 'generatedUserFile',
-        surfaceId: context.pkg.path === '.'
-          ? 'source:node-backend/src/index.ts'
-          : `source:${context.pkg.path}/src/index.ts`,
-        owner: 'capability:node-backend',
-        path: context.scopedPath('src/index.ts'),
-        operationId: 'write-node-backend-source',
-        operationOwner: 'materializer:node-backend-source',
-        content: nodeBackendSource(context.packageName),
-      },
-      {
-        kind: 'typescriptConfig',
-        surfaceId: context.scopedTypeScriptConfigSurfaceId,
-        owner: 'capability:node-backend',
-        value: typeScriptPackageTsconfig({ nodeTypes: true }),
-      },
-      {
-        kind: 'tsdownConfig',
-        surfaceId: context.scopedTsdownConfigSurfaceId,
-        owner: 'capability:node-backend',
-      },
-    ],
+    contribute: (context) => {
+      const discovery = effectHarnessDiscoveryForPackage(context)
+
+      return [
+        {
+          kind: 'packageManifest' as const,
+          surfaceId: context.packageManifestSurfaceId,
+          owner: 'capability:node-backend',
+          entries: distPackageManifestEntries(context.packageName, {
+            startScript: true,
+            typecheckScript: packageTypecheckScript(discovery),
+          }),
+        },
+        {
+          kind: 'generatedUserFile' as const,
+          surfaceId: context.pkg.path === '.'
+            ? 'source:node-backend/src/index.ts'
+            : `source:${context.pkg.path}/src/index.ts`,
+          owner: 'capability:node-backend',
+          path: context.scopedPath('src/index.ts'),
+          operationId: 'write-node-backend-source',
+          operationOwner: 'materializer:node-backend-source',
+          content: nodeBackendSource(context.packageName),
+        },
+        {
+          kind: 'typescriptConfig' as const,
+          surfaceId: context.scopedTypeScriptConfigSurfaceId,
+          owner: 'capability:node-backend',
+          value: typeScriptPackageTsconfig(typeScriptPackageTsconfigOptions(true, discovery)),
+        },
+        {
+          kind: 'tsdownConfig' as const,
+          surfaceId: context.scopedTsdownConfigSurfaceId,
+          owner: 'capability:node-backend',
+        },
+      ]
+    },
   },
   {
     id: 'library',
@@ -440,36 +485,43 @@ export const packageRuntimeCapabilityDefinitions: readonly PackageCapabilityDefi
       typeScriptConfigSurface(context.packageManifestScope),
       tsdownConfigSurface(context.packageManifestScope),
     ],
-    contribute: context => [
-      {
-        kind: 'packageManifest',
-        surfaceId: context.packageManifestSurfaceId,
-        owner: 'capability:library',
-        entries: distPackageManifestEntries(context.packageName, { startScript: false }),
-      },
-      {
-        kind: 'generatedUserFile',
-        surfaceId: context.pkg.path === '.'
-          ? 'source:library/src/index.ts'
-          : `source:${context.pkg.path}/src/index.ts`,
-        owner: 'capability:library',
-        path: context.scopedPath('src/index.ts'),
-        operationId: 'write-library-source',
-        operationOwner: 'materializer:library-source',
-        content: librarySource(context.packageName),
-      },
-      {
-        kind: 'typescriptConfig',
-        surfaceId: context.scopedTypeScriptConfigSurfaceId,
-        owner: 'capability:library',
-        value: typeScriptPackageTsconfig({ nodeTypes: false }),
-      },
-      {
-        kind: 'tsdownConfig',
-        surfaceId: context.scopedTsdownConfigSurfaceId,
-        owner: 'capability:library',
-      },
-    ],
+    contribute: (context) => {
+      const discovery = effectHarnessDiscoveryForPackage(context)
+
+      return [
+        {
+          kind: 'packageManifest' as const,
+          surfaceId: context.packageManifestSurfaceId,
+          owner: 'capability:library',
+          entries: distPackageManifestEntries(context.packageName, {
+            startScript: false,
+            typecheckScript: packageTypecheckScript(discovery),
+          }),
+        },
+        {
+          kind: 'generatedUserFile' as const,
+          surfaceId: context.pkg.path === '.'
+            ? 'source:library/src/index.ts'
+            : `source:${context.pkg.path}/src/index.ts`,
+          owner: 'capability:library',
+          path: context.scopedPath('src/index.ts'),
+          operationId: 'write-library-source',
+          operationOwner: 'materializer:library-source',
+          content: librarySource(context.packageName),
+        },
+        {
+          kind: 'typescriptConfig' as const,
+          surfaceId: context.scopedTypeScriptConfigSurfaceId,
+          owner: 'capability:library',
+          value: typeScriptPackageTsconfig(typeScriptPackageTsconfigOptions(false, discovery)),
+        },
+        {
+          kind: 'tsdownConfig' as const,
+          surfaceId: context.scopedTsdownConfigSurfaceId,
+          owner: 'capability:library',
+        },
+      ]
+    },
   },
   {
     id: 'cli-tool',
@@ -483,51 +535,56 @@ export const packageRuntimeCapabilityDefinitions: readonly PackageCapabilityDefi
       typeScriptConfigSurface(context.packageManifestScope),
       tsdownConfigSurface(context.packageManifestScope),
     ],
-    contribute: context => [
-      {
-        kind: 'packageManifest',
-        surfaceId: context.packageManifestSurfaceId,
-        owner: 'capability:cli-tool',
-        entries: distPackageManifestEntries(context.packageName, {
-          startScript: false,
-          binName: context.packageName,
-          buildSuffix: ' && node scripts/ensure-shebang.mjs',
-          smokeBin: 'pnpm build && ./dist/index.js --help',
-        }),
-      },
-      {
-        kind: 'generatedUserFile',
-        surfaceId: context.pkg.path === '.'
-          ? 'source:cli-tool/src/index.ts'
-          : `source:${context.pkg.path}/src/index.ts`,
-        owner: 'capability:cli-tool',
-        path: context.scopedPath('src/index.ts'),
-        operationId: 'write-cli-tool-source',
-        operationOwner: 'materializer:cli-tool-source',
-        content: cliToolSource(context.packageName),
-      },
-      {
-        kind: 'generatedUserFile',
-        surfaceId: context.pkg.path === '.'
-          ? 'cli-tool-support:scripts/ensure-shebang.mjs'
-          : `source:${context.pkg.path}/scripts/ensure-shebang.mjs`,
-        owner: 'capability:cli-tool',
-        path: context.scopedPath('scripts/ensure-shebang.mjs'),
-        operationId: 'write-cli-tool-ensure-shebang',
-        operationOwner: 'materializer:cli-tool-support',
-        content: cliEnsureShebangScript,
-      },
-      {
-        kind: 'typescriptConfig',
-        surfaceId: context.scopedTypeScriptConfigSurfaceId,
-        owner: 'capability:cli-tool',
-        value: typeScriptPackageTsconfig({ nodeTypes: true }),
-      },
-      {
-        kind: 'tsdownConfig',
-        surfaceId: context.scopedTsdownConfigSurfaceId,
-        owner: 'capability:cli-tool',
-      },
-    ],
+    contribute: (context) => {
+      const discovery = effectHarnessDiscoveryForPackage(context)
+
+      return [
+        {
+          kind: 'packageManifest' as const,
+          surfaceId: context.packageManifestSurfaceId,
+          owner: 'capability:cli-tool',
+          entries: distPackageManifestEntries(context.packageName, {
+            startScript: false,
+            binName: context.packageName,
+            buildSuffix: ' && node scripts/ensure-shebang.mjs',
+            smokeBin: 'pnpm build && ./dist/index.js --help',
+            typecheckScript: packageTypecheckScript(discovery),
+          }),
+        },
+        {
+          kind: 'generatedUserFile' as const,
+          surfaceId: context.pkg.path === '.'
+            ? 'source:cli-tool/src/index.ts'
+            : `source:${context.pkg.path}/src/index.ts`,
+          owner: 'capability:cli-tool',
+          path: context.scopedPath('src/index.ts'),
+          operationId: 'write-cli-tool-source',
+          operationOwner: 'materializer:cli-tool-source',
+          content: cliToolSource(context.packageName),
+        },
+        {
+          kind: 'generatedUserFile' as const,
+          surfaceId: context.pkg.path === '.'
+            ? 'cli-tool-support:scripts/ensure-shebang.mjs'
+            : `source:${context.pkg.path}/scripts/ensure-shebang.mjs`,
+          owner: 'capability:cli-tool',
+          path: context.scopedPath('scripts/ensure-shebang.mjs'),
+          operationId: 'write-cli-tool-ensure-shebang',
+          operationOwner: 'materializer:cli-tool-support',
+          content: cliEnsureShebangScript,
+        },
+        {
+          kind: 'typescriptConfig' as const,
+          surfaceId: context.scopedTypeScriptConfigSurfaceId,
+          owner: 'capability:cli-tool',
+          value: typeScriptPackageTsconfig(typeScriptPackageTsconfigOptions(true, discovery)),
+        },
+        {
+          kind: 'tsdownConfig' as const,
+          surfaceId: context.scopedTsdownConfigSurfaceId,
+          owner: 'capability:cli-tool',
+        },
+      ]
+    },
   },
 ]

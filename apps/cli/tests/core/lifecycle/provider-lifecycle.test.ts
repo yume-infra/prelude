@@ -61,6 +61,7 @@ function manifestJson(overrides: Record<string, unknown> = {}) {
 const effectHarnessProjectedContext = {
   topology: 'single-package',
   packageScopes: ['worker'],
+  packagePaths: {},
   rootCapabilities: ['ai-harness'],
   packageCapabilities: {
     worker: ['effect-package'],
@@ -617,6 +618,7 @@ describe('provider lifecycle runtime', () => {
     const record = effectHarnessProviderRecordForProjectedContext(effectHarnessDiscoveryFixture, {
       topology: 'single-package',
       packageScopes: ['worker'],
+      packagePaths: {},
       rootCapabilities: ['ai-harness'],
       packageCapabilities: {
         worker: ['effect-package'],
@@ -633,6 +635,8 @@ describe('provider lifecycle runtime', () => {
     const packageBaseline = jsonObject(jsonObject(record.options.effect).packageBaseline)
     assert.equal(packageBaseline.effect, '4.0.0-beta.92')
     assert.equal(packageBaseline['@effect/tsgo'], '0.15.0')
+    assert.equal(packageBaseline.eslint, '^10.3.0')
+    assert.equal(packageBaseline.vitest, '^4.1.8')
     const policies = jsonObject(record.options.policies)
     assert.deepEqual(Object.keys(policies).sort(), [
       'editorPolicy',
@@ -641,7 +645,7 @@ describe('provider lifecycle runtime', () => {
       'verificationPolicy',
     ])
     assert.equal(jsonObject(policies.lintGuardrails).command, 'pnpm lint --max-warnings 0')
-    assert.equal(jsonObject(policies.testPolicy).packageScript, 'vitest run tests/*.test.ts')
+    assert.equal(jsonObject(policies.testPolicy).packageScript, 'vitest run')
     assert.equal(jsonObject(policies.verificationPolicy).lifecycleOwner, 'prelude')
     assert.deepEqual(record.runtime.files, [])
     assert.equal(record.runtime.commands.discover, 'npx --yes @sayoriqwq/effect-harness provider-discover')
@@ -674,6 +678,8 @@ describe('provider lifecycle runtime', () => {
     assert.equal(sourceIdentities.defaultSourceEntry, 'effect-official-source')
 
     const surfacePaths = record.surfaces.map(surface => surface.path)
+    assert.isTrue(surfacePaths.includes('tsconfig.json'))
+    assert.isTrue(surfacePaths.includes('.prelude/providers/effect-harness/eslint.config.mjs'))
     assert.isTrue(surfacePaths.includes('.prelude/providers/effect-harness/docs/discovery.md'))
     assert.isTrue(surfacePaths.includes('.prelude/providers/effect-harness/snippets/agents.md'))
     assert.isFalse(surfacePaths.some(surfacePath => surfacePath.startsWith('repos/')))
