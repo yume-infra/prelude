@@ -8,7 +8,7 @@ export const effectHarnessDiscoveryFixture = {
   providerProfileRelativePath: 'provider/effect-harness.provider.json',
   packageLocator: {
     packageName: '@sayoriqwq/effect-harness',
-    packageVersion: '0.0.3',
+    packageVersion: '0.0.4',
     binName: 'effect-harness',
     binPath: 'dist/bin/effect-harness.js',
     discoveryCommand: 'npx --yes @sayoriqwq/effect-harness provider-discover',
