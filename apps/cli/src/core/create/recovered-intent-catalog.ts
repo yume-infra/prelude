@@ -323,7 +323,7 @@ export const legacyCliIntentInventory = [
     id: 'yes-flag-rejection',
     status: 'recover-rejection',
     sourcePaths: ['apps/cli/src/core/cli-command.ts'],
-    notes: ['--yes/-y stays rejected; explicit preset or spec input is required.'],
+    notes: ['--yes/-y stays rejected; complete CreateSpec input is required for non-interactive creation.'],
   },
 ] as const
 

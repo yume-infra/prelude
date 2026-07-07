@@ -9,7 +9,7 @@ import { CliContext } from '@/core/cli-context'
 import { runCreateRoute } from '@/core/create-route'
 import { formatCanonicalCreateSpecJson } from '@/core/create-spec-input'
 import { FsLive } from '@/core/services/fs'
-import { makeTempProjectDir, pathJoinSync, readFileString, readJson } from '../../support/effect-files'
+import { assertPathDoesNotExist, makeTempProjectDir, pathJoinSync, readFileString, readJson } from '../../support/effect-files'
 import { EffectHarnessDiscoveryTestLayer } from '../../support/effect-harness-discovery'
 
 const TestLayer = FsLive.pipe(
@@ -163,39 +163,18 @@ describe('cli tool package creation', () => {
         include: ['src/**/*.ts'],
       })
 
-      const manifest = yield* readJson<{
-        resolvedGraph: { packageCapabilities: unknown, verification: unknown }
-        maintainProviders: readonly unknown[]
-        generatedUserSurfaces: readonly { path: string, creator: string, authority: string }[]
-        verificationRecords: readonly unknown[]
-      }>(pathJoinSync(targetDir, '.prelude/manifest.json'))
-
-      assert.deepStrictEqual(manifest.resolvedGraph.packageCapabilities, {
+      assert.deepStrictEqual(result.result.resolvedGraph.packageCapabilities, {
         cli: ['cli-tool'],
       })
-      assert.deepStrictEqual(manifest.resolvedGraph.verification, ['cli-tool-files-present'])
-      assert.deepStrictEqual(manifest.maintainProviders, [])
-      assert.deepStrictEqual(
-        manifest.generatedUserSurfaces.map(surface => ({
-          path: surface.path,
-          creator: surface.creator,
-          authority: surface.authority,
-        })),
-        [
-          { path: 'package.json', creator: 'materializer:package-json', authority: 'none' },
-          { path: 'src/index.ts', creator: 'materializer:cli-tool-source', authority: 'none' },
-          { path: 'scripts/ensure-shebang.mjs', creator: 'materializer:cli-tool-support', authority: 'none' },
-          { path: 'tsconfig.json', creator: 'materializer:typescript-config', authority: 'none' },
-          { path: 'tsdown.config.ts', creator: 'materializer:tsdown-config', authority: 'none' },
-        ],
-      )
-      assert.deepStrictEqual(manifest.verificationRecords, [
+      assert.deepStrictEqual(result.result.resolvedGraph.verification, ['cli-tool-files-present'])
+      assert.deepStrictEqual(result.result.verification.records, [
         {
           id: 'cli-tool-files-present',
           status: 'passed',
           checkedPaths: ['package.json', 'src/index.ts', 'scripts/ensure-shebang.mjs', 'tsconfig.json', 'tsdown.config.ts'],
         },
       ])
+      yield* assertPathDoesNotExist(pathJoinSync(targetDir, '.prelude/manifest.json'))
     }))
   })
 })

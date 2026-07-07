@@ -4,11 +4,6 @@ import { Context } from 'effect'
 export interface CliArgs {
   readonly spec?: string
   readonly name?: ProjectName
-  readonly preset?: string
-  readonly install?: boolean
-  readonly git?: boolean
-  readonly rollback?: boolean
-  readonly yes?: boolean
   readonly noInput?: boolean
   readonly dryRun?: boolean
   readonly printSpec?: boolean

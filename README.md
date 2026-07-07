@@ -22,7 +22,8 @@ CreateSpec
   -> Capability Contributions
   -> Surface Materializers
   -> WritePlan
-  -> Files + .prelude/manifest.json
+  -> Files
+  -> optional maintain initialization
 ```
 
 Key rules:
@@ -36,8 +37,8 @@ Key rules:
 - Each physical file or managed block has one owner materializer.
 - There is no global Handlebars/template-rendering layer in the target
   architecture.
-- `.prelude/manifest.json` records creation provenance and lifecycle provider
-  state; it is not a whole-project management contract.
+- `.prelude/manifest.json` is a maintain provider index. Ordinary scaffold
+  creation does not write a durable manifest ledger.
 - `prelude update` updates active lifecycle providers only.
 
 ## What This Rebuild Deletes
@@ -65,10 +66,11 @@ The active project knowledge is under `docs/`:
 
 - [docs index](./docs/README.md)
 - [goal](./docs/prelude-goal.md)
+- [create/maintain architecture](./docs/create-maintain-architecture.md)
 - [final state](./docs/prelude-final-state.md)
 - [rebuild plan](./docs/prelude-rebuild-plan.md)
-- [manifest and materialization](./docs/manifest-materialization-architecture.md)
-- [provider lifecycle](./docs/provider-lifecycle-architecture.md)
+- [create materialization](./docs/create-materialization-architecture.md)
+- [maintain architecture](./docs/maintain-architecture.md)
 - [agent configuration](./docs/agents/)
 
 ## Development Commands
@@ -81,12 +83,12 @@ pnpm smoke:examples
 ```
 
 The generated smoke command builds the CLI, runs the canonical `--spec` route
-under `apps/examples/.generated/`, verifies the resulting manifest, engineering
-files, provider namespace, and a renderable React counter target, then installs
-and builds the generated targets. It prints the generated target paths. The
-generated targets are gitignored and intentionally kept for inspection. After a
-stable commit has passed smoke, do not rerun smoke again unless the working tree
-or baseline changes.
+under `apps/examples/.generated/`, verifies ordinary generated files, the
+maintain provider namespace when selected, and renderable frontend targets, then
+installs and builds the generated targets. It prints the generated target paths.
+The generated targets are gitignored and intentionally kept for inspection.
+After a stable commit has passed smoke, do not rerun smoke again unless the
+working tree or baseline changes.
 
 `knip.json` keeps a narrow self-target allowance for the Effect harness package
 baseline and the exported CreateSpec/lifecycle type surface. Those entries are

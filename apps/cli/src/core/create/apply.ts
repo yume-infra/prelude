@@ -22,7 +22,7 @@ const writeOperation = Effect.fn('writeOperation')(
       case 'writeStructuredFile':
         yield* fs.writeFileString(targetPath, encodeJson(operation.value))
         return
-      case 'writeManagedFile':
+      case 'writeProviderManagedFile':
         yield* fs.writeFileString(targetPath, operation.content)
         return
       case 'writeManagedBlock': {

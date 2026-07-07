@@ -6,7 +6,7 @@ import { makeTargetDir } from '@/brand/target-dir'
 import { createProjectFromSpec, materializeWritePlan } from '@/core/create'
 import { effectHarnessProviderDiscoveryDecodeService, EffectHarnessProviderDiscoveryService } from '@/core/create/effect-harness-discovery'
 import { FsLive } from '@/core/services/fs'
-import { makeTempProjectDir, pathExists, pathJoinSync, readFileString, readJson } from '../../support/effect-files'
+import { assertPathDoesNotExist, makeTempProjectDir, pathExists, pathJoinSync, readFileString, readJson } from '../../support/effect-files'
 import { effectHarnessDiscoveryFixture, EffectHarnessDiscoveryTestLayer } from '../../support/effect-harness-discovery'
 
 const TestLayer = FsLive.pipe(
@@ -26,7 +26,7 @@ const invalidDiscoveryService = effectHarnessProviderDiscoveryDecodeService({
 
 describe('create spec creation path', () => {
   it.layer(TestLayer)((it) => {
-    it.effect('creates a minimal single-package project and writes the manifest last', () => Effect.gen(function* () {
+    it.effect('creates a minimal single-package project without a create manifest ledger', () => Effect.gen(function* () {
       const targetDir = yield* makeTempProjectDir('prelude-create-')
 
       const result = yield* createProjectFromSpec({
@@ -70,76 +70,7 @@ describe('create spec creation path', () => {
       const source = yield* readFileString(pathJoinSync(targetDir, 'src/index.ts'))
       assert.equal(source, 'export {}\n')
 
-      const manifest = yield* readJson(pathJoinSync(targetDir, '.prelude/manifest.json'))
-      assert.deepEqual(manifest, {
-        schemaVersion: 1,
-        preludeVersion: '0.0.0-test',
-        createSpec: {
-          topology: 'single-package',
-          package: {
-            id: 'app',
-            name: 'demo-app',
-            capabilities: ['minimal-node-package'],
-          },
-          rootCapabilities: [],
-          providers: [],
-          overrides: {},
-        },
-        resolvedGraph: {
-          topology: 'single-package',
-          rootPackage: {
-            id: 'app',
-            name: 'demo-app',
-            path: '.',
-            capabilities: ['minimal-node-package'],
-          },
-          packages: [],
-          rootCapabilities: [],
-          packageCapabilities: {
-            app: ['minimal-node-package'],
-          },
-          providers: [],
-          logicalSurfaces: [
-            {
-              id: 'package-manifest:root',
-              materializer: 'package-json',
-              owner: 'prelude',
-            },
-            {
-              id: 'source:root/src/index.ts',
-              materializer: 'generated-user-file',
-              owner: 'capability:minimal-node-package',
-            },
-          ],
-          verification: ['minimal-create-files-present'],
-        },
-        pins: {
-          packageManager: 'pnpm@10.33.4',
-          typescript: 'catalog:',
-        },
-        maintainProviders: [],
-        generatedUserSurfaces: [
-          {
-            path: 'package.json',
-            creator: 'materializer:package-json',
-            authority: 'none',
-            operationId: 'write-package-json',
-          },
-          {
-            path: 'src/index.ts',
-            creator: 'capability:minimal-node-package',
-            authority: 'none',
-            operationId: 'write-root-source',
-          },
-        ],
-        verificationRecords: [
-          {
-            id: 'minimal-create-files-present',
-            status: 'passed',
-            checkedPaths: ['package.json', 'src/index.ts'],
-          },
-        ],
-      })
+      yield* assertPathDoesNotExist(pathJoinSync(targetDir, '.prelude/manifest.json'))
     }))
 
     it.effect('materializes root engineering capabilities through logical surfaces', () => Effect.gen(function* () {
@@ -215,48 +146,7 @@ export default antfu(
         $schema: 'https://unpkg.com/knip@6/schema.json',
       })
 
-      const manifest = yield* readJson<{
-        resolvedGraph: {
-          rootCapabilities: unknown
-          logicalSurfaces: unknown
-        }
-        generatedUserSurfaces: Array<{ path: string, authority: string }>
-      }>(pathJoinSync(targetDir, '.prelude/manifest.json'))
-      assert.deepEqual(manifest.resolvedGraph.rootCapabilities, ['package-manager:pnpm', 'linting', 'knip', 'dependency-update:taze'])
-      assert.deepEqual(manifest.resolvedGraph.logicalSurfaces, [
-        {
-          id: 'package-manifest:root',
-          materializer: 'package-json',
-          owner: 'prelude',
-        },
-        {
-          id: 'eslint-root',
-          materializer: 'eslint-config',
-          owner: 'capability:linting',
-        },
-        {
-          id: 'knip-root',
-          materializer: 'knip-config',
-          owner: 'capability:knip',
-        },
-        {
-          id: 'source:root/src/index.ts',
-          materializer: 'generated-user-file',
-          owner: 'capability:minimal-node-package',
-        },
-      ])
-      assert.deepEqual(
-        manifest.generatedUserSurfaces.map((surface: { path: string, authority: string }) => ({
-          path: surface.path,
-          authority: surface.authority,
-        })),
-        [
-          { path: 'package.json', authority: 'none' },
-          { path: 'eslint.config.mjs', authority: 'none' },
-          { path: 'knip.json', authority: 'none' },
-          { path: 'src/index.ts', authority: 'none' },
-        ],
-      )
+      yield* assertPathDoesNotExist(pathJoinSync(targetDir, '.prelude/manifest.json'))
     }))
 
     it.effect('creates a React package runtime through package manifest and app shell surfaces', () => Effect.gen(function* () {
@@ -405,94 +295,7 @@ export default defineConfig({
       assert.deepEqual(tsconfig.compilerOptions.types, ['vite/client'])
       assert.deepEqual(tsconfig.include, ['src/**/*.ts', 'src/**/*.tsx', 'vite.config.ts'])
 
-      const manifest = yield* readJson<{
-        resolvedGraph: {
-          packageCapabilities: unknown
-          logicalSurfaces: unknown
-        }
-        generatedUserSurfaces: Array<{ path: string, creator: string, authority: string, operationId: string }>
-        verificationRecords: unknown
-      }>(pathJoinSync(targetDir, '.prelude/manifest.json'))
-      assert.deepEqual(manifest.resolvedGraph.packageCapabilities, {
-        app: ['react-app', 'react-counter'],
-      })
-      assert.deepEqual(manifest.resolvedGraph.logicalSurfaces, [
-        {
-          id: 'package-manifest:root',
-          materializer: 'package-json',
-          owner: 'prelude',
-        },
-        {
-          id: 'react-app-static:app/index.html',
-          materializer: 'react-app-static',
-          owner: 'capability:react-app',
-        },
-        {
-          id: 'react-app-entry:app',
-          materializer: 'frontend-entry',
-          owner: 'capability:react-app',
-        },
-        {
-          id: 'react-app-shell:app',
-          materializer: 'react-app-shell',
-          owner: 'capability:react-app',
-        },
-        {
-          id: 'vite-config:app',
-          materializer: 'vite-config',
-          owner: 'capability:react-app',
-        },
-        {
-          id: 'typescript-config:root',
-          materializer: 'typescript-config',
-          owner: 'prelude',
-        },
-      ])
-      assert.deepEqual(manifest.generatedUserSurfaces, [
-        {
-          path: 'package.json',
-          creator: 'materializer:package-json',
-          authority: 'none',
-          operationId: 'write-package-json',
-        },
-        {
-          path: 'index.html',
-          creator: 'materializer:react-app-static',
-          authority: 'none',
-          operationId: 'write-react-index-html',
-        },
-        {
-          path: 'src/main.tsx',
-          creator: 'materializer:frontend-entry',
-          authority: 'none',
-          operationId: 'write-react-main',
-        },
-        {
-          path: 'vite.config.ts',
-          creator: 'materializer:vite-config',
-          authority: 'none',
-          operationId: 'write-vite-config',
-        },
-        {
-          path: 'tsconfig.json',
-          creator: 'materializer:typescript-config',
-          authority: 'none',
-          operationId: 'write-tsconfig',
-        },
-        {
-          path: 'src/App.tsx',
-          creator: 'materializer:react-app-shell',
-          authority: 'none',
-          operationId: 'write-react-app-shell',
-        },
-      ])
-      assert.deepEqual(manifest.verificationRecords, [
-        {
-          id: 'react-app-files-present',
-          status: 'passed',
-          checkedPaths: ['package.json', 'index.html', 'src/main.tsx', 'src/App.tsx', 'vite.config.ts', 'tsconfig.json'],
-        },
-      ])
+      yield* assertPathDoesNotExist(pathJoinSync(targetDir, '.prelude/manifest.json'))
     }))
 
     it.effect('combines React package runtime output with root engineering surfaces', () => Effect.gen(function* () {
@@ -555,35 +358,7 @@ export default defineConfig({
         },
       })
 
-      const manifest = yield* readJson<{
-        verificationRecords: unknown
-        generatedUserSurfaces: Array<{ path: string, authority: string }>
-      }>(pathJoinSync(targetDir, '.prelude/manifest.json'))
-      assert.deepEqual(manifest.verificationRecords, [
-        {
-          id: 'react-app-files-present',
-          status: 'passed',
-          checkedPaths: ['package.json', 'index.html', 'src/main.tsx', 'src/App.tsx', 'vite.config.ts', 'tsconfig.json'],
-        },
-        {
-          id: 'root-engineering-files-present',
-          status: 'passed',
-          checkedPaths: ['eslint.config.mjs', 'knip.json'],
-        },
-      ])
-      assert.deepEqual(
-        manifest.generatedUserSurfaces.map(surface => ({ path: surface.path, authority: surface.authority })),
-        [
-          { path: 'package.json', authority: 'none' },
-          { path: 'eslint.config.mjs', authority: 'none' },
-          { path: 'knip.json', authority: 'none' },
-          { path: 'index.html', authority: 'none' },
-          { path: 'src/main.tsx', authority: 'none' },
-          { path: 'vite.config.ts', authority: 'none' },
-          { path: 'tsconfig.json', authority: 'none' },
-          { path: 'src/App.tsx', authority: 'none' },
-        ],
-      )
+      yield* assertPathDoesNotExist(pathJoinSync(targetDir, '.prelude/manifest.json'))
     }))
 
     it.effect('integrates effect-harness as the ai-harness provider under .prelude', () => Effect.gen(function* () {
@@ -622,7 +397,7 @@ export default defineConfig({
         },
         {
           id: 'write-eslint-config',
-          kind: 'writeManagedFile',
+          kind: 'writeGeneratedUserFile',
           owner: 'materializer:eslint-config',
           path: 'eslint.config.mjs',
           authority: 'none',
@@ -778,8 +553,6 @@ NodeRuntime.runMain(main())
         'verificationPolicy',
       ])
       const manifest = yield* readJson<{
-        createSpec: { providers: unknown }
-        resolvedGraph: { providers: unknown, logicalSurfaces: unknown, verification: unknown }
         maintainProviders: Array<{
           id: string
           contractVersion: string
@@ -787,44 +560,14 @@ NodeRuntime.runMain(main())
           profile: string
           recordPath: string
         }>
-        generatedUserSurfaces: Array<{ path: string, authority: string }>
         verificationRecords: unknown
       }>(pathJoinSync(targetDir, '.prelude/manifest.json'))
-      assert.deepEqual(manifest.createSpec.providers, ['effect-harness'])
-      assert.deepEqual(manifest.resolvedGraph.providers, [
-        {
-          id: 'effect-harness',
-          contractVersion: '1',
-          artifactVersion: '0.1.0',
-          packageScopes: ['worker'],
-        },
+      assert.deepEqual(Object.keys(manifest).sort(), [
+        'maintainProviders',
+        'preludeVersion',
+        'schemaVersion',
+        'verificationRecords',
       ])
-      assert.deepEqual(manifest.resolvedGraph.logicalSurfaces, [
-        {
-          id: 'package-manifest:root',
-          materializer: 'package-json',
-          owner: 'prelude',
-        },
-        {
-          id: 'provider:effect-harness',
-          materializer: 'provider-artifact',
-          owner: 'capability:ai-harness',
-        },
-        {
-          id: 'source:root/src/index.ts',
-          materializer: 'generated-user-file',
-          owner: 'capability:effect-package',
-        },
-        {
-          id: 'tsconfig:root',
-          materializer: 'generated-user-file',
-          owner: 'capability:effect-package',
-        },
-      ])
-      assert.deepEqual(
-        manifest.resolvedGraph.verification,
-        ['minimal-create-files-present', 'provider:effect-harness:create-contract'],
-      )
       assert.deepEqual(manifest.maintainProviders, [
         {
           id: 'effect-harness',
@@ -840,15 +583,6 @@ NodeRuntime.runMain(main())
           && surface.lifecycle === 'managed'
           && !surface.path.startsWith('src/')),
         'provider-managed surfaces must not include target source files',
-      )
-      assert.deepEqual(
-        manifest.generatedUserSurfaces.map(surface => ({ path: surface.path, authority: surface.authority })),
-        [
-          { path: 'package.json', authority: 'none' },
-          { path: 'eslint.config.mjs', authority: 'none' },
-          { path: 'src/index.ts', authority: 'none' },
-          { path: 'tsconfig.json', authority: 'none' },
-        ],
       )
       const discoveryDoc = yield* readFileString(pathJoinSync(targetDir, '.prelude/providers/effect-harness/docs/discovery.md'))
       const agentsSnippet = yield* readFileString(pathJoinSync(targetDir, '.prelude/providers/effect-harness/snippets/agents.md'))

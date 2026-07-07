@@ -21,7 +21,7 @@ export function materializeEslintRoot(contributions: readonly EslintRootContribu
 
   return [{
     id: 'write-eslint-config',
-    kind: 'writeManagedFile',
+    kind: 'writeGeneratedUserFile',
     owner: 'materializer:eslint-config',
     surfaceId: 'eslint-root',
     path: 'eslint.config.mjs',

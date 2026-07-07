@@ -32,7 +32,7 @@ export const materializeProviderManagedFile = Effect.fn('materializeProviderMana
 
     return {
       id: contribution.operationId,
-      kind: 'writeManagedFile',
+      kind: 'writeProviderManagedFile',
       owner: contribution.owner,
       surfaceId: contribution.surfaceId,
       path: contribution.path,

@@ -8,7 +8,7 @@ import { runCreateRoute } from '@/core/create-route'
 import { formatCanonicalCreateSpecJson } from '@/core/create-spec-input'
 import { projectRecoveredIntentFixtureToCreateSpec } from '@/core/create/recovered-intent-projector'
 import { FsLive } from '@/core/services/fs'
-import { makeTempProjectDir, pathExists, pathJoinSync, readFileString, readJson } from '../../support/effect-files'
+import { assertPathDoesNotExist, makeTempProjectDir, pathJoinSync, readFileString, readJson } from '../../support/effect-files'
 import { EffectHarnessDiscoveryTestLayer } from '../../support/effect-harness-discovery'
 
 const TestLayer = FsLive.pipe(
@@ -79,19 +79,8 @@ describe('recovered main intent create pipeline', () => {
       assert.strictEqual(tsconfig.compilerOptions.jsx, 'react-jsx')
       assert.deepStrictEqual(tsconfig.compilerOptions.types, ['vite/client'])
       assert.deepStrictEqual(tsconfig.include, ['src/**/*.ts', 'src/**/*.tsx', 'vite.config.ts'])
-      yield* pathExists(pathJoinSync(targetDir, '.prelude/manifest.json'))
-
-      const manifest = yield* readJson<{
-        createSpec: unknown
-        maintainProviders: readonly unknown[]
-        generatedUserSurfaces: readonly { path: string, authority: string }[]
-        verificationRecords: readonly unknown[]
-      }>(pathJoinSync(targetDir, '.prelude/manifest.json'))
-
-      assert.deepStrictEqual(manifest.createSpec, spec)
-      assert.deepStrictEqual(manifest.maintainProviders, [])
       assert.deepStrictEqual(
-        manifest.generatedUserSurfaces.map(surface => ({ path: surface.path, authority: surface.authority })),
+        result.result.writePlan.operations.map(operation => ({ path: operation.path, authority: operation.authority })),
         [
           { path: 'package.json', authority: 'none' },
           { path: 'knip.json', authority: 'none' },
@@ -103,7 +92,7 @@ describe('recovered main intent create pipeline', () => {
           { path: 'src/App.tsx', authority: 'none' },
         ],
       )
-      assert.deepStrictEqual(manifest.verificationRecords, [
+      assert.deepStrictEqual(result.result.verification.records, [
         {
           id: 'react-app-files-present',
           status: 'passed',
@@ -115,6 +104,7 @@ describe('recovered main intent create pipeline', () => {
           checkedPaths: ['knip.json'],
         },
       ])
+      yield* assertPathDoesNotExist(pathJoinSync(targetDir, '.prelude/manifest.json'))
     }))
 
     it.effect('proves legacy-cli-effect through the current effect-harness provider route', () => Effect.gen(function* () {
@@ -208,13 +198,16 @@ describe('recovered main intent create pipeline', () => {
       assert.equal([...providerSurfaceIds].some(surfaceId => surfaceId.includes('AGENTS.md#effect-harness')), false)
 
       const manifest = yield* readJson<{
-        createSpec: unknown
         maintainProviders: readonly { id: string, recordPath: string }[]
-        generatedUserSurfaces: readonly { path: string, authority: string }[]
         verificationRecords: readonly unknown[]
       }>(pathJoinSync(targetDir, '.prelude/manifest.json'))
 
-      assert.deepStrictEqual(manifest.createSpec, spec)
+      assert.deepStrictEqual(Object.keys(manifest).sort(), [
+        'maintainProviders',
+        'preludeVersion',
+        'schemaVersion',
+        'verificationRecords',
+      ])
       assert.deepStrictEqual(manifest.maintainProviders.map(provider => provider.id), ['effect-harness'])
       assert.deepStrictEqual(manifest.maintainProviders[0]?.recordPath, '.prelude/providers/effect-harness/provider.json')
       assert.ok(
@@ -223,16 +216,6 @@ describe('recovered main intent create pipeline', () => {
           && surface.lifecycle === 'managed'
           && !surface.path.startsWith('src/')),
         'provider-managed surfaces must not include target source files',
-      )
-      assert.deepStrictEqual(
-        manifest.generatedUserSurfaces.map(surface => ({ path: surface.path, authority: surface.authority })),
-        [
-          { path: 'package.json', authority: 'none' },
-          { path: 'eslint.config.mjs', authority: 'none' },
-          { path: 'knip.json', authority: 'none' },
-          { path: 'src/index.ts', authority: 'none' },
-          { path: 'tsconfig.json', authority: 'none' },
-        ],
       )
       assert.deepStrictEqual(manifest.verificationRecords, [
         {

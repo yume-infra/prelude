@@ -450,9 +450,7 @@ const workerTsconfig = await readJson<{
   include: readonly string[]
 }>(pathJoin(workerDir, 'tsconfig.json'))
 const workerManifest = await readJson<{
-  createSpec: typeof workerSpec
   maintainProviders: Array<{ id: string, recordPath: string }>
-  generatedUserSurfaces: Array<{ path: string, authority: string }>
   verificationRecords: Array<{ id: string, checkedPaths: readonly string[] }>
 }>(pathJoin(workerDir, '.prelude/manifest.json'))
 const providerRecord = await readJson<{ id: string, surfaces: Array<{ id: string, owner: string, lifecycle: string, path: string }> }>(
@@ -475,7 +473,12 @@ assert.match(workerSource, /canonical-worker ready/u)
 assert.deepEqual(workerTsconfig.compilerOptions.types, ['node'])
 assert.equal(workerTsconfig.compilerOptions.plugins[0]?.name, '@effect/language-service')
 assert.deepEqual(workerTsconfig.include, ['src/**/*.ts'])
-assert.equal(workerManifest.createSpec.package.capabilities[0], 'effect-package')
+assert.deepEqual(Object.keys(workerManifest).sort(), [
+  'maintainProviders',
+  'preludeVersion',
+  'schemaVersion',
+  'verificationRecords',
+])
 assert.deepEqual(workerManifest.maintainProviders.map(provider => provider.id), ['effect-harness'])
 assert.equal(workerManifest.maintainProviders[0]?.recordPath, '.prelude/providers/effect-harness/provider.json')
 assert.equal(providerRecord.id, 'effect-harness')
@@ -502,10 +505,6 @@ assert.ok(
     && !surface.path.startsWith('src/')),
   'effect-harness must not manage target source files',
 )
-assert.ok(
-  workerManifest.generatedUserSurfaces.every(surface => surface.authority === 'none'),
-  'ordinary generated scaffold surfaces must be handed off',
-)
 assert.deepEqual(workerManifest.verificationRecords.map(record => record.id), [
   'minimal-create-files-present',
   'root-engineering-files-present',
@@ -529,11 +528,6 @@ const reactTsconfig = await readJson<{
   compilerOptions: { jsx: string, types: readonly string[] }
   include: readonly string[]
 }>(pathJoin(reactDir, 'tsconfig.json'))
-const reactManifest = await readJson<{
-  createSpec: typeof reactSpec
-  generatedUserSurfaces: Array<{ path: string, authority: string }>
-}>(pathJoin(reactDir, '.prelude/manifest.json'))
-
 assert.equal(reactPackageJson.name, reactSpec.package.name)
 assert.equal(reactPackageJson.scripts.dev, 'vite')
 assert.equal(reactPackageJson.scripts.build, 'vite build')
@@ -562,26 +556,7 @@ assert.match(reactTailwindStyles, /@import "tailwindcss";/u)
 assert.deepEqual(reactTsconfig.compilerOptions.types, ['vite/client'])
 assert.equal(reactTsconfig.compilerOptions.jsx, 'react-jsx')
 assert.deepEqual(reactTsconfig.include, ['src/**/*.ts', 'src/**/*.tsx', 'vite.config.ts'])
-assert.deepEqual(reactManifest.createSpec.package.capabilities, ['react-app', 'css:less', 'css:tailwind', 'router:react-router', 'state:jotai'])
-assert.deepEqual(
-  reactManifest.generatedUserSurfaces.map(surface => ({ path: surface.path, authority: surface.authority })),
-  [
-    { path: 'package.json', authority: 'none' },
-    { path: 'eslint.config.mjs', authority: 'none' },
-    { path: 'knip.json', authority: 'none' },
-    { path: 'index.html', authority: 'none' },
-    { path: 'src/main.tsx', authority: 'none' },
-    { path: 'vite.config.ts', authority: 'none' },
-    { path: 'src/styles.less', authority: 'none' },
-    { path: 'src/styles.css', authority: 'none' },
-    { path: 'tsconfig.json', authority: 'none' },
-    { path: 'src/App.tsx', authority: 'none' },
-  ],
-)
-assert.ok(
-  reactManifest.generatedUserSurfaces.every(surface => surface.authority === 'none'),
-  'react generated scaffold surfaces must be handed off',
-)
+await assertPathDoesNotExist(pathJoin(reactDir, '.prelude/manifest.json'))
 
 const vueDir = await createFromSpec(vueSpec)
 const vuePackageJson = await readJson<{
@@ -600,12 +575,6 @@ const vueTsconfig = await readJson<{
   compilerOptions: { types: readonly string[] }
   include: readonly string[]
 }>(pathJoin(vueDir, 'tsconfig.json'))
-const vueManifest = await readJson<{
-  createSpec: typeof vueSpec
-  maintainProviders: readonly unknown[]
-  generatedUserSurfaces: Array<{ path: string, authority: string }>
-}>(pathJoin(vueDir, '.prelude/manifest.json'))
-
 assert.equal(vuePackageJson.name, vueSpec.package.name)
 assert.equal(vuePackageJson.scripts.dev, 'vite')
 assert.equal(vuePackageJson.scripts.build, 'vite build')
@@ -636,12 +605,7 @@ assert.match(vueLessStyles, /@surface-bg/u)
 assert.match(vueTailwindStyles, /@import "tailwindcss";/u)
 assert.deepEqual(vueTsconfig.compilerOptions.types, ['vite/client'])
 assert.deepEqual(vueTsconfig.include, ['src/**/*.ts', 'src/**/*.vue', 'vite.config.ts'])
-assert.deepEqual(vueManifest.createSpec.package.capabilities, ['vue-app', 'css:less', 'css:tailwind', 'router:vue-router', 'state:pinia'])
-assert.deepEqual(vueManifest.maintainProviders, [])
-assert.ok(
-  vueManifest.generatedUserSurfaces.every(surface => surface.authority === 'none'),
-  'vue generated scaffold surfaces must be handed off',
-)
+await assertPathDoesNotExist(pathJoin(vueDir, '.prelude/manifest.json'))
 
 const backendDir = await createFromSpec(backendSpec)
 const backendPackageJson = await readJson<{
@@ -654,12 +618,6 @@ const backendPackageJson = await readJson<{
   devDependencies: Record<string, string>
 }>(pathJoin(backendDir, 'package.json'))
 const backendSource = await readFile(pathJoin(backendDir, 'src/index.ts'), 'utf8')
-const backendManifest = await readJson<{
-  createSpec: typeof backendSpec
-  maintainProviders: readonly unknown[]
-  generatedUserSurfaces: Array<{ path: string, authority: string }>
-}>(pathJoin(backendDir, '.prelude/manifest.json'))
-
 assert.equal(backendPackageJson.name, backendSpec.package.name)
 assert.equal(backendPackageJson.main, 'dist/index.js')
 assert.equal(backendPackageJson.types, 'dist/index.d.ts')
@@ -682,12 +640,7 @@ assert.equal(backendPackageJson.devDependencies.knip, 'catalog:')
 assert.equal(backendPackageJson.devDependencies.tsdown, 'catalog:')
 assert.match(backendSource, /fileURLToPath\(import\.meta\.url\)/u)
 assert.match(backendSource, /node-backend-fixture/u)
-assert.deepEqual(backendManifest.createSpec.package.capabilities, ['node-backend'])
-assert.deepEqual(backendManifest.maintainProviders, [])
-assert.ok(
-  backendManifest.generatedUserSurfaces.every(surface => surface.authority === 'none'),
-  'backend generated scaffold surfaces must be handed off',
-)
+await assertPathDoesNotExist(pathJoin(backendDir, '.prelude/manifest.json'))
 
 const libraryDir = await createFromSpec(librarySpec)
 const libraryPackageJson = await readJson<{
@@ -700,12 +653,6 @@ const libraryPackageJson = await readJson<{
   devDependencies: Record<string, string>
 }>(pathJoin(libraryDir, 'package.json'))
 const librarySource = await readFile(pathJoin(libraryDir, 'src/index.ts'), 'utf8')
-const libraryManifest = await readJson<{
-  createSpec: typeof librarySpec
-  maintainProviders: readonly unknown[]
-  generatedUserSurfaces: Array<{ path: string, authority: string }>
-}>(pathJoin(libraryDir, '.prelude/manifest.json'))
-
 assert.equal(libraryPackageJson.name, librarySpec.package.name)
 assert.equal(libraryPackageJson.main, 'dist/index.js')
 assert.equal(libraryPackageJson.types, 'dist/index.d.ts')
@@ -721,12 +668,7 @@ assert.equal(libraryPackageJson.devDependencies.tsdown, 'catalog:')
 assert.equal(libraryPackageJson.devDependencies.typescript, 'catalog:')
 assert.match(librarySource, /export function createGreeting/u)
 assert.match(librarySource, /library-package-fixture/u)
-assert.deepEqual(libraryManifest.createSpec.package.capabilities, ['library'])
-assert.deepEqual(libraryManifest.maintainProviders, [])
-assert.ok(
-  libraryManifest.generatedUserSurfaces.every(surface => surface.authority === 'none'),
-  'library generated scaffold surfaces must be handed off',
-)
+await assertPathDoesNotExist(pathJoin(libraryDir, '.prelude/manifest.json'))
 
 const cliDir = await createFromSpec(cliSpec)
 const cliPackageJson = await readJson<{
@@ -741,12 +683,6 @@ const cliPackageJson = await readJson<{
 }>(pathJoin(cliDir, 'package.json'))
 const cliSource = await readFile(pathJoin(cliDir, 'src/index.ts'), 'utf8')
 const cliEnsureShebang = await readFile(pathJoin(cliDir, 'scripts/ensure-shebang.mjs'), 'utf8')
-const cliManifest = await readJson<{
-  createSpec: typeof cliSpec
-  maintainProviders: readonly unknown[]
-  generatedUserSurfaces: Array<{ path: string, authority: string }>
-}>(pathJoin(cliDir, '.prelude/manifest.json'))
-
 assert.equal(cliPackageJson.name, cliSpec.package.name)
 assert.equal(cliPackageJson.main, 'dist/index.js')
 assert.equal(cliPackageJson.types, 'dist/index.d.ts')
@@ -768,12 +704,7 @@ assert.equal(cliPackageJson.devDependencies.typescript, 'catalog:')
 assert.match(cliSource, /^#!\/usr\/bin\/env node/u)
 assert.match(cliSource, /Usage: cli-tool-fixture/u)
 assert.match(cliEnsureShebang, /chmod\(binPath, 0o755\)/u)
-assert.deepEqual(cliManifest.createSpec.package.capabilities, ['cli-tool'])
-assert.deepEqual(cliManifest.maintainProviders, [])
-assert.ok(
-  cliManifest.generatedUserSurfaces.every(surface => surface.authority === 'none'),
-  'cli generated scaffold surfaces must be handed off',
-)
+await assertPathDoesNotExist(pathJoin(cliDir, '.prelude/manifest.json'))
 
 await execa('pnpm', ['install', '--ignore-scripts'], {
   cwd: generatedRoot,
@@ -881,16 +812,6 @@ const workspaceSharedPackageJson = await readJson<{
   name: string
   scripts: Record<string, string>
 }>(pathJoin(workspaceDir, 'libs/shared/package.json'))
-const workspaceManifest = await readJson<{
-  resolvedGraph: {
-    topology: string
-    packages: Array<{ id: string, path: string }>
-    packageCapabilities: Record<string, readonly string[]>
-  }
-  generatedUserSurfaces: Array<{ path: string, authority: string }>
-  verificationRecords: Array<{ id: string }>
-}>(pathJoin(workspaceDir, '.prelude/manifest.json'))
-
 assert.equal(workspaceRootPackageJson.private, true)
 assert.equal(workspaceRootPackageJson.packageManager, 'pnpm@10.33.4')
 assert.equal(workspaceRootPackageJson.scripts.build, 'pnpm -r --if-present build')
@@ -904,22 +825,7 @@ assert.equal(workspaceToolPackageJson.dependencies['@workspace-smoke/shared'], '
 assert.equal(workspaceToolPackageJson.scripts['smoke:bin'], 'pnpm build && ./dist/index.js --help')
 assert.equal(workspaceSharedPackageJson.name, '@workspace-smoke/shared')
 assert.equal(workspaceSharedPackageJson.scripts.build, 'tsdown --config tsdown.config.ts')
-assert.equal(workspaceManifest.resolvedGraph.topology, 'workspace')
-assert.deepEqual(workspaceManifest.resolvedGraph.packages.map(pkg => ({ id: pkg.id, path: pkg.path })), [
-  { id: 'api', path: 'apps/api' },
-  { id: 'tool', path: 'apps/tool' },
-  { id: 'shared', path: 'libs/shared' },
-])
-assert.deepEqual(workspaceManifest.resolvedGraph.packageCapabilities, {
-  api: ['node-backend'],
-  tool: ['cli-tool'],
-  shared: ['library'],
-})
-assert.ok(workspaceManifest.generatedUserSurfaces.every(surface => surface.authority === 'none'))
-assert.deepEqual(workspaceManifest.verificationRecords.map(record => record.id), [
-  'workspace-root-files-present',
-  'workspace-package-files-present',
-])
+await assertPathDoesNotExist(pathJoin(workspaceDir, '.prelude/manifest.json'))
 
 await execa('pnpm', ['install', '--ignore-scripts'], {
   cwd: workspaceDir,

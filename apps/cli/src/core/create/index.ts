@@ -92,19 +92,19 @@ export const createProjectFromSpec = Effect.fn('createProjectFromSpec')(
     const verification = yield* verifyCreateOutputs(fs, options.targetDir, resolvedGraph, writePlan)
     const manifest = buildManifest({
       preludeVersion: options.preludeVersion,
-      createSpec: options.spec,
       resolvedGraph,
-      writePlan,
       verification,
       providerDiscoveries,
     })
-    yield* writeManifest(fs, options.targetDir, encodeManifest(manifest))
+    if (manifest !== undefined) {
+      yield* writeManifest(fs, options.targetDir, encodeManifest(manifest))
+    }
 
     return {
       resolvedGraph,
       writePlan,
       verification,
-      manifest,
+      ...(manifest === undefined ? {} : { manifest }),
     }
   },
 )

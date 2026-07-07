@@ -6,7 +6,7 @@ import { Command } from 'effect/unstable/cli'
 import { makeTargetDir } from '@/brand/target-dir'
 import { formatPreludeCommandError, makePreludeCommand, printPreludeCommandHelp } from '@/core/cli-command'
 import { FsLive } from '@/core/services/fs'
-import { assertPathDoesNotExist, makeTempProjectDir, parseJson, pathJoinSync, readJson, stringifyJson } from '../support/effect-files'
+import { assertPathDoesNotExist, makeTempProjectDir, parseJson, pathJoinSync, stringifyJson } from '../support/effect-files'
 import { EffectHarnessDiscoveryTestLayer } from '../support/effect-harness-discovery'
 
 const TestLayer = FsLive.pipe(
@@ -107,7 +107,11 @@ describe('prelude Effect CLI command', () => {
         assert.match(result.output, /--no-input/u)
         assert.match(result.output, /--print-spec/u)
         assert.match(result.output, /--dry-run/u)
-        assert.match(result.output, /--preset/u)
+        assert.notMatch(result.output, /--preset/u)
+        assert.notMatch(result.output, /--install/u)
+        assert.notMatch(result.output, /--git/u)
+        assert.notMatch(result.output, /--rollback/u)
+        assert.notMatch(result.output, /--yes/u)
         assert.notMatch(result.output, /standalone-react-full/u)
       }))
 
@@ -141,15 +145,7 @@ describe('prelude Effect CLI command', () => {
           '--no-input',
         ], targetDir)
 
-        const manifest = yield* readJson<{
-          createSpec: unknown
-          resolvedGraph: { packageCapabilities: unknown }
-        }>(pathJoinSync(targetDir, '.prelude/manifest.json'))
-
-        assert.deepStrictEqual(manifest.createSpec, spec)
-        assert.deepStrictEqual(manifest.resolvedGraph.packageCapabilities, {
-          app: ['minimal-node-package'],
-        })
+        yield* assertPathDoesNotExist(pathJoinSync(targetDir, '.prelude/manifest.json'))
       }))
 
     it.effect('verifies maintain provider records through a CLI subcommand', () =>
@@ -267,7 +263,7 @@ describe('prelude Effect CLI command', () => {
         }
       }))
 
-    it.effect('rejects removed CLI flags as domain errors', () =>
+    it.effect('does not parse removed CLI flags as active API', () =>
       Effect.gen(function* () {
         const targetDir = yield* makeTempProjectDir('prelude-cli-command-')
         const spec = {
@@ -291,21 +287,20 @@ describe('prelude Effect CLI command', () => {
 
         assert.equal(Result.isFailure(result), true)
         if (Result.isFailure(result)) {
-          assert.equal(result.failure._tag, 'SchemaContractError')
-          assert.match(result.failure.message, /--yes\/-y has been removed/u)
+          assert.notEqual(result.failure._tag, 'SchemaContractError')
         }
       }))
 
-    it.effect('formats removed flag failures at the main boundary without leaking a runtime stack', () =>
+    it.effect('formats unknown removed flags at the main boundary without advertising them', () =>
       Effect.gen(function* () {
         const result = yield* withCapturedStdout(runCommandAtMainBoundary(['--no-install']))
 
         assert.equal(result.value, 2)
-        assert.match(result.stderr, /--install\/--no-install has been removed/u)
         assert.notMatch(result.stderr, /SchemaContractError/u)
         assert.notMatch(result.stderr, /\sat /u)
         assert.match(result.output, /--spec/u)
         assert.match(result.output, /--no-input/u)
+        assert.notMatch(result.output, /--install/u)
       }))
   })
 })

@@ -4,7 +4,6 @@ import type {
   CreateSpecPackage,
   CreateSpecWorkspacePackage,
   EffectHarnessProviderDiscovery,
-  JsonCreateSpec,
   LogicalSurface,
   ResolvedGraph,
   ResolvedInternalDependency,
@@ -171,38 +170,6 @@ function verificationFor(
   }
 
   return ['minimal-create-files-present', 'root-engineering-files-present', ...providerVerification]
-}
-
-export function toManifestCreateSpec(spec: CreateSpec): JsonCreateSpec {
-  if (spec.topology === 'workspace') {
-    return {
-      topology: 'workspace',
-      packages: spec.packages.map(pkg => ({
-        id: pkg.id,
-        name: pkg.name,
-        capabilities: pkg.capabilities,
-        internalDependencies: pkg.internalDependencies.map(dependency => ({
-          target: dependency.target,
-          ...(dependency.alias === undefined ? {} : { alias: dependency.alias }),
-        })),
-      })),
-      rootCapabilities: spec.rootCapabilities,
-      providers: spec.providers,
-      overrides: spec.overrides,
-    }
-  }
-
-  return {
-    topology: 'single-package',
-    package: {
-      id: spec.package.id,
-      name: spec.package.name,
-      capabilities: spec.package.capabilities,
-    },
-    rootCapabilities: spec.rootCapabilities,
-    providers: spec.providers,
-    overrides: spec.overrides,
-  }
 }
 
 function selectedRuntimeCapabilities(pkg: CreateSpecPackage) {

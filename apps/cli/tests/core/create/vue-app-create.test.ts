@@ -8,7 +8,7 @@ import { runCreateRoute } from '@/core/create-route'
 import { formatCanonicalCreateSpecJson } from '@/core/create-spec-input'
 import { projectRecoveredIntentFixtureToCreateSpec } from '@/core/create/recovered-intent-projector'
 import { FsLive } from '@/core/services/fs'
-import { makeTempProjectDir, pathJoinSync, readFileString, readJson } from '../../support/effect-files'
+import { assertPathDoesNotExist, makeTempProjectDir, pathJoinSync, readFileString, readJson } from '../../support/effect-files'
 import { EffectHarnessDiscoveryTestLayer } from '../../support/effect-harness-discovery'
 
 const TestLayer = FsLive.pipe(
@@ -138,17 +138,8 @@ describe('vue app create pipeline', () => {
       assert.deepStrictEqual(tsconfig.compilerOptions.types, ['vite/client'])
       assert.deepStrictEqual(tsconfig.include, ['src/**/*.ts', 'src/**/*.vue', 'vite.config.ts'])
 
-      const manifest = yield* readJson<{
-        createSpec: unknown
-        maintainProviders: readonly unknown[]
-        generatedUserSurfaces: readonly { path: string, authority: string }[]
-        verificationRecords: readonly unknown[]
-      }>(pathJoinSync(targetDir, '.prelude/manifest.json'))
-
-      assert.deepStrictEqual(manifest.createSpec, spec)
-      assert.deepStrictEqual(manifest.maintainProviders, [])
       assert.deepStrictEqual(
-        manifest.generatedUserSurfaces.map(surface => ({ path: surface.path, authority: surface.authority })),
+        result.result.writePlan.operations.map(operation => ({ path: operation.path, authority: operation.authority })),
         [
           { path: 'package.json', authority: 'none' },
           { path: 'knip.json', authority: 'none' },
@@ -160,7 +151,7 @@ describe('vue app create pipeline', () => {
           { path: 'src/App.vue', authority: 'none' },
         ],
       )
-      assert.deepStrictEqual(manifest.verificationRecords, [
+      assert.deepStrictEqual(result.result.verification.records, [
         {
           id: 'vue-app-files-present',
           status: 'passed',
@@ -172,6 +163,7 @@ describe('vue app create pipeline', () => {
           checkedPaths: ['knip.json'],
         },
       ])
+      yield* assertPathDoesNotExist(pathJoinSync(targetDir, '.prelude/manifest.json'))
     }))
   })
 })

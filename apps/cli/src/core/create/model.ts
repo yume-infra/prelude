@@ -273,13 +273,13 @@ export interface WriteStructuredFileOperation {
   readonly value: Record<string, JsonValue>
 }
 
-export interface WriteManagedFileOperation {
+export interface WriteProviderManagedFileOperation {
   readonly id: string
-  readonly kind: 'writeManagedFile'
+  readonly kind: 'writeProviderManagedFile'
   readonly owner: string
   readonly surfaceId: string
   readonly path: string
-  readonly authority: SurfaceAuthority
+  readonly authority: 'owner'
   readonly content: string
 }
 
@@ -305,7 +305,7 @@ export interface WriteGeneratedUserFileOperation {
   readonly content: string
 }
 
-export type WriteOperation = WriteStructuredFileOperation | WriteManagedFileOperation | WriteManagedBlockOperation | WriteGeneratedUserFileOperation
+export type WriteOperation = WriteStructuredFileOperation | WriteProviderManagedFileOperation | WriteManagedBlockOperation | WriteGeneratedUserFileOperation
 
 export interface WritePlan {
   readonly operations: readonly WriteOperation[]
@@ -319,13 +319,6 @@ export interface VerificationRecord {
 
 export interface VerificationResult {
   readonly records: readonly VerificationRecord[]
-}
-
-export interface GeneratedUserSurfaceRecord {
-  readonly path: string
-  readonly creator: string
-  readonly authority: 'none'
-  readonly operationId: string
 }
 
 export interface ProviderArtifactRecord {
@@ -453,14 +446,7 @@ export interface LifecycleProviderRecord {
 export interface PreludeManifest {
   readonly schemaVersion: 1
   readonly preludeVersion: string
-  readonly createSpec: JsonCreateSpec
-  readonly resolvedGraph: ResolvedGraph
-  readonly pins: {
-    readonly packageManager: 'pnpm@10.33.4'
-    readonly typescript: 'catalog:'
-  }
   readonly maintainProviders: readonly MaintainProviderReference[]
-  readonly generatedUserSurfaces: readonly GeneratedUserSurfaceRecord[]
   readonly verificationRecords: readonly VerificationRecord[]
 }
 
@@ -468,7 +454,7 @@ export interface CreateProjectResult {
   readonly resolvedGraph: ResolvedGraph
   readonly writePlan: WritePlan
   readonly verification: VerificationResult
-  readonly manifest: PreludeManifest
+  readonly manifest?: PreludeManifest
 }
 
 export type CreateProjectError = FileIOError | SchemaContractError

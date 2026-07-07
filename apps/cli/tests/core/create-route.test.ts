@@ -63,7 +63,7 @@ describe('canonical create CLI route', () => {
         overrides: {},
       }
 
-      yield* runCreateRoute({
+      const result = yield* runCreateRoute({
         preludeVersion: '0.0.0-test',
         targetDir: makeTargetDir(targetDir),
       }).pipe(
@@ -77,15 +77,12 @@ describe('canonical create CLI route', () => {
         })),
       )
 
-      const manifest = yield* readJson<{
-        createSpec: unknown
-        resolvedGraph: { packageCapabilities: unknown }
-      }>(yield* pathJoin(targetDir, '.prelude/manifest.json'))
+      assert.equal(result.kind, 'created')
 
-      assert.deepEqual(manifest.createSpec, spec)
-      assert.deepEqual(manifest.resolvedGraph.packageCapabilities, {
+      assert.deepEqual(result.result.resolvedGraph.packageCapabilities, {
         app: ['minimal-node-package'],
       })
+      yield* assertPathDoesNotExist(yield* pathJoin(targetDir, '.prelude/manifest.json'))
     }))
 
     it.effect('uses the prompted project name as the target directory for guided creation', () => Effect.gen(function* () {
@@ -109,13 +106,12 @@ describe('canonical create CLI route', () => {
           })),
         )
 
-        const manifest = yield* readJson<{
-          createSpec: {
-            package: { name: string }
-          }
-        }>(yield* pathJoin(parentDir, 'guided-spec-app/.prelude/manifest.json'))
+        const packageJson = yield* readJson<{
+          name: string
+        }>(yield* pathJoin(parentDir, 'guided-spec-app/package.json'))
 
-        assert.equal(manifest.createSpec.package.name, 'guided-spec-app')
+        assert.equal(packageJson.name, 'guided-spec-app')
+        yield* assertPathDoesNotExist(yield* pathJoin(parentDir, 'guided-spec-app/.prelude/manifest.json'))
         assert.ok(prompts.select.mock.invocationCallOrder[0]! < prompts.multiselect.mock.invocationCallOrder[0]!)
       }
       finally {
@@ -322,30 +318,6 @@ describe('canonical create CLI route', () => {
       if (result._tag === 'Failure') {
         assert.equal(result.failure._tag, 'SchemaContractError')
         assert.match(result.failure.message, /CanonicalCreateSpec/)
-      }
-    }))
-
-    it.effect('rejects preset input as a removed active API', () => Effect.gen(function* () {
-      const targetDir = yield* makeTempProjectDir('prelude-create-route-')
-      const result = yield* Effect.result(
-        runCreateRoute({
-          preludeVersion: '0.0.0-test',
-          targetDir: makeTargetDir(targetDir),
-        }).pipe(
-          Effect.provideService(CliContext, CliContext.of({
-            args: {
-              preset: 'react-full',
-              name: makeProjectName('removed-preset-app'),
-            },
-            isInteractive: false,
-          })),
-        ),
-      )
-
-      assert.equal(result._tag, 'Failure')
-      if (result._tag === 'Failure') {
-        assert.equal(result.failure._tag, 'SchemaContractError')
-        assert.match(result.failure.message, /--preset has been removed/)
       }
     }))
 

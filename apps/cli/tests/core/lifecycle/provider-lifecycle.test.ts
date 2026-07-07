@@ -21,40 +21,7 @@ function manifestJson(overrides: Record<string, unknown> = {}) {
   return `${stringifyJson({
     schemaVersion: 1,
     preludeVersion: '0.0.0-test',
-    createSpec: {
-      topology: 'single-package',
-      package: {
-        id: 'worker',
-        name: 'worker',
-        capabilities: ['effect-package'],
-      },
-      rootCapabilities: ['ai-harness'],
-      providers: ['effect-harness'],
-      overrides: {},
-    },
-    resolvedGraph: {
-      topology: 'single-package',
-      rootPackage: {
-        id: 'worker',
-        name: 'worker',
-        path: '.',
-        capabilities: ['effect-package'],
-      },
-      packages: [],
-      rootCapabilities: ['ai-harness'],
-      packageCapabilities: {
-        worker: ['effect-package'],
-      },
-      providers: [],
-      logicalSurfaces: [],
-      verification: [],
-    },
-    pins: {
-      packageManager: 'pnpm@10.33.4',
-      typescript: 'catalog:',
-    },
     maintainProviders: [],
-    generatedUserSurfaces: [],
     verificationRecords: [],
     ...overrides,
   })}\n`
@@ -762,14 +729,6 @@ describe('provider lifecycle runtime', () => {
         readFileString: readLifecycleFiles({
           manifest: manifestJson({
             maintainProviders: [effectHarnessReference],
-            generatedUserSurfaces: [
-              {
-                path: 'package.json',
-                creator: 'materializer:package-json',
-                authority: 'none',
-                operationId: 'write-package-json',
-              },
-            ],
           }),
           providerRecord: providerRecordWithSurfaces([]),
           fallback: '{ "scripts": { "build": "tsc --noEmit" } }\n',
@@ -934,14 +893,6 @@ describe('provider lifecycle runtime', () => {
         readFileString: readLifecycleFiles({
           manifest: manifestJson({
             maintainProviders: [effectHarnessReference],
-            generatedUserSurfaces: [
-              {
-                path: 'package.json',
-                creator: 'materializer:package-json',
-                authority: 'none',
-                operationId: 'write-package-json',
-              },
-            ],
           }),
           providerRecord: providerRecordWithSurfaces([]),
           fallback: '{ "scripts": { "build": "user changed this handed-off scaffold" } }\n',

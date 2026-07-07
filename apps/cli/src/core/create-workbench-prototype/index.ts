@@ -36,7 +36,7 @@ const preview: ProjectPreview = {
     'pnpm install',
     'add an explicit package ability recipe',
   ],
-  agentCommand: 'prelude create --spec ./prelude.create.json --target ./my-worker --json --yes',
+  agentCommand: 'prelude --spec ./prelude.create.json --name my-worker --no-input',
 }
 
 const variants: readonly Variant[] = [

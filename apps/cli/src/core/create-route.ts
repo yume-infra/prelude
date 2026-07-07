@@ -25,14 +25,6 @@ interface CreateRouteSpecInput {
   readonly targetName?: ProjectName
 }
 
-function unsupportedPresetError() {
-  return SchemaContractError.make({
-    schema: 'CliArgs',
-    message: 'CliArgs: --preset has been removed from the active create API. Reusable shapes are complete canonical CreateSpec files passed with --spec.',
-    issueCount: 1,
-  })
-}
-
 function missingNonInteractiveInputError() {
   return SchemaContractError.make({
     schema: 'CliArgs',
@@ -341,10 +333,6 @@ const collectWorkbenchCreateSpec = Effect.fn('collectWorkbenchCreateSpec')(funct
 
 const loadCreateRouteSpec = Effect.fn('loadCreateRouteSpec')(function* (options: CreateRouteOptions) {
   const cli = yield* CliContext
-
-  if (cli.args.preset !== undefined) {
-    return yield* unsupportedPresetError()
-  }
 
   if (cli.args.spec !== undefined) {
     const spec = yield* loadCreateSpecFromInput(cli.args.spec)

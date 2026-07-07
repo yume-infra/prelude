@@ -6,7 +6,7 @@ import { makePackageName } from '@/brand/package-name'
 import { makeTargetDir } from '@/brand/target-dir'
 import { createProjectFromSpec, materializeWritePlan } from '@/core/create'
 import { FsLive } from '@/core/services/fs'
-import { makeTempProjectDir, pathJoinSync, readFileString, readJson } from '../../support/effect-files'
+import { assertPathDoesNotExist, makeTempProjectDir, pathJoinSync, readFileString, readJson } from '../../support/effect-files'
 import { EffectHarnessDiscoveryTestLayer } from '../../support/effect-harness-discovery'
 
 const TestLayer = FsLive.pipe(
@@ -134,29 +134,16 @@ describe('workspace create pipeline', () => {
       assert.equal(sharedPackageJson.name, '@workspace-graph/shared')
       assert.equal(sharedPackageJson.scripts.build, 'tsdown --config tsdown.config.ts')
 
-      const manifest = yield* readJson<{
-        createSpec: unknown
-        resolvedGraph: {
-          topology: string
-          packages: Array<{ id: string, path: string, internalDependencies?: Array<{ dependencyName: string, targetPackageId: string, targetPackageName: string, range: string }> }>
-          rootCapabilities: readonly string[]
-          packageCapabilities: Record<string, readonly string[]>
-          logicalSurfaces: Array<{ id: string, materializer: string, owner: string }>
-        }
-        generatedUserSurfaces: Array<{ path: string, authority: string }>
-        verificationRecords: Array<{ id: string, checkedPaths: readonly string[] }>
-      }>(pathJoinSync(targetDir, '.prelude/manifest.json'))
-      assert.deepStrictEqual(manifest.createSpec, workspaceSpec)
-      assert.equal(manifest.resolvedGraph.topology, 'workspace')
+      assert.equal(result.resolvedGraph.topology, 'workspace')
       assert.deepStrictEqual(
-        manifest.resolvedGraph.packages.map(pkg => ({ id: pkg.id, path: pkg.path })),
+        result.resolvedGraph.packages.map(pkg => ({ id: pkg.id, path: pkg.path })),
         [
           { id: 'api', path: 'apps/api' },
           { id: 'tool', path: 'apps/tool' },
           { id: 'shared', path: 'libs/shared' },
         ],
       )
-      assert.deepStrictEqual(manifest.resolvedGraph.packages[0]?.internalDependencies, [
+      assert.deepStrictEqual(result.resolvedGraph.packages[0]?.internalDependencies, [
         {
           targetPackageId: 'shared',
           targetPackageName: '@workspace-graph/shared',
@@ -164,7 +151,7 @@ describe('workspace create pipeline', () => {
           range: 'workspace:@workspace-graph/shared@*',
         },
       ])
-      assert.deepStrictEqual(manifest.resolvedGraph.packages[1]?.internalDependencies, [
+      assert.deepStrictEqual(result.resolvedGraph.packages[1]?.internalDependencies, [
         {
           targetPackageId: 'shared',
           targetPackageName: '@workspace-graph/shared',
@@ -172,22 +159,22 @@ describe('workspace create pipeline', () => {
           range: 'workspace:*',
         },
       ])
-      assert.deepStrictEqual(manifest.resolvedGraph.rootCapabilities, ['package-manager:pnpm', 'linting', 'knip', 'dependency-update:taze'])
-      assert.deepStrictEqual(manifest.resolvedGraph.packageCapabilities, {
+      assert.deepStrictEqual(result.resolvedGraph.rootCapabilities, ['package-manager:pnpm', 'linting', 'knip', 'dependency-update:taze'])
+      assert.deepStrictEqual(result.resolvedGraph.packageCapabilities, {
         api: ['node-backend'],
         tool: ['cli-tool'],
         shared: ['library'],
       })
-      assert.ok(manifest.resolvedGraph.logicalSurfaces.some(surface => surface.id === 'package-manifest:root'))
-      assert.ok(manifest.resolvedGraph.logicalSurfaces.some(surface => surface.id === 'workspace-manifest:root'))
-      assert.ok(manifest.resolvedGraph.logicalSurfaces.some(surface => surface.id === 'package-manifest:apps/api'))
-      assert.ok(manifest.resolvedGraph.logicalSurfaces.some(surface => surface.id === 'package-manifest:libs/shared'))
-      assert.ok(manifest.generatedUserSurfaces.every(surface => surface.authority === 'none'))
-      assert.deepStrictEqual(manifest.verificationRecords.map(record => record.id), [
+      assert.ok(result.resolvedGraph.logicalSurfaces.some(surface => surface.id === 'package-manifest:root'))
+      assert.ok(result.resolvedGraph.logicalSurfaces.some(surface => surface.id === 'workspace-manifest:root'))
+      assert.ok(result.resolvedGraph.logicalSurfaces.some(surface => surface.id === 'package-manifest:apps/api'))
+      assert.ok(result.resolvedGraph.logicalSurfaces.some(surface => surface.id === 'package-manifest:libs/shared'))
+      assert.deepStrictEqual(result.verification.records.map(record => record.id), [
         'workspace-root-files-present',
         'workspace-package-files-present',
         'root-engineering-files-present',
       ])
+      yield* assertPathDoesNotExist(pathJoinSync(targetDir, '.prelude/manifest.json'))
     }))
 
     it.effect('merges typed workspace manifest surfaces and blocks workspace package manifest conflicts', () => Effect.gen(function* () {

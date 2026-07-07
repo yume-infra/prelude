@@ -83,7 +83,7 @@ describe('fullscreen create workbench v1 acceptance fixtures', () => {
         assert.equal(paths.some(path => path.startsWith('.codex/')), false)
         assert.ok(operationKinds.has('writeStructuredFile'))
         assert.ok(operationKinds.has('writeGeneratedUserFile'))
-        assert.ok(operationKinds.has('writeManagedFile'))
+        assert.ok(operationKinds.has('writeProviderManagedFile'))
         assert.equal(operationKinds.has('writeManagedBlock'), false)
         assert.equal(packageJsonOperation?.value?.scripts?.verify, 'pnpm build && pnpm typecheck && pnpm test && pnpm lint --max-warnings 0 && pnpm knip')
         assert.equal(packageJsonOperation?.value?.scripts?.prepare, 'effect-tsgo patch')

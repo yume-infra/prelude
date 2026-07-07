@@ -29,33 +29,9 @@ const nameFlag = Flag.string('name').pipe(
   Flag.withDescription('Target directory name for create'),
 )
 
-const presetFlag = Flag.string('preset').pipe(
-  Flag.optional,
-  Flag.withAlias('p'),
-  Flag.withDescription('Removed; reusable shapes are complete CreateSpec files passed with --spec'),
-)
-
-function optionalRemovedBooleanFlag(name: string, description: string) {
-  return Flag.boolean(name).pipe(
-    Flag.optional,
-    Flag.withDescription(description),
-  )
-}
-
-const yesFlag = Flag.boolean('yes').pipe(
-  Flag.optional,
-  Flag.withAlias('y'),
-  Flag.withDescription('Removed; use --spec with a complete canonical CreateSpec for non-interactive creation'),
-)
-
 const preludeCommandConfig = {
   spec: specFlag,
   name: nameFlag,
-  preset: presetFlag,
-  install: optionalRemovedBooleanFlag('install', 'Removed; dependency installation is outside create'),
-  git: optionalRemovedBooleanFlag('git', 'Removed; git setup is outside create'),
-  rollback: optionalRemovedBooleanFlag('rollback', 'Removed; create uses the canonical write boundary'),
-  yes: yesFlag,
   noInput: Flag.boolean('no-input').pipe(
     Flag.withDefault(false),
     Flag.withDescription('Disable prompts; requires --spec'),
@@ -89,14 +65,6 @@ type PreludeCommandInput = Command.Command.Config.Infer<typeof preludeCommandCon
 type LifecycleCommandInput = Command.Command.Config.Infer<typeof lifecycleCommandConfig>
 type MutableCliArgs = {
   -readonly [Key in keyof CliArgs]: CliArgs[Key]
-}
-
-function removedFlagError(flag: string, message: string) {
-  return SchemaContractError.make({
-    schema: 'CliArgs',
-    message: `CliArgs: ${flag} has been removed. ${message}`,
-    issueCount: 1,
-  })
 }
 
 const decodeCliProjectName = Effect.fn('decodeCliProjectName')(
@@ -139,26 +107,6 @@ function printJson(value: unknown) {
 
 const cliArgsFromCommandInput = Effect.fn('cliArgsFromCommandInput')(
   function* (input: PreludeCommandInput): Effect.fn.Return<CliArgs, SchemaContractError> {
-    if (Option.isSome(input.preset)) {
-      return yield* removedFlagError('--preset', 'Reusable shapes are complete canonical CreateSpec files passed with --spec.')
-    }
-
-    if (Option.isSome(input.install)) {
-      return yield* removedFlagError('--install/--no-install', 'Dependency installation is not part of the canonical create route.')
-    }
-
-    if (Option.isSome(input.git)) {
-      return yield* removedFlagError('--git/--no-git', 'Git setup is not part of the canonical create route.')
-    }
-
-    if (Option.isSome(input.rollback)) {
-      return yield* removedFlagError('--rollback/--no-rollback', 'Creation now goes through the canonical write boundary.')
-    }
-
-    if (Option.isSome(input.yes)) {
-      return yield* removedFlagError('--yes/-y', 'Use --spec with a complete canonical CreateSpec for non-interactive creation.')
-    }
-
     const args: MutableCliArgs = {}
 
     const spec = optionValue(input.spec)

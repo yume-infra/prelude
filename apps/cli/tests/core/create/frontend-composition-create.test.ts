@@ -6,7 +6,7 @@ import { makeTargetDir } from '@/brand/target-dir'
 import { createProjectFromSpec } from '@/core/create'
 import { projectRecoveredIntentFixtureToCreateSpec } from '@/core/create/recovered-intent-projector'
 import { FsLive } from '@/core/services/fs'
-import { makeTempProjectDir, pathJoinSync, readFileString, readJson } from '../../support/effect-files'
+import { assertPathDoesNotExist, makeTempProjectDir, pathJoinSync, readFileString, readJson } from '../../support/effect-files'
 import { EffectHarnessDiscoveryTestLayer } from '../../support/effect-harness-discovery'
 
 const TestLayer = FsLive.pipe(
@@ -63,16 +63,11 @@ describe('frontend composition create pipeline', () => {
       assert.match(lessStyles, /@surface-bg/u)
       assert.match(tailwindStyles, /@import "tailwindcss";/u)
 
-      const manifest = yield* readJson<{
-        maintainProviders: readonly unknown[]
-        generatedUserSurfaces: Array<{ path: string, authority: string }>
-      }>(pathJoinSync(targetDir, '.prelude/manifest.json'))
-      assert.deepEqual(manifest.maintainProviders, [])
-      assert.ok(manifest.generatedUserSurfaces.every(surface => surface.authority === 'none'))
       assert.deepEqual(
-        manifest.generatedUserSurfaces.map(surface => surface.path).filter(surfacePath => surfacePath.startsWith('src/')),
+        result.writePlan.operations.map(operation => operation.path).filter(surfacePath => surfacePath.startsWith('src/')),
         ['src/main.tsx', 'src/styles.less', 'src/styles.css', 'src/App.tsx'],
       )
+      yield* assertPathDoesNotExist(pathJoinSync(targetDir, '.prelude/manifest.json'))
     }))
 
     it.effect('recovers Vue Router, Pinia, Less, and Tailwind intent through typed surfaces', () => Effect.gen(function* () {
@@ -119,16 +114,11 @@ describe('frontend composition create pipeline', () => {
       assert.match(viteConfig, /@vitejs\/plugin-vue/u)
       assert.match(viteConfig, /@tailwindcss\/vite/u)
 
-      const manifest = yield* readJson<{
-        maintainProviders: readonly unknown[]
-        generatedUserSurfaces: Array<{ path: string, authority: string }>
-      }>(pathJoinSync(targetDir, '.prelude/manifest.json'))
-      assert.deepEqual(manifest.maintainProviders, [])
-      assert.ok(manifest.generatedUserSurfaces.every(surface => surface.authority === 'none'))
       assert.deepEqual(
-        manifest.generatedUserSurfaces.map(surface => surface.path).filter(surfacePath => surfacePath.startsWith('src/')),
+        result.writePlan.operations.map(operation => operation.path).filter(surfacePath => surfacePath.startsWith('src/')),
         ['src/main.ts', 'src/styles.less', 'src/styles.css', 'src/App.vue'],
       )
+      yield* assertPathDoesNotExist(pathJoinSync(targetDir, '.prelude/manifest.json'))
     }))
   })
 })
