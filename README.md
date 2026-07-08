@@ -71,6 +71,7 @@ The active project knowledge is under `docs/`:
 - [rebuild plan](./docs/prelude-rebuild-plan.md)
 - [create materialization](./docs/create-materialization-architecture.md)
 - [maintain architecture](./docs/maintain-architecture.md)
+- [provider artifact placement](./docs/provider-artifact-placement-architecture.md)
 - [agent configuration](./docs/agents/)
 
 ## Development Commands

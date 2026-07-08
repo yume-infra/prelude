@@ -15,6 +15,7 @@ Start with:
 5. `docs/prelude-rebuild-plan.md`
 6. `docs/create-materialization-architecture.md`
 7. `docs/maintain-architecture.md`
+8. `docs/provider-artifact-placement-architecture.md`
 
 There is no active Trellis workflow in this repository and no project-local
 skill baseline to maintain. Do not recreate `.trellis/` or `.agents/skills/`

@@ -8,7 +8,7 @@ purpose: 定义 prelude 重建后的最终架构状态和不可破坏的主线�
 status: active
 sources:
   - docs/create-maintain-architecture.md
-updated: 2026-06-29
+updated: 2026-07-08
 ---
 
 # Prelude Final State
@@ -212,6 +212,21 @@ Maintain core validates domain-declared desired changes, drift checks them, and 
 `effect-harness` is the first maintain domain.
 
 `prelude` SHOULD NOT build a generic domain platform before multiple maintain domains justify that seam.
+
+Provider artifact selection and target placement are part of the maintain final state:
+
+```text
+selected = target package manager + lockfile provider artifact
+desired  = selected provider discovery + placement plan
+base     = provider record snapshots
+current  = target filesystem logical values
+```
+
+Prelude owns provider artifact projection.
+
+Npm owns package artifact selection.
+
+Provider records remain reconciliation base, not desired-state truth.
 
 ## Rejections
 

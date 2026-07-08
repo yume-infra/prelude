@@ -7,7 +7,7 @@ reviewed_by:
 purpose: 记录 create 和 maintain 两条主线的终态架构、关联点和最小设计边界。
 status: active
 sources: []
-updated: 2026-06-29
+updated: 2026-07-08
 ---
 
 # Create Maintain Architecture
@@ -208,6 +208,9 @@ Maintain core MUST validate domain-declared managed changes before applying them
 
 `effect-harness` exposes a first-party provider discovery contract to Prelude.
 
+Package-backed provider artifact selection and target placement are defined in
+[`provider-artifact-placement-architecture.md`](./provider-artifact-placement-architecture.md).
+
 Prelude consumes:
 
 - provider profile identity and source identity
@@ -227,9 +230,10 @@ Prelude does not maintain the Effect source pin. Source-entry pinning belongs in
 For effect-harness maintain:
 
 ```text
-desired = current provider implementation/profile
-base    = provider record
-current = filesystem
+selected = target package manager + lockfile provider artifact
+desired  = selected provider discovery + placement plan
+base     = provider record
+current  = filesystem
 ```
 
 Drift blocks. Update writes only provider-declared target-managed package/config/policy/docs/snippet surfaces.

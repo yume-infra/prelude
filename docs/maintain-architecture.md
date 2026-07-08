@@ -8,7 +8,8 @@ purpose: 定义 maintain 主线、manifest、managed claims、drift 检查和 ma
 status: active
 sources:
   - docs/create-maintain-architecture.md
-updated: 2026-06-29
+  - docs/provider-artifact-placement-architecture.md
+updated: 2026-07-08
 ---
 
 # Maintain Architecture
@@ -83,14 +84,15 @@ The maintain manifest MAY include narrow create context only when a maintain dom
 
 ## Maintain Config
 
-Maintain desired state comes from maintain config, lock data, and current maintain domain implementations.
+Maintain desired state comes from maintain config, lock data, selected provider artifacts, placement
+plans, and current maintain domain implementations.
 
 Maintain desired state MUST NOT be derived from manifest or provider-record base claims.
 
 The update model is:
 
 ```text
-desired = maintain config + lock + current maintain domain implementation
+desired = maintain config + lock + selected provider artifact + placement plan + current maintain domain implementation
 base    = provider record
 current = filesystem
 ```
@@ -272,13 +274,17 @@ Maintain domain modules MUST NOT mutate previous manifests or files directly.
 
 ## Effect Harness Provider Interface
 
-`effect-harness` is a first-party maintain provider discovered through the published provider
-interface.
+`effect-harness` is a first-party maintain provider discovered through a selected provider artifact.
+
+For package-backed providers, npm owns artifact selection and Prelude owns artifact projection.
+The detailed placement model is defined in
+[`provider-artifact-placement-architecture.md`](./provider-artifact-placement-architecture.md).
 
 Prelude consumes the provider through stable provider-facing records:
 
 - provider discovery: provider id, contract version, provider version, selected profile, package locator, provider profile locator, source identity, artifact-only references, and target-managed declarations
-- provider record: target-local selected profile, resolved options, projected create context, runtime metadata, managed surfaces, policy contributions, and base snapshots
+- placement plan: target-local binding between provider semantic contribution and physical managed locator
+- provider record: target-local selected profile, resolved options, projected context, runtime metadata, managed surfaces, policy contributions, package artifact identity, placement summary, and base snapshots
 - managed surfaces: structured package/config pointers, policy records, provider-managed docs bundle, and provider-managed snippets declared by discovery
 
 Prelude MUST NOT consume effect-harness internal setup notes as a second interface.
@@ -294,14 +300,15 @@ The Effect source entry belongs to the provider repo. It may be maintained by ef
 The effect-harness provider update model is:
 
 ```text
-desired = current effect-harness provider implementation/profile
+selected = target package manager + lockfile provider artifact
+desired  = selected provider discovery + placement plan
 base    = .prelude/providers/effect-harness/provider.json
 current = target filesystem logical values
 ```
 
-Update MUST only write surfaces declared by the discovered provider record. When desired introduces
-new target surfaces that are absent from the provider record, the lifecycle blocks unless a future
-contract transition explicitly approves the expansion.
+Update MUST only write declared managed surfaces. When desired introduces new target surfaces that
+are absent from the provider record, the lifecycle blocks unless a contract transition explicitly
+approves the expansion.
 
 Status and verify are provider-facing lifecycle operations:
 
@@ -309,9 +316,12 @@ Status and verify are provider-facing lifecycle operations:
 - `verify` checks provider record conformance and target managed logical values.
 - `update` reconciles desired/base/current, applies managed-surface writes through maintain WritePlan, refreshes provider record base snapshots, and refreshes manifest provider references.
 
-Editor policy for source entries is not a prelude target surface unless the provider explicitly declares such a target surface. When a source-entry workflow owns editor policy, the current decision is:
+Editor policy for source entries is a prelude target surface only when provider discovery plus
+placement resolves explicit editor settings locators. When a source-entry workflow owns editor
+policy, the current decision is:
 
 - auto-import exclude defaults to blocking source-entry imports.
-- watch/search exclude is recommended but requires explicit configuration.
+- watch/search exclude is recommended and is projected only when the placement plan explicitly
+  configures editor settings locators.
 - `files.exclude` hiding is a user preference, not a default.
 - VSCode and Zed settings shapes are separate and MUST NOT be projected through one shared VSCode-shaped object.

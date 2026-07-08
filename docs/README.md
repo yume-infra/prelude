@@ -7,7 +7,7 @@ reviewed_by:
 purpose: 作为 docs 目录的入口，声明当前 active 文档、读取顺序和文档职责边界。
 status: active
 sources: []
-updated: 2026-06-29
+updated: 2026-07-08
 ---
 
 # Prelude Docs
@@ -38,7 +38,9 @@ updated: 2026-06-29
    - create materialization、create surfaces、WritePlan、handoff 和 maintain initialization。
 7. [`maintain-architecture.md`](./maintain-architecture.md)
    - maintain 主线、manifest、managed claims、drift check 和 maintain domains。
-8. [`agents/`](./agents/)
+8. [`provider-artifact-placement-architecture.md`](./provider-artifact-placement-architecture.md)
+   - provider artifact selection、target placement、managed claims 和 npm provider package 主口径。
+9. [`agents/`](./agents/)
    - GitHub Issues、triage labels 和 agent domain reading 配置。
 
 ## Current Contract
@@ -50,6 +52,7 @@ updated: 2026-06-29
 - Rebuild acceptance gates: [`prelude-rebuild-acceptance-matrix.md`](./prelude-rebuild-acceptance-matrix.md)
 - Create materialization: [`create-materialization-architecture.md`](./create-materialization-architecture.md)
 - Maintain model: [`maintain-architecture.md`](./maintain-architecture.md)
+- Provider artifact placement: [`provider-artifact-placement-architecture.md`](./provider-artifact-placement-architecture.md)
 - Agent workflow configuration: [`agents/`](./agents/)
 
 ## Policy
@@ -63,6 +66,8 @@ Rebuild plans name deletion targets, construction targets, and acceptance criter
 Create materialization documents explain how resolved create intent becomes files.
 
 Maintain documents explain how managed surfaces evolve after create.
+
+Provider placement documents explain how versioned provider artifacts become target-local managed locators.
 
 Agent docs explain how external engineering skills should operate in this repo.
 

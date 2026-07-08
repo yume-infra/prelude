@@ -13,7 +13,9 @@ Engineering skills should consume project knowledge in this order:
    materialization, surfaces, and handoff semantics.
 6. Read `docs/maintain-architecture.md` for manifest, managed claims, drift
    checks, and update semantics.
-7. Read ADRs under `docs/adr/` if they are introduced later and touch the area
+7. Read `docs/provider-artifact-placement-architecture.md` for provider artifact
+   selection, placement plans, semantic slots, and npm package boundaries.
+8. Read ADRs under `docs/adr/` if they are introduced later and touch the area
    being changed.
 
 If these files do not exist, proceed silently. Do not create them upfront unless
