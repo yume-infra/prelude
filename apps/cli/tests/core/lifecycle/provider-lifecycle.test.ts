@@ -58,8 +58,15 @@ const discoveredProvider = {
     packageVersion: '9.9.9-test',
     binName: 'effect-harness',
     binPath: 'dist/bin/effect-harness.js',
-    discoveryCommand: 'npx --yes @sayoriqwq/effect-harness provider-discover',
-    packageFiles: ['provider', 'harness', 'repos'],
+    discoveryCommand: 'npx --yes --package @sayoriqwq/effect-harness@9.9.9-test effect-harness provider-discover',
+    packageFiles: ['HARNESS.md', 'README.md', 'dist', 'harness', 'provider', 'repos'],
+  },
+  packageArtifactIdentity: {
+    ...effectHarnessDiscoveryFixture.packageArtifactIdentity,
+    packageName: '@sayoriqwq/effect-harness',
+    packageVersion: '9.9.9-test',
+    npmSelector: '@sayoriqwq/effect-harness@9.9.9-test',
+    neutralDiscoveryCommand: 'npx --yes --package @sayoriqwq/effect-harness@9.9.9-test effect-harness provider-discover',
   },
   provider: {
     ...effectHarnessDiscoveryFixture.provider,
@@ -68,6 +75,7 @@ const discoveredProvider = {
     providerVersion: '9.9.9-test',
     defaultProfile: 'codex-effect-v4',
   },
+  semanticContributions: effectHarnessDiscoveryFixture.semanticContributions,
   artifactOnlyReferences: {
     ...effectHarnessDiscoveryFixture.artifactOnlyReferences,
     mode: 'provider-artifact-reference',
@@ -81,6 +89,7 @@ const discoveredProvider = {
       },
     },
   },
+  artifactOnlyReferenceAudit: effectHarnessDiscoveryFixture.artifactOnlyReferenceAudit,
   sourceIdentities: {
     ...effectHarnessDiscoveryFixture.sourceIdentities,
     defaultSourceEntry: 'effect-official-source',
@@ -594,6 +603,124 @@ describe('provider lifecycle runtime', () => {
       assert.match(staleVerify.message ?? '', /discovered provider identity/u)
     }))
 
+    it.effect('reports selected artifact, provider identity, profile, placement, and managed claims from lifecycle status and verify', () =>
+      Effect.gen(function* () {
+        const provider = effectHarnessLifecycleProviderForDiscovery(discoveredProvider)
+        const record = effectHarnessProviderRecordForProjectedContext(
+          discoveredProvider,
+          effectHarnessRecord.projectedContext,
+        )
+        const discoveredReference = {
+          ...effectHarnessReference,
+          contractVersion: '7-test',
+          providerVersion: '9.9.9-test',
+        }
+        const fsService = makeFsMockService({
+          exists: () => Effect.succeed(true),
+          readFileString: readLifecycleFiles({
+            manifest: manifestJson({
+              maintainProviders: [discoveredReference],
+            }),
+            providerRecord: record,
+          }),
+        })
+
+        const status = yield* runProviderLifecycleStatus({
+          targetDir: makeTargetDir('/project'),
+          providers: {
+            'effect-harness': provider,
+          },
+        }).pipe(Effect.provideService(FsService, fsService))
+        const verify = yield* provider.verify(record)
+
+        const statusProvider = status.providers[0] as unknown as Record<string, unknown>
+        const verifyProvider = verify as unknown as Record<string, unknown>
+
+        assert.equal(statusProvider.status, 'ok')
+        assert.equal(verifyProvider.status, 'passed')
+        assert.deepEqual(statusProvider.providerIdentity, {
+          id: 'effect-harness',
+          contractVersion: '7-test',
+          providerVersion: '9.9.9-test',
+        })
+        assert.deepEqual(verifyProvider.providerIdentity, statusProvider.providerIdentity)
+        assert.deepEqual(statusProvider.packageArtifactIdentity, discoveredProvider.packageArtifactIdentity)
+        assert.deepEqual(verifyProvider.packageArtifactIdentity, discoveredProvider.packageArtifactIdentity)
+        assert.equal(statusProvider.selectedProfile, 'codex-effect-v4')
+        assert.equal(verifyProvider.selectedProfile, 'codex-effect-v4')
+
+        const placementSummary = statusProvider.placementSummary as Record<string, unknown> | undefined
+        assert.equal(placementSummary?.providerNamespacePath, '.prelude/providers/effect-harness')
+        assert.equal(placementSummary?.targetTopology, 'single-package')
+        assert.deepEqual(placementSummary?.effectRuntimePackageScopes, ['worker'])
+        assert.deepEqual(placementSummary?.effectTestPackageScopes, ['worker'])
+        assert.deepEqual(placementSummary?.tsconfigTargets, ['tsconfig.json'])
+        assert.deepEqual(placementSummary?.editorSettingsTargets, ['.vscode/settings.json', '.zed/settings.json'])
+
+        const managedClaims = statusProvider.managedClaims as readonly Record<string, unknown>[] | undefined
+        assert.ok(managedClaims?.some(claim =>
+          claim.slot === 'effect-runtime-package'
+          && claim.locator === 'package.json#/dependencies/effect'))
+        assert.ok(managedClaims?.some(claim =>
+          claim.slot === 'effect-tsconfig'
+          && claim.locator === 'tsconfig.json#/compilerOptions/plugins'))
+        assert.deepEqual(verifyProvider.placementSummary, statusProvider.placementSummary)
+        assert.deepEqual(verifyProvider.managedClaims, statusProvider.managedClaims)
+      }))
+
+    it.effect('recomputes desired provider records from selected artifact discovery and placement instead of stale provider-record base', () =>
+      Effect.gen(function* () {
+        const provider = effectHarnessLifecycleProviderForDiscovery(discoveredProvider)
+        const record = effectHarnessProviderRecordForProjectedContext(
+          discoveredProvider,
+          effectHarnessRecord.projectedContext,
+        )
+        const staleRecord = {
+          ...record,
+          artifact: {
+            ...record.artifact,
+            packageArtifactIdentity: {
+              ...discoveredProvider.packageArtifactIdentity,
+              packageName: '@sayoriqwq/effect-harness',
+              packageVersion: '0.0.0-stale',
+              npmSelector: '@sayoriqwq/effect-harness@0.0.0-stale',
+              neutralDiscoveryCommand: 'npx --yes --package @sayoriqwq/effect-harness@0.0.0-stale effect-harness provider-discover',
+            },
+          },
+          placementSummary: {
+            targetTopology: 'single-package',
+            effectRuntimePackageScopes: ['legacy-record-base'],
+            providerNamespacePath: '.prelude/providers/legacy-effect-harness',
+          },
+          surfaces: [
+            structuredPointerSurface({
+              base: '0.0.0-stale',
+              snapshot: '0.0.0-stale',
+            }),
+          ],
+        }
+
+        const plan = yield* provider.planUpdate(staleRecord, { providerId: 'effect-harness' })
+        const nextRecord = plan.nextRecord as unknown as {
+          readonly artifact?: { readonly packageArtifactIdentity?: unknown }
+          readonly placementSummary?: Record<string, unknown>
+          readonly managedClaims?: readonly Record<string, unknown>[]
+        }
+
+        assert.deepEqual(nextRecord.artifact?.packageArtifactIdentity, discoveredProvider.packageArtifactIdentity)
+        assert.equal(nextRecord.placementSummary?.targetTopology, 'single-package')
+        assert.deepEqual(nextRecord.placementSummary?.effectRuntimePackageScopes, ['worker'])
+        assert.equal(nextRecord.placementSummary?.providerNamespacePath, '.prelude/providers/effect-harness')
+        assert.ok(nextRecord.managedClaims?.some(claim =>
+          claim.slot === 'effect-runtime-package'
+          && claim.locator === 'package.json#/dependencies/effect'))
+        assert.ok(plan.operations.some(operation =>
+          operation.kind === 'replaceStructuredPointer'
+          && operation.path === 'package.json'
+          && operation.pointer === tsgoPointer
+          && operation.value === '0.15.0'))
+      }))
+
     it.effect('projects the effect-harness first-party provider interface without source-entry surfaces', () => Effect.gen(function* () {
       const provider = effectHarnessLifecycleProviderForDiscovery(effectHarnessDiscoveryFixture)
       const record = effectHarnessProviderRecordForProjectedContext(effectHarnessDiscoveryFixture, {
@@ -629,7 +756,7 @@ describe('provider lifecycle runtime', () => {
       assert.equal(jsonObject(policies.testPolicy).packageScript, 'vitest run')
       assert.equal(jsonObject(policies.verificationPolicy).lifecycleOwner, 'prelude')
       assert.deepEqual(record.runtime.files, [])
-      assert.equal(record.runtime.commands.discover, 'npx --yes @sayoriqwq/effect-harness provider-discover')
+      assert.equal(record.runtime.commands.discover, effectHarnessDiscoveryFixture.packageLocator.discoveryCommand)
       assert.equal(record.runtime.routes.providerProfile, 'provider/effect-harness.provider.json')
       const targetManagedSurfaces = jsonObject(record.runtime.targetManagedSurfaces)
       const contributionBuckets = jsonObject(targetManagedSurfaces.contributions)

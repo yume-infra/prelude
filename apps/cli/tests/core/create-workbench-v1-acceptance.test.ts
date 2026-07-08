@@ -78,6 +78,39 @@ describe('fullscreen create workbench v1 acceptance fixtures', () => {
                 }
               }
               'file_scan_exclusions'?: readonly string[]
+              'artifact'?: {
+                packageArtifactIdentity?: {
+                  packageName?: string
+                  packageVersion?: string
+                  npmSelector?: string
+                  neutralDiscoveryCommand?: string
+                }
+                artifactOnlyReferenceAudit?: {
+                  mode?: string
+                  references?: readonly {
+                    id?: string
+                    targetDelivery?: string
+                    available?: boolean
+                  }[]
+                }
+              }
+              'placementSummary'?: {
+                providerNamespacePath?: string
+                targetTopology?: string
+                workspaceToolingPackage?: string
+                effectRuntimePackageScopes?: readonly string[]
+                effectTestPackageScopes?: readonly string[]
+                tsconfigTargets?: readonly string[]
+                eslintEntry?: string
+                editorSettingsTargets?: readonly string[]
+                docsDeliveryMode?: string
+                snippetsDeliveryMode?: string
+              }
+              'managedClaims'?: readonly {
+                slot?: string
+                locator?: string
+                kind?: string
+              }[]
               'surfaces'?: readonly { id: string, kind?: string, path?: string }[]
             }
           }>
@@ -124,6 +157,37 @@ describe('fullscreen create workbench v1 acceptance fixtures', () => {
         assert.ok(providerSurfaceIds.has('editor-settings:.vscode/settings.json:/search.exclude'))
         assert.ok(providerSurfaceIds.has('editor-settings:.zed/settings.json:/lsp/typescript-language-server/initialization_options/preferences/autoImportFileExcludePatterns'))
         assert.ok(providerSurfaceIds.has('editor-settings:.zed/settings.json:/file_scan_exclusions'))
+        assert.equal(providerOperation?.value?.artifact?.packageArtifactIdentity?.packageName, '@sayoriqwq/effect-harness')
+        assert.equal(providerOperation?.value?.artifact?.packageArtifactIdentity?.packageVersion, '0.0.4')
+        assert.equal(providerOperation?.value?.artifact?.packageArtifactIdentity?.npmSelector, '@sayoriqwq/effect-harness@0.0.4')
+        assert.equal(providerOperation?.value?.artifact?.packageArtifactIdentity?.neutralDiscoveryCommand, 'npx --yes --package @sayoriqwq/effect-harness@0.0.4 effect-harness provider-discover')
+        assert.equal(providerOperation?.value?.artifact?.artifactOnlyReferenceAudit?.mode, 'artifact-only-reference-audit')
+        assert.ok(providerOperation?.value?.artifact?.artifactOnlyReferenceAudit?.references?.some(reference =>
+          reference.id === 'effect-source-tree'
+          && reference.targetDelivery === 'artifact-only'
+          && reference.available === true))
+        assert.ok(providerOperation?.value?.artifact?.artifactOnlyReferenceAudit?.references?.some(reference =>
+          reference.id === 'tsgo-source-tree'
+          && reference.targetDelivery === 'artifact-only'
+          && reference.available === true))
+        assert.equal(providerOperation?.value?.placementSummary?.providerNamespacePath, '.prelude/providers/effect-harness')
+        assert.equal(providerOperation?.value?.placementSummary?.targetTopology, 'single-package')
+        assert.equal(providerOperation?.value?.placementSummary?.workspaceToolingPackage, 'root')
+        assert.deepEqual(providerOperation?.value?.placementSummary?.effectRuntimePackageScopes, ['worker'])
+        assert.deepEqual(providerOperation?.value?.placementSummary?.effectTestPackageScopes, ['worker'])
+        assert.deepEqual(providerOperation?.value?.placementSummary?.tsconfigTargets, ['tsconfig.json'])
+        assert.equal(providerOperation?.value?.placementSummary?.eslintEntry, 'eslint.config.mjs')
+        assert.deepEqual(providerOperation?.value?.placementSummary?.editorSettingsTargets, ['.vscode/settings.json', '.zed/settings.json'])
+        assert.equal(providerOperation?.value?.placementSummary?.docsDeliveryMode, 'copy')
+        assert.equal(providerOperation?.value?.placementSummary?.snippetsDeliveryMode, 'copy')
+        assert.ok(providerOperation?.value?.managedClaims?.some(claim =>
+          claim.slot === 'effect-runtime-package'
+          && claim.locator === 'package.json#/dependencies/effect'
+          && claim.kind === 'structuredPointer'))
+        assert.ok(providerOperation?.value?.managedClaims?.some(claim =>
+          claim.slot === 'eslint-entry'
+          && claim.locator === 'eslint.config.mjs#provider-config'
+          && claim.kind === 'managedBlock'))
         assert.equal(packageJsonOperation?.value?.scripts?.verify, 'pnpm build && pnpm typecheck && pnpm test && pnpm lint --max-warnings 0 && pnpm knip')
         assert.equal(packageJsonOperation?.value?.scripts?.prepare, 'effect-tsgo patch')
         assert.equal(packageJsonOperation?.value?.scripts?.typecheck, 'tsgo --noEmit')
@@ -304,6 +368,29 @@ describe('fullscreen create workbench v1 acceptance fixtures', () => {
                 packageScopes: readonly string[]
                 packagePaths?: Record<string, string>
               }
+              artifact?: {
+                packageArtifactIdentity?: {
+                  packageName?: string
+                  packageVersion?: string
+                  npmSelector?: string
+                  neutralDiscoveryCommand?: string
+                }
+              }
+              placementSummary?: {
+                targetTopology?: string
+                workspaceToolingPackage?: string
+                effectRuntimePackageScopes?: readonly string[]
+                effectTestPackageScopes?: readonly string[]
+                tsconfigTargets?: readonly string[]
+                eslintEntry?: string
+                editorSettingsTargets?: readonly string[]
+                providerNamespacePath?: string
+              }
+              managedClaims?: readonly {
+                slot?: string
+                locator?: string
+                kind?: string
+              }[]
               surfaces?: readonly { id: string }[]
             }
           }>
@@ -348,6 +435,26 @@ describe('fullscreen create workbench v1 acceptance fixtures', () => {
         assert.deepStrictEqual(providerOperation?.value?.projectedContext?.packagePaths, {
           node: 'apps/node',
         })
+        assert.equal(providerOperation?.value?.artifact?.packageArtifactIdentity?.packageName, '@sayoriqwq/effect-harness')
+        assert.equal(providerOperation?.value?.artifact?.packageArtifactIdentity?.packageVersion, '0.0.4')
+        assert.equal(providerOperation?.value?.artifact?.packageArtifactIdentity?.npmSelector, '@sayoriqwq/effect-harness@0.0.4')
+        assert.equal(providerOperation?.value?.artifact?.packageArtifactIdentity?.neutralDiscoveryCommand, 'npx --yes --package @sayoriqwq/effect-harness@0.0.4 effect-harness provider-discover')
+        assert.equal(providerOperation?.value?.placementSummary?.targetTopology, 'workspace')
+        assert.equal(providerOperation?.value?.placementSummary?.workspaceToolingPackage, 'root')
+        assert.deepStrictEqual(providerOperation?.value?.placementSummary?.effectRuntimePackageScopes, ['node'])
+        assert.deepStrictEqual(providerOperation?.value?.placementSummary?.effectTestPackageScopes, ['node'])
+        assert.deepStrictEqual(providerOperation?.value?.placementSummary?.tsconfigTargets, ['apps/node/tsconfig.json'])
+        assert.equal(providerOperation?.value?.placementSummary?.eslintEntry, 'eslint.config.mjs')
+        assert.deepStrictEqual(providerOperation?.value?.placementSummary?.editorSettingsTargets, ['.vscode/settings.json', '.zed/settings.json'])
+        assert.equal(providerOperation?.value?.placementSummary?.providerNamespacePath, '.prelude/providers/effect-harness')
+        assert.ok(providerOperation?.value?.managedClaims?.some(claim =>
+          claim.slot === 'effect-runtime-package'
+          && claim.locator === 'apps/node/package.json#/dependencies/effect'
+          && claim.kind === 'structuredPointer'))
+        assert.ok(providerOperation?.value?.managedClaims?.some(claim =>
+          claim.slot === 'effect-tsconfig'
+          && claim.locator === 'apps/node/tsconfig.json#/compilerOptions/plugins'
+          && claim.kind === 'structuredPointer'))
         assert.equal(providerOperation?.value?.surfaces?.some(surface => surface.id.startsWith('tsconfig:root:')), false)
         assert.equal(providerOperation?.value?.surfaces?.some(surface => surface.id === 'tsconfig:apps/node:/compilerOptions/plugins'), true)
         yield* assertPathDoesNotExist(yield* pathJoin(targetDir, '.prelude/manifest.json'))

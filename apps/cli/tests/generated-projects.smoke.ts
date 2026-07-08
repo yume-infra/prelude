@@ -472,7 +472,43 @@ const workerManifest = await readJson<{
   maintainProviders: Array<{ id: string, recordPath: string }>
   verificationRecords: Array<{ id: string, checkedPaths: readonly string[] }>
 }>(pathJoin(workerDir, '.prelude/manifest.json'))
-const providerRecord = await readJson<{ id: string, surfaces: Array<{ id: string, owner: string, lifecycle: string, path: string }> }>(
+const providerRecord = await readJson<{
+  id: string
+  artifact?: {
+    packageArtifactIdentity?: {
+      packageName?: string
+      packageVersion?: string
+      npmSelector?: string
+      neutralDiscoveryCommand?: string
+    }
+    artifactOnlyReferenceAudit?: {
+      mode?: string
+      references?: readonly {
+        id?: string
+        targetDelivery?: string
+        available?: boolean
+      }[]
+    }
+  }
+  placementSummary?: {
+    providerNamespacePath?: string
+    targetTopology?: string
+    workspaceToolingPackage?: string
+    effectRuntimePackageScopes?: readonly string[]
+    effectTestPackageScopes?: readonly string[]
+    tsconfigTargets?: readonly string[]
+    eslintEntry?: string
+    editorSettingsTargets?: readonly string[]
+    docsDeliveryMode?: string
+    snippetsDeliveryMode?: string
+  }
+  managedClaims?: readonly {
+    slot?: string
+    locator?: string
+    kind?: string
+  }[]
+  surfaces: Array<{ id: string, owner: string, lifecycle: string, path: string }>
+}>(
   pathJoin(workerDir, '.prelude/providers/effect-harness/provider.json'),
 )
 
@@ -511,6 +547,37 @@ assert.deepEqual(Object.keys(workerManifest).sort(), [
 assert.deepEqual(workerManifest.maintainProviders.map(provider => provider.id), ['effect-harness'])
 assert.equal(workerManifest.maintainProviders[0]?.recordPath, '.prelude/providers/effect-harness/provider.json')
 assert.equal(providerRecord.id, 'effect-harness')
+assert.equal(providerRecord.artifact?.packageArtifactIdentity?.packageName, '@sayoriqwq/effect-harness')
+assert.equal(providerRecord.artifact?.packageArtifactIdentity?.packageVersion, '0.0.4')
+assert.equal(providerRecord.artifact?.packageArtifactIdentity?.npmSelector, '@sayoriqwq/effect-harness@0.0.4')
+assert.equal(providerRecord.artifact?.packageArtifactIdentity?.neutralDiscoveryCommand, 'npx --yes --package @sayoriqwq/effect-harness@0.0.4 effect-harness provider-discover')
+assert.equal(providerRecord.artifact?.artifactOnlyReferenceAudit?.mode, 'artifact-only-reference-audit')
+assert.ok(providerRecord.artifact?.artifactOnlyReferenceAudit?.references?.some(reference =>
+  reference.id === 'effect-source-tree'
+  && reference.targetDelivery === 'artifact-only'
+  && reference.available === true))
+assert.ok(providerRecord.artifact?.artifactOnlyReferenceAudit?.references?.some(reference =>
+  reference.id === 'tsgo-source-tree'
+  && reference.targetDelivery === 'artifact-only'
+  && reference.available === true))
+assert.equal(providerRecord.placementSummary?.providerNamespacePath, '.prelude/providers/effect-harness')
+assert.equal(providerRecord.placementSummary?.targetTopology, 'single-package')
+assert.equal(providerRecord.placementSummary?.workspaceToolingPackage, 'root')
+assert.deepEqual(providerRecord.placementSummary?.effectRuntimePackageScopes, ['worker'])
+assert.deepEqual(providerRecord.placementSummary?.effectTestPackageScopes, ['worker'])
+assert.deepEqual(providerRecord.placementSummary?.tsconfigTargets, ['tsconfig.json'])
+assert.equal(providerRecord.placementSummary?.eslintEntry, 'eslint.config.mjs')
+assert.deepEqual(providerRecord.placementSummary?.editorSettingsTargets, ['.vscode/settings.json', '.zed/settings.json'])
+assert.equal(providerRecord.placementSummary?.docsDeliveryMode, 'copy')
+assert.equal(providerRecord.placementSummary?.snippetsDeliveryMode, 'copy')
+assert.ok(providerRecord.managedClaims?.some(claim =>
+  claim.slot === 'effect-runtime-package'
+  && claim.locator === 'package.json#/dependencies/effect'
+  && claim.kind === 'structuredPointer'))
+assert.ok(providerRecord.managedClaims?.some(claim =>
+  claim.slot === 'effect-tsconfig'
+  && claim.locator === 'tsconfig.json#/compilerOptions/plugins'
+  && claim.kind === 'structuredPointer'))
 const providerSurfaceIds = new Set(providerRecord.surfaces.map(surface => surface.id))
 assert.ok(providerSurfaceIds.has('tsconfig:root:/compilerOptions/plugins'))
 assert.ok(providerSurfaceIds.has('provider-managed-block:effect-harness:eslint.config.mjs#provider-config'))
@@ -772,16 +839,25 @@ const workerProviderVerify = await execa('node', [cliEntry, 'verify', '--provide
   cwd: workerDir,
   timeout: 120_000,
 })
-assert.deepEqual(JSON.parse(workerProviderVerify.stdout), {
-  command: 'verify',
-  status: 'completed',
-  providers: [
-    {
-      providerId: 'effect-harness',
-      status: 'passed',
-    },
-  ],
+const workerProviderVerifyOutput = JSON.parse(workerProviderVerify.stdout) as {
+  command: string
+  status: string
+  providers: readonly Record<string, unknown>[]
+}
+assert.equal(workerProviderVerifyOutput.command, 'verify')
+assert.equal(workerProviderVerifyOutput.status, 'completed')
+const workerProviderVerifyRecord = workerProviderVerifyOutput.providers[0]
+assert.equal(workerProviderVerifyRecord?.providerId, 'effect-harness')
+assert.equal(workerProviderVerifyRecord?.status, 'passed')
+assert.deepEqual(workerProviderVerifyRecord?.providerIdentity, {
+  id: 'effect-harness',
+  contractVersion: '1',
+  providerVersion: '0.1.0',
 })
+assert.deepEqual(workerProviderVerifyRecord?.packageArtifactIdentity, providerRecord.artifact?.packageArtifactIdentity)
+assert.equal(workerProviderVerifyRecord?.selectedProfile, 'codex-effect-v4')
+assert.deepEqual(workerProviderVerifyRecord?.placementSummary, providerRecord.placementSummary)
+assert.deepEqual(workerProviderVerifyRecord?.managedClaims, providerRecord.managedClaims)
 await execa('pnpm', ['--filter', reactSpec.package.name, 'verify'], {
   cwd: generatedRoot,
   stdio: 'inherit',

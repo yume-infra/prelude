@@ -1,8 +1,17 @@
-import type { EffectHarnessPackageLocator, EffectHarnessProviderDiscovery, JsonValue } from './model'
+import type {
+  EffectHarnessArtifactOnlyReferenceAudit,
+  EffectHarnessArtifactOnlyReferences,
+  EffectHarnessPackageArtifactIdentity,
+  EffectHarnessPackageLocator,
+  EffectHarnessProviderDiscovery,
+  EffectHarnessSemanticContributions,
+  JsonValue,
+} from './model'
 import { Context, Effect, Layer, Schema } from 'effect'
 import { ChildProcess, ChildProcessSpawner } from 'effect/unstable/process'
 
 const decodeJsonString = Schema.decodeUnknownSync(Schema.UnknownFromJsonString)
+const providerArtifactDiscoveryCommand = 'npx --yes --package @sayoriqwq/effect-harness effect-harness provider-discover'
 const targetManagedContributionKeys = [
   'packageJson',
   'tsconfig',
@@ -40,6 +49,14 @@ function requireString(record: Record<string, unknown>, key: string): string {
   return value
 }
 
+function requireStringArrayValue(value: unknown, source: string): readonly string[] {
+  if (!Array.isArray(value) || !value.every(file => typeof file === 'string')) {
+    throw new TypeError(`expected ${source} string array`)
+  }
+
+  return value
+}
+
 function requireRecord(record: Record<string, unknown>, key: string): Record<string, unknown> {
   const value = record[key]
   if (!isRecord(value)) {
@@ -56,7 +73,7 @@ function requireJsonRecord(record: Record<string, unknown>, key: string): Record
   return value
 }
 
-function decodeTargetManagedSurfaces(input: Record<string, unknown>): Record<string, JsonValue> {
+function decodeTargetManagedSurfaces(input: Record<string, unknown>): EffectHarnessProviderDiscovery['targetManagedSurfaces'] {
   const targetManagedSurfaces = requireJsonRecord(input, 'targetManagedSurfaces')
   const documentationBundle = targetManagedSurfaces.documentationBundle
   const snippets = targetManagedSurfaces.snippets
@@ -80,22 +97,160 @@ function decodeTargetManagedSurfaces(input: Record<string, unknown>): Record<str
     }
   }
 
-  return targetManagedSurfaces
+  return {
+    ...targetManagedSurfaces,
+    contributions: decodeSemanticContributions(contributions),
+  }
+}
+
+function requireProviderArtifactContractRecord(record: Record<string, unknown>, key: string): Record<string, unknown> {
+  try {
+    return requireRecord(record, key)
+  }
+  catch (error) {
+    throw new TypeError(`provider artifact discovery contract missing: ${error instanceof Error ? error.message : String(error)}`)
+  }
+}
+
+function requireProviderArtifactContractJsonRecord(record: Record<string, unknown>, key: string): Record<string, JsonValue> {
+  try {
+    return requireJsonRecord(record, key)
+  }
+  catch (error) {
+    throw new TypeError(`provider artifact discovery contract missing: ${error instanceof Error ? error.message : String(error)}`)
+  }
+}
+
+function jsonValuesEqual(left: JsonValue, right: JsonValue): boolean {
+  if (left === right) {
+    return true
+  }
+
+  if (Array.isArray(left) || Array.isArray(right)) {
+    return Array.isArray(left)
+      && Array.isArray(right)
+      && left.length === right.length
+      && left.every((entry, index) => jsonValuesEqual(entry, right[index] as JsonValue))
+  }
+
+  if (!isRecord(left) || !isRecord(right)) {
+    return false
+  }
+
+  const leftKeys = Object.keys(left).sort()
+  const rightKeys = Object.keys(right).sort()
+  return leftKeys.length === rightKeys.length
+    && leftKeys.every((key, index) =>
+      key === rightKeys[index]
+      && jsonValuesEqual(left[key] as JsonValue, right[key] as JsonValue),
+    )
+}
+
+function decodeSemanticContributions(value: Record<string, unknown>): EffectHarnessSemanticContributions {
+  return {
+    packageJson: requireJsonRecord(value, 'packageJson'),
+    tsconfig: requireJsonRecord(value, 'tsconfig'),
+    editorPolicy: requireJsonRecord(value, 'editorPolicy'),
+    lintGuardrails: requireJsonRecord(value, 'lintGuardrails'),
+    testPolicy: requireJsonRecord(value, 'testPolicy'),
+    verificationPolicy: requireJsonRecord(value, 'verificationPolicy'),
+  } satisfies EffectHarnessSemanticContributions
 }
 
 function decodePackageLocator(value: Record<string, unknown>): EffectHarnessPackageLocator {
-  const packageFiles = value.packageFiles
-  if (!Array.isArray(packageFiles) || !packageFiles.every(file => typeof file === 'string')) {
-    throw new TypeError('expected packageLocator.packageFiles string array')
-  }
-
   return {
     packageName: requireString(value, 'packageName'),
     packageVersion: requireString(value, 'packageVersion'),
     binName: requireString(value, 'binName'),
     binPath: requireString(value, 'binPath'),
     discoveryCommand: requireString(value, 'discoveryCommand'),
-    packageFiles,
+    packageFiles: requireStringArrayValue(value.packageFiles, 'packageLocator.packageFiles'),
+  }
+}
+
+function decodePackageArtifactIdentity(value: Record<string, unknown>): EffectHarnessPackageArtifactIdentity {
+  const invocationFailureClassification = requireRecord(value, 'invocationFailureClassification')
+  const sameNameCwdShortCircuit = requireRecord(invocationFailureClassification, 'sameNameCwdShortCircuit')
+  const classification = requireString(sameNameCwdShortCircuit, 'classification')
+  const code = requireString(sameNameCwdShortCircuit, 'code')
+
+  if (classification !== 'npm-invocation-failure') {
+    throw new TypeError(`expected packageArtifactIdentity.invocationFailureClassification.sameNameCwdShortCircuit.classification npm-invocation-failure, got ${classification}`)
+  }
+
+  if (code !== 'npm-same-name-cwd-short-circuit') {
+    throw new TypeError(`expected packageArtifactIdentity.invocationFailureClassification.sameNameCwdShortCircuit.code npm-same-name-cwd-short-circuit, got ${code}`)
+  }
+
+  if (sameNameCwdShortCircuit.providerDiscoveryStarted !== false) {
+    throw new TypeError('expected packageArtifactIdentity.invocationFailureClassification.sameNameCwdShortCircuit.providerDiscoveryStarted false')
+  }
+
+  return {
+    packageName: requireString(value, 'packageName'),
+    packageVersion: requireString(value, 'packageVersion'),
+    packageManager: requireString(value, 'packageManager'),
+    artifactRoot: requireString(value, 'artifactRoot'),
+    packageJsonPath: requireString(value, 'packageJsonPath'),
+    providerProfilePath: requireString(value, 'providerProfilePath'),
+    npmSelector: requireString(value, 'npmSelector'),
+    neutralDiscoveryCommand: requireString(value, 'neutralDiscoveryCommand'),
+    invocationFailureClassification: {
+      sameNameCwdShortCircuit: {
+        classification: 'npm-invocation-failure',
+        code: 'npm-same-name-cwd-short-circuit',
+        providerDiscoveryStarted: false,
+      },
+    },
+  }
+}
+
+function decodeArtifactOnlyReferences(value: Record<string, unknown>): EffectHarnessArtifactOnlyReferences {
+  const packageSurface = requireStringArrayValue(value.packageSurface, 'artifactOnlyReferences.packageSurface')
+  const references = requireJsonRecord(value, 'references')
+
+  if (!packageSurface.includes('dist')) {
+    throw new TypeError('expected artifactOnlyReferences.packageSurface to include dist')
+  }
+
+  return {
+    mode: requireString(value, 'mode'),
+    targetDelivery: requireString(value, 'targetDelivery'),
+    packageSurface,
+    references,
+  }
+}
+
+function decodeArtifactOnlyReferenceAudit(value: Record<string, unknown>): EffectHarnessArtifactOnlyReferenceAudit {
+  const mode = requireString(value, 'mode')
+  if (mode !== 'artifact-only-reference-audit') {
+    throw new TypeError(`expected artifactOnlyReferenceAudit.mode artifact-only-reference-audit, got ${mode}`)
+  }
+
+  const references = value.references
+  if (!Array.isArray(references)) {
+    throw new TypeError('expected artifactOnlyReferenceAudit.references array')
+  }
+
+  return {
+    mode: 'artifact-only-reference-audit',
+    references: references.map((reference, index) => {
+      if (!isRecord(reference)) {
+        throw new TypeError(`expected artifactOnlyReferenceAudit.references[${index}] object`)
+      }
+
+      if (reference.available !== true) {
+        throw new TypeError(`expected artifactOnlyReferenceAudit.references[${index}].available true`)
+      }
+
+      return {
+        id: requireString(reference, 'id'),
+        path: requireString(reference, 'path'),
+        sourceEntry: requireString(reference, 'sourceEntry'),
+        targetDelivery: requireString(reference, 'targetDelivery'),
+        available: true,
+      }
+    }),
   }
 }
 
@@ -116,10 +271,14 @@ function decodeEffectHarnessProviderDiscovery(input: unknown): Effect.Effect<Eff
         throw new TypeError(`expected effect-harness provider id, got ${providerId}`)
       }
 
-      const artifactOnlyReferences = requireJsonRecord(input, 'artifactOnlyReferences')
-      const references = artifactOnlyReferences.references
-      if (!isRecord(references) || !isJsonValue(references)) {
-        throw new TypeError('expected artifactOnlyReferences.references JSON object')
+      const packageArtifactIdentity = decodePackageArtifactIdentity(requireProviderArtifactContractRecord(input, 'packageArtifactIdentity'))
+      const semanticContributions = decodeSemanticContributions(requireProviderArtifactContractRecord(input, 'semanticContributions'))
+      const targetManagedSurfaces = decodeTargetManagedSurfaces(input)
+      const artifactOnlyReferences = decodeArtifactOnlyReferences(requireProviderArtifactContractJsonRecord(input, 'artifactOnlyReferences'))
+      const artifactOnlyReferenceAudit = decodeArtifactOnlyReferenceAudit(requireProviderArtifactContractRecord(input, 'artifactOnlyReferenceAudit'))
+
+      if (!jsonValuesEqual(semanticContributions, targetManagedSurfaces.contributions)) {
+        throw new TypeError('provider artifact discovery contract missing: expected semanticContributions to match targetManagedSurfaces.contributions')
       }
 
       return {
@@ -127,6 +286,7 @@ function decodeEffectHarnessProviderDiscovery(input: unknown): Effect.Effect<Eff
         artifactRoot: requireString(input, 'artifactRoot'),
         providerProfilePath: requireString(input, 'providerProfilePath'),
         providerProfileRelativePath: requireString(input, 'providerProfileRelativePath'),
+        packageArtifactIdentity,
         packageLocator: decodePackageLocator(requireRecord(input, 'packageLocator')),
         provider: {
           id: 'effect-harness',
@@ -137,11 +297,10 @@ function decodeEffectHarnessProviderDiscovery(input: unknown): Effect.Effect<Eff
         selectedProfile: requireString(input, 'selectedProfile'),
         discovery: requireJsonRecord(input, 'discovery'),
         deliveryModes: requireJsonRecord(input, 'deliveryModes'),
-        targetManagedSurfaces: decodeTargetManagedSurfaces(input),
-        artifactOnlyReferences: {
-          ...artifactOnlyReferences,
-          references,
-        },
+        semanticContributions,
+        targetManagedSurfaces,
+        artifactOnlyReferences,
+        artifactOnlyReferenceAudit,
         sourceIdentities: requireJsonRecord(input, 'sourceIdentities'),
         internalHarnessSurfaces: requireJsonRecord(input, 'internalHarnessSurfaces'),
       }
@@ -157,10 +316,10 @@ function discoverEffectHarnessProviderViaCli(
 ): Effect.Effect<EffectHarnessProviderDiscovery, EffectHarnessProviderDiscoveryError> {
   return Effect.gen(function* () {
     const output = yield* spawner.string(
-      ChildProcess.make('npx', ['--yes', '@sayoriqwq/effect-harness', 'provider-discover']),
+      ChildProcess.make('npx', ['--yes', '--package', '@sayoriqwq/effect-harness', 'effect-harness', 'provider-discover']),
     ).pipe(
       Effect.mapError(error => EffectHarnessProviderDiscoveryError.make({
-        message: `Failed to run effect-harness provider discovery command "npx --yes @sayoriqwq/effect-harness provider-discover": ${error instanceof Error ? error.message : String(error)}`,
+        message: `Failed to run effect-harness provider discovery command "${providerArtifactDiscoveryCommand}": ${error instanceof Error ? error.message : String(error)}`,
       })),
     )
 

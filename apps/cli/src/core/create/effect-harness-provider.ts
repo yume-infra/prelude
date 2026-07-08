@@ -15,7 +15,8 @@ import { pathJoin } from '@/core/path-utils'
 import { eslintProviderHookBlock, eslintProviderHookEndMarker, eslintProviderHookStartMarker } from './eslint-provider-hook'
 
 const effectHarnessProviderId = 'effect-harness'
-const effectHarnessProviderPath = '.prelude/providers/effect-harness/provider.json'
+const effectHarnessProviderNamespacePath = '.prelude/providers/effect-harness'
+const effectHarnessProviderPath = `${effectHarnessProviderNamespacePath}/provider.json`
 export const effectHarnessVerificationId = 'provider:effect-harness:create-contract'
 
 function jsonRecord(value: unknown): Record<string, JsonValue> {
@@ -72,6 +73,10 @@ function optionalBoolean(value: JsonValue | undefined): boolean | undefined {
 
 function jsonPointerSegment(value: string) {
   return value.replaceAll('~', '~0').replaceAll('/', '~1')
+}
+
+function jsonPointerDecodeSegment(value: string) {
+  return value.replaceAll('~1', '/').replaceAll('~0', '~')
 }
 
 function targetManagedContributions(discovery: EffectHarnessProviderDiscovery) {
@@ -197,8 +202,10 @@ function effectHarnessArtifact(discovery: EffectHarnessProviderDiscovery): Provi
     id: discovery.provider.id,
     version: discovery.provider.providerVersion,
     providerProfileRelativePath: discovery.providerProfileRelativePath,
+    packageArtifactIdentity: jsonRecord(discovery.packageArtifactIdentity),
     packageLocator: jsonRecord(discovery.packageLocator),
     artifactOnlyReferences: jsonRecord(discovery.artifactOnlyReferences),
+    artifactOnlyReferenceAudit: jsonRecord(discovery.artifactOnlyReferenceAudit),
     sourceIdentities: jsonRecord(discovery.sourceIdentities),
   } satisfies ProviderArtifactRecord
 }
@@ -942,6 +949,118 @@ function ownedFileSurface(input: {
   }
 }
 
+function uniqueStrings(values: readonly string[]) {
+  return [...new Set(values)]
+}
+
+function effectHarnessManagedFilesDeliveryMode(discovery: EffectHarnessProviderDiscovery, key: 'documentationBundle' | 'snippets') {
+  const contribution = targetManagedFilesContribution(discovery, key)
+  return optionalString(contribution.mode) === 'reference' ? 'reference' : 'copy'
+}
+
+function effectHarnessPlacementSummary(
+  discovery: EffectHarnessProviderDiscovery,
+  projectedContext: ProviderProjectedContext,
+): Record<string, JsonValue> {
+  return {
+    providerNamespacePath: effectHarnessProviderNamespacePath,
+    targetTopology: projectedContext.topology,
+    workspaceToolingPackage: 'root',
+    packageManifestTargets: uniqueStrings(
+      effectHarnessPackageSurfacesForProjectedContext(discovery, projectedContext).map(surface => surface.path),
+    ),
+    effectRuntimePackageScopes: [...projectedContext.packageScopes],
+    effectTestPackageScopes: [...projectedContext.packageScopes],
+    tsconfigTargets: uniqueStrings(
+      effectHarnessTsconfigSurfacesForProjectedContext(discovery, projectedContext).map(surface => surface.path),
+    ),
+    eslintEntry: effectHarnessRootEslintConfigPath,
+    editorSettingsTargets: effectHarnessEditorSettingsProjections(discovery).map(projection => projection.path),
+    docsDeliveryMode: effectHarnessManagedFilesDeliveryMode(discovery, 'documentationBundle'),
+    snippetsDeliveryMode: effectHarnessManagedFilesDeliveryMode(discovery, 'snippets'),
+  }
+}
+
+function packageSurfacePackageName(pointer: string) {
+  const parts = pointer.split('/')
+  const packageName = parts[parts.length - 1]
+  return packageName === undefined ? undefined : jsonPointerDecodeSegment(packageName)
+}
+
+function packageSurfaceSlot(surface: Extract<LifecycleSurfaceRecord, { readonly kind: 'structuredPointer' }>) {
+  const packageName = packageSurfacePackageName(surface.pointer)
+
+  if (surface.pointer.startsWith('/dependencies/')) {
+    return 'effect-runtime-package'
+  }
+
+  if (packageName === '@effect/vitest' || packageName === 'vitest' || surface.pointer === '/scripts/test') {
+    return 'effect-test-package'
+  }
+
+  if (
+    packageName === '@effect/tsgo'
+    || packageName === '@effect/language-service'
+    || packageName === '@typescript/native-preview'
+    || surface.pointer === '/scripts/prepare'
+    || surface.pointer === '/scripts/typecheck'
+  ) {
+    return 'effect-tsconfig'
+  }
+
+  if (packageName === '@antfu/eslint-config' || packageName === 'eslint' || surface.pointer === '/scripts/lint') {
+    return 'eslint-entry'
+  }
+
+  return 'verification-policy'
+}
+
+function effectHarnessManagedClaimSlot(surface: LifecycleSurfaceRecord) {
+  if (surface.kind === 'managedBlock') {
+    return surface.id === effectHarnessEslintProviderHookSurfaceId ? 'eslint-entry' : 'managed-block'
+  }
+
+  if (surface.kind === 'ownedFile') {
+    if (surface.path.startsWith(`${effectHarnessProviderNamespacePath}/docs/`)) {
+      return 'docs-bundle'
+    }
+
+    if (surface.path.startsWith(`${effectHarnessProviderNamespacePath}/snippets/`)) {
+      return 'snippets'
+    }
+
+    return 'provider-namespace'
+  }
+
+  if (surface.path.endsWith('/package.json') || surface.path === 'package.json') {
+    return packageSurfaceSlot(surface)
+  }
+
+  if (surface.path.endsWith('/tsconfig.json') || surface.path === 'tsconfig.json') {
+    return 'effect-tsconfig'
+  }
+
+  if (surface.path === '.vscode/settings.json' || surface.path === '.zed/settings.json') {
+    return 'editor-policy'
+  }
+
+  return 'provider-namespace'
+}
+
+function effectHarnessManagedClaims(surfaces: readonly LifecycleSurfaceRecord[]): readonly Record<string, JsonValue>[] {
+  return surfaces.map(surface => ({
+    slot: effectHarnessManagedClaimSlot(surface),
+    surfaceId: surface.id,
+    owner: surface.owner,
+    kind: surface.kind,
+    locator: surface.locator,
+    path: surface.path,
+    conflictPolicy: surface.conflictPolicy,
+    contractVersion: surface.contractVersion,
+    implementationVersion: surface.implementationVersion,
+  }))
+}
+
 export function effectHarnessLifecycleProviderRecord(discovery: EffectHarnessProviderDiscovery, graph: ResolvedGraph): LifecycleProviderRecord {
   return effectHarnessProviderRecordForProjectedContext(discovery, effectHarnessProjectedContext(graph))
 }
@@ -969,6 +1088,8 @@ export function effectHarnessProviderRecordForProjectedContext(discovery: Effect
     profile: discovery.selectedProfile,
     artifact,
     projectedContext: normalizedProjectedContext,
+    placementSummary: effectHarnessPlacementSummary(discovery, normalizedProjectedContext),
+    managedClaims: effectHarnessManagedClaims(surfaces),
     options: {
       lifecycleOwner: optionalString(discovery.discovery.targetLifecycleOwner) ?? 'prelude',
       effect: {

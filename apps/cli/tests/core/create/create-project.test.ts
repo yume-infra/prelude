@@ -24,6 +24,14 @@ const invalidDiscoveryService = effectHarnessProviderDiscoveryDecodeService({
   },
 })
 
+function publicPackageDiscoveryMissing(
+  field: 'packageArtifactIdentity' | 'semanticContributions' | 'artifactOnlyReferenceAudit',
+) {
+  const discovery: Record<string, unknown> = { ...effectHarnessDiscoveryFixture }
+  delete discovery[field]
+  return discovery
+}
+
 describe('create spec creation path', () => {
   it.layer(TestLayer)((it) => {
     it.effect('creates a minimal single-package project without a create manifest ledger', () => Effect.gen(function* () {
@@ -611,14 +619,20 @@ NodeRuntime.runMain(main())
       const targetDir = yield* makeTempProjectDir('prelude-create-')
       const discovery = {
         ...effectHarnessDiscoveryFixture,
+        packageArtifactIdentity: {
+          ...effectHarnessDiscoveryFixture.packageArtifactIdentity,
+          packageVersion: '9.9.9-test',
+          npmSelector: '@sayoriqwq/effect-harness@9.9.9-test',
+          neutralDiscoveryCommand: 'npx --yes --package @sayoriqwq/effect-harness@9.9.9-test effect-harness provider-discover',
+        },
         packageLocator: {
           ...effectHarnessDiscoveryFixture.packageLocator,
           packageName: '@sayoriqwq/effect-harness',
           packageVersion: '9.9.9-test',
           binName: 'effect-harness',
           binPath: 'dist/bin/effect-harness.js',
-          discoveryCommand: 'npx --yes @sayoriqwq/effect-harness provider-discover',
-          packageFiles: ['provider', 'harness', 'repos'],
+          discoveryCommand: 'npx --yes --package @sayoriqwq/effect-harness@9.9.9-test effect-harness provider-discover',
+          packageFiles: ['dist', 'provider', 'harness', 'repos'],
         },
         provider: {
           ...effectHarnessDiscoveryFixture.provider,
@@ -631,7 +645,7 @@ NodeRuntime.runMain(main())
           ...effectHarnessDiscoveryFixture.artifactOnlyReferences,
           mode: 'provider-artifact-reference',
           targetDelivery: 'identity-only',
-          packageSurface: ['provider', 'harness', 'repos'],
+          packageSurface: ['dist', 'provider', 'harness', 'repos'],
           references: {
             'effect-source-tree': {
               sourceEntry: 'effect-official-source',
@@ -687,7 +701,7 @@ NodeRuntime.runMain(main())
       assert.equal(providerRecord.contractVersion, '7-test')
       assert.equal(providerRecord.providerVersion, '9.9.9-test')
       assert.equal(providerRecord.artifact.packageLocator.packageVersion, '9.9.9-test')
-      assert.equal(providerRecord.artifact.packageLocator.discoveryCommand, 'npx --yes @sayoriqwq/effect-harness provider-discover')
+      assert.equal(providerRecord.artifact.packageLocator.discoveryCommand, 'npx --yes --package @sayoriqwq/effect-harness@9.9.9-test effect-harness provider-discover')
       assert.equal(providerRecord.artifact.providerProfileRelativePath, 'provider/effect-harness.provider.json')
       assert.deepEqual(Object.keys(providerRecord.artifact.artifactOnlyReferences.references), ['effect-source-tree'])
       assert.equal(providerRecord.artifact.sourceIdentities.defaultSourceEntry, 'effect-official-source')
@@ -725,9 +739,61 @@ NodeRuntime.runMain(main())
           }
           assert.equal(result.failure.schema, 'EffectHarnessProviderDiscovery')
           assert.include(result.failure.message, 'Invalid effect-harness provider discovery output')
-          assert.include(result.failure.message, 'expected object field artifactOnlyReferences')
+          assert.include(result.failure.message, 'provider artifact discovery contract missing')
+          assert.include(result.failure.message, 'expected object field packageArtifactIdentity')
         }
       }).pipe(Effect.provideService(EffectHarnessProviderDiscoveryService, invalidDiscoveryService)))
+
+    it.effect('blocks effect-harness discovery without the public package artifact envelope instead of using old discovery fallback', () =>
+      Effect.gen(function* () {
+        const cases = [
+          {
+            field: 'packageArtifactIdentity',
+            targetName: 'missing-package-artifact-identity-worker',
+          },
+          {
+            field: 'semanticContributions',
+            targetName: 'missing-semantic-contributions-worker',
+          },
+          {
+            field: 'artifactOnlyReferenceAudit',
+            targetName: 'missing-artifact-reference-audit-worker',
+          },
+        ] as const
+
+        for (const testCase of cases) {
+          const targetDir = yield* makeTempProjectDir('prelude-create-')
+          const result = yield* Effect.result(
+            createProjectFromSpec({
+              spec: {
+                topology: 'single-package',
+                package: {
+                  id: 'worker',
+                  name: makePackageName(testCase.targetName),
+                  capabilities: ['effect-package'],
+                },
+                rootCapabilities: ['package-manager:pnpm', 'ai-harness'],
+                providers: ['effect-harness'],
+                overrides: {},
+              },
+              targetDir: makeTargetDir(targetDir),
+              preludeVersion: '0.0.0-test',
+            }).pipe(
+              Effect.provideService(
+                EffectHarnessProviderDiscoveryService,
+                effectHarnessProviderDiscoveryDecodeService(publicPackageDiscoveryMissing(testCase.field)),
+              ),
+            ),
+          )
+
+          assert.equal(result._tag, 'Failure', `${testCase.field} should block provider artifact discovery`)
+          if (result._tag === 'Failure') {
+            assert.equal(result.failure._tag, 'SchemaContractError')
+            assert.include(result.failure.message, 'provider artifact')
+            assert.include(result.failure.message, testCase.field)
+          }
+        }
+      }))
 
     it.effect('dedupes equal structured package keys and blocks incompatible values before writes', () =>
       Effect.gen(function* () {

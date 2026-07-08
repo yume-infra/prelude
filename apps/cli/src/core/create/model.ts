@@ -345,6 +345,28 @@ export interface EffectHarnessPackageLocator {
   readonly packageFiles: readonly string[]
 }
 
+export interface EffectHarnessNpmInvocationFailureClassification {
+  readonly classification: 'npm-invocation-failure'
+  readonly code: 'npm-same-name-cwd-short-circuit'
+  readonly providerDiscoveryStarted: false
+}
+
+export interface EffectHarnessPackageArtifactIdentity {
+  readonly packageName: string
+  readonly packageVersion: string
+  readonly packageManager: string
+  readonly artifactRoot?: string
+  readonly packageJsonPath?: string
+  readonly providerProfilePath?: string
+  readonly npmSelector?: string
+  readonly neutralDiscoveryCommand?: string
+  readonly resolvedLocator?: string
+  readonly providerProfileRelativePath?: string
+  readonly invocationFailureClassification?: {
+    readonly sameNameCwdShortCircuit: EffectHarnessNpmInvocationFailureClassification
+  }
+}
+
 export interface EffectHarnessDiscoveredProvider {
   readonly id: 'effect-harness'
   readonly contractVersion: string
@@ -352,20 +374,60 @@ export interface EffectHarnessDiscoveredProvider {
   readonly defaultProfile: string
 }
 
+export interface EffectHarnessSemanticContributions extends Record<string, JsonValue> {
+  readonly packageJson?: Record<string, JsonValue>
+  readonly tsconfig?: Record<string, JsonValue>
+  readonly editorPolicy?: Record<string, JsonValue>
+  readonly lintGuardrails?: Record<string, JsonValue>
+  readonly testPolicy?: Record<string, JsonValue>
+  readonly verificationPolicy?: Record<string, JsonValue>
+}
+
+export interface EffectHarnessArtifactOnlyReferences {
+  readonly mode: string
+  readonly targetDelivery: string
+  readonly packageSurface: readonly string[]
+  readonly references: Record<string, JsonValue>
+}
+
+export interface EffectHarnessArtifactOnlyReferenceAuditEntry {
+  readonly id: string
+  readonly path: string
+  readonly sourceEntry: string
+  readonly targetDelivery: string
+  readonly available: true
+}
+
+export interface EffectHarnessArtifactOnlyAvailabilityAudit {
+  readonly mode: 'artifact-only-reference-audit'
+  readonly references: readonly EffectHarnessArtifactOnlyReferenceAuditEntry[]
+}
+
+export interface EffectHarnessArtifactOnlyPlacementAudit {
+  readonly targetDelivery: string
+  readonly targetMustNotReceive: readonly string[]
+  readonly artifactReferenceIds: readonly string[]
+}
+
+export type EffectHarnessArtifactOnlyReferenceAudit = EffectHarnessArtifactOnlyAvailabilityAudit | EffectHarnessArtifactOnlyPlacementAudit
+
 export interface EffectHarnessProviderDiscovery {
   readonly schemaVersion: 1
   readonly artifactRoot: string
   readonly providerProfilePath: string
   readonly providerProfileRelativePath: string
+  readonly packageArtifactIdentity: EffectHarnessPackageArtifactIdentity
   readonly packageLocator: EffectHarnessPackageLocator
   readonly provider: EffectHarnessDiscoveredProvider
   readonly selectedProfile: string
   readonly discovery: Record<string, JsonValue>
   readonly deliveryModes: Record<string, JsonValue>
-  readonly targetManagedSurfaces: Record<string, JsonValue>
-  readonly artifactOnlyReferences: Record<string, JsonValue> & {
-    readonly references: Record<string, JsonValue>
+  readonly semanticContributions: EffectHarnessSemanticContributions
+  readonly targetManagedSurfaces: Record<string, JsonValue> & {
+    readonly contributions: EffectHarnessSemanticContributions
   }
+  readonly artifactOnlyReferences: EffectHarnessArtifactOnlyReferences
+  readonly artifactOnlyReferenceAudit: EffectHarnessArtifactOnlyReferenceAudit
   readonly sourceIdentities: Record<string, JsonValue>
   readonly internalHarnessSurfaces: Record<string, JsonValue>
 }
@@ -446,6 +508,8 @@ export interface LifecycleProviderRecord {
   readonly profile: string
   readonly artifact: ProviderArtifactRecord
   readonly projectedContext: ProviderProjectedContext
+  readonly placementSummary?: Record<string, JsonValue>
+  readonly managedClaims?: readonly Record<string, JsonValue>[]
   readonly options: Record<string, JsonValue>
   readonly runtime: ProviderRuntimeRecord
   readonly surfaces: readonly LifecycleSurfaceRecord[]

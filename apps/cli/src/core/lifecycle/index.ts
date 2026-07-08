@@ -22,12 +22,30 @@ export interface ProviderStatus {
   readonly providerId: string
   readonly status: 'ok' | 'changed' | 'blocked'
   readonly message?: string
+  readonly providerIdentity?: {
+    readonly id: string
+    readonly contractVersion: string
+    readonly providerVersion: string
+  }
+  readonly packageArtifactIdentity?: Record<string, JsonValue>
+  readonly selectedProfile?: string
+  readonly placementSummary?: Record<string, JsonValue>
+  readonly managedClaims?: readonly Record<string, JsonValue>[]
 }
 
 export interface ProviderVerifyResult {
   readonly providerId: string
   readonly status: 'passed' | 'failed'
   readonly message?: string
+  readonly providerIdentity?: {
+    readonly id: string
+    readonly contractVersion: string
+    readonly providerVersion: string
+  }
+  readonly packageArtifactIdentity?: Record<string, JsonValue>
+  readonly selectedProfile?: string
+  readonly placementSummary?: Record<string, JsonValue>
+  readonly managedClaims?: readonly Record<string, JsonValue>[]
 }
 
 export type ProviderUpdateOperation
@@ -187,6 +205,22 @@ function parseLifecycleSurfaceValue(value: string): JsonValue {
   }
 }
 
+function providerLifecycleReadout(record: LifecycleProviderRecord) {
+  const packageArtifactIdentity = record.artifact.packageArtifactIdentity
+
+  return {
+    providerIdentity: {
+      id: record.id,
+      contractVersion: record.contractVersion,
+      providerVersion: record.providerVersion,
+    },
+    ...(isJsonObject(packageArtifactIdentity) ? { packageArtifactIdentity } : {}),
+    selectedProfile: record.profile,
+    ...(record.placementSummary === undefined ? {} : { placementSummary: record.placementSummary }),
+    ...(record.managedClaims === undefined ? {} : { managedClaims: record.managedClaims }),
+  } satisfies Omit<ProviderStatus, 'providerId' | 'status' | 'message'>
+}
+
 function effectHarnessStatusForDiscovery(discovery: EffectHarnessProviderDiscovery) {
   return Effect.fn('effectHarnessStatus')(
     function* (record: LifecycleProviderRecord): Effect.fn.Return<ProviderStatus, LifecycleCommandError> {
@@ -195,6 +229,7 @@ function effectHarnessStatusForDiscovery(discovery: EffectHarnessProviderDiscove
       return {
         providerId: record.id,
         status: issues.length === 0 ? 'ok' : 'changed',
+        ...providerLifecycleReadout(record),
         ...(issues.length === 0 ? {} : { message: issues.join('; ') }),
       }
     },
@@ -212,10 +247,12 @@ function effectHarnessVerifyForDiscovery(discovery: EffectHarnessProviderDiscove
         ? {
             providerId: record.id,
             status: 'passed' as const,
+            ...providerLifecycleReadout(record),
           }
         : {
             providerId: record.id,
             status: 'failed' as const,
+            ...providerLifecycleReadout(record),
             message: `effect-harness lifecycle provider record does not match discovered provider identity: ${issues.join('; ')}`,
           }
     },

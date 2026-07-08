@@ -179,17 +179,52 @@ describe('prelude Effect CLI command', () => {
         const output = parseLastJson<{
           readonly command: string
           readonly status: string
-          readonly providers: readonly { readonly providerId: string, readonly status: string }[]
+          readonly providers: readonly {
+            readonly providerId: string
+            readonly status: string
+            readonly providerIdentity?: {
+              readonly id: string
+              readonly contractVersion: string
+              readonly providerVersion: string
+            }
+            readonly packageArtifactIdentity?: {
+              readonly packageName?: string
+              readonly packageVersion?: string
+            }
+            readonly selectedProfile?: string
+            readonly placementSummary?: {
+              readonly providerNamespacePath?: string
+              readonly targetTopology?: string
+              readonly tsconfigTargets?: readonly string[]
+            }
+            readonly managedClaims?: readonly {
+              readonly slot?: string
+              readonly locator?: string
+              readonly kind?: string
+            }[]
+          }[]
         }>(result.output)
 
         assert.equal(output.command, 'verify')
         assert.equal(output.status, 'completed')
-        assert.deepStrictEqual(output.providers, [
-          {
-            providerId: 'effect-harness',
-            status: 'passed',
-          },
-        ])
+        const provider = output.providers[0]
+        assert.equal(provider?.providerId, 'effect-harness')
+        assert.equal(provider?.status, 'passed')
+        assert.deepEqual(provider?.providerIdentity, {
+          id: 'effect-harness',
+          contractVersion: '1',
+          providerVersion: '0.1.0',
+        })
+        assert.equal(provider?.packageArtifactIdentity?.packageName, '@sayoriqwq/effect-harness')
+        assert.equal(provider?.packageArtifactIdentity?.packageVersion, '0.0.4')
+        assert.equal(provider?.selectedProfile, 'codex-effect-v4')
+        assert.equal(provider?.placementSummary?.providerNamespacePath, '.prelude/providers/effect-harness')
+        assert.equal(provider?.placementSummary?.targetTopology, 'single-package')
+        assert.deepEqual(provider?.placementSummary?.tsconfigTargets, ['tsconfig.json'])
+        assert.ok(provider?.managedClaims?.some(claim =>
+          claim.slot === 'effect-runtime-package'
+          && claim.locator === 'package.json#/dependencies/effect'
+          && claim.kind === 'structuredPointer'))
       }))
 
     it.effect('prints the canonical --spec without creating files', () =>

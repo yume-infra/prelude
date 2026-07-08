@@ -1,18 +1,35 @@
 import type { EffectHarnessProviderDiscovery } from '@/core/create'
 import { effectHarnessProviderDiscoveryLayer } from '@/core/create'
 
-export const effectHarnessDiscoveryFixture = {
+const effectHarnessDiscoveryFixtureBase = {
   schemaVersion: 1,
   artifactRoot: '/tmp/effect-harness-artifact',
   providerProfilePath: '/tmp/effect-harness-artifact/provider/effect-harness.provider.json',
   providerProfileRelativePath: 'provider/effect-harness.provider.json',
+  packageArtifactIdentity: {
+    packageName: '@sayoriqwq/effect-harness',
+    packageVersion: '0.0.4',
+    packageManager: 'pnpm@10.33.2',
+    artifactRoot: '/tmp/effect-harness-artifact',
+    packageJsonPath: '/tmp/effect-harness-artifact/package.json',
+    providerProfilePath: '/tmp/effect-harness-artifact/provider/effect-harness.provider.json',
+    npmSelector: '@sayoriqwq/effect-harness@0.0.4',
+    neutralDiscoveryCommand: 'npx --yes --package @sayoriqwq/effect-harness@0.0.4 effect-harness provider-discover',
+    invocationFailureClassification: {
+      sameNameCwdShortCircuit: {
+        classification: 'npm-invocation-failure',
+        code: 'npm-same-name-cwd-short-circuit',
+        providerDiscoveryStarted: false,
+      },
+    },
+  },
   packageLocator: {
     packageName: '@sayoriqwq/effect-harness',
     packageVersion: '0.0.4',
     binName: 'effect-harness',
     binPath: 'dist/bin/effect-harness.js',
-    discoveryCommand: 'npx --yes @sayoriqwq/effect-harness provider-discover',
-    packageFiles: ['provider', 'harness', 'repos', 'repos/effect.subtree.json', 'repos/tsgo.subtree.json'],
+    discoveryCommand: 'npx --yes --package @sayoriqwq/effect-harness@0.0.4 effect-harness provider-discover',
+    packageFiles: ['HARNESS.md', 'README.md', 'dist', 'harness', 'provider', 'repos', 'repos/effect.subtree.json', 'repos/tsgo.subtree.json'],
   },
   provider: {
     id: 'effect-harness',
@@ -390,7 +407,7 @@ export const effectHarnessDiscoveryFixture = {
   artifactOnlyReferences: {
     mode: 'provider-artifact-reference',
     targetDelivery: 'identity-only',
-    packageSurface: ['provider', 'harness', 'repos'],
+    packageSurface: ['dist', 'provider', 'harness', 'repos', 'repos/effect.subtree.json', 'repos/tsgo.subtree.json'],
     references: {
       'effect-source-tree': {
         sourceEntry: 'effect-official-source',
@@ -434,6 +451,67 @@ export const effectHarnessDiscoveryFixture = {
       },
     },
   },
+  artifactOnlyReferenceAudit: {
+    mode: 'artifact-only-reference-audit',
+    references: [
+      {
+        id: 'effect-source-tree',
+        path: 'repos/effect',
+        sourceEntry: 'effect-official-source',
+        targetDelivery: 'artifact-only',
+        available: true,
+      },
+      {
+        id: 'effect-source-contract',
+        path: 'repos/effect.subtree.json',
+        sourceEntry: 'effect-official-source',
+        targetDelivery: 'artifact-only',
+        available: true,
+      },
+      {
+        id: 'effect-anchor-doc',
+        path: 'repos/effect/LLMS.md',
+        sourceEntry: 'effect-official-source',
+        targetDelivery: 'artifact-only',
+        available: true,
+      },
+      {
+        id: 'effect-route-doc',
+        path: 'harness/effect-routes.md',
+        sourceEntry: 'effect-official-source',
+        targetDelivery: 'artifact-only',
+        available: true,
+      },
+      {
+        id: 'tsgo-source-tree',
+        path: 'repos/tsgo',
+        sourceEntry: 'tsgo-official-source',
+        targetDelivery: 'artifact-only',
+        available: true,
+      },
+      {
+        id: 'tsgo-source-contract',
+        path: 'repos/tsgo.subtree.json',
+        sourceEntry: 'tsgo-official-source',
+        targetDelivery: 'artifact-only',
+        available: true,
+      },
+      {
+        id: 'tsgo-anchor-doc',
+        path: 'repos/tsgo/README.md',
+        sourceEntry: 'tsgo-official-source',
+        targetDelivery: 'artifact-only',
+        available: true,
+      },
+      {
+        id: 'tsgo-route-doc',
+        path: 'harness/tsgo-routes.md',
+        sourceEntry: 'tsgo-official-source',
+        targetDelivery: 'artifact-only',
+        available: true,
+      },
+    ],
+  },
   sourceIdentities: {
     defaultSourceEntry: 'effect-official-source',
     sourceEntries: ['effect-official-source', 'tsgo-official-source'],
@@ -451,6 +529,11 @@ export const effectHarnessDiscoveryFixture = {
     description: 'not target materialized',
     examples: ['harness/**', 'src/harness/**', 'tests/**'],
   },
+} as const
+
+export const effectHarnessDiscoveryFixture = {
+  ...effectHarnessDiscoveryFixtureBase,
+  semanticContributions: effectHarnessDiscoveryFixtureBase.targetManagedSurfaces.contributions,
 } as const satisfies EffectHarnessProviderDiscovery
 
 export const EffectHarnessDiscoveryTestLayer = effectHarnessProviderDiscoveryLayer(effectHarnessDiscoveryFixture)
