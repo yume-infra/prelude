@@ -1,4 +1,5 @@
 import type { EslintRootContribution, KnipRootContribution, WriteOperation } from '../model'
+import { eslintProviderHookBlock } from '../eslint-provider-hook'
 
 export function materializeEslintRoot(contributions: readonly EslintRootContribution[]): WriteOperation[] {
   if (contributions.length === 0) {
@@ -8,16 +9,8 @@ export function materializeEslintRoot(contributions: readonly EslintRootContribu
   const providerConfigImports = [
     ...new Set(contributions.flatMap(contribution => contribution.providerConfigImports ?? [])),
   ]
-  const providerImports = providerConfigImports.map((importPath, index) => ({
-    importName: `effectHarnessProviderConfig${index + 1}`,
-    importPath,
-  }))
-  const importLines = providerImports
-    .map(providerImport => `import ${providerImport.importName} from '${providerImport.importPath}'`)
-    .join('\n')
-  const spreadLines = providerImports
-    .map(providerImport => `  ...${providerImport.importName},\n`)
-    .join('')
+  const providerHookBlock = eslintProviderHookBlock(providerConfigImports)
+  const spreadLines = providerHookBlock.length === 0 ? '' : '  ...preludeProviderConfigs,\n'
 
   return [{
     id: 'write-eslint-config',
@@ -27,7 +20,7 @@ export function materializeEslintRoot(contributions: readonly EslintRootContribu
     path: 'eslint.config.mjs',
     authority: 'none',
     content: `import antfu from '@antfu/eslint-config'
-${importLines.length === 0 ? '' : `${importLines}\n`}
+${providerHookBlock.length === 0 ? '' : `\n${providerHookBlock}`}
 export default antfu(
   {
     ignores: ['.prelude/**', 'dist/**'],

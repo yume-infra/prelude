@@ -449,6 +449,25 @@ const workerTsconfig = await readJson<{
   compilerOptions: { types: readonly string[], plugins: readonly { name: string }[] }
   include: readonly string[]
 }>(pathJoin(workerDir, 'tsconfig.json'))
+const workerVscodeSettings = await readJson<{
+  'typescript.preferences.autoImportFileExcludePatterns'?: readonly string[]
+  'javascript.preferences.autoImportFileExcludePatterns'?: readonly string[]
+  'files.watcherExclude'?: Record<string, boolean>
+  'search.exclude'?: Record<string, boolean>
+  'files.exclude'?: Record<string, boolean>
+}>(pathJoin(workerDir, '.vscode/settings.json'))
+const workerZedSettings = await readJson<{
+  lsp?: {
+    'typescript-language-server'?: {
+      initialization_options?: {
+        preferences?: {
+          autoImportFileExcludePatterns?: readonly string[]
+        }
+      }
+    }
+  }
+  file_scan_exclusions?: readonly string[]
+}>(pathJoin(workerDir, '.zed/settings.json'))
 const workerManifest = await readJson<{
   maintainProviders: Array<{ id: string, recordPath: string }>
   verificationRecords: Array<{ id: string, checkedPaths: readonly string[] }>
@@ -473,6 +492,16 @@ assert.match(workerSource, /canonical-worker ready/u)
 assert.deepEqual(workerTsconfig.compilerOptions.types, ['node'])
 assert.equal(workerTsconfig.compilerOptions.plugins[0]?.name, '@effect/language-service')
 assert.deepEqual(workerTsconfig.include, ['src/**/*.ts'])
+assert.deepEqual(workerVscodeSettings['typescript.preferences.autoImportFileExcludePatterns'], ['repos/**'])
+assert.deepEqual(workerVscodeSettings['javascript.preferences.autoImportFileExcludePatterns'], ['repos/**'])
+assert.deepEqual(workerVscodeSettings['files.watcherExclude'], { 'repos/**': true })
+assert.deepEqual(workerVscodeSettings['search.exclude'], { 'repos/**': true })
+assert.equal(workerVscodeSettings['files.exclude'], undefined)
+assert.deepEqual(
+  workerZedSettings.lsp?.['typescript-language-server']?.initialization_options?.preferences?.autoImportFileExcludePatterns,
+  ['repos/**'],
+)
+assert.deepEqual(workerZedSettings.file_scan_exclusions, ['repos/**'])
 assert.deepEqual(Object.keys(workerManifest).sort(), [
   'maintainProviders',
   'preludeVersion',
@@ -484,8 +513,16 @@ assert.equal(workerManifest.maintainProviders[0]?.recordPath, '.prelude/provider
 assert.equal(providerRecord.id, 'effect-harness')
 const providerSurfaceIds = new Set(providerRecord.surfaces.map(surface => surface.id))
 assert.ok(providerSurfaceIds.has('tsconfig:root:/compilerOptions/plugins'))
+assert.ok(providerSurfaceIds.has('provider-managed-block:effect-harness:eslint.config.mjs#provider-config'))
+assert.ok(providerSurfaceIds.has('editor-settings:.vscode/settings.json:/typescript.preferences.autoImportFileExcludePatterns'))
+assert.ok(providerSurfaceIds.has('editor-settings:.vscode/settings.json:/javascript.preferences.autoImportFileExcludePatterns'))
+assert.ok(providerSurfaceIds.has('editor-settings:.vscode/settings.json:/files.watcherExclude'))
+assert.ok(providerSurfaceIds.has('editor-settings:.vscode/settings.json:/search.exclude'))
+assert.ok(providerSurfaceIds.has('editor-settings:.zed/settings.json:/lsp/typescript-language-server/initialization_options/preferences/autoImportFileExcludePatterns'))
+assert.ok(providerSurfaceIds.has('editor-settings:.zed/settings.json:/file_scan_exclusions'))
 assert.ok(providerSurfaceIds.has('provider-managed-file:effect-harness:.prelude/providers/effect-harness/docs/discovery.md'))
 assert.ok(providerSurfaceIds.has('provider-managed-file:effect-harness:.prelude/providers/effect-harness/snippets/agents.md'))
+assert.equal([...providerSurfaceIds].some(surfaceId => surfaceId.includes('/files.exclude')), false)
 assert.equal(providerRecord.surfaces.some(surface => surface.path.startsWith('.codex/')), false)
 assert.equal(providerRecord.surfaces.some(surface => surface.path === '.effect-harness.json'), false)
 assert.equal(providerRecord.surfaces.some(surface => surface.path === 'AGENTS.md'), false)

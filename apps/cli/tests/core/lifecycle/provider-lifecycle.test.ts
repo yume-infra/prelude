@@ -102,6 +102,13 @@ function providerRecordJson(record: unknown = effectHarnessRecord) {
 
 const tsgoSurfaceId = 'package-manifest:root:/devDependencies/@effect~1tsgo'
 const tsgoPointer = '/devDependencies/@effect~1tsgo'
+const eslintProviderHookSurfaceId = 'provider-managed-block:effect-harness:eslint.config.mjs#provider-config'
+const vscodeTypescriptAutoImportSurfaceId = 'editor-settings:.vscode/settings.json:/typescript.preferences.autoImportFileExcludePatterns'
+const vscodeJavascriptAutoImportSurfaceId = 'editor-settings:.vscode/settings.json:/javascript.preferences.autoImportFileExcludePatterns'
+const vscodeWatchExcludeSurfaceId = 'editor-settings:.vscode/settings.json:/files.watcherExclude'
+const vscodeSearchExcludeSurfaceId = 'editor-settings:.vscode/settings.json:/search.exclude'
+const zedAutoImportSurfaceId = 'editor-settings:.zed/settings.json:/lsp/typescript-language-server/initialization_options/preferences/autoImportFileExcludePatterns'
+const zedFileScanExclusionsSurfaceId = 'editor-settings:.zed/settings.json:/file_scan_exclusions'
 const managedBlockPath = 'NOTES.md'
 const managedBlockSurfaceId = 'provider-managed-block:effect-harness:NOTES.md#example'
 const managedBlockStart = '<!-- example:start -->'
@@ -537,6 +544,20 @@ describe('provider lifecycle runtime', () => {
         operation.kind === 'replaceStructuredPointer'
         && operation.path === 'package.json'
         && operation.pointer === '/scripts/typecheck'))
+      assert.ok(plan.operations.some(operation =>
+        operation.kind === 'replaceStructuredPointer'
+        && operation.surfaceId === vscodeTypescriptAutoImportSurfaceId
+        && operation.path === '.vscode/settings.json'
+        && operation.pointer === '/typescript.preferences.autoImportFileExcludePatterns'))
+      assert.ok(plan.operations.some(operation =>
+        operation.kind === 'replaceStructuredPointer'
+        && operation.surfaceId === zedAutoImportSurfaceId
+        && operation.path === '.zed/settings.json'
+        && operation.pointer === '/lsp/typescript-language-server/initialization_options/preferences/autoImportFileExcludePatterns'))
+      assert.ok(plan.operations.some(operation =>
+        operation.kind === 'replaceManagedBlock'
+        && operation.surfaceId === eslintProviderHookSurfaceId
+        && operation.path === 'eslint.config.mjs'))
       assert.deepEqual(plan.nextRecord?.surfaces.map(surface => surface.id), plan.operations.map((operation) => {
         if (operation.kind === 'replaceOwnedFile') {
           return `provider-managed-file:effect-harness:${operation.path}`
@@ -639,6 +660,9 @@ describe('provider lifecycle runtime', () => {
 
       const surfacePaths = record.surfaces.map(surface => surface.path)
       assert.isTrue(surfacePaths.includes('tsconfig.json'))
+      assert.isTrue(surfacePaths.includes('eslint.config.mjs'))
+      assert.isTrue(surfacePaths.includes('.vscode/settings.json'))
+      assert.isTrue(surfacePaths.includes('.zed/settings.json'))
       assert.isTrue(surfacePaths.includes('.prelude/providers/effect-harness/eslint.config.mjs'))
       assert.isTrue(surfacePaths.includes('.prelude/providers/effect-harness/docs/discovery.md'))
       assert.isTrue(surfacePaths.includes('.prelude/providers/effect-harness/snippets/agents.md'))
@@ -646,8 +670,15 @@ describe('provider lifecycle runtime', () => {
       assert.isFalse(surfacePaths.includes('.effect-harness.json'))
       assert.isFalse(surfacePaths.includes('AGENTS.md'))
       assert.isFalse(surfacePaths.some(surfacePath => surfacePath.startsWith('.codex/')))
-      assert.isFalse(surfacePaths.some(surfacePath => surfacePath.startsWith('.vscode/') || surfacePath.startsWith('.zed/')))
-      assert.isFalse(record.surfaces.some(surface => surface.kind === 'managedBlock'))
+      assert.isTrue(record.surfaces.some(surface => surface.kind === 'managedBlock' && surface.id === eslintProviderHookSurfaceId))
+      const surfaceIds = new Set(record.surfaces.map(surface => surface.id))
+      assert.isTrue(surfaceIds.has(vscodeTypescriptAutoImportSurfaceId))
+      assert.isTrue(surfaceIds.has(vscodeJavascriptAutoImportSurfaceId))
+      assert.isTrue(surfaceIds.has(vscodeWatchExcludeSurfaceId))
+      assert.isTrue(surfaceIds.has(vscodeSearchExcludeSurfaceId))
+      assert.isTrue(surfaceIds.has(zedAutoImportSurfaceId))
+      assert.isTrue(surfaceIds.has(zedFileScanExclusionsSurfaceId))
+      assert.isFalse([...surfaceIds].some(surfaceId => surfaceId.includes('/files.exclude')))
       const editorPolicy = jsonObject(contributionBuckets.editorPolicy)
       const editorPolicies = jsonObject(editorPolicy.policies)
       const autoImportExclude = jsonObject(editorPolicies.autoImportExclude)
@@ -656,6 +687,11 @@ describe('provider lifecycle runtime', () => {
         'typescript.preferences.autoImportFileExcludePatterns': ['repos/**'],
         'javascript.preferences.autoImportFileExcludePatterns': ['repos/**'],
       })
+      const zedAutoImportExclude = jsonObject(autoImportExclude.zed)
+      const zedAutoImportLsp = jsonObject(zedAutoImportExclude.lsp)
+      const zedTypeScriptLanguageServer = jsonObject(zedAutoImportLsp['typescript-language-server'])
+      const zedInitializationOptions = jsonObject(zedTypeScriptLanguageServer.initialization_options)
+      assert.deepEqual(jsonObject(zedInitializationOptions.preferences).autoImportFileExcludePatterns, ['repos/**'])
       assert.equal(jsonObject(editorPolicies.filesExclude).level, 'preference')
 
       const status = yield* provider.status(record)

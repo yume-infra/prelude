@@ -60,9 +60,25 @@ describe('fullscreen create workbench v1 acceptance fixtures', () => {
             path: string
             authority: string
             value?: {
-              scripts?: Record<string, string>
-              dependencies?: Record<string, string>
-              devDependencies?: Record<string, string>
+              'scripts'?: Record<string, string>
+              'dependencies'?: Record<string, string>
+              'devDependencies'?: Record<string, string>
+              'typescript.preferences.autoImportFileExcludePatterns'?: readonly string[]
+              'javascript.preferences.autoImportFileExcludePatterns'?: readonly string[]
+              'files.watcherExclude'?: Record<string, boolean>
+              'search.exclude'?: Record<string, boolean>
+              'files.exclude'?: Record<string, boolean>
+              'lsp'?: {
+                'typescript-language-server'?: {
+                  initialization_options?: {
+                    preferences?: {
+                      autoImportFileExcludePatterns?: readonly string[]
+                    }
+                  }
+                }
+              }
+              'file_scan_exclusions'?: readonly string[]
+              'surfaces'?: readonly { id: string, kind?: string, path?: string }[]
             }
           }>
           blockers: unknown[]
@@ -70,6 +86,7 @@ describe('fullscreen create workbench v1 acceptance fixtures', () => {
         const paths = output.operations.map(operation => operation.path)
         const operationKinds = new Set(output.operations.map(operation => operation.kind))
         const packageJsonOperation = output.operations.find(operation => operation.path === 'package.json')
+        const providerOperation = output.operations.find(operation => operation.path === '.prelude/providers/effect-harness/provider.json')
 
         assert.deepStrictEqual(output.blockers, [])
         assert.deepStrictEqual(result.blockers, [])
@@ -77,6 +94,8 @@ describe('fullscreen create workbench v1 acceptance fixtures', () => {
         assert.ok(paths.includes('src/index.ts'))
         assert.ok(paths.includes('tsconfig.json'))
         assert.ok(paths.includes('eslint.config.mjs'))
+        assert.ok(paths.includes('.vscode/settings.json'))
+        assert.ok(paths.includes('.zed/settings.json'))
         assert.ok(paths.includes('knip.json'))
         assert.ok(paths.includes('.prelude/providers/effect-harness/provider.json'))
         assert.equal(paths.includes('AGENTS.md'), false)
@@ -85,6 +104,26 @@ describe('fullscreen create workbench v1 acceptance fixtures', () => {
         assert.ok(operationKinds.has('writeGeneratedUserFile'))
         assert.ok(operationKinds.has('writeProviderManagedFile'))
         assert.equal(operationKinds.has('writeManagedBlock'), false)
+        const vscodeSettingsOperation = output.operations.find(operation => operation.path === '.vscode/settings.json')
+        const zedSettingsOperation = output.operations.find(operation => operation.path === '.zed/settings.json')
+        assert.deepEqual(vscodeSettingsOperation?.value?.['typescript.preferences.autoImportFileExcludePatterns'], ['repos/**'])
+        assert.deepEqual(vscodeSettingsOperation?.value?.['javascript.preferences.autoImportFileExcludePatterns'], ['repos/**'])
+        assert.deepEqual(vscodeSettingsOperation?.value?.['files.watcherExclude'], { 'repos/**': true })
+        assert.deepEqual(vscodeSettingsOperation?.value?.['search.exclude'], { 'repos/**': true })
+        assert.equal(vscodeSettingsOperation?.value?.['files.exclude'], undefined)
+        assert.deepEqual(
+          zedSettingsOperation?.value?.lsp?.['typescript-language-server']?.initialization_options?.preferences?.autoImportFileExcludePatterns,
+          ['repos/**'],
+        )
+        assert.deepEqual(zedSettingsOperation?.value?.file_scan_exclusions, ['repos/**'])
+        const providerSurfaceIds = new Set(providerOperation?.value?.surfaces?.map(surface => surface.id))
+        assert.ok(providerSurfaceIds.has('provider-managed-block:effect-harness:eslint.config.mjs#provider-config'))
+        assert.ok(providerSurfaceIds.has('editor-settings:.vscode/settings.json:/typescript.preferences.autoImportFileExcludePatterns'))
+        assert.ok(providerSurfaceIds.has('editor-settings:.vscode/settings.json:/javascript.preferences.autoImportFileExcludePatterns'))
+        assert.ok(providerSurfaceIds.has('editor-settings:.vscode/settings.json:/files.watcherExclude'))
+        assert.ok(providerSurfaceIds.has('editor-settings:.vscode/settings.json:/search.exclude'))
+        assert.ok(providerSurfaceIds.has('editor-settings:.zed/settings.json:/lsp/typescript-language-server/initialization_options/preferences/autoImportFileExcludePatterns'))
+        assert.ok(providerSurfaceIds.has('editor-settings:.zed/settings.json:/file_scan_exclusions'))
         assert.equal(packageJsonOperation?.value?.scripts?.verify, 'pnpm build && pnpm typecheck && pnpm test && pnpm lint --max-warnings 0 && pnpm knip')
         assert.equal(packageJsonOperation?.value?.scripts?.prepare, 'effect-tsgo patch')
         assert.equal(packageJsonOperation?.value?.scripts?.typecheck, 'tsgo --noEmit')

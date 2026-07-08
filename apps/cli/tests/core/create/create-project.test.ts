@@ -895,7 +895,7 @@ NodeRuntime.runMain(main())
         })
 
         const providerRecord = yield* readJson<{
-          surfaces: Array<{ id: string, operationId: string }>
+          surfaces: Array<{ id: string, kind: string, operationId: string }>
         }>(pathJoinSync(targetDir, '.prelude/providers/effect-harness/provider.json'))
         const managedOperations = result.writePlan.operations
           .filter(operation => operation.owner === 'provider:effect-harness')
@@ -905,7 +905,7 @@ NodeRuntime.runMain(main())
           }))
           .sort((left, right) => left.id.localeCompare(right.id))
         const managedSurfaces = providerRecord.surfaces
-          .filter(surface => surface.id.startsWith('provider-managed-'))
+          .filter(surface => surface.kind === 'ownedFile' && surface.id.startsWith('provider-managed-file:'))
           .map(surface => ({
             id: surface.id,
             operationId: surface.operationId,
@@ -913,6 +913,10 @@ NodeRuntime.runMain(main())
           .sort((left, right) => left.id.localeCompare(right.id))
 
         assert.deepEqual(managedOperations, managedSurfaces)
+        assert.ok(providerRecord.surfaces.some(surface =>
+          surface.kind === 'managedBlock'
+          && surface.id === 'provider-managed-block:effect-harness:eslint.config.mjs#provider-config'
+          && surface.operationId === 'write-eslint-config'))
       }))
 
     it.effect('blocks ai-harness when the selected provider is missing', () =>

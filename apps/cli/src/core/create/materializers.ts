@@ -1,5 +1,6 @@
 import type {
   CapabilityContribution,
+  EditorSettingsContribution,
   EslintRootContribution,
   FrontendEntryContribution,
   GeneratedUserFileContribution,
@@ -19,6 +20,7 @@ import type {
 } from './model'
 import { Effect } from 'effect'
 import { SchemaContractError } from '@/core/errors'
+import { materializeEditorSettings } from './materializers/editor-settings'
 import { materializeFrontendEntry } from './materializers/frontend-entry'
 import { materializeGeneratedUserFile } from './materializers/generated-user-file'
 import { materializePackageJson } from './materializers/package-manifest'
@@ -126,6 +128,9 @@ export const materializeWritePlan = Effect.fn('materializeWritePlan')(
     const typeScriptConfigContributions = contributions.filter(
       (contribution): contribution is TypeScriptConfigContribution => contribution.kind === 'typescriptConfig',
     )
+    const editorSettingsContributions = contributions.filter(
+      (contribution): contribution is EditorSettingsContribution => contribution.kind === 'editorSettings',
+    )
     const tsdownConfigContributions = contributions.filter(
       (contribution): contribution is TsdownConfigContribution => contribution.kind === 'tsdownConfig',
     )
@@ -144,6 +149,7 @@ export const materializeWritePlan = Effect.fn('materializeWritePlan')(
     const frontendEntrySurfaces = groupBySurface(frontendEntryContributions)
     const viteConfigSurfaces = groupBySurface(viteConfigContributions)
     const styleSheetSurfaces = groupBySurface(styleSheetContributions)
+    const editorSettingsSurfaces = groupBySurface(editorSettingsContributions)
 
     yield* ensureUniqueProviderManagedTargets(providerManagedFileContributions, providerManagedBlockContributions)
 
@@ -164,6 +170,10 @@ export const materializeWritePlan = Effect.fn('materializeWritePlan')(
     const providerManagedBlockOperations = yield* Effect.all(
       providerManagedBlockContributions.map(materializeProviderManagedBlock),
     )
+    const editorSettingsOperations = yield* Effect.all(
+      [...editorSettingsSurfaces.entries()].map(([surfaceId, surfaceContributions]) =>
+        materializeEditorSettings(surfaceId, surfaceContributions)),
+    )
 
     return {
       operations: [
@@ -179,6 +189,7 @@ export const materializeWritePlan = Effect.fn('materializeWritePlan')(
         ...[...styleSheetSurfaces.entries()].map(([surfaceId, surfaceContributions]) =>
           materializeStyleSheet(surfaceId, surfaceContributions)),
         ...typeScriptConfigContributions.map(materializeTypeScriptConfig),
+        ...editorSettingsOperations,
         ...tsdownConfigContributions.map(materializeTsdownConfig),
         ...materializeReactAppShell(reactAppShellContributions),
         ...materializeVueAppShell(vueAppShellContributions),

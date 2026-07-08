@@ -12,6 +12,7 @@ import type {
   VerificationRecord,
 } from './model'
 import { pathJoin } from '@/core/path-utils'
+import { eslintProviderHookBlock, eslintProviderHookEndMarker, eslintProviderHookStartMarker } from './eslint-provider-hook'
 
 const effectHarnessProviderId = 'effect-harness'
 const effectHarnessProviderPath = '.prelude/providers/effect-harness/provider.json'
@@ -19,6 +20,10 @@ export const effectHarnessVerificationId = 'provider:effect-harness:create-contr
 
 function jsonRecord(value: unknown): Record<string, JsonValue> {
   return JSON.parse(JSON.stringify(value)) as Record<string, JsonValue>
+}
+
+function cloneJsonValue(value: JsonValue): JsonValue {
+  return JSON.parse(JSON.stringify(value)) as JsonValue
 }
 
 function isJsonRecord(value: JsonValue | undefined): value is Record<string, JsonValue> {
@@ -59,6 +64,10 @@ function optionalStringArray(value: JsonValue | undefined, source: string): read
 
 function optionalString(value: JsonValue | undefined): string | undefined {
   return typeof value === 'string' ? value : undefined
+}
+
+function optionalBoolean(value: JsonValue | undefined): boolean | undefined {
+  return typeof value === 'boolean' ? value : undefined
 }
 
 function jsonPointerSegment(value: string) {
@@ -308,6 +317,16 @@ function managedFileOperationId(filePath: string) {
 }
 
 const effectHarnessEslintConfigPath = '.prelude/providers/effect-harness/eslint.config.mjs'
+const effectHarnessRootEslintConfigPath = 'eslint.config.mjs'
+const effectHarnessEslintProviderHookSurfaceId = 'provider-managed-block:effect-harness:eslint.config.mjs#provider-config'
+
+function effectHarnessRootEslintProviderConfigImport() {
+  return `./${effectHarnessEslintConfigPath}`
+}
+
+function effectHarnessRootEslintProviderHookBlock() {
+  return eslintProviderHookBlock([effectHarnessRootEslintProviderConfigImport()])
+}
 
 function restrictedImportMessage(name: string) {
   if (name === 'node:test' || name === 'vitest') {
@@ -523,6 +542,14 @@ function tsconfigPointerSurfaceId(targetPath: string, pointer: string) {
   return `tsconfig:${scope}:${pointer}`
 }
 
+function editorSettingsSurfaceId(targetPath: string) {
+  return `editor-settings:${targetPath}`
+}
+
+function editorSettingsPointerSurfaceId(targetPath: string, pointer: string) {
+  return `${editorSettingsSurfaceId(targetPath)}:${pointer}`
+}
+
 type PackageSurfaceInput
   = | {
     readonly kind: 'dependency'
@@ -564,6 +591,145 @@ function effectHarnessTsconfigSurfacesForProjectedContext(discovery: EffectHarne
       ? []
       : effectHarnessTsconfigSurfaces(discovery, `${packagePath}/tsconfig.json`)
   })
+}
+
+interface EditorSettingsProjection {
+  readonly path: string
+  readonly value: Record<string, JsonValue>
+  readonly surfaces: readonly { readonly id: string, readonly path: string, readonly pointer: string, readonly value: JsonValue }[]
+}
+
+function mergeJsonRecord(target: Record<string, JsonValue>, source: Record<string, JsonValue>) {
+  for (const [key, value] of Object.entries(source)) {
+    const current = target[key]
+    if (isJsonRecord(current) && isJsonRecord(value)) {
+      mergeJsonRecord(current, value)
+      continue
+    }
+
+    target[key] = cloneJsonValue(value)
+  }
+}
+
+function shouldProjectEditorPolicy(policy: Record<string, JsonValue>) {
+  if (optionalString(policy.level) === 'preference') {
+    return false
+  }
+
+  return optionalBoolean(policy.requiresExplicitOptIn) !== true
+}
+
+function effectHarnessEditorPolicies(discovery: EffectHarnessProviderDiscovery) {
+  const { editorPolicy } = effectHarnessPolicyContributions(discovery)
+  return requiredJsonRecord(editorPolicy.policies, 'targetManagedSurfaces.contributions.editorPolicy.policies')
+}
+
+function effectHarnessEditorPolicyTargetPaths(discovery: EffectHarnessProviderDiscovery) {
+  const { editorPolicy } = effectHarnessPolicyContributions(discovery)
+  return requiredStringArray(editorPolicy.targetPaths, 'targetManagedSurfaces.contributions.editorPolicy.targetPaths')
+}
+
+function effectHarnessVscodeEditorSettings(discovery: EffectHarnessProviderDiscovery): EditorSettingsProjection | undefined {
+  const targetPath = '.vscode/settings.json'
+  if (!effectHarnessEditorPolicyTargetPaths(discovery).includes(targetPath)) {
+    return undefined
+  }
+
+  const value: Record<string, JsonValue> = {}
+  const surfaces: Array<{ readonly id: string, readonly path: string, readonly pointer: string, readonly value: JsonValue }> = []
+
+  for (const [policyName, policyValue] of Object.entries(effectHarnessEditorPolicies(discovery))) {
+    const policy = requiredJsonRecord(policyValue, `targetManagedSurfaces.contributions.editorPolicy.policies.${policyName}`)
+    if (!shouldProjectEditorPolicy(policy)) {
+      continue
+    }
+
+    const vscode = policy.vscode
+    if (!isJsonRecord(vscode)) {
+      continue
+    }
+
+    for (const [settingKey, settingValue] of Object.entries(vscode)) {
+      const pointer = `/${jsonPointerSegment(settingKey)}`
+      value[settingKey] = cloneJsonValue(settingValue)
+      surfaces.push({
+        id: editorSettingsPointerSurfaceId(targetPath, pointer),
+        path: targetPath,
+        pointer,
+        value: settingValue,
+      })
+    }
+  }
+
+  return surfaces.length === 0 ? undefined : { path: targetPath, value, surfaces }
+}
+
+function effectHarnessZedEditorSettings(discovery: EffectHarnessProviderDiscovery): EditorSettingsProjection | undefined {
+  const targetPath = '.zed/settings.json'
+  if (!effectHarnessEditorPolicyTargetPaths(discovery).includes(targetPath)) {
+    return undefined
+  }
+
+  const value: Record<string, JsonValue> = {}
+  const surfaces: Array<{ readonly id: string, readonly path: string, readonly pointer: string, readonly value: JsonValue }> = []
+  const fileScanExclusions = new Set<string>()
+
+  for (const [policyName, policyValue] of Object.entries(effectHarnessEditorPolicies(discovery))) {
+    const policy = requiredJsonRecord(policyValue, `targetManagedSurfaces.contributions.editorPolicy.policies.${policyName}`)
+    if (!shouldProjectEditorPolicy(policy)) {
+      continue
+    }
+
+    const zed = policy.zed
+    if (!isJsonRecord(zed)) {
+      continue
+    }
+
+    const lsp = zed.lsp
+    if (isJsonRecord(lsp)) {
+      mergeJsonRecord(value, { lsp })
+      const typeScriptLanguageServer = requiredJsonRecord(lsp['typescript-language-server'], `targetManagedSurfaces.contributions.editorPolicy.policies.${policyName}.zed.lsp.typescript-language-server`)
+      const initializationOptions = requiredJsonRecord(typeScriptLanguageServer.initialization_options, `targetManagedSurfaces.contributions.editorPolicy.policies.${policyName}.zed.lsp.typescript-language-server.initialization_options`)
+      const preferences = requiredJsonRecord(initializationOptions.preferences, `targetManagedSurfaces.contributions.editorPolicy.policies.${policyName}.zed.lsp.typescript-language-server.initialization_options.preferences`)
+      const autoImportFileExcludePatterns = requiredStringArray(
+        preferences.autoImportFileExcludePatterns,
+        `targetManagedSurfaces.contributions.editorPolicy.policies.${policyName}.zed.lsp.typescript-language-server.initialization_options.preferences.autoImportFileExcludePatterns`,
+      )
+      const pointer = '/lsp/typescript-language-server/initialization_options/preferences/autoImportFileExcludePatterns'
+      surfaces.push({
+        id: editorSettingsPointerSurfaceId(targetPath, pointer),
+        path: targetPath,
+        pointer,
+        value: autoImportFileExcludePatterns,
+      })
+    }
+
+    if (optionalString(zed.setting) === 'file_scan_exclusions') {
+      for (const pattern of requiredStringArray(zed.patterns, `targetManagedSurfaces.contributions.editorPolicy.policies.${policyName}.zed.patterns`)) {
+        fileScanExclusions.add(pattern)
+      }
+    }
+  }
+
+  if (fileScanExclusions.size > 0) {
+    const exclusions = [...fileScanExclusions]
+    value.file_scan_exclusions = exclusions
+    surfaces.push({
+      id: editorSettingsPointerSurfaceId(targetPath, '/file_scan_exclusions'),
+      path: targetPath,
+      pointer: '/file_scan_exclusions',
+      value: exclusions,
+    })
+  }
+
+  return surfaces.length === 0 ? undefined : { path: targetPath, value, surfaces }
+}
+
+function effectHarnessEditorSettingsProjections(discovery: EffectHarnessProviderDiscovery): readonly EditorSettingsProjection[] {
+  return [
+    effectHarnessVscodeEditorSettings(discovery),
+    effectHarnessZedEditorSettings(discovery),
+  ].filter((projection): projection is EditorSettingsProjection => projection !== undefined)
 }
 
 function lifecycleSurfaceMetadata(input: {
@@ -668,6 +834,25 @@ function effectHarnessLifecycleSurfacesForProjectedContext(discovery: EffectHarn
         locator: `${surface.path}#${surface.pointer}`,
         operationId: 'write-tsconfig',
       })),
+    ...effectHarnessEditorSettingsProjections(discovery).flatMap(projection =>
+      projection.surfaces.map(surface =>
+        structuredPointerSurface({
+          discovery,
+          surface,
+          path: surface.path,
+          locator: `${surface.path}#${surface.pointer}`,
+          operationId: `write-editor-settings:${surface.path}`,
+        }))),
+    managedBlockSurface({
+      discovery,
+      id: effectHarnessEslintProviderHookSurfaceId,
+      path: effectHarnessRootEslintConfigPath,
+      locator: `${effectHarnessRootEslintConfigPath}#provider-config`,
+      startMarker: eslintProviderHookStartMarker,
+      endMarker: eslintProviderHookEndMarker,
+      base: effectHarnessRootEslintProviderHookBlock(),
+      operationId: 'write-eslint-config',
+    }),
     ...effectHarnessDiscoveryManagedFileArtifacts(discovery, projectedContext).map(artifact =>
       ownedFileSurface({
         discovery,
@@ -702,6 +887,35 @@ function structuredPointerSurface(input: {
     pointer: input.surface.pointer,
     base: snapshot,
     snapshot,
+    operationId: input.operationId,
+  }
+}
+
+function managedBlockSurface(input: {
+  readonly discovery: EffectHarnessProviderDiscovery
+  readonly id: string
+  readonly path: string
+  readonly locator: string
+  readonly startMarker: string
+  readonly endMarker: string
+  readonly base: string
+  readonly operationId: string
+}): LifecycleSurfaceRecord {
+  return {
+    ...lifecycleSurfaceMetadata({
+      discovery: input.discovery,
+      id: input.id,
+      scope: 'entry',
+      locator: input.locator,
+      base: input.base,
+    }),
+    authority: 'bounded',
+    kind: 'managedBlock',
+    path: input.path,
+    startMarker: input.startMarker,
+    endMarker: input.endMarker,
+    base: input.base,
+    snapshot: input.base,
     operationId: input.operationId,
   }
 }
@@ -822,6 +1036,7 @@ function packageManifestEntriesFromSurfaces(surfaces: readonly { readonly path: 
 export function effectHarnessContributions(discovery: EffectHarnessProviderDiscovery, graph: ResolvedGraph): readonly CapabilityContribution[] {
   const projectedContext = effectHarnessProjectedContext(graph)
   const packageEntries = packageManifestEntriesFromSurfaces(effectHarnessPackageSurfacesForProjectedContext(discovery, projectedContext))
+  const editorSettings = effectHarnessEditorSettingsProjections(discovery)
 
   return [
     ...packageEntries.map(({ entries, surfaceId }) => ({
@@ -842,8 +1057,15 @@ export function effectHarnessContributions(discovery: EffectHarnessProviderDisco
       kind: 'eslintRoot',
       surfaceId: 'eslint-root',
       owner: 'provider:effect-harness',
-      providerConfigImports: [`./${effectHarnessEslintConfigPath}`],
+      providerConfigImports: [effectHarnessRootEslintProviderConfigImport()],
     },
+    ...editorSettings.map(projection => ({
+      kind: 'editorSettings' as const,
+      surfaceId: editorSettingsSurfaceId(projection.path),
+      owner: 'provider:effect-harness',
+      path: projection.path,
+      value: projection.value,
+    })),
     ...effectHarnessDiscoveryManagedFileArtifacts(discovery, projectedContext).map(artifact => ({
       kind: 'providerManagedFile' as const,
       surfaceId: effectHarnessManagedFileSurfaceId(artifact.path),

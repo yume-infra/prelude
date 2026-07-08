@@ -155,6 +155,14 @@ export interface TypeScriptConfigContribution {
   readonly value: Record<string, JsonValue>
 }
 
+export interface EditorSettingsContribution {
+  readonly kind: 'editorSettings'
+  readonly surfaceId: string
+  readonly owner: string
+  readonly path: string
+  readonly value: Record<string, JsonValue>
+}
+
 export interface TsdownConfigContribution {
   readonly kind: 'tsdownConfig'
   readonly surfaceId: string
@@ -259,6 +267,7 @@ export type CapabilityContribution
     | FrontendEntryContribution
     | ViteConfigContribution
     | StyleSheetContribution
+    | EditorSettingsContribution
     | ProviderArtifactContribution
     | ProviderManagedFileContribution
     | ProviderManagedBlockContribution

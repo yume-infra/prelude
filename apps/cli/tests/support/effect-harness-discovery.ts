@@ -269,26 +269,64 @@ export const effectHarnessDiscoveryFixture = {
               'typescript.preferences.autoImportFileExcludePatterns': ['repos/**'],
               'javascript.preferences.autoImportFileExcludePatterns': ['repos/**'],
             },
+            zed: {
+              settingsPath: '.zed/settings.json',
+              lsp: {
+                'typescript-language-server': {
+                  initialization_options: {
+                    preferences: {
+                      autoImportFileExcludePatterns: ['repos/**'],
+                    },
+                  },
+                },
+              },
+            },
           },
           watchExclude: {
             level: 'recommended',
+            sourceEntryContractField: 'editorPolicy.watcherExclude',
+            expectedContractValue: 'recommended',
+            requiresConfiguration: true,
             patterns: ['repos/**'],
             vscode: {
               'files.watcherExclude': { 'repos/**': true },
             },
+            zed: {
+              setting: 'file_scan_exclusions',
+              patterns: ['repos/**'],
+              requiresExplicitOptIn: true,
+            },
           },
           searchExclude: {
             level: 'recommended',
+            sourceEntryContractField: 'editorPolicy.searchExclude',
+            expectedContractValue: 'recommended',
+            requiresConfiguration: true,
             patterns: ['repos/**'],
             vscode: {
               'search.exclude': { 'repos/**': true },
             },
+            zed: {
+              setting: 'file_scan_exclusions',
+              patterns: ['repos/**'],
+              requiresExplicitOptIn: true,
+            },
           },
           filesExclude: {
             level: 'preference',
+            sourceEntryContractField: 'editorPolicy.filesExclude',
+            requiresExplicitOptIn: true,
+            sourceEntryDefaults: {
+              'effect-official-source': 'enabled',
+              'tsgo-official-source': 'disabled',
+            },
             patterns: ['repos/effect/**'],
             vscode: {
               'files.exclude': { 'repos/effect/**': true },
+            },
+            zed: {
+              setting: 'file_scan_exclusions',
+              patterns: ['repos/effect/**'],
             },
           },
         },

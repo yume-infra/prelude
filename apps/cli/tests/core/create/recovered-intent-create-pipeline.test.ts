@@ -130,14 +130,16 @@ describe('recovered main intent create pipeline', () => {
       }
 
       const operationPaths = result.result.writePlan.operations.map(operation => operation.path)
-      assert.deepStrictEqual(operationPaths.slice(0, 6), [
+      assert.deepStrictEqual(operationPaths.slice(0, 5), [
         'package.json',
         'eslint.config.mjs',
         'knip.json',
         'src/index.ts',
         'tsconfig.json',
-        '.prelude/providers/effect-harness/provider.json',
       ])
+      assert.ok(operationPaths.includes('.vscode/settings.json'))
+      assert.ok(operationPaths.includes('.zed/settings.json'))
+      assert.ok(operationPaths.includes('.prelude/providers/effect-harness/provider.json'))
       assert.equal(operationPaths.includes('AGENTS.md'), false)
       assert.equal(operationPaths.some(path => path.startsWith('.codex/')), false)
 
