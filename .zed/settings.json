@@ -55,6 +55,18 @@
           "mode": "auto"
         }
       }
+    },
+    "typescript-language-server": {
+      "initialization_options": {
+        "preferences": {
+          "autoImportFileExcludePatterns": [
+            "repos/**"
+          ]
+        }
+      }
     }
-  }
+  },
+  "file_scan_exclusions": [
+    "repos/**"
+  ]
 }

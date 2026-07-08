@@ -1,5 +1,12 @@
 import antfu from '@antfu/eslint-config'
-import effectHarnessProviderConfig from './.prelude/providers/effect-harness/eslint.config.mjs'
+
+// <prelude:provider-eslint-config:start>
+import effectHarnessProviderConfig1 from './.prelude/providers/effect-harness/eslint.config.mjs'
+
+const preludeProviderConfigs = [
+  ...effectHarnessProviderConfig1,
+]
+// <prelude:provider-eslint-config:end>
 
 export default antfu(
   {
@@ -12,7 +19,7 @@ export default antfu(
     lib: true,
     typescript: true,
   },
-  ...effectHarnessProviderConfig,
+  ...preludeProviderConfigs,
   { rules: {
     // yield 出去的，声明时候也有不用 new 的情况
     'unicorn/throw-new-error': 'off',

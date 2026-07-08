@@ -46,5 +46,18 @@
     "scss",
     "pcss",
     "postcss"
-  ]
+  ],
+
+  "typescript.preferences.autoImportFileExcludePatterns": [
+    "repos/**"
+  ],
+  "javascript.preferences.autoImportFileExcludePatterns": [
+    "repos/**"
+  ],
+  "files.watcherExclude": {
+    "repos/**": true
+  },
+  "search.exclude": {
+    "repos/**": true
+  }
 }

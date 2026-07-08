@@ -66,6 +66,10 @@ export default [
               "message": "Use @effect/vitest for Effect harness tests."
             },
             {
+              "name": "@effect/cli",
+              "message": "Use effect/unstable/cli for Effect v4 beta."
+            },
+            {
               "name": "vitest",
               "importNames": [
                 "describe",
@@ -73,10 +77,6 @@ export default [
                 "test"
               ],
               "message": "Use @effect/vitest for Effect test entries. Import Vitest mock and lifecycle APIs directly from vitest when the runner requires it."
-            },
-            {
-              "name": "@effect/cli",
-              "message": "Use effect/unstable/cli for Effect v4 beta."
             }
           ],
           patterns: [
