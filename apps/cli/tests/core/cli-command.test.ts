@@ -1,6 +1,7 @@
 import { NodeServices } from '@effect/platform-node'
 import { assert, describe, it } from '@effect/vitest'
 import { Console, Effect, Layer, Result } from 'effect'
+import * as FileSystem from 'effect/FileSystem'
 import { TestConsole } from 'effect/testing'
 import { Command } from 'effect/unstable/cli'
 import { makeTargetDir } from '@/brand/target-dir'
@@ -225,6 +226,43 @@ describe('prelude Effect CLI command', () => {
           claim.slot === 'effect-runtime-package'
           && claim.locator === 'package.json#/dependencies/effect'
           && claim.kind === 'structuredPointer'))
+      }))
+
+    it.effect('dry-runs effect-harness adoption through a CLI subcommand', () =>
+      Effect.gen(function* () {
+        const fs = yield* FileSystem.FileSystem
+        const targetDir = yield* makeTempProjectDir('prelude-cli-adopt-')
+        yield* fs.writeFileString(pathJoinSync(targetDir, 'package.json'), '{ "name": "existing-target" }\n')
+        yield* fs.writeFileString(pathJoinSync(targetDir, 'tsconfig.json'), '{ "compilerOptions": {} }\n')
+
+        const result = yield* withCapturedStdout(runCommand([
+          'adopt',
+          '--provider',
+          'effect-harness',
+          '--dry-run',
+        ], targetDir))
+        const output = parseLastJson<{
+          readonly command: string
+          readonly status: string
+          readonly providers: readonly {
+            readonly providerId: string
+            readonly status: string
+            readonly packageArtifactIdentity?: {
+              readonly packageName?: string
+            }
+            readonly surfaces?: readonly { readonly surfaceId?: string, readonly status?: string }[]
+          }[]
+        }>(result.output)
+
+        assert.equal(output.command, 'adopt')
+        assert.equal(output.status, 'dry-run')
+        assert.equal(output.providers[0]?.providerId, 'effect-harness')
+        assert.equal(output.providers[0]?.status, 'ready')
+        assert.equal(output.providers[0]?.packageArtifactIdentity?.packageName, '@sayoriqwq/effect-harness')
+        assert.ok(output.providers[0]?.surfaces?.some(surface =>
+          surface.surfaceId === 'package-manifest:root:/dependencies/effect'
+          && surface.status === 'apply'))
+        yield* assertPathDoesNotExist(pathJoinSync(targetDir, '.prelude/manifest.json'))
       }))
 
     it.effect('prints the canonical --spec without creating files', () =>

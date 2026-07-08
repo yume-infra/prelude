@@ -227,23 +227,25 @@ The current `prelude` and `effect-harness` integration has these active properti
 - Root Effect package entries are workspace tooling dependencies for root scripts and workspace
   verification. They do not make root `tsconfig.json` the primary Effect target tsconfig.
 
-## Completed First Slice
+## Lifecycle Authority
 
-Prelude has closed the current projection gaps using the existing provider-record model:
+Create may initialize effect-harness maintain from the selected provider artifact and placement
+plan.
 
-1. Project editor policy into VSCode and Zed settings as structured managed locators.
-2. Add provider-record claims for editor policy locators.
-3. Claim or otherwise verify the root eslint provider inclusion hook.
-4. Decide root Effect dependency ownership without forcing root `tsconfig.json` to become the
-   Effect target tsconfig.
+Existing targets use explicit adoption.
 
-After that slice, the larger refactor SHOULD be described as a PRD:
+Adoption dry-run MUST show selected artifact identity, provider/profile identity, placement
+summary, managed claims, current values, desired values, and conflicts without writing files.
 
-- provider package artifact selection
-- placement plan
-- semantic slots
-- adoption flow
-- explicit surface expansion transition
+Clean adoption MAY write provider-managed surfaces, the provider record, and the maintain manifest
+provider reference.
+
+Normal update MUST NOT silently expand lifecycle authority.
+
+When selected provider desired state introduces a surface that is absent from the provider record,
+update MUST block until an explicit transition approves the expansion.
+
+Transition approval is a Prelude maintain concern, not npm package install behavior.
 
 ## Rejections
 

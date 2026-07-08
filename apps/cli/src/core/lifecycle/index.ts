@@ -5,7 +5,9 @@ import { Effect, Schema } from 'effect'
 import stripJsonComments from 'strip-json-comments'
 import { EffectHarnessProviderDiscoveryService } from '@/core/create/effect-harness-discovery'
 import {
+  effectHarnessMaintainProviderReference,
   effectHarnessProviderRecordForProjectedContext,
+  effectHarnessVerificationRecord,
 } from '@/core/create/effect-harness-provider'
 import { extractManagedBlock, managedBlockCount, upsertManagedBlock } from '@/core/create/managed-block'
 import { pathDirname, pathJoin } from '@/core/path-utils'
@@ -77,6 +79,43 @@ export interface ProviderUpdatePlan {
   readonly nextRecord?: LifecycleProviderRecord
 }
 
+export interface ProviderAdoptionSurfaceResult {
+  readonly surfaceId: string
+  readonly kind: LifecycleSurfaceRecord['kind']
+  readonly path: string
+  readonly locator: string
+  readonly status: 'alreadyApplied' | 'apply' | 'conflict'
+  readonly current?: string
+  readonly desired: string
+  readonly message?: string
+}
+
+export interface ProviderAdoptionResult {
+  readonly providerId: string
+  readonly status: 'ready' | 'adopted' | 'blocked'
+  readonly providerIdentity: {
+    readonly id: string
+    readonly contractVersion: string
+    readonly providerVersion: string
+  }
+  readonly packageArtifactIdentity?: Record<string, JsonValue>
+  readonly selectedProfile: string
+  readonly placementSummary?: Record<string, JsonValue>
+  readonly managedClaims?: readonly Record<string, JsonValue>[]
+  readonly surfaces: readonly ProviderAdoptionSurfaceResult[]
+}
+
+export interface ProviderLifecycleAdoptOptions extends ProviderLifecycleCommandOptions {
+  readonly preludeVersion: string
+  readonly dryRun: boolean
+}
+
+export interface ProviderLifecycleAdoptResult {
+  readonly command: 'adopt'
+  readonly status: 'dry-run' | 'completed' | 'blocked'
+  readonly providers: readonly ProviderAdoptionResult[]
+}
+
 export interface ProviderUpdateOptions {
   readonly providerId: string
 }
@@ -124,6 +163,18 @@ function surfaceDescriptor(surface: LifecycleSurfaceRecord) {
 
 function desiredEffectHarnessRecord(discovery: EffectHarnessProviderDiscovery, record: LifecycleProviderRecord): LifecycleProviderRecord {
   return effectHarnessProviderRecordForProjectedContext(discovery, record.projectedContext)
+}
+
+function defaultEffectHarnessAdoptionRecord(discovery: EffectHarnessProviderDiscovery): LifecycleProviderRecord {
+  return effectHarnessProviderRecordForProjectedContext(discovery, {
+    topology: 'single-package',
+    packageScopes: ['root'],
+    packagePaths: {},
+    rootCapabilities: ['ai-harness'],
+    packageCapabilities: {
+      root: ['effect-package'],
+    },
+  })
 }
 
 function effectHarnessRecordProfileIssues(discovery: EffectHarnessProviderDiscovery, record: LifecycleProviderRecord) {
@@ -218,7 +269,23 @@ function providerLifecycleReadout(record: LifecycleProviderRecord) {
     selectedProfile: record.profile,
     ...(record.placementSummary === undefined ? {} : { placementSummary: record.placementSummary }),
     ...(record.managedClaims === undefined ? {} : { managedClaims: record.managedClaims }),
-  } satisfies Omit<ProviderStatus, 'providerId' | 'status' | 'message'>
+  }
+}
+
+function operationDesiredSnapshot(operation: ProviderUpdateOperation) {
+  if (operation.kind === 'replaceStructuredPointer') {
+    return snapshotOf(operation.value)!
+  }
+
+  if (operation.kind === 'replaceOwnedFile') {
+    return operation.content
+  }
+
+  return operation.content
+}
+
+function adoptionConflictMessage(surface: LifecycleSurfaceRecord) {
+  return `Lifecycle surface ${surface.id} at ${surface.path} cannot be adopted; existing value differs from provider desired value and has no provider base snapshot`
 }
 
 function effectHarnessStatusForDiscovery(discovery: EffectHarnessProviderDiscovery) {
@@ -468,7 +535,9 @@ function findDeclaredSurface(
 
   const nextSurface = nextRecord === undefined ? undefined : surfaceById(nextRecord, operation.surfaceId)
   if (nextSurface !== undefined && nextSurface.owner === providerOwner(record.id)) {
-    return Effect.succeed({ status: 'added', surface: nextSurface })
+    return Effect.fail(LifecycleCommandError.make({
+      message: `Provider ${record.id} update introduces lifecycle surface ${operation.surfaceId} at ${operation.path}; surface expansion requires an explicit transition`,
+    }))
   }
 
   if (surface === undefined || surface.owner !== providerOwner(record.id)) {
@@ -581,6 +650,104 @@ function snapshotOf(value: JsonValue | undefined) {
 
   return typeof value === 'string' ? value : encodeJsonString(canonicalJsonValue(value))
 }
+
+const readAdoptionCurrentSnapshot = Effect.fn('readAdoptionCurrentSnapshot')(
+  function* (
+    fs: CreateFs,
+    targetDir: TargetDir,
+    operation: ProviderUpdateOperation,
+  ): Effect.fn.Return<string | undefined, LifecycleCommandError | FileIOError> {
+    const pathToRead = targetPath(targetDir, operation.path)
+    const exists = yield* fs.exists(pathToRead)
+    if (!exists) {
+      return undefined
+    }
+
+    if (operation.kind === 'replaceOwnedFile') {
+      return yield* fs.readFileString(pathToRead)
+    }
+
+    if (operation.kind === 'replaceManagedBlock') {
+      const currentFile = yield* fs.readFileString(pathToRead)
+      const blockCount = managedBlockCount(currentFile, operation)
+      if (blockCount > 1) {
+        return yield* LifecycleCommandError.make({
+          message: `Lifecycle surface ${operation.surfaceId} at ${operation.path} cannot be adopted; managed block markers are duplicated`,
+        })
+      }
+
+      return extractManagedBlock(currentFile, operation)
+    }
+
+    const content = yield* fs.readFileString(pathToRead)
+    const json = yield* parseJsonFile(content, operation.path)
+    const current = yield* readPointer(json, operation.pointer)
+    return snapshotOf(current)
+  },
+)
+
+const buildAdoptionSurfaceResult = Effect.fn('buildAdoptionSurfaceResult')(
+  function* (
+    fs: CreateFs,
+    targetDir: TargetDir,
+    surface: LifecycleSurfaceRecord,
+    operation: ProviderUpdateOperation,
+  ): Effect.fn.Return<ProviderAdoptionSurfaceResult, LifecycleCommandError | FileIOError> {
+    const current = yield* readAdoptionCurrentSnapshot(fs, targetDir, operation)
+    const desired = operationDesiredSnapshot(operation)
+    const base = {
+      surfaceId: surface.id,
+      kind: surface.kind,
+      path: surface.path,
+      locator: surface.locator,
+      desired,
+      ...(current === undefined ? {} : { current }),
+    }
+
+    if (current === undefined) {
+      return { ...base, status: 'apply' }
+    }
+
+    if (current === desired) {
+      return { ...base, status: 'alreadyApplied' }
+    }
+
+    return {
+      ...base,
+      status: 'conflict',
+      message: adoptionConflictMessage(surface),
+    }
+  },
+)
+
+const buildProviderAdoptionPlan = Effect.fn('buildProviderAdoptionPlan')(
+  function* (
+    fs: CreateFs,
+    targetDir: TargetDir,
+    record: LifecycleProviderRecord,
+  ): Effect.fn.Return<{
+    readonly operations: readonly ProviderUpdateOperation[]
+    readonly surfaces: readonly ProviderAdoptionSurfaceResult[]
+  }, LifecycleCommandError | FileIOError> {
+    const operations = desiredEffectHarnessOperations(record)
+    const surfaces = yield* Effect.forEach(
+      operations,
+      (operation) => {
+        const surface = surfaceById(record, operation.surfaceId)
+        if (surface === undefined) {
+          return Effect.fail(LifecycleCommandError.make({
+            message: `Provider ${record.id} adoption plan targets undeclared lifecycle surface ${operation.surfaceId} at ${operation.path}`,
+          }))
+        }
+
+        return buildAdoptionSurfaceResult(fs, targetDir, surface, operation)
+      },
+      { concurrency: 1 },
+    )
+
+    return { operations, surfaces }
+  },
+)
 
 function parseJsonFile(content: string, relativePath: string): Effect.Effect<JsonValue, LifecycleCommandError> {
   try {
@@ -814,8 +981,10 @@ const applyOperation = Effect.fn('applyOperation')(
     }
 
     const pathToWrite = targetPath(targetDir, operation.path)
-    const content = yield* fs.readFileString(pathToWrite)
-    const json = yield* parseJsonFile(content, operation.path)
+    const exists = yield* fs.exists(pathToWrite)
+    const json = exists
+      ? yield* parseJsonFile(yield* fs.readFileString(pathToWrite), operation.path)
+      : {}
     const nextJson = yield* writePointer(json, operation.pointer, operation.value)
 
     if (!isJsonObject(nextJson)) {
@@ -1065,6 +1234,106 @@ const verifyProviderCurrentState = Effect.fn('verifyProviderCurrentState')(
     }
 
     return providerResult
+  },
+)
+
+function providerAdoptionResult(
+  record: LifecycleProviderRecord,
+  status: ProviderAdoptionResult['status'],
+  surfaces: readonly ProviderAdoptionSurfaceResult[],
+): ProviderAdoptionResult {
+  return {
+    providerId: record.id,
+    status,
+    ...providerLifecycleReadout(record),
+    surfaces,
+  }
+}
+
+function firstAdoptionConflict(surfaces: readonly ProviderAdoptionSurfaceResult[]) {
+  return surfaces.find(surface => surface.status === 'conflict')
+}
+
+function ensureEffectHarnessAdoptionProvider(provider: string | undefined): Effect.Effect<void, LifecycleCommandError> {
+  if (provider !== 'effect-harness') {
+    return Effect.fail(LifecycleCommandError.make({
+      message: provider === undefined
+        ? 'Provider adoption requires --provider effect-harness'
+        : `Provider adoption is not supported for ${provider}`,
+    }))
+  }
+
+  return Effect.void
+}
+
+function adoptionManifest(preludeVersion: string, record: LifecycleProviderRecord): PreludeManifest {
+  return {
+    schemaVersion: 1,
+    preludeVersion,
+    maintainProviders: [effectHarnessMaintainProviderReference(record)],
+    verificationRecords: [effectHarnessVerificationRecord()],
+  }
+}
+
+export const runProviderLifecycleAdopt = Effect.fn('runProviderLifecycleAdopt')(
+  function* (options: ProviderLifecycleAdoptOptions): Effect.fn.Return<ProviderLifecycleAdoptResult, LifecycleCommandError | FileIOError, FsService | EffectHarnessProviderDiscoveryService> {
+    yield* ensureEffectHarnessAdoptionProvider(options.provider)
+    const fs = yield* FsService
+    const manifestExists = yield* fs.exists(manifestPath(options.targetDir))
+    if (manifestExists) {
+      return yield* LifecycleCommandError.make({
+        message: `Cannot adopt provider effect-harness because ${manifestRelativePath} already exists`,
+      })
+    }
+
+    const discoveryService = yield* EffectHarnessProviderDiscoveryService
+    const discovery = yield* discoveryService.discover.pipe(
+      Effect.mapError(error => LifecycleCommandError.make({ message: error.message })),
+    )
+    const record = defaultEffectHarnessAdoptionRecord(discovery)
+    const provider = yield* providerFor(options.providers, record)
+    const plan = yield* buildProviderAdoptionPlan(fs, options.targetDir, record)
+    const conflict = firstAdoptionConflict(plan.surfaces)
+    const blockedProvider = providerAdoptionResult(record, 'blocked', plan.surfaces)
+
+    if (options.dryRun) {
+      return {
+        command: 'adopt',
+        status: conflict === undefined ? 'dry-run' : 'blocked',
+        providers: [conflict === undefined ? providerAdoptionResult(record, 'ready', plan.surfaces) : blockedProvider],
+      }
+    }
+
+    if (conflict !== undefined) {
+      return yield* LifecycleCommandError.make({
+        message: conflict.message ?? adoptionConflictMessage(surfaceById(record, conflict.surfaceId)!),
+      })
+    }
+
+    yield* Effect.forEach(
+      plan.operations.filter((operation) => {
+        const surface = plan.surfaces.find(candidate => candidate.surfaceId === operation.surfaceId)
+        return surface?.status === 'apply'
+      }),
+      operation => applyOperation(fs, options.targetDir, operation),
+      { concurrency: 1, discard: true },
+    )
+
+    const verification = yield* verifyProviderCurrentState(fs, options.targetDir, record, provider)
+    yield* assertProviderVerifyPassed(record, verification)
+
+    const recordPath = targetPath(options.targetDir, effectHarnessMaintainProviderReference(record).recordPath)
+    yield* fs.ensureDir(pathDirname(recordPath))
+    yield* fs.writeFileString(recordPath, encodeProviderRecord(record))
+    const manifestTargetPath = manifestPath(options.targetDir)
+    yield* fs.ensureDir(pathDirname(manifestTargetPath))
+    yield* fs.writeFileString(manifestTargetPath, encodeManifest(adoptionManifest(options.preludeVersion, record)))
+
+    return {
+      command: 'adopt',
+      status: 'completed',
+      providers: [providerAdoptionResult(record, 'adopted', plan.surfaces)],
+    }
   },
 )
 

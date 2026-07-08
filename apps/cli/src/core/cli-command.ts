@@ -8,7 +8,7 @@ import { makeTargetDir } from '@/brand/target-dir'
 import { CliContext } from '@/core/cli-context'
 import { runCreateRoute } from '@/core/create-route'
 import { SchemaContractError } from '@/core/errors'
-import { effectHarnessLifecycleProvider, runProviderLifecycleStatus, runProviderLifecycleUpdate, runProviderLifecycleVerify } from '@/core/lifecycle'
+import { effectHarnessLifecycleProvider, runProviderLifecycleAdopt, runProviderLifecycleStatus, runProviderLifecycleUpdate, runProviderLifecycleVerify } from '@/core/lifecycle'
 import { schemaIssueCount } from '@/schema/errors'
 
 export interface PreludeCommandOptions {
@@ -57,12 +57,21 @@ const lifecycleCommandConfig = {
   ),
 }
 
+const adoptionCommandConfig = {
+  ...lifecycleCommandConfig,
+  dryRun: Flag.boolean('dry-run').pipe(
+    Flag.withDefault(false),
+    Flag.withDescription('Print adoption plan without writing files'),
+  ),
+}
+
 const lifecycleProviders = {
   'effect-harness': effectHarnessLifecycleProvider,
 }
 
 type PreludeCommandInput = Command.Command.Config.Infer<typeof preludeCommandConfig>
 type LifecycleCommandInput = Command.Command.Config.Infer<typeof lifecycleCommandConfig>
+type AdoptionCommandInput = Command.Command.Config.Infer<typeof adoptionCommandConfig>
 type MutableCliArgs = {
   -readonly [Key in keyof CliArgs]: CliArgs[Key]
 }
@@ -97,6 +106,18 @@ function lifecycleCommandOptions(options: PreludeCommandOptions, input: Lifecycl
   return {
     targetDir: lifecycleTargetDir(options, input),
     providers: lifecycleProviders,
+    ...(provider === undefined ? {} : { provider }),
+  }
+}
+
+function adoptionCommandOptions(options: PreludeCommandOptions, input: AdoptionCommandInput) {
+  const provider = lifecycleProvider(input)
+
+  return {
+    targetDir: lifecycleTargetDir(options, input),
+    preludeVersion: options.preludeVersion,
+    providers: lifecycleProviders,
+    dryRun: input.dryRun,
     ...(provider === undefined ? {} : { provider }),
   }
 }
@@ -175,6 +196,14 @@ function makeLifecycleUpdateCommand(options: PreludeCommandOptions) {
   )
 }
 
+function makeLifecycleAdoptCommand(options: PreludeCommandOptions) {
+  return Command.make('adopt', adoptionCommandConfig, input =>
+    runProviderLifecycleAdopt(adoptionCommandOptions(options, input)).pipe(Effect.flatMap(printJson))).pipe(
+    Command.withDescription('Adopt maintain provider surfaces into an existing target'),
+    Command.withShortDescription('Adopt maintain provider surfaces'),
+  )
+}
+
 export function makePreludeCommand(options: PreludeCommandOptions) {
   return Command.make(
     'prelude',
@@ -185,6 +214,7 @@ export function makePreludeCommand(options: PreludeCommandOptions) {
       makeLifecycleStatusCommand(options),
       makeLifecycleVerifyCommand(options),
       makeLifecycleUpdateCommand(options),
+      makeLifecycleAdoptCommand(options),
     ]),
     Command.withDescription('Create an agent-ready project workspace from a canonical CreateSpec'),
     Command.withExamples([
@@ -203,6 +233,10 @@ export function makePreludeCommand(options: PreludeCommandOptions) {
       {
         command: 'prelude verify --provider effect-harness',
         description: 'Verify declared maintain provider surfaces for the current project',
+      },
+      {
+        command: 'prelude adopt --provider effect-harness --dry-run',
+        description: 'Preview effect-harness adoption for an existing project',
       },
     ]),
   )

@@ -120,10 +120,18 @@ Ordinary scaffold is not managed by default.
 Maintain exposes managed lifecycle commands.
 
 ```text
+prelude adopt
 prelude status
 prelude verify
 prelude update
 ```
+
+`adopt` MUST be explicit.
+
+`adopt --dry-run` MUST write nothing.
+
+`adopt` MAY initialize maintain for an existing target when all target values that would be claimed
+are absent or already match provider desired values.
 
 `status` MUST be read-only.
 
@@ -134,6 +142,40 @@ prelude update
 Create verification is separate.
 
 Maintain verification MUST NOT re-accept ordinary scaffold.
+
+## Adoption
+
+Adoption is explicit lifecycle authority expansion for an existing target.
+
+Adoption computes:
+
+```text
+selected provider artifact
+  -> provider discovery
+  -> target shape probe
+  -> placement plan
+  -> managed claims
+  -> adoption preflight
+```
+
+Adoption dry-run MUST report:
+
+- selected package artifact identity
+- provider/profile identity
+- placement summary
+- managed claims
+- current and desired logical values
+- conflicts
+
+Clean adoption MAY apply provider-managed surfaces, write provider records, write maintain manifest
+provider references, and run provider verification.
+
+Conflicting existing target values MUST block adoption.
+
+Adoption MUST NOT claim ordinary scaffold.
+
+The first concrete adoption path is `effect-harness` package-backed adoption for a single-package
+target. Broader target probes MUST preserve the same selected/desired/base/current boundary.
 
 ## Reconcile
 
@@ -249,7 +291,7 @@ Maintain update MUST block when:
 - managed surface drifted
 - update plan targets undeclared surfaces
 - update plan writes outside declared managed surfaces
-- update plan needs to add or expand external surfaces without approval
+- update plan needs to add or expand surfaces without explicit transition approval
 
 Ordinary scaffold drift MUST be ignored.
 
@@ -310,8 +352,9 @@ Update MUST only write declared managed surfaces. When desired introduces new ta
 are absent from the provider record, the lifecycle blocks unless a contract transition explicitly
 approves the expansion.
 
-Status and verify are provider-facing lifecycle operations:
+Adopt, status, verify, and update are provider-facing lifecycle operations:
 
+- `adopt` explicitly claims clean existing target values and initializes provider lifecycle records.
 - `status` reports provider/profile/artifact drift without writing files.
 - `verify` checks provider record conformance and target managed logical values.
 - `update` reconciles desired/base/current, applies managed-surface writes through maintain WritePlan, refreshes provider record base snapshots, and refreshes manifest provider references.

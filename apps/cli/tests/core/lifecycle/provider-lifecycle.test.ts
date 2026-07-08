@@ -4,7 +4,7 @@ import { assert, describe, it } from '@effect/vitest'
 import { Effect } from 'effect'
 import { makeTargetDir } from '@/brand/target-dir'
 import { effectHarnessProviderRecordForProjectedContext } from '@/core/create/effect-harness-provider'
-import { effectHarnessLifecycleProviderForDiscovery, reconcileManagedLogicalValue, runProviderLifecycleStatus, runProviderLifecycleUpdate, runProviderLifecycleVerify } from '@/core/lifecycle'
+import { effectHarnessLifecycleProviderForDiscovery, reconcileManagedLogicalValue, runProviderLifecycleAdopt, runProviderLifecycleStatus, runProviderLifecycleUpdate, runProviderLifecycleVerify } from '@/core/lifecycle'
 import { FsService } from '@/core/services/fs'
 import { stringifyJson } from '../../support/effect-files'
 import { effectHarnessDiscoveryFixture, EffectHarnessDiscoveryTestLayer } from '../../support/effect-harness-discovery'
@@ -199,6 +199,21 @@ function providerRecordWithSurfaces(surfaces: readonly LifecycleSurfaceRecord[])
     ...effectHarnessRecord,
     surfaces,
   }
+}
+
+function makeStatefulFs(initialFiles: Record<string, string>) {
+  const files = new Map(Object.entries(initialFiles))
+  const writes: Array<{ path: string, content: string }> = []
+  const fsService = makeFsMockService({
+    exists: path => Effect.succeed(files.has(path)),
+    readFileString: path => Effect.succeed(files.get(path) ?? ''),
+    writeFileString: (path, content) => Effect.sync(() => {
+      files.set(path, content)
+      writes.push({ path, content })
+    }),
+  })
+
+  return { files, fsService, writes }
 }
 
 function readLifecycleFiles(input: {
@@ -843,6 +858,98 @@ describe('provider lifecycle runtime', () => {
       assert.match(staleVerify.message ?? '', /runtime metadata/u)
     }))
 
+    it.effect('dry-runs effect-harness adoption without writing lifecycle records or target files', () => Effect.gen(function* () {
+      const { fsService, writes } = makeStatefulFs({
+        '/project/package.json': '{ "name": "existing-target" }\n',
+        '/project/tsconfig.json': '{ "compilerOptions": {} }\n',
+      })
+
+      const result = yield* runProviderLifecycleAdopt({
+        targetDir: makeTargetDir('/project'),
+        preludeVersion: '0.0.0-test',
+        provider: 'effect-harness',
+        providers: {
+          'effect-harness': effectHarnessLifecycleProviderForDiscovery(effectHarnessDiscoveryFixture),
+        },
+        dryRun: true,
+      }).pipe(Effect.provideService(FsService, fsService))
+
+      const provider = result.providers[0]
+      assert.equal(result.command, 'adopt')
+      assert.equal(result.status, 'dry-run')
+      assert.deepEqual(writes, [])
+      assert.equal(provider?.providerId, 'effect-harness')
+      assert.equal(provider?.status, 'ready')
+      assert.deepEqual(provider?.providerIdentity, {
+        id: 'effect-harness',
+        contractVersion: '1',
+        providerVersion: '0.1.0',
+      })
+      assert.equal(provider?.packageArtifactIdentity?.packageName, '@sayoriqwq/effect-harness')
+      assert.equal(provider?.selectedProfile, 'codex-effect-v4')
+      assert.equal(provider?.placementSummary?.targetTopology, 'single-package')
+      assert.ok(provider?.managedClaims?.some(claim =>
+        claim.slot === 'effect-runtime-package'
+        && claim.locator === 'package.json#/dependencies/effect'))
+      assert.ok(provider?.surfaces.some(surface =>
+        surface.surfaceId === 'package-manifest:root:/dependencies/effect'
+        && surface.status === 'apply'
+        && surface.locator === 'package.json#/dependencies/effect'))
+    }))
+
+    it.effect('applies clean effect-harness adoption and writes manifest plus provider record', () => Effect.gen(function* () {
+      const { files, fsService, writes } = makeStatefulFs({
+        '/project/package.json': '{ "name": "existing-target" }\n',
+        '/project/tsconfig.json': '{ "compilerOptions": {} }\n',
+      })
+
+      const result = yield* runProviderLifecycleAdopt({
+        targetDir: makeTargetDir('/project'),
+        preludeVersion: '0.0.0-test',
+        provider: 'effect-harness',
+        providers: {
+          'effect-harness': effectHarnessLifecycleProviderForDiscovery(effectHarnessDiscoveryFixture),
+        },
+        dryRun: false,
+      }).pipe(Effect.provideService(FsService, fsService))
+
+      assert.equal(result.command, 'adopt')
+      assert.equal(result.status, 'completed')
+      assert.equal(result.providers[0]?.status, 'adopted')
+      assert.ok(writes.some(write => write.path === '/project/package.json'))
+      assert.ok(writes.some(write => write.path === '/project/tsconfig.json'))
+      assert.ok(writes.some(write => write.path === '/project/.prelude/providers/effect-harness/provider.json'))
+      assert.ok(writes.some(write => write.path === '/project/.prelude/manifest.json'))
+      assert.match(files.get('/project/.prelude/manifest.json') ?? '', /"maintainProviders"/)
+      assert.match(files.get('/project/.prelude/providers/effect-harness/provider.json') ?? '', /"managedClaims"/)
+    }))
+
+    it.effect('blocks conflicting effect-harness adoption without writing files', () => Effect.gen(function* () {
+      const { fsService, writes } = makeStatefulFs({
+        '/project/package.json': '{ "name": "existing-target", "dependencies": { "effect": "manual" } }\n',
+        '/project/tsconfig.json': '{ "compilerOptions": {} }\n',
+      })
+
+      const result = yield* Effect.result(
+        runProviderLifecycleAdopt({
+          targetDir: makeTargetDir('/project'),
+          preludeVersion: '0.0.0-test',
+          provider: 'effect-harness',
+          providers: {
+            'effect-harness': effectHarnessLifecycleProviderForDiscovery(effectHarnessDiscoveryFixture),
+          },
+          dryRun: false,
+        }).pipe(Effect.provideService(FsService, fsService)),
+      )
+
+      assert.equal(result._tag, 'Failure')
+      if (result._tag === 'Failure') {
+        assert.match(result.failure.message, /cannot be adopted/)
+        assert.match(result.failure.message, /package-manifest:root:\/dependencies\/effect/)
+      }
+      assert.deepEqual(writes, [])
+    }))
+
     it.effect('blocks unsupported provider contract transitions without a declarative migration plan', () => Effect.gen(function* () {
       const calls: string[] = []
       const fsService = makeFsMockService({
@@ -931,7 +1038,7 @@ describe('provider lifecycle runtime', () => {
       }
     }))
 
-    it.effect('allows newly declared owned provider surfaces from the next provider record', () => Effect.gen(function* () {
+    it.effect('blocks newly declared provider surfaces without an explicit transition', () => Effect.gen(function* () {
       const writes: Array<{ path: string, content: string }> = []
       const nextRecord = providerRecordWithSurfaces([
         ownedFileSurface({
@@ -955,39 +1062,41 @@ describe('provider lifecycle runtime', () => {
         }),
       })
 
-      yield* runProviderLifecycleUpdate({
-        targetDir: makeTargetDir('/project'),
-        providers: {
-          'effect-harness': {
-            id: 'effect-harness',
-            contractVersion: '1',
-            status: record => Effect.succeed({ providerId: record.id, status: 'changed' as const }),
-            verify: record => Effect.succeed({ providerId: record.id, status: 'passed' as const }),
-            planUpdate: record => Effect.succeed({
-              providerId: record.id,
-              operations: [
-                {
-                  kind: 'replaceOwnedFile',
-                  surfaceId: 'provider-notes',
-                  path: managedBlockPath,
-                  content: 'new provider notes\n',
-                },
-              ],
-              nextRecord,
-            }),
+      const result = yield* Effect.result(
+        runProviderLifecycleUpdate({
+          targetDir: makeTargetDir('/project'),
+          providers: {
+            'effect-harness': {
+              id: 'effect-harness',
+              contractVersion: '1',
+              status: record => Effect.succeed({ providerId: record.id, status: 'changed' as const }),
+              verify: record => Effect.succeed({ providerId: record.id, status: 'passed' as const }),
+              planUpdate: record => Effect.succeed({
+                providerId: record.id,
+                operations: [
+                  {
+                    kind: 'replaceOwnedFile',
+                    surfaceId: 'provider-notes',
+                    path: managedBlockPath,
+                    content: 'new provider notes\n',
+                  },
+                ],
+                nextRecord,
+              }),
+            },
           },
-        },
-      }).pipe(Effect.provideService(FsService, fsService))
+        }).pipe(Effect.provideService(FsService, fsService)),
+      )
 
-      assert.deepEqual(writes.map(write => write.path), [
-        '/project/NOTES.md',
-        '/project/.prelude/providers/effect-harness/provider.json',
-        '/project/.prelude/manifest.json',
-      ])
-      assert.equal(writes[0]?.content, 'new provider notes\n')
+      assert.equal(result._tag, 'Failure')
+      if (result._tag === 'Failure') {
+        assert.match(result.failure.message, /requires an explicit transition/)
+        assert.match(result.failure.message, /provider-notes/)
+      }
+      assert.deepEqual(writes, [])
     }))
 
-    it.effect('blocks newly declared structured provider surfaces when an external value already differs', () => Effect.gen(function* () {
+    it.effect('blocks newly declared structured provider surfaces before reading external values', () => Effect.gen(function* () {
       const writes: string[] = []
       const buildSurfaceId = 'package-manifest:root:/scripts/build'
       const nextRecord = providerRecordWithSurfaces([
@@ -1042,7 +1151,7 @@ describe('provider lifecycle runtime', () => {
 
       assert.strictEqual(result._tag, 'Failure')
       if (result._tag === 'Failure') {
-        assert.match(result.failure.message, /cannot be adopted/)
+        assert.match(result.failure.message, /requires an explicit transition/)
         assert.match(result.failure.message, /package-manifest:root:\/scripts\/build/)
       }
       assert.deepEqual(writes, [])
