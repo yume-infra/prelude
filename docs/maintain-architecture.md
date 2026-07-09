@@ -124,6 +124,7 @@ prelude adopt
 prelude status
 prelude verify
 prelude update
+prelude transition
 ```
 
 `adopt` MUST be explicit.
@@ -138,6 +139,14 @@ are absent or already match provider desired values.
 `verify` MUST check maintain domains and managed claims.
 
 `update` MUST only plan and apply managed surface changes.
+
+`transition` MUST be explicit.
+
+`transition --dry-run` MUST validate requested lifecycle authority changes without writing files.
+
+`transition` MAY approve supported provider surface add, retire, detach, or ownership-transfer
+steps only after validating provider identity, surface identity mapping, current/base
+preconditions, and declared managed locators.
 
 Create verification is separate.
 
@@ -291,7 +300,7 @@ Maintain update MUST block when:
 - managed surface drifted
 - update plan targets undeclared surfaces
 - update plan writes outside declared managed surfaces
-- update plan needs to add or expand surfaces without explicit transition approval
+- update plan needs to add, retire, detach, or transfer surfaces without explicit transition approval
 
 Ordinary scaffold drift MUST be ignored.
 
@@ -313,6 +322,16 @@ A contract transition plan SHOULD declare:
 Maintain core validates preconditions, reads current logical values, detects drift, produces maintain WritePlan, applies writes, re-reads outputs, refreshes provider record base snapshots, and updates manifest provider references when provider identity changes.
 
 Maintain domain modules MUST NOT mutate previous manifests or files directly.
+
+Supported surface transition behavior starts with:
+
+- `add`: approve a provider-declared next surface that was absent from the previous provider record.
+- `retire`: remove a previous managed surface from lifecycle authority after proving current still equals the recorded base.
+- `detach`: stop managing a target value while leaving the target value in place, after proving current still equals the recorded base.
+- `ownership-transfer`: map a previous managed surface identity to a next managed surface identity that preserves the same target locator, then reconcile current/base/desired before writing.
+
+Normal `update` MUST block all of these structural provider-record changes until `transition`
+approves them.
 
 ## Effect Harness Provider Interface
 
@@ -358,6 +377,8 @@ Adopt, status, verify, and update are provider-facing lifecycle operations:
 - `status` reports provider/profile/artifact drift without writing files.
 - `verify` checks provider record conformance and target managed logical values.
 - `update` reconciles desired/base/current, applies managed-surface writes through maintain WritePlan, refreshes provider record base snapshots, and refreshes manifest provider references.
+- `transition` explicitly approves provider surface add, retire, detach, or ownership-transfer
+  steps before maintain core applies provider-record structural changes.
 
 Editor policy for source entries is a prelude target surface only when provider discovery plus
 placement resolves explicit editor settings locators. When a source-entry workflow owns editor

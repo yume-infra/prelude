@@ -143,7 +143,14 @@ const workspaceSpec = {
   overrides: {},
 } as const
 
-type SmokeSpec = typeof workerSpec | typeof reactSpec | typeof vueSpec | typeof backendSpec | typeof librarySpec | typeof cliSpec | typeof workspaceSpec
+type SmokeSpec
+  = | typeof workerSpec
+    | typeof reactSpec
+    | typeof vueSpec
+    | typeof backendSpec
+    | typeof librarySpec
+    | typeof cliSpec
+    | typeof workspaceSpec
 
 type SmokeIntentArea
   = | 'react'
@@ -272,6 +279,100 @@ function stat(filePath: string) {
 
 function readJson<T>(filePath: string) {
   return readFile(filePath, 'utf8').then(content => decodeJsonString(content) as T)
+}
+
+function writeJson(filePath: string, value: unknown) {
+  return writeFile(filePath, `${JSON.stringify(value, null, 2)}\n`)
+}
+
+interface SmokePackageJson {
+  readonly name?: string
+  readonly scripts: Record<string, string>
+  readonly dependencies: Record<string, string>
+  readonly devDependencies: Record<string, string>
+  readonly [key: string]: unknown
+}
+
+interface SmokeLifecycleSurfaceRecord {
+  readonly id: string
+  readonly kind: string
+  readonly path: string
+  readonly pointer?: string
+  base?: string
+  snapshot?: string
+  readonly [key: string]: unknown
+}
+
+interface SmokeLifecycleProviderRecord {
+  readonly id: string
+  surfaces: SmokeLifecycleSurfaceRecord[]
+  readonly [key: string]: unknown
+}
+
+interface SmokeLifecycleCommandResult {
+  readonly command: string
+  readonly status: string
+  readonly providers: readonly Record<string, unknown>[]
+}
+
+function runLifecycleCommand(targetDir: string, command: 'status' | 'verify' | 'update') {
+  return execa('node', [cliEntry, command, '--provider', 'effect-harness'], {
+    cwd: targetDir,
+    env: {
+      ...process.env,
+      CI: '1',
+      FORCE_COLOR: '0',
+    },
+    timeout: 120_000,
+  }).then(result => JSON.parse(result.stdout) as SmokeLifecycleCommandResult)
+}
+
+function runLifecycleCommandFailure(targetDir: string, command: 'update') {
+  return execa('node', [cliEntry, command, '--provider', 'effect-harness'], {
+    cwd: targetDir,
+    env: {
+      ...process.env,
+      CI: '1',
+      FORCE_COLOR: '0',
+    },
+    reject: false,
+    timeout: 120_000,
+  }).then((result) => {
+    assert.notEqual(result.exitCode, 0)
+    return `${result.stdout}\n${result.stderr}`
+  })
+}
+
+function firstProvider(result: SmokeLifecycleCommandResult) {
+  const provider = result.providers[0]
+  assert.notEqual(provider, undefined)
+  return provider!
+}
+
+function findStructuredSurface(
+  record: SmokeLifecycleProviderRecord,
+  path: string,
+  pointer: string,
+) {
+  const surface = record.surfaces.find(candidate =>
+    candidate.kind === 'structuredPointer'
+    && candidate.path === path
+    && candidate.pointer === pointer)
+
+  assert.notEqual(surface, undefined, `${path}#${pointer} should be a managed structured pointer`)
+  return surface!
+}
+
+function setStructuredSurfaceBase(
+  record: SmokeLifecycleProviderRecord,
+  path: string,
+  pointer: string,
+  base: string,
+) {
+  const surface = findStructuredSurface(record, path, pointer)
+  surface.base = base
+  surface.snapshot = base
+  return surface
 }
 
 function smokeTargetName(spec: SmokeSpec) {
@@ -439,6 +540,7 @@ const workerDir = await createFromSpec(workerSpec)
 const workerPackageJson = await readJson<{
   name: string
   scripts: Record<string, string>
+  dependencies: Record<string, string>
   devDependencies: Record<string, string>
 }>(pathJoin(workerDir, 'package.json'))
 const workerKnipConfig = await readJson<{
@@ -858,6 +960,65 @@ assert.deepEqual(workerProviderVerifyRecord?.packageArtifactIdentity, providerRe
 assert.equal(workerProviderVerifyRecord?.selectedProfile, 'codex-effect-v4')
 assert.deepEqual(workerProviderVerifyRecord?.placementSummary, providerRecord.placementSummary)
 assert.deepEqual(workerProviderVerifyRecord?.managedClaims, providerRecord.managedClaims)
+
+const workerProviderStatus = await runLifecycleCommand(workerDir, 'status')
+assert.equal(workerProviderStatus.command, 'status')
+assert.equal(workerProviderStatus.status, 'completed')
+const workerProviderStatusRecord = firstProvider(workerProviderStatus)
+assert.equal(workerProviderStatusRecord.providerId, 'effect-harness')
+assert.equal(workerProviderStatusRecord.status, 'ok')
+assert.deepEqual(workerProviderStatusRecord.packageArtifactIdentity, providerRecord.artifact?.packageArtifactIdentity)
+assert.deepEqual(workerProviderStatusRecord.placementSummary, providerRecord.placementSummary)
+assert.deepEqual(workerProviderStatusRecord.managedClaims, providerRecord.managedClaims)
+
+const workerProviderRecordPath = pathJoin(workerDir, '.prelude/providers/effect-harness/provider.json')
+const workerPackageJsonPath = pathJoin(workerDir, 'package.json')
+const workerSourcePath = pathJoin(workerDir, 'src/index.ts')
+const workerPackageJsonBeforeLifecycle = await readFile(workerPackageJsonPath, 'utf8')
+const workerProviderRecordBeforeLifecycle = await readFile(workerProviderRecordPath, 'utf8')
+const managedDriftPackageJson = await readJson<SmokePackageJson>(workerPackageJsonPath)
+managedDriftPackageJson.devDependencies['@effect/tsgo'] = 'manual-drift'
+await writeJson(workerPackageJsonPath, managedDriftPackageJson)
+const managedDriftOutput = await runLifecycleCommandFailure(workerDir, 'update')
+assert.match(managedDriftOutput, /drifted/u)
+assert.match(managedDriftOutput, /package\.json/u)
+assert.equal(await readFile(workerProviderRecordPath, 'utf8'), workerProviderRecordBeforeLifecycle)
+await writeFile(workerPackageJsonPath, workerPackageJsonBeforeLifecycle)
+
+const handedOffSourceDrift = `${workerSource}// handed-off scaffold drift must survive provider update\n`
+await writeFile(workerSourcePath, handedOffSourceDrift)
+const ordinaryDriftUpdate = await runLifecycleCommand(workerDir, 'update')
+assert.equal(ordinaryDriftUpdate.command, 'update')
+assert.equal(ordinaryDriftUpdate.status, 'completed')
+assert.equal(firstProvider(ordinaryDriftUpdate).status, 'passed')
+assert.equal(await readFile(workerSourcePath, 'utf8'), handedOffSourceDrift)
+
+const staleEffectVersion = '0.0.0-real-fs-e2e'
+const staleManagedPackageJson = await readJson<SmokePackageJson>(workerPackageJsonPath)
+staleManagedPackageJson.dependencies.effect = staleEffectVersion
+await writeJson(workerPackageJsonPath, staleManagedPackageJson)
+const staleProviderRecord = await readJson<SmokeLifecycleProviderRecord>(workerProviderRecordPath)
+const staleEffectSurface = setStructuredSurfaceBase(staleProviderRecord, 'package.json', '/dependencies/effect', staleEffectVersion)
+await writeJson(workerProviderRecordPath, staleProviderRecord)
+const staleProviderVerify = await runLifecycleCommand(workerDir, 'verify')
+assert.equal(staleProviderVerify.status, 'completed')
+const staleProviderVerifyRecord = firstProvider(staleProviderVerify)
+assert.equal(staleProviderVerifyRecord.status, 'failed')
+assert.match(String(staleProviderVerifyRecord.message), /not up to date/u)
+const refreshedUpdate = await runLifecycleCommand(workerDir, 'update')
+assert.equal(refreshedUpdate.command, 'update')
+assert.equal(refreshedUpdate.status, 'completed')
+assert.equal(firstProvider(refreshedUpdate).status, 'passed')
+const refreshedPackageJson = await readJson<SmokePackageJson>(workerPackageJsonPath)
+assert.equal(refreshedPackageJson.dependencies.effect, workerPackageJson.dependencies.effect)
+const refreshedProviderRecord = await readJson<SmokeLifecycleProviderRecord>(workerProviderRecordPath)
+const refreshedEffectSurface = findStructuredSurface(refreshedProviderRecord, staleEffectSurface.path, staleEffectSurface.pointer!)
+assert.equal(refreshedEffectSurface.base, workerPackageJson.dependencies.effect)
+assert.equal(refreshedEffectSurface.snapshot, workerPackageJson.dependencies.effect)
+assert.equal(await readFile(workerSourcePath, 'utf8'), handedOffSourceDrift)
+const refreshedProviderVerify = await runLifecycleCommand(workerDir, 'verify')
+assert.equal(refreshedProviderVerify.status, 'completed')
+assert.equal(firstProvider(refreshedProviderVerify).status, 'passed')
 await execa('pnpm', ['--filter', reactSpec.package.name, 'verify'], {
   cwd: generatedRoot,
   stdio: 'inherit',

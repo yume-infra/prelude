@@ -177,6 +177,92 @@ describe('workspace create pipeline', () => {
       yield* assertPathDoesNotExist(pathJoinSync(targetDir, '.prelude/manifest.json'))
     }))
 
+    it.effect('projects effect-harness package-backed surfaces into workspace package locators', () => Effect.gen(function* () {
+      const targetDir = yield* makeTempProjectDir('prelude-workspace-create-')
+
+      yield* createProjectFromSpec({
+        spec: {
+          topology: 'workspace',
+          packages: [
+            {
+              id: 'worker',
+              name: makePackageName('@workspace-effect/worker'),
+              capabilities: ['effect-package'],
+              internalDependencies: [],
+            },
+          ],
+          rootCapabilities: ['package-manager:pnpm', 'linting', 'ai-harness'],
+          providers: ['effect-harness'],
+          overrides: {},
+        },
+        targetDir: makeTargetDir(targetDir),
+        preludeVersion: '0.0.0-test',
+      })
+
+      const rootPackageJson = yield* readJson<{
+        scripts: Record<string, string>
+        devDependencies: Record<string, string>
+        dependencies?: Record<string, string>
+      }>(pathJoinSync(targetDir, 'package.json'))
+      assert.equal(rootPackageJson.scripts.lint, 'eslint')
+      assert.equal(rootPackageJson.devDependencies.eslint, '^10.3.0')
+      assert.equal(rootPackageJson.dependencies?.effect, undefined)
+
+      const workerPackageJson = yield* readJson<{
+        scripts: Record<string, string>
+        dependencies: Record<string, string>
+        devDependencies: Record<string, string>
+      }>(pathJoinSync(targetDir, 'apps/worker/package.json'))
+      assert.equal(workerPackageJson.dependencies.effect, '4.0.0-beta.92')
+      assert.equal(workerPackageJson.dependencies['@effect/platform-node'], '4.0.0-beta.92')
+      assert.equal(workerPackageJson.devDependencies['@effect/vitest'], '4.0.0-beta.92')
+      assert.equal(workerPackageJson.scripts.typecheck, 'tsgo --noEmit')
+      assert.equal(workerPackageJson.scripts.test, 'vitest run')
+      assert.equal(workerPackageJson.scripts.lint, undefined)
+
+      const providerRecord = yield* readJson<{
+        projectedContext: {
+          topology: string
+          packageScopes: readonly string[]
+          packagePaths: Record<string, string>
+          rootCapabilities: readonly string[]
+          packageCapabilities: Record<string, readonly string[]>
+        }
+        placementSummary?: {
+          targetTopology?: string
+          effectRuntimePackageScopes?: readonly string[]
+          tsconfigTargets?: readonly string[]
+          workspaceToolingPackage?: string
+        }
+        surfaces: Array<{ id: string, path: string }>
+      }>(pathJoinSync(targetDir, '.prelude/providers/effect-harness/provider.json'))
+      assert.deepEqual(providerRecord.projectedContext, {
+        topology: 'workspace',
+        packageScopes: ['worker'],
+        packagePaths: {
+          worker: 'apps/worker',
+        },
+        rootCapabilities: ['package-manager:pnpm', 'linting', 'ai-harness'],
+        packageCapabilities: {
+          worker: ['effect-package'],
+        },
+      })
+      assert.equal(providerRecord.placementSummary?.targetTopology, 'workspace')
+      assert.equal(providerRecord.placementSummary?.workspaceToolingPackage, 'root')
+      assert.deepEqual(providerRecord.placementSummary?.effectRuntimePackageScopes, ['worker'])
+      assert.deepEqual(providerRecord.placementSummary?.tsconfigTargets, ['apps/worker/tsconfig.json'])
+
+      const surfaceIds = new Set(providerRecord.surfaces.map(surface => surface.id))
+      assert.ok(surfaceIds.has('package-manifest:root:/devDependencies/eslint'))
+      assert.ok(surfaceIds.has('package-manifest:root:/scripts/lint'))
+      assert.ok(surfaceIds.has('package-manifest:apps/worker:/dependencies/effect'))
+      assert.ok(surfaceIds.has('package-manifest:apps/worker:/scripts/typecheck'))
+      assert.ok(surfaceIds.has('package-manifest:apps/worker:/scripts/test'))
+      assert.ok(surfaceIds.has('tsconfig:apps/worker:/compilerOptions/plugins'))
+      assert.isFalse(surfaceIds.has('package-manifest:root:/dependencies/effect'))
+      assert.isFalse(surfaceIds.has('tsconfig:root:/compilerOptions/plugins'))
+    }))
+
     it.effect('merges typed workspace manifest surfaces and blocks workspace package manifest conflicts', () => Effect.gen(function* () {
       const workspacePlan = yield* materializeWritePlan([
         {

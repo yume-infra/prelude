@@ -215,38 +215,6 @@ function effectHarnessRecordProfileIssues(discovery: EffectHarnessProviderDiscov
   return issues
 }
 
-function desiredEffectHarnessOperations(record: LifecycleProviderRecord): readonly ProviderUpdateOperation[] {
-  return record.surfaces.map((surface) => {
-    if (surface.kind === 'structuredPointer') {
-      return {
-        kind: 'replaceStructuredPointer' as const,
-        surfaceId: surface.id,
-        path: surface.path,
-        pointer: surface.pointer,
-        value: parseLifecycleSurfaceValue(surface.base),
-      }
-    }
-
-    if (surface.kind === 'ownedFile') {
-      return {
-        kind: 'replaceOwnedFile' as const,
-        surfaceId: surface.id,
-        path: surface.path,
-        content: surface.base ?? '',
-      }
-    }
-
-    return {
-      kind: 'replaceManagedBlock' as const,
-      surfaceId: surface.id,
-      path: surface.path,
-      startMarker: surface.startMarker,
-      endMarker: surface.endMarker,
-      content: surface.base,
-    }
-  })
-}
-
 function parseLifecycleSurfaceValue(value: string): JsonValue {
   try {
     return decodeJsonString(value) as JsonValue
@@ -254,6 +222,40 @@ function parseLifecycleSurfaceValue(value: string): JsonValue {
   catch {
     return value
   }
+}
+
+function operationForSurfaceBase(surface: LifecycleSurfaceRecord): ProviderUpdateOperation {
+  if (surface.kind === 'structuredPointer') {
+    return {
+      kind: 'replaceStructuredPointer',
+      surfaceId: surface.id,
+      path: surface.path,
+      pointer: surface.pointer,
+      value: parseLifecycleSurfaceValue(surface.base),
+    }
+  }
+
+  if (surface.kind === 'ownedFile') {
+    return {
+      kind: 'replaceOwnedFile',
+      surfaceId: surface.id,
+      path: surface.path,
+      content: surface.base ?? '',
+    }
+  }
+
+  return {
+    kind: 'replaceManagedBlock',
+    surfaceId: surface.id,
+    path: surface.path,
+    startMarker: surface.startMarker,
+    endMarker: surface.endMarker,
+    content: surface.base,
+  }
+}
+
+function desiredEffectHarnessOperations(record: LifecycleProviderRecord): readonly ProviderUpdateOperation[] {
+  return record.surfaces.map(operationForSurfaceBase)
 }
 
 function providerLifecycleReadout(record: LifecycleProviderRecord) {
@@ -394,6 +396,55 @@ export interface ProviderLifecycleUpdateResult {
   readonly providers: readonly ProviderVerifyResult[]
 }
 
+export type ProviderTransitionStep
+  = | {
+    readonly kind: 'add'
+    readonly surfaceId: string
+  }
+  | {
+    readonly kind: 'retire'
+    readonly surfaceId: string
+  }
+  | {
+    readonly kind: 'detach'
+    readonly surfaceId: string
+  }
+  | {
+    readonly kind: 'ownership-transfer'
+    readonly fromSurfaceId: string
+    readonly toSurfaceId: string
+  }
+
+export type ProviderTransitionStepResult = ProviderTransitionStep & {
+  readonly status: 'approved'
+}
+
+export interface ProviderLifecycleTransitionOptions extends ProviderLifecycleCommandOptions {
+  readonly dryRun: boolean
+  readonly transitions: readonly ProviderTransitionStep[]
+}
+
+export interface ProviderTransitionResult {
+  readonly providerId: string
+  readonly status: 'ready' | 'transitioned'
+  readonly providerIdentity: {
+    readonly id: string
+    readonly contractVersion: string
+    readonly providerVersion: string
+  }
+  readonly packageArtifactIdentity?: Record<string, JsonValue>
+  readonly selectedProfile: string
+  readonly placementSummary?: Record<string, JsonValue>
+  readonly managedClaims?: readonly Record<string, JsonValue>[]
+  readonly transitions: readonly ProviderTransitionStepResult[]
+}
+
+export interface ProviderLifecycleTransitionResult {
+  readonly command: 'transition'
+  readonly status: 'dry-run' | 'completed'
+  readonly providers: readonly ProviderTransitionResult[]
+}
+
 export type ManagedSurfaceReconcileResult
   = | { readonly status: 'alreadyApplied' }
     | { readonly status: 'apply' }
@@ -518,6 +569,11 @@ type DeclaredSurface
     readonly surface: LifecycleSurfaceRecord
   }
 
+interface SurfaceTransitionAuthorization {
+  readonly addedSurfaceIds: ReadonlySet<string>
+  readonly addedSurfaceBaseById: ReadonlyMap<string, string>
+}
+
 function surfaceById(record: LifecycleProviderRecord, surfaceId: string) {
   return record.surfaces.find(candidate => candidate.id === surfaceId)
 }
@@ -526,6 +582,7 @@ function findDeclaredSurface(
   record: LifecycleProviderRecord,
   nextRecord: LifecycleProviderRecord | undefined,
   operation: ProviderUpdateOperation,
+  authorization?: SurfaceTransitionAuthorization,
 ): Effect.Effect<DeclaredSurface, LifecycleCommandError> {
   const surface = surfaceById(record, operation.surfaceId)
 
@@ -535,6 +592,10 @@ function findDeclaredSurface(
 
   const nextSurface = nextRecord === undefined ? undefined : surfaceById(nextRecord, operation.surfaceId)
   if (nextSurface !== undefined && nextSurface.owner === providerOwner(record.id)) {
+    if (authorization?.addedSurfaceIds.has(nextSurface.id) === true) {
+      return Effect.succeed({ status: 'added', surface: nextSurface })
+    }
+
     return Effect.fail(LifecycleCommandError.make({
       message: `Provider ${record.id} update introduces lifecycle surface ${operation.surfaceId} at ${operation.path}; surface expansion requires an explicit transition`,
     }))
@@ -805,8 +866,9 @@ const preflightOperation = Effect.fn('preflightOperation')(
     record: LifecycleProviderRecord,
     nextRecord: LifecycleProviderRecord | undefined,
     operation: ProviderUpdateOperation,
+    authorization?: SurfaceTransitionAuthorization,
   ): Effect.fn.Return<Exclude<ManagedSurfaceReconcileResult, { readonly status: 'drift' }>, LifecycleCommandError | FileIOError> {
-    const declared = yield* findDeclaredSurface(record, nextRecord, operation)
+    const declared = yield* findDeclaredSurface(record, nextRecord, operation, authorization)
     const { surface } = declared
 
     if (operation.kind === 'replaceOwnedFile') {
@@ -820,6 +882,23 @@ const preflightOperation = Effect.fn('preflightOperation')(
         const pathToRead = targetPath(targetDir, operation.path)
         const exists = yield* fs.exists(pathToRead)
         const current = exists ? yield* fs.readFileString(pathToRead) : undefined
+        const transferredBase = authorization?.addedSurfaceBaseById.get(surface.id)
+        if (transferredBase !== undefined) {
+          if (current === undefined) {
+            return yield* LifecycleCommandError.make({
+              message: `Lifecycle surface ${operation.surfaceId} at ${operation.path} drifted; current logical value is missing`,
+            })
+          }
+
+          return yield* reconcileOrBlock({
+            surface,
+            path: operation.path,
+            base: transferredBase,
+            current,
+            desired: operation.content,
+          })
+        }
+
         return yield* reconcileAddedOrBlock({
           surface,
           path: operation.path,
@@ -874,6 +953,23 @@ const preflightOperation = Effect.fn('preflightOperation')(
         }
 
         const current = extractManagedBlock(currentFile, operation)
+        const transferredBase = authorization?.addedSurfaceBaseById.get(surface.id)
+        if (transferredBase !== undefined) {
+          if (current === undefined) {
+            return yield* LifecycleCommandError.make({
+              message: `Lifecycle surface ${operation.surfaceId} at ${operation.path} drifted; managed block markers are missing`,
+            })
+          }
+
+          return yield* reconcileOrBlock({
+            surface,
+            path: operation.path,
+            base: transferredBase,
+            current,
+            desired: operation.content,
+          })
+        }
+
         return yield* reconcileAddedOrBlock({
           surface,
           path: operation.path,
@@ -919,16 +1015,38 @@ const preflightOperation = Effect.fn('preflightOperation')(
       })
     }
 
-    const content = yield* fs.readFileString(targetPath(targetDir, operation.path))
-    const json = yield* parseJsonFile(content, operation.path)
-    const current = yield* readPointer(json, operation.pointer)
-    const currentSnapshot = snapshotOf(current)
-    const desiredSnapshot = snapshotOf(operation.value)
-
     if (declared.status === 'added') {
+      const pathToRead = targetPath(targetDir, operation.path)
+      const exists = yield* fs.exists(pathToRead)
+      let currentSnapshot: string | undefined
+      if (exists) {
+        const content = yield* fs.readFileString(pathToRead)
+        const json = yield* parseJsonFile(content, operation.path)
+        const current = yield* readPointer(json, operation.pointer)
+        currentSnapshot = snapshotOf(current)
+      }
+      const desiredSnapshot = snapshotOf(operation.value)
+
       if (desiredSnapshot === undefined) {
         return yield* LifecycleCommandError.make({
           message: `Lifecycle surface ${operation.surfaceId} at ${operation.path} cannot be reconciled because the desired logical value is missing`,
+        })
+      }
+
+      const transferredBase = authorization?.addedSurfaceBaseById.get(surface.id)
+      if (transferredBase !== undefined) {
+        if (currentSnapshot === undefined) {
+          return yield* LifecycleCommandError.make({
+            message: `Lifecycle surface ${operation.surfaceId} at ${operation.path} drifted; current logical value is missing`,
+          })
+        }
+
+        return yield* reconcileOrBlock({
+          surface,
+          path: operation.path,
+          base: transferredBase,
+          current: currentSnapshot,
+          desired: desiredSnapshot,
         })
       }
 
@@ -939,6 +1057,12 @@ const preflightOperation = Effect.fn('preflightOperation')(
         desired: desiredSnapshot,
       })
     }
+
+    const content = yield* fs.readFileString(targetPath(targetDir, operation.path))
+    const json = yield* parseJsonFile(content, operation.path)
+    const current = yield* readPointer(json, operation.pointer)
+    const currentSnapshot = snapshotOf(current)
+    const desiredSnapshot = snapshotOf(operation.value)
 
     const base = surfaceBase(surface)
 
@@ -1182,6 +1306,291 @@ function operationLocator(operation: ProviderUpdateOperation) {
   return operation.path
 }
 
+function surfaceTransitionIdentity(surface: LifecycleSurfaceRecord) {
+  const identity: Record<string, unknown> = {
+    owner: surface.owner,
+    kind: surface.kind,
+    authority: surface.authority,
+    scope: surface.scope,
+    locator: surface.locator,
+    path: surface.path,
+  }
+
+  if (surface.kind === 'structuredPointer') {
+    identity.pointer = surface.pointer
+  }
+
+  if (surface.kind === 'managedBlock') {
+    identity.startMarker = surface.startMarker
+    identity.endMarker = surface.endMarker
+  }
+
+  return identity
+}
+
+function surfaceTransferIdentity(surface: LifecycleSurfaceRecord) {
+  const identity = surfaceTransitionIdentity(surface)
+  delete identity.owner
+  return identity
+}
+
+function surfaceTransitionDiff(record: LifecycleProviderRecord, nextRecord: LifecycleProviderRecord) {
+  const currentById = new Map(record.surfaces.map(surface => [surface.id, surface]))
+  const nextById = new Map(nextRecord.surfaces.map(surface => [surface.id, surface]))
+  const added = nextRecord.surfaces.filter(surface => !currentById.has(surface.id))
+  const removed = record.surfaces.filter(surface => !nextById.has(surface.id))
+  const changed = nextRecord.surfaces.flatMap((nextSurface) => {
+    const currentSurface = currentById.get(nextSurface.id)
+    if (currentSurface === undefined) {
+      return []
+    }
+
+    return jsonMatches(surfaceTransitionIdentity(currentSurface), surfaceTransitionIdentity(nextSurface))
+      ? []
+      : [{ current: currentSurface, next: nextSurface }]
+  })
+
+  return { added, removed, changed }
+}
+
+function firstSurfaceTransitionId(diff: ReturnType<typeof surfaceTransitionDiff>) {
+  return diff.added[0]?.id ?? diff.removed[0]?.id ?? diff.changed[0]?.next.id
+}
+
+function assertNoImplicitSurfaceTransitions(
+  record: LifecycleProviderRecord,
+  plan: ProviderUpdatePlan,
+): Effect.Effect<void, LifecycleCommandError> {
+  if (plan.nextRecord === undefined) {
+    return Effect.void
+  }
+
+  const diff = surfaceTransitionDiff(record, plan.nextRecord)
+  const surfaceId = firstSurfaceTransitionId(diff)
+  if (surfaceId !== undefined) {
+    return Effect.fail(LifecycleCommandError.make({
+      message: `Provider ${record.id} update changes lifecycle surface ${surfaceId}; surface transition requires an explicit transition`,
+    }))
+  }
+
+  return Effect.void
+}
+
+function requireSurfaceBase(record: LifecycleProviderRecord, surface: LifecycleSurfaceRecord, action: string): Effect.Effect<string, LifecycleCommandError> {
+  const base = surfaceBase(surface)
+  if (base === undefined) {
+    return Effect.fail(LifecycleCommandError.make({
+      message: `Provider ${record.id} transition ${action} for lifecycle surface ${surface.id} requires a provider record base snapshot`,
+    }))
+  }
+
+  return Effect.succeed(base)
+}
+
+const preflightSurfaceRemoval = Effect.fn('preflightSurfaceRemoval')(
+  function* (
+    fs: CreateFs,
+    targetDir: TargetDir,
+    record: LifecycleProviderRecord,
+    surface: LifecycleSurfaceRecord,
+    action: string,
+  ): Effect.fn.Return<void, LifecycleCommandError | FileIOError> {
+    const base = yield* requireSurfaceBase(record, surface, action)
+    const operation = operationForSurfaceBase(surface)
+    const current = yield* readAdoptionCurrentSnapshot(fs, targetDir, operation)
+
+    if (current === undefined) {
+      return yield* LifecycleCommandError.make({
+        message: `Lifecycle surface ${surface.id} at ${surface.path} drifted; current logical value is missing`,
+      })
+    }
+
+    yield* reconcileOrBlock({
+      surface,
+      path: surface.path,
+      base,
+      current,
+      desired: base,
+    })
+  },
+)
+
+interface ValidatedSurfaceTransition {
+  readonly authorization: SurfaceTransitionAuthorization
+  readonly removals: readonly {
+    readonly action: ProviderTransitionStep['kind']
+    readonly surface: LifecycleSurfaceRecord
+  }[]
+  readonly approved: readonly ProviderTransitionStepResult[]
+}
+
+function duplicateTransitionMessage(record: LifecycleProviderRecord, key: string) {
+  return `Provider ${record.id} transition declares duplicate lifecycle surface transition ${key}`
+}
+
+function validateSurfaceTransitionSteps(
+  record: LifecycleProviderRecord,
+  plan: ProviderUpdatePlan,
+  transitions: readonly ProviderTransitionStep[],
+): Effect.Effect<ValidatedSurfaceTransition, LifecycleCommandError> {
+  const nextRecord = plan.nextRecord ?? record
+  const currentById = new Map(record.surfaces.map(surface => [surface.id, surface]))
+  const nextById = new Map(nextRecord.surfaces.map(surface => [surface.id, surface]))
+  const diff = surfaceTransitionDiff(record, nextRecord)
+  const addedSurfaceIds = new Set<string>()
+  const removedSurfaceIds = new Set<string>()
+  const changedSurfaceIds = new Set<string>()
+  const addedSurfaceBaseById = new Map<string, string>()
+  const removals: Array<{ action: ProviderTransitionStep['kind'], surface: LifecycleSurfaceRecord }> = []
+  const seen = new Set<string>()
+
+  for (const transition of transitions) {
+    const key = transition.kind === 'ownership-transfer'
+      ? `${transition.kind}:${transition.fromSurfaceId}->${transition.toSurfaceId}`
+      : `${transition.kind}:${transition.surfaceId}`
+
+    if (seen.has(key)) {
+      return Effect.fail(LifecycleCommandError.make({
+        message: duplicateTransitionMessage(record, key),
+      }))
+    }
+    seen.add(key)
+
+    if (transition.kind === 'add') {
+      const current = currentById.get(transition.surfaceId)
+      const next = nextById.get(transition.surfaceId)
+      if (current !== undefined || next === undefined) {
+        return Effect.fail(LifecycleCommandError.make({
+          message: `Provider ${record.id} transition add requires a newly declared lifecycle surface ${transition.surfaceId}`,
+        }))
+      }
+
+      if (next.owner !== providerOwner(record.id)) {
+        return Effect.fail(LifecycleCommandError.make({
+          message: `Provider ${record.id} transition add for lifecycle surface ${transition.surfaceId} does not transfer ownership to provider:${record.id}`,
+        }))
+      }
+
+      addedSurfaceIds.add(transition.surfaceId)
+      continue
+    }
+
+    if (transition.kind === 'retire' || transition.kind === 'detach') {
+      const current = currentById.get(transition.surfaceId)
+      const next = nextById.get(transition.surfaceId)
+      if (current === undefined || next !== undefined) {
+        return Effect.fail(LifecycleCommandError.make({
+          message: `Provider ${record.id} transition ${transition.kind} requires an existing lifecycle surface removed from the next provider record: ${transition.surfaceId}`,
+        }))
+      }
+
+      removedSurfaceIds.add(transition.surfaceId)
+      removals.push({ action: transition.kind, surface: current })
+      continue
+    }
+
+    const current = currentById.get(transition.fromSurfaceId)
+    const next = nextById.get(transition.toSurfaceId)
+    if (current === undefined || next === undefined) {
+      return Effect.fail(LifecycleCommandError.make({
+        message: `Provider ${record.id} ownership-transfer requires existing surface ${transition.fromSurfaceId} and next surface ${transition.toSurfaceId}`,
+      }))
+    }
+
+    if (!jsonMatches(surfaceTransferIdentity(current), surfaceTransferIdentity(next))) {
+      return Effect.fail(LifecycleCommandError.make({
+        message: `Provider ${record.id} ownership-transfer identity mapping ${transition.fromSurfaceId} -> ${transition.toSurfaceId} is invalid for lifecycle surface ${transition.toSurfaceId}`,
+      }))
+    }
+
+    if (next.owner !== providerOwner(record.id)) {
+      return Effect.fail(LifecycleCommandError.make({
+        message: `Provider ${record.id} ownership-transfer for lifecycle surface ${transition.toSurfaceId} does not transfer ownership to provider:${record.id}`,
+      }))
+    }
+
+    const base = surfaceBase(current)
+    if (base === undefined) {
+      return Effect.fail(LifecycleCommandError.make({
+        message: `Provider ${record.id} ownership-transfer ${transition.fromSurfaceId} -> ${transition.toSurfaceId} requires a provider record base snapshot`,
+      }))
+    }
+
+    if (transition.fromSurfaceId === transition.toSurfaceId) {
+      changedSurfaceIds.add(transition.fromSurfaceId)
+    }
+    else {
+      removedSurfaceIds.add(transition.fromSurfaceId)
+      addedSurfaceIds.add(transition.toSurfaceId)
+      removals.push({ action: transition.kind, surface: current })
+    }
+    addedSurfaceBaseById.set(transition.toSurfaceId, base)
+  }
+
+  for (const surface of diff.added) {
+    if (!addedSurfaceIds.has(surface.id)) {
+      return Effect.fail(LifecycleCommandError.make({
+        message: `Provider ${record.id} transition plan adds lifecycle surface ${surface.id}; add requires an explicit transition`,
+      }))
+    }
+  }
+
+  for (const surface of diff.removed) {
+    if (!removedSurfaceIds.has(surface.id)) {
+      return Effect.fail(LifecycleCommandError.make({
+        message: `Provider ${record.id} transition plan removes lifecycle surface ${surface.id}; retire or detach requires an explicit transition`,
+      }))
+    }
+  }
+
+  for (const change of diff.changed) {
+    if (!changedSurfaceIds.has(change.next.id)) {
+      return Effect.fail(LifecycleCommandError.make({
+        message: `Provider ${record.id} transition plan changes lifecycle surface ${change.next.id}; ownership-transfer requires an explicit transition`,
+      }))
+    }
+  }
+
+  const operationSurfaceIds = new Set(plan.operations.map(operation => operation.surfaceId))
+  for (const surfaceId of addedSurfaceIds) {
+    if (!operationSurfaceIds.has(surfaceId)) {
+      return Effect.fail(LifecycleCommandError.make({
+        message: `Provider ${record.id} transition adds lifecycle surface ${surfaceId} but the provider plan omits its maintain WritePlan operation`,
+      }))
+    }
+  }
+
+  for (const surfaceId of removedSurfaceIds) {
+    if (operationSurfaceIds.has(surfaceId)) {
+      return Effect.fail(LifecycleCommandError.make({
+        message: `Provider ${record.id} transition removes lifecycle surface ${surfaceId} but the provider plan still targets it`,
+      }))
+    }
+  }
+
+  return Effect.succeed({
+    authorization: {
+      addedSurfaceIds,
+      addedSurfaceBaseById,
+    },
+    removals,
+    approved: transitions.map(transition => ({ ...transition, status: 'approved' as const })),
+  })
+}
+
+function providerTransitionResult(
+  record: LifecycleProviderRecord,
+  status: ProviderTransitionResult['status'],
+  transitions: readonly ProviderTransitionStepResult[],
+): ProviderTransitionResult {
+  return {
+    providerId: record.id,
+    status,
+    ...providerLifecycleReadout(record),
+    transitions,
+  }
+}
+
 const verifyProviderCurrentState = Effect.fn('verifyProviderCurrentState')(
   function* (
     fs: CreateFs,
@@ -1395,6 +1804,123 @@ export const runProviderLifecycleVerify = Effect.fn('runProviderLifecycleVerify'
   },
 )
 
+export const runProviderLifecycleTransition = Effect.fn('runProviderLifecycleTransition')(
+  function* (options: ProviderLifecycleTransitionOptions): Effect.fn.Return<ProviderLifecycleTransitionResult, LifecycleCommandError | FileIOError, FsService | EffectHarnessProviderDiscoveryService> {
+    const fs = yield* FsService
+    const manifest = yield* readManifest(options.targetDir)
+    const references = yield* selectProviderReferences(manifest, options.provider)
+
+    if (references.length === 0) {
+      return {
+        command: 'transition',
+        status: options.dryRun ? 'dry-run' : 'completed',
+        providers: [],
+      }
+    }
+
+    const plannedTransitions = yield* Effect.forEach(references, reference =>
+      Effect.gen(function* () {
+        const record = yield* readProviderRecord(fs, options.targetDir, reference)
+        const provider = yield* providerFor(options.providers, record)
+        yield* provider.status(record)
+        const plan = yield* provider.planUpdate(record, { providerId: record.id })
+        yield* assertPlanCoversRetainedSurfaces(record, plan)
+        const transition = yield* validateSurfaceTransitionSteps(record, plan, options.transitions)
+        return { provider, reference, record, plan, transition }
+      }), { concurrency: 1 })
+
+    const preflightedTransitions = yield* Effect.forEach(
+      plannedTransitions,
+      update =>
+        Effect.gen(function* () {
+          yield* Effect.forEach(
+            update.transition.removals,
+            removal => preflightSurfaceRemoval(fs, options.targetDir, update.record, removal.surface, removal.action),
+            { concurrency: 1, discard: true },
+          )
+
+          const operations = yield* Effect.forEach(
+            update.plan.operations,
+            operation =>
+              preflightOperation(
+                fs,
+                options.targetDir,
+                update.record,
+                update.plan.nextRecord,
+                operation,
+                update.transition.authorization,
+              ).pipe(Effect.map(decision => ({ decision, operation }))),
+            { concurrency: 1 },
+          )
+
+          return {
+            ...update,
+            operations,
+          }
+        }),
+      { concurrency: 1 },
+    )
+
+    if (options.dryRun) {
+      return {
+        command: 'transition',
+        status: 'dry-run',
+        providers: plannedTransitions.map(update =>
+          providerTransitionResult(
+            nextRecordForPlan(update.record, update.plan),
+            'ready',
+            update.transition.approved,
+          )),
+      }
+    }
+
+    yield* Effect.forEach(
+      preflightedTransitions,
+      update =>
+        Effect.forEach(
+          update.operations.filter(operation => operation.decision.status === 'apply'),
+          operation => applyOperation(fs, options.targetDir, operation.operation),
+          { concurrency: 1, discard: true },
+        ),
+      { concurrency: 1, discard: true },
+    )
+
+    const providers = yield* Effect.forEach(plannedTransitions, (update) => {
+      const nextRecord = nextRecordForPlan(update.record, update.plan)
+      return update.provider.verify(nextRecord)
+    }, { concurrency: 1 })
+
+    for (let index = 0; index < plannedTransitions.length; index += 1) {
+      yield* assertProviderVerifyPassed(plannedTransitions[index]!.record, providers[index]!)
+    }
+
+    yield* Effect.forEach(plannedTransitions, (update) => {
+      const nextRecord = nextRecordForPlan(update.record, update.plan)
+      const pathToRecord = targetPath(options.targetDir, update.reference.recordPath)
+      return Effect.gen(function* () {
+        yield* fs.ensureDir(pathDirname(pathToRecord))
+        yield* fs.writeFileString(pathToRecord, encodeProviderRecord(nextRecord))
+      })
+    }, { concurrency: 1, discard: true })
+
+    const nextManifest = applyManifestUpdates(manifest, plannedTransitions)
+    const pathToManifest = manifestPath(options.targetDir)
+    yield* fs.ensureDir(pathDirname(pathToManifest))
+    yield* fs.writeFileString(pathToManifest, encodeManifest(nextManifest))
+
+    return {
+      command: 'transition',
+      status: 'completed',
+      providers: plannedTransitions.map(update =>
+        providerTransitionResult(
+          nextRecordForPlan(update.record, update.plan),
+          'transitioned',
+          update.transition.approved,
+        )),
+    }
+  },
+)
+
 export const runProviderLifecycleUpdate = Effect.fn('runProviderLifecycleUpdate')(
   function* (options: ProviderLifecycleCommandOptions): Effect.fn.Return<ProviderLifecycleUpdateResult, LifecycleCommandError | FileIOError, FsService | EffectHarnessProviderDiscoveryService> {
     const fs = yield* FsService
@@ -1415,6 +1941,7 @@ export const runProviderLifecycleUpdate = Effect.fn('runProviderLifecycleUpdate'
         const provider = yield* providerFor(options.providers, record)
         yield* provider.status(record)
         const plan = yield* provider.planUpdate(record, { providerId: record.id })
+        yield* assertNoImplicitSurfaceTransitions(record, plan)
         yield* assertPlanCoversRetainedSurfaces(record, plan)
         return { provider, reference, record, plan }
       }), { concurrency: 1 })

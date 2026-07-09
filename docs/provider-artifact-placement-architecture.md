@@ -242,8 +242,12 @@ provider reference.
 
 Normal update MUST NOT silently expand lifecycle authority.
 
-When selected provider desired state introduces a surface that is absent from the provider record,
-update MUST block until an explicit transition approves the expansion.
+When selected provider desired state adds, retires, detaches, or transfers a target-managed surface
+relative to the provider record, update MUST block until an explicit transition approves that
+surface authority change.
+
+Transition approval is explicit target lifecycle intent. It validates provider identity, surface
+identity mapping, current/base preconditions, and declared managed locators before any write.
 
 Transition approval is a Prelude maintain concern, not npm package install behavior.
 

@@ -104,6 +104,7 @@ describe('prelude Effect CLI command', () => {
 
         assert.match(result.output, /prelude/u)
         assert.match(result.output, /verify/u)
+        assert.match(result.output, /transition/u)
         assert.match(result.output, /--spec/u)
         assert.match(result.output, /--no-input/u)
         assert.match(result.output, /--print-spec/u)
@@ -263,6 +264,72 @@ describe('prelude Effect CLI command', () => {
           surface.surfaceId === 'package-manifest:root:/dependencies/effect'
           && surface.status === 'apply'))
         yield* assertPathDoesNotExist(pathJoinSync(targetDir, '.prelude/manifest.json'))
+      }))
+
+    it.effect('approves an effect-harness surface transition through a CLI subcommand', () =>
+      Effect.gen(function* () {
+        const fs = yield* FileSystem.FileSystem
+        const targetDir = yield* makeTempProjectDir('prelude-cli-transition-')
+        const spec = {
+          topology: 'single-package',
+          package: {
+            id: 'worker',
+            name: 'cli-transition-worker',
+            capabilities: ['effect-package'],
+          },
+          rootCapabilities: ['package-manager:pnpm', 'linting', 'knip', 'ai-harness'],
+          providers: ['effect-harness'],
+          overrides: {},
+        }
+        const surfaceId = 'package-manifest:root:/dependencies/effect'
+
+        yield* runCommand([
+          '--spec',
+          stringifyJson(spec),
+          '--name',
+          'cli-transition-worker',
+          '--no-input',
+        ], targetDir)
+
+        const recordPath = pathJoinSync(targetDir, '.prelude/providers/effect-harness/provider.json')
+        const record = parseJson<{
+          readonly surfaces: readonly { readonly id: string }[]
+          readonly [key: string]: unknown
+        }>(yield* fs.readFileString(recordPath))
+        yield* fs.writeFileString(recordPath, `${stringifyJson({
+          ...record,
+          surfaces: record.surfaces.filter(surface => surface.id !== surfaceId),
+        })}\n`)
+
+        const result = yield* withCapturedStdout(runCommand([
+          'transition',
+          '--provider',
+          'effect-harness',
+          '--plan',
+          stringifyJson([{ kind: 'add', surfaceId }]),
+        ], targetDir))
+        const output = parseLastJson<{
+          readonly command: string
+          readonly status: string
+          readonly providers: readonly {
+            readonly providerId: string
+            readonly status: string
+            readonly transitions?: readonly { readonly kind?: string, readonly surfaceId?: string, readonly status?: string }[]
+          }[]
+        }>(result.output)
+
+        assert.equal(output.command, 'transition')
+        assert.equal(output.status, 'completed')
+        assert.equal(output.providers[0]?.providerId, 'effect-harness')
+        assert.equal(output.providers[0]?.status, 'transitioned')
+        assert.deepEqual(output.providers[0]?.transitions, [
+          { kind: 'add', surfaceId, status: 'approved' },
+        ])
+
+        const refreshedRecord = parseJson<{
+          readonly surfaces: readonly { readonly id: string }[]
+        }>(yield* fs.readFileString(recordPath))
+        assert.ok(refreshedRecord.surfaces.some(surface => surface.id === surfaceId))
       }))
 
     it.effect('prints the canonical --spec without creating files', () =>

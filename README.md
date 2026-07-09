@@ -40,6 +40,8 @@ Key rules:
 - `.prelude/manifest.json` is a maintain provider index. Ordinary scaffold
   creation does not write a durable manifest ledger.
 - `prelude update` updates active lifecycle providers only.
+- `prelude transition` is required before provider lifecycle authority can add,
+  retire, detach, or transfer managed surfaces.
 
 ## What This Rebuild Deletes
 

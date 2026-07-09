@@ -35,6 +35,15 @@ Preview the generation plan without writing files:
 pnpm dlx @sayoriqwq/prelude --spec ./workspace.create-spec.json --name my-workspace --dry-run --no-input
 ```
 
+Maintain lifecycle commands only target declared provider-managed surfaces:
+
+```bash
+prelude verify --provider effect-harness
+prelude update --provider effect-harness
+prelude adopt --provider effect-harness --dry-run
+prelude transition --provider effect-harness --plan '[{ "kind": "add", "surfaceId": "..." }]'
+```
+
 Use structured JSON for custom workspace package graphs:
 
 ```bash
