@@ -8,13 +8,13 @@ const effectHarnessDiscoveryFixtureBase = {
   providerProfileRelativePath: 'provider/effect-harness.provider.json',
   packageArtifactIdentity: {
     packageName: '@sayoriqwq/effect-harness',
-    packageVersion: '0.0.4',
+    packageVersion: '0.0.5',
     packageManager: 'pnpm@10.33.2',
     artifactRoot: '/tmp/effect-harness-artifact',
     packageJsonPath: '/tmp/effect-harness-artifact/package.json',
     providerProfilePath: '/tmp/effect-harness-artifact/provider/effect-harness.provider.json',
-    npmSelector: '@sayoriqwq/effect-harness@0.0.4',
-    neutralDiscoveryCommand: 'npx --yes --package @sayoriqwq/effect-harness@0.0.4 effect-harness provider-discover',
+    npmSelector: '@sayoriqwq/effect-harness@0.0.5',
+    neutralDiscoveryCommand: 'npx --yes --package @sayoriqwq/effect-harness@0.0.5 effect-harness provider-discover',
     invocationFailureClassification: {
       sameNameCwdShortCircuit: {
         classification: 'npm-invocation-failure',
@@ -25,10 +25,10 @@ const effectHarnessDiscoveryFixtureBase = {
   },
   packageLocator: {
     packageName: '@sayoriqwq/effect-harness',
-    packageVersion: '0.0.4',
+    packageVersion: '0.0.5',
     binName: 'effect-harness',
     binPath: 'dist/bin/effect-harness.js',
-    discoveryCommand: 'npx --yes --package @sayoriqwq/effect-harness@0.0.4 effect-harness provider-discover',
+    discoveryCommand: 'npx --yes --package @sayoriqwq/effect-harness@0.0.5 effect-harness provider-discover',
     packageFiles: ['HARNESS.md', 'README.md', 'dist', 'harness', 'provider', 'repos', 'repos/effect.subtree.json', 'repos/tsgo.subtree.json'],
   },
   provider: {

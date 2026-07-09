@@ -650,9 +650,9 @@ assert.deepEqual(workerManifest.maintainProviders.map(provider => provider.id), 
 assert.equal(workerManifest.maintainProviders[0]?.recordPath, '.prelude/providers/effect-harness/provider.json')
 assert.equal(providerRecord.id, 'effect-harness')
 assert.equal(providerRecord.artifact?.packageArtifactIdentity?.packageName, '@sayoriqwq/effect-harness')
-assert.equal(providerRecord.artifact?.packageArtifactIdentity?.packageVersion, '0.0.4')
-assert.equal(providerRecord.artifact?.packageArtifactIdentity?.npmSelector, '@sayoriqwq/effect-harness@0.0.4')
-assert.equal(providerRecord.artifact?.packageArtifactIdentity?.neutralDiscoveryCommand, 'npx --yes --package @sayoriqwq/effect-harness@0.0.4 effect-harness provider-discover')
+assert.equal(providerRecord.artifact?.packageArtifactIdentity?.packageVersion, '0.0.5')
+assert.equal(providerRecord.artifact?.packageArtifactIdentity?.npmSelector, '@sayoriqwq/effect-harness@0.0.5')
+assert.equal(providerRecord.artifact?.packageArtifactIdentity?.neutralDiscoveryCommand, 'npx --yes --package @sayoriqwq/effect-harness@0.0.5 effect-harness provider-discover')
 assert.equal(providerRecord.artifact?.artifactOnlyReferenceAudit?.mode, 'artifact-only-reference-audit')
 assert.ok(providerRecord.artifact?.artifactOnlyReferenceAudit?.references?.some(reference =>
   reference.id === 'effect-source-tree'

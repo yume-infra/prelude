@@ -1117,6 +1117,7 @@ const applyOperation = Effect.fn('applyOperation')(
       })
     }
 
+    yield* fs.ensureDir(pathDirname(pathToWrite))
     yield* fs.writeFileString(pathToWrite, `${encodeJsonString(nextJson)}\n`)
   },
 )

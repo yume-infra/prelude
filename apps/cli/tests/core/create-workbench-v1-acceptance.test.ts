@@ -158,9 +158,9 @@ describe('fullscreen create workbench v1 acceptance fixtures', () => {
         assert.ok(providerSurfaceIds.has('editor-settings:.zed/settings.json:/lsp/typescript-language-server/initialization_options/preferences/autoImportFileExcludePatterns'))
         assert.ok(providerSurfaceIds.has('editor-settings:.zed/settings.json:/file_scan_exclusions'))
         assert.equal(providerOperation?.value?.artifact?.packageArtifactIdentity?.packageName, '@sayoriqwq/effect-harness')
-        assert.equal(providerOperation?.value?.artifact?.packageArtifactIdentity?.packageVersion, '0.0.4')
-        assert.equal(providerOperation?.value?.artifact?.packageArtifactIdentity?.npmSelector, '@sayoriqwq/effect-harness@0.0.4')
-        assert.equal(providerOperation?.value?.artifact?.packageArtifactIdentity?.neutralDiscoveryCommand, 'npx --yes --package @sayoriqwq/effect-harness@0.0.4 effect-harness provider-discover')
+        assert.equal(providerOperation?.value?.artifact?.packageArtifactIdentity?.packageVersion, '0.0.5')
+        assert.equal(providerOperation?.value?.artifact?.packageArtifactIdentity?.npmSelector, '@sayoriqwq/effect-harness@0.0.5')
+        assert.equal(providerOperation?.value?.artifact?.packageArtifactIdentity?.neutralDiscoveryCommand, 'npx --yes --package @sayoriqwq/effect-harness@0.0.5 effect-harness provider-discover')
         assert.equal(providerOperation?.value?.artifact?.artifactOnlyReferenceAudit?.mode, 'artifact-only-reference-audit')
         assert.ok(providerOperation?.value?.artifact?.artifactOnlyReferenceAudit?.references?.some(reference =>
           reference.id === 'effect-source-tree'
@@ -436,9 +436,9 @@ describe('fullscreen create workbench v1 acceptance fixtures', () => {
           node: 'apps/node',
         })
         assert.equal(providerOperation?.value?.artifact?.packageArtifactIdentity?.packageName, '@sayoriqwq/effect-harness')
-        assert.equal(providerOperation?.value?.artifact?.packageArtifactIdentity?.packageVersion, '0.0.4')
-        assert.equal(providerOperation?.value?.artifact?.packageArtifactIdentity?.npmSelector, '@sayoriqwq/effect-harness@0.0.4')
-        assert.equal(providerOperation?.value?.artifact?.packageArtifactIdentity?.neutralDiscoveryCommand, 'npx --yes --package @sayoriqwq/effect-harness@0.0.4 effect-harness provider-discover')
+        assert.equal(providerOperation?.value?.artifact?.packageArtifactIdentity?.packageVersion, '0.0.5')
+        assert.equal(providerOperation?.value?.artifact?.packageArtifactIdentity?.npmSelector, '@sayoriqwq/effect-harness@0.0.5')
+        assert.equal(providerOperation?.value?.artifact?.packageArtifactIdentity?.neutralDiscoveryCommand, 'npx --yes --package @sayoriqwq/effect-harness@0.0.5 effect-harness provider-discover')
         assert.equal(providerOperation?.value?.placementSummary?.targetTopology, 'workspace')
         assert.equal(providerOperation?.value?.placementSummary?.workspaceToolingPackage, 'root')
         assert.deepStrictEqual(providerOperation?.value?.placementSummary?.effectRuntimePackageScopes, ['node'])

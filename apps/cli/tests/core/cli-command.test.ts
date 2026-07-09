@@ -218,7 +218,7 @@ describe('prelude Effect CLI command', () => {
           providerVersion: '0.1.0',
         })
         assert.equal(provider?.packageArtifactIdentity?.packageName, '@sayoriqwq/effect-harness')
-        assert.equal(provider?.packageArtifactIdentity?.packageVersion, '0.0.4')
+        assert.equal(provider?.packageArtifactIdentity?.packageVersion, '0.0.5')
         assert.equal(provider?.selectedProfile, 'codex-effect-v4')
         assert.equal(provider?.placementSummary?.providerNamespacePath, '.prelude/providers/effect-harness')
         assert.equal(provider?.placementSummary?.targetTopology, 'single-package')

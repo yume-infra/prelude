@@ -5,7 +5,7 @@ import * as FileSystem from 'effect/FileSystem'
 import { makePackageName } from '@/brand/package-name'
 import { makeTargetDir } from '@/brand/target-dir'
 import { createProjectFromSpec } from '@/core/create'
-import { effectHarnessLifecycleProviderForDiscovery, runProviderLifecycleStatus, runProviderLifecycleUpdate, runProviderLifecycleVerify } from '@/core/lifecycle'
+import { effectHarnessLifecycleProviderForDiscovery, runProviderLifecycleAdopt, runProviderLifecycleStatus, runProviderLifecycleUpdate, runProviderLifecycleVerify } from '@/core/lifecycle'
 import { FsLive } from '@/core/services/fs'
 import { makeTempProjectDir, pathJoinSync, readFileString, readJson, stringifyJson } from '../support/effect-files'
 import { effectHarnessDiscoveryFixture, EffectHarnessDiscoveryTestLayer } from '../support/effect-harness-discovery'
@@ -68,6 +68,30 @@ function setStructuredSurfaceBase(record: ProviderRecordFixture, path: string, p
 
 describe('provider lifecycle real filesystem e2e', () => {
   it.layer(TestLayer)((it) => {
+    it.effect('adopts effect-harness into a clean existing target with nested editor settings surfaces', () =>
+      Effect.gen(function* () {
+        const targetDir = yield* makeTempProjectDir('prelude-provider-adopt-real-fs-')
+        const target = makeTargetDir(targetDir)
+
+        yield* writeJson(pathJoinSync(targetDir, 'package.json'), { name: 'existing-target' })
+        yield* writeJson(pathJoinSync(targetDir, 'tsconfig.json'), { compilerOptions: {} })
+
+        const result = yield* runProviderLifecycleAdopt({
+          targetDir: target,
+          preludeVersion: '0.0.0-test',
+          provider: 'effect-harness',
+          providers: lifecycleProviders,
+          dryRun: false,
+        })
+
+        assert.equal(result.status, 'completed')
+        assert.equal(result.providers[0]?.status, 'adopted')
+        assert.match(yield* readFileString(pathJoinSync(targetDir, '.vscode/settings.json')), /autoImportFileExcludePatterns/u)
+        assert.match(yield* readFileString(pathJoinSync(targetDir, '.zed/settings.json')), /typescript-language-server/u)
+        assert.match(yield* readFileString(pathJoinSync(targetDir, '.prelude/manifest.json')), /"maintainProviders"/u)
+        assert.match(yield* readFileString(pathJoinSync(targetDir, '.prelude/providers/effect-harness/provider.json')), /"managedClaims"/u)
+      }))
+
     it.effect('covers create, status, verify, managed drift blocking, ordinary drift ignoring, update, and base refresh', () =>
       Effect.gen(function* () {
         const targetDir = yield* makeTempProjectDir('prelude-provider-lifecycle-real-fs-')
