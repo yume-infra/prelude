@@ -1,116 +1,115 @@
 # @sayoriqwq/prelude
 
-`prelude` is a Sayori-first project genesis system.
+Prelude is an Effect v4 convergence host for independently versioned Harnesses.
 
-Its job is to create a new project in the shape Sayori actually wants: preferred
-technology stack, engineering baseline, agent/harness infrastructure, and
-verification surface from day one.
-
-The name is literal. `prelude` prepares the opening state. After creation,
-ordinary scaffold output is handed to the project owner. The only post-create
-update surface is the narrow lifecycle provider layer, currently the AI harness
-provider path.
-
-## Target Architecture
-
-The rebuild target is one composition pipeline:
+A pnpm Target selects Prelude and several Harness Artifacts through its root
+`package.json` and `pnpm-lock.yaml`. Each Harness exports one read-only Module
+through `@sayoriqwq/prelude-contract`. Prelude composes every Module before
+writing, shows one complete Plan, applies only its exact approved hash, and runs
+the Target's combined verification.
 
 ```text
-CreateSpec
-  -> Resolver
-  -> ResolvedGraph
-  -> Capability Contributions
-  -> Surface Materializers
-  -> WritePlan
-  -> Files
-  -> optional maintain initialization
+root-selected Artifacts + prelude.config.jsonc
+  -> read-only Harness Module plans
+  -> global Output, Requirement, Issue, and Check composition
+  -> versioned Plan Document + execution hash
+  -> exact approval
+  -> rerunnable apply
+  -> target-executed prelude check
 ```
 
-Key rules:
+## V1
 
-- `CreateSpec` is the only canonical creation input.
-- Guided CLI is a `CreateSpec` builder.
-- Reusable project shapes are saved `CreateSpec` files, not a separate preset
-  model.
-- Capabilities contribute typed data to logical surfaces; they do not write
-  files directly.
-- Each physical file or managed block has one owner materializer.
-- There is no global Handlebars/template-rendering layer in the target
-  architecture.
-- `.prelude/manifest.json` is a maintain provider index. Ordinary scaffold
-  creation does not write a durable manifest ledger.
-- `prelude update` updates active lifecycle providers only.
-- `prelude transition` is required before provider lifecycle authority can add,
-  retire, detach, or transfer managed surfaces.
+The V1 release proof is
+[`partita`](https://github.com/yume-infra/partita) running real Effect Harness
+and Psychogram Artifacts together.
 
-## What This Rebuild Deletes
+V1 supports four managed Output capabilities:
 
-The repository is being moved to the final model directly. Old baselines are not
-maintained as compatibility architecture.
+- complete Managed Trees;
+- bounded blocks in shared text files;
+- logical JSON/JSONC values;
+- stable-key JSON/JSONC collection items.
 
-Deletion targets include:
+Package Requirements block missing or incompatible direct dependencies. Module
+Issues are blockers. Checks are post-convergence target commands.
 
-- project-local Trellis baseline
-- project-local old workflow skills
-- preset as a first-class product model
-- `ProjectConfig` as creation truth
-- Plan / PlanSpec as creation truth
-- Handlebars-style `template + params bag -> file` rendering
-- capability-owned direct writes to shared files
-- ordinary scaffold update semantics
+All other content is target-owned, including Effect feedback and Psychogram
+wiki content. Prelude has no `.prelude/` directory or committed applied state.
 
-If existing code cannot be made to express the target model cleanly, it should
-be removed rather than wrapped.
+## Configuration
 
-## Docs
+Prelude and Harness packages are direct root `devDependencies`. The committed
+config names exact package exports and target package roots:
 
-The active project knowledge is under `docs/`:
+```jsonc
+{
+  "$schema": "./node_modules/@sayoriqwq/prelude/prelude-config.schema.json",
+  "schemaVersion": 1,
+  "integrations": [
+    {
+      "id": "effect",
+      "module": "@sayoriqwq/effect-harness/prelude",
+      "packageRoot": "."
+    },
+    {
+      "id": "psychogram",
+      "module": "@sayoriqwq/psychogram/prelude",
+      "packageRoot": "."
+    }
+  ]
+}
+```
 
-- [docs index](./docs/README.md)
-- [goal](./docs/prelude-goal.md)
-- [create/maintain architecture](./docs/create-maintain-architecture.md)
-- [final state](./docs/prelude-final-state.md)
+V1 config has no Harness options or package versions. The root package graph
+owns Artifact selection.
+
+## Target CLI
+
+The replacement public surface is:
+
+```text
+prelude plan
+prelude apply
+prelude check
+```
+
+`plan --json` is a versioned machine contract. `apply` requires an exact current
+execution hash. `check` first proves managed convergence, then executes all
+Harness-declared target checks.
+
+## Rebuild Status
+
+The architecture is frozen, but the checked-in CLI still primarily implements
+the retired create/provider product. That code, its TUI, manifests, fixtures,
+and compatibility surfaces are scheduled for wholesale deletion. They are not
+public contract evidence.
+
+Prelude V1 is being rewritten around Effect v4, Effect Schema, and
+`@effect/platform`. Final Partita behavior is authoritative over old TypeScript
+interfaces or module layout.
+
+## Documentation
+
+Start with [the active docs index](./docs/README.md), then read:
+
+- [goal](./docs/harness-convergence-goal.md)
+- [architecture](./docs/multi-harness-convergence-architecture.md)
+- [Module contract](./docs/harness-module-contract.md)
+- [lifecycle](./docs/harness-integration-lifecycle.md)
 - [rebuild plan](./docs/prelude-rebuild-plan.md)
-- [create materialization](./docs/create-materialization-architecture.md)
-- [maintain architecture](./docs/maintain-architecture.md)
-- [provider artifact placement](./docs/provider-artifact-placement-architecture.md)
-- [agent configuration](./docs/agents/)
+- [architecture handoff](./docs/architecture-handoff.md)
 
-## Development Commands
+Everything under [`docs/archive/`](./docs/archive/) is historical and
+non-authoritative.
+
+## Development
 
 ```bash
 pnpm install
-pnpm build
 pnpm verify
-pnpm smoke:examples
 ```
 
-The generated smoke command builds the CLI, runs the canonical `--spec` route
-under `apps/examples/.generated/`, verifies ordinary generated files, the
-maintain provider namespace when selected, and renderable frontend targets, then
-installs and builds the generated targets. It prints the generated target paths.
-The generated targets are gitignored and intentionally kept for inspection.
-After a stable commit has passed smoke, do not rerun smoke again unless the
-working tree or baseline changes.
-
-`knip.json` keeps a narrow self-target allowance for the Effect harness package
-baseline and the exported CreateSpec/lifecycle type surface. Those entries are
-part of the active provider contract, not legacy generator residue.
-
-## Repository Map
-
-```text
-apps/cli/      CLI implementation and current generator code
-docs/          active product and architecture knowledge
-```
-
-## Collaboration
-
-Use conventional commits.
-
-```bash
-git commit -m "docs: align prelude architecture"
-```
-
-Issues and PRDs use GitHub Issues for `yume-infra/prelude`; see
-[`docs/agents/issue-tracker.md`](./docs/agents/issue-tracker.md).
+Publishing uses `.github/workflows/release.yml`. Local packed-Artifact tests
+must pass before public release coordination across Prelude, Effect Harness,
+Psychogram, and Partita.

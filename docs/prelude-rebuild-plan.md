@@ -1,264 +1,406 @@
 ---
 audience: [agent, human]
-authors:
-  - codex
-reviewed_by:
-  - sayori
-purpose: 把最终架构转成重建执行方向，并列出禁止恢复的旧模型。
+purpose: Define the V1 replacement plan across Prelude, Effect Harness, Psychogram, and Partita.
 status: active
-sources:
-  - docs/create-maintain-architecture.md
-  - docs/prelude-final-state.md
-updated: 2026-06-29
+updated: 2026-07-12
 ---
 
-# Prelude Rebuild Plan
+# Prelude V1 Rebuild Plan
 
-## Goal
+## Objective
 
-重建后的 `prelude` MUST have two mainlines.
+Replace the current create/provider implementation with an Effect v4
+multi-Harness convergence host. The complete release proof is Partita running
+real Effect Harness and Psychogram Modules together through one Contract, Plan,
+apply, and check lifecycle.
 
-```text
-create   = 一次性 genesis
-maintain = 有状态 lifecycle
-```
+This is a product replacement. It is not a compatibility migration.
 
-`create` 的目标路径是：
+## Delivery Rules
 
-```text
-CreateSpec
-  -> create resolver
-  -> resolved create graph
-  -> capability modules
-  -> create contributions
-  -> create surfaces
-  -> create WritePlan
-  -> files
-  -> create verification
-  -> handoff
-```
+1. Final observable behavior is authoritative; old interfaces and file layout
+   are disposable.
+2. Production runtime uses Effect v4, Effect Schema, and `@effect/platform`.
+3. Prelude Core remains Harness-domain blind.
+4. Every active Target mutation passes through global Prelude composition.
+5. Effect Harness and Psychogram are both required before V1 is accepted.
+6. Packed Artifacts and Partita behavior outrank synthetic unit fixtures.
+7. No slice may restore create, provider, manifest, `.prelude/`, or TUI
+   compatibility.
 
-`maintain` 的目标路径是：
+## Final Package Shape
 
 ```text
-maintain config
-  -> maintain resolver
-  -> managed claims
-  -> maintain manifest provider references
-  -> provider records
-  -> status | verify | update
-  -> desired/base/current reconcile
-  -> maintain WritePlan
-  -> managed surface updates
-  -> refreshed provider records
-  -> refreshed manifest references
+prelude-workspace
+  apps/cli
+    @sayoriqwq/prelude
+  packages/harness-contract
+    @sayoriqwq/prelude-contract
 ```
 
-The rebuild succeeds when rejected generator concepts are no longer required to explain, extend, verify, or maintain project creation.
+The root workspace remains private. Both published packages use the existing
+changesets and release workflow.
 
-## Non Negotiables
+## Slice 0: Delete The Retired Product
 
-- No transitional state as target architecture.
-- No compatibility layer as target architecture.
-- No project-local Trellis baseline.
-- No project-local rejected workflow skills.
-- No preset product model.
-- No `ProjectConfig` creation truth.
-- No Plan or PlanSpec creation truth.
-- No Handlebars-style rendering.
-- No global template-rendering layer.
-- No capability-owned direct writes to shared files.
-- No ordinary scaffold lifecycle update.
-- No create manifest ledger for ordinary scaffold.
-- No manifest-as-desired-truth model.
-- No domain-wide blanket managed lifecycle.
-- No cross-capability template inheritance or textual includes.
-- No last-writer-wins physical writes.
+### Outcome
 
-If rejected implementation code blocks these rules, delete or replace it.
+The production graph no longer contains or exposes project generation,
+provider lifecycle, old maintain state, or the create workbench.
 
-## Delete
+### Delete Or Replace
 
-The implementation SHOULD delete or replace:
+- `apps/cli/src/core/create/**`;
+- create routes, spec input, capabilities, materializers, and generated-project
+  verification;
+- provider discovery, provider profile adapters, provider lifecycle state, and
+  compatibility aliases;
+- create/maintain manifest models and `.prelude/` readers/writers;
+- fullscreen create workbench and prototype code;
+- all tests and fixtures whose acceptance truth is CreateSpec, scaffold output,
+  provider records, base snapshots, or old manifest behavior;
+- old CLI commands and flags;
+- scaffolding package descriptions, keywords, scripts, examples, and dead
+  dependencies.
 
-- preset registry as a first-class model
-- preset aliases as product API
-- `ProjectConfig` as canonical creation state
-- Plan or PlanSpec as canonical write model
-- template pointer plus params bag rendering
-- `.hbs` files and Handlebars helpers
-- capability code that writes or patches shared files directly
-- update logic that treats ordinary scaffold output as managed state
-- update logic that derives desired state from the manifest
-- domain-wide flags that make every domain output managed
-- writes outside the maintain-owned namespace when a maintain domain owns that namespace
-- template inheritance trees and cross-capability partials/includes
+### Preserve
 
-Historical generated examples MAY be regenerated from the new pipeline.
+- repository tooling that still serves the rewritten packages;
+- generic utilities only when they already satisfy the new Effect-native
+  boundary without retaining old domain concepts;
+- archived docs as non-authoritative history.
 
-Historical generated examples MUST NOT protect historical implementation behavior.
+### Gate
 
-## Build Create
+- `rg` finds no active create/provider/manifest/TUI production import;
+- CLI help exposes only the new convergence product;
+- no test requires `.prelude/` or generated project fixtures.
 
-### CreateSpec
+## Slice 1: Publish The Shared Contract
 
-`CreateSpec` is the complete canonical create input.
+### Outcome
 
-It records topology, package scopes, selected create capabilities, selected maintain behavior, and explicit overrides.
+Prelude and both Harness repositories compile and validate against one real npm
+dependency instead of copied interfaces.
 
-It MUST NOT name renderer assets or physical write steps.
+### Work
 
-### Create Resolver
+- add `packages/harness-contract` as `@sayoriqwq/prelude-contract`;
+- define Effect Schema codecs for Module descriptor/context result, four Output
+  capabilities, Requirements, Issues, Checks, and Plan-facing identity data;
+- derive TypeScript types from schemas;
+- expose the `defineHarnessModule`-style authoring helper only if it deepens the
+  boundary; keep returned declarations plain data;
+- encode protocol version and required-feature negotiation;
+- provide conformance fixtures for duplicate package copies, malformed data,
+  unsupported features, and unsafe paths;
+- publish package exports, types, schema assets, and package metadata;
+- add changesets for Contract and CLI release coordination.
 
-The create resolver turns `CreateSpec` into a resolved create graph.
+### Gate
 
-It owns defaults, pin selection, capability dependencies, conflict checks, topology expansion, package scoping, and maintain initialization selection.
+- Prelude, Effect Harness, and Psychogram consume the package dependency;
+- neither Harness imports the Prelude CLI;
+- Contract round trips through Effect Schema and JSON;
+- no class or `instanceof` identity crosses the seam.
 
-It MUST NOT produce maintain desired truth for ordinary scaffold.
+## Slice 2: Build The Effect V4 Host Skeleton
 
-### Capability Modules
+### Outcome
 
-Capabilities are user-understandable create abilities.
+The built CLI can decode root config, resolve exact root-selected Harness
+exports, run Modules read-only, and emit a schema-valid combined no-write plan.
 
-Each capability SHOULD declare:
+### Runtime Boundaries
 
-- id and label
-- scope
-- requirements
-- conflicts
-- create surfaces
-- create contributions
-- create verification expectations
-- guided visibility when relevant
+Implement Effect-native deep modules for behavior equivalent to:
 
-A capability MUST NOT write shared files directly.
+- Control Root and config loading;
+- pnpm package/lock observation;
+- exact ESM Module resolution and loading;
+- confined Artifact assets;
+- read-only Target observation;
+- Module execution and schema validation;
+- plan rendering and JSON encoding.
 
-### Create Surfaces
+The exact service names are implementation decisions. Use Effect services,
+Layers, typed errors, scopes, and `@effect/platform` rather than global I/O or a
+parallel Promise architecture.
 
-Create surfaces are semantic merge points.
+### CLI
 
-Each create surface has one owner materializer.
+V1 commands are only:
 
-Materializers merge contributions, reject conflicts, and emit create WritePlan operations.
+- `prelude plan`;
+- `prelude apply` with an exact approved execution hash;
+- `prelude check`.
 
-One physical path MUST have one writer.
+Human text and `--json` are views over the same Plan/Result schemas.
 
-If multiple capabilities need the same path, they MUST contribute to the same create surface.
+### Gate
 
-Identical text is not enough to share ownership.
-
-### Create WritePlan
-
-Create WritePlan is the only create side-effect plan.
-
-It MAY contain explicit operations such as:
-
-- `writeStructuredFile`
-- `writeGeneratedUserFile`
-- `writeExecutableFile`
-- `initializeMaintain`
-- `runCommand`
-
-It MUST NOT contain `renderTemplate`.
-
-## Build Maintain
-
-### Maintain Core
-
-Maintain is a core product ability.
-
-Maintain owns status, verify, update, drift check, maintain WritePlan, provider record base refresh, and manifest reference refresh.
-
-Maintain MUST NOT update ordinary scaffold.
-
-### Maintain Manifest
-
-`.prelude/manifest.json` is the maintain manifest.
-
-The maintain manifest records maintain provider references, not ordinary scaffold creation provenance.
-
-It SHOULD record:
-
-- schema version
-- enabled maintain providers
-- provider record paths
-- provider contract identity
-- provider implementation/profile identity
-- maintain verification records
-
-It SHOULD NOT record ordinary scaffold provenance records.
-
-Provider records under `.prelude/providers/<provider-id>/provider.json` SHOULD record managed claims, locators, base snapshots, provider options, provider profile, and runtime metadata.
-
-### Maintain Domains
-
-Maintain domains provide managed semantics.
-
-`effect-harness` is currently the first maintain domain.
-
-Maintain domains MUST NOT write project files directly.
-
-Maintain core validates domain-declared operations before applying them.
-
-## Rendering
-
-The new system does not render Handlebars templates or use a global template engine.
-
-File generation is surface-owned.
-
-`prelude` optimizes for semantic single authority and open/closed extensibility before template reuse.
-
-Default to complete, local, readable templates when one capability owns an output.
-
-Promote to typed create surfaces when:
-
-- multiple capabilities express opinions about one semantic resource
-- independent add, remove, or update behavior is needed
-- stable identity is needed
-- conflict diagnostics must be explainable
-
-Template rules:
-
-- Complete file copy is allowed.
-- Small explicit variable substitution is allowed.
-- Local helper functions inside one materializer are allowed.
-- Cross-capability template inheritance is forbidden.
-- Cross-capability textual includes are forbidden.
-- Global capability-list conditionals inside templates are forbidden.
-
-## Semantic Import Gate
-
-Historical create-yume templates are semantic inventory.
-
-Historical create-yume templates MUST be classified before import.
-
-Each historical template fragment SHOULD become one of:
-
-- create capability semantics
-- create surface semantics
-- CreateSpec recipe semantics
-- create verification expectation
-- maintain domain semantics
-- out-of-scope historical evidence
-
-Historical template fragments MUST NOT be copied as a new global template system.
-
-## Acceptance
-
-The detailed validation contract is recorded in
-[`prelude-rebuild-acceptance-matrix.md`](./prelude-rebuild-acceptance-matrix.md).
-
-At minimum, the rebuild is aligned when:
-
-- every create path emits or accepts a canonical `CreateSpec`
-- the create resolver produces the complete resolved create graph
-- capabilities contribute typed data instead of writing shared files
-- every physical file has one owner materializer
-- create WritePlan contains no template-render operation
-- no `.hbs` file is required for generation
-- ordinary scaffold is handed off after create verification
-- maintain manifest records only managed lifecycle state
-- maintain update compares desired/base/current logical values
-- maintain update is managed-surface scoped
-- incompatible contract transitions block when identity or semantics cannot be proven
-- docs do not point agents to rejected workflow skills or rejected project baselines
+- config accepts only `schemaVersion` and `id/module/packageRoot` Integrations;
+- all Modules resolve from direct root devDependencies;
+- only named `harnessModule` exports load;
+- planning performs no Target writes;
+- malformed Modules fail with typed, inspectable errors.
+
+## Slice 3: Compose The V1 Contract
+
+### Outcome
+
+Several Modules produce one deterministic Plan with complete conflict and
+blocker evaluation.
+
+### Work
+
+- implement ManagedTree validation and current tree comparison;
+- implement ManagedBlock parsing and shared text-file composition;
+- implement JSON/JSONC semantic pointer comparison;
+- implement stable-key collection item comparison;
+- compose direct package Requirements by importer and package;
+- treat every Module Issue as a blocker;
+- compose independent target command Checks;
+- detect all path and locator overlap before writing;
+- define versioned Plan Document encoding and execution hashing;
+- render additions, replacements, tree deletions, no-ops, blockers, ownership,
+  and Checks as evidence.
+
+Synthetic Modules should test conflict algebra, but only capabilities required
+by Effect Harness and Psychogram belong in V1.
+
+### Gate
+
+- config order cannot choose a conflict winner;
+- same inputs produce byte-identical Plan JSON and hash;
+- comment-only JSONC config edits do not change semantic desired state;
+- unsupported required features block before partial planning.
+
+## Slice 4: Apply And Check
+
+### Outcome
+
+An approved Plan materializes all four Output types and executes composed Target
+verification without committed Prelude state.
+
+### Work
+
+- acquire an exclusive Target write boundary;
+- replan and compare the approved execution hash before writing;
+- stage and publish shared text/JSON files;
+- stage complete Managed Trees and replace their target roots;
+- report detectable partial failure without claiming rollback;
+- make rerun converge completed Outputs as no-ops;
+- implement canonical serial Check execution and aggregate failures;
+- replan after Checks to detect managed-surface mutation;
+- use temporary storage and sibling staging without creating `.prelude/`.
+
+### Failure Tests
+
+- target changes between plan and apply;
+- failure before any publication;
+- failure after one bounded file publication;
+- failure during tree replacement;
+- rerun after partial publication;
+- Check command failure;
+- Check command mutates a managed surface;
+- process interruption leaves no false success or durable applied-state claim.
+
+### Gate
+
+- only an exact current hash writes;
+- partial apply is honest and rerunnable;
+- `prelude check` runs commands only after structural convergence;
+- no receipt, manifest, rollback journal, or `.prelude/` appears.
+
+## Slice 5: Implement Both Real Harness Modules
+
+Effect Harness and Psychogram work can proceed in parallel after the Contract
+package shape is runnable. Neither Module receives a legacy adapter.
+
+### Effect Harness Deliverables
+
+- publish `@sayoriqwq/effect-harness/prelude` with named `harnessModule`;
+- replace provider/discovery output with the shared Contract;
+- maintain a complete static target bundle for `effect/managed/**`;
+- plan one bounded root `AGENTS.md` routing block;
+- plan exact tsconfig/editor JsonValue and JsonKeyedItem declarations required
+  by the real Effect workflow;
+- declare direct runtime/tool package Requirements;
+- export a stable composable ESLint API;
+- diagnose missing or incompatible target ESLint integration as a blocking
+  Issue and ship guidance for the Prelude skill;
+- declare target typecheck/lint/domain Checks;
+- keep pinned Effect/tsgo sources and Source Diagnostics internal to the
+  Artifact, outside normal Target projection;
+- remove old provider compatibility from the release artifact.
+
+### Psychogram Deliverables
+
+- publish an npm Artifact with exact `./prelude` export and named
+  `harnessModule`;
+- use the shared Contract package;
+- maintain one complete static Target bundle containing the accepted
+  `harness/**`, `template/**`, and Codex projection source;
+- plan that bundle into `psychogram/managed/**`;
+- plan one distinct root `AGENTS.md` routing block;
+- inspect target-owned wiki state only for domain Issues or Checks;
+- never model wiki ids, registries, page types, or content as Prelude Outputs;
+- exclude fixtures and unrelated runtime projections from the managed bundle;
+- defer multi-wiki semantics.
+
+### Gate
+
+- both packed packages pass Contract conformance;
+- neither package writes the Target during Module planning;
+- neither Module relies on sibling repository paths;
+- Prelude contains no Effect or Psychogram conditional branch.
+
+## Slice 6: Ship Prelude-Owned Skills
+
+### Outcome
+
+An agent can prepare Partita for deterministic core without moving semantic
+mutation into Harness packages.
+
+### V1 Skills
+
+- bootstrap: add exact root devDependencies and create minimal JSONC config;
+- blocker repair: update package state through pnpm and patch target-owned
+  executable config after showing the user a diff;
+- upgrade/reconcile: capture old/new Plan Documents, update package state,
+  inspect disappeared bounded declarations, propose cleanup, and return to
+  plan/apply/check.
+
+Skills ship with the selected Prelude Artifact. Harness Artifacts may provide
+guidance files but no competing target mutator.
+
+### Gate
+
+- skills never approve a Plan on behalf of the user;
+- all managed-surface writes still go through Prelude apply;
+- broad target-owned patches require explicit authorization;
+- direct package updates remain possible but document weaker residue guarantees.
+
+## Slice 7: Prove The Partita Tracer
+
+### Setup
+
+- install packed or published Prelude, Contract, Effect Harness, and Psychogram
+  packages as direct Partita root devDependencies;
+- commit the resulting `package.json` and `pnpm-lock.yaml` selection;
+- create minimal `prelude.config.jsonc` with Effect and Psychogram Integrations
+  at package root `.`;
+- use the Prelude skill to reconcile Partita's existing ESLint entry point and
+  any package blockers;
+- create one real target-owned wiki under `psychogram/wikis/**`.
+
+### Required Initial Plan
+
+The one plan must visibly include:
+
+- Effect and Psychogram Artifact identities and Integration owners;
+- two Managed Trees;
+- two nonoverlapping root `AGENTS.md` blocks;
+- Effect structured config Outputs;
+- package Requirement status;
+- executable-config Issue status;
+- both Harnesses' Checks;
+- one execution hash.
+
+### Apply And Verification
+
+- approve the exact hash;
+- apply without `.prelude/`;
+- run `prelude check` from Partita;
+- prove the Effect managed bundle is complete and readable;
+- prove the Psychogram protocol bundle is complete;
+- prove Effect feedback and Psychogram wiki content remain untouched;
+- prove no absolute sibling-source or npm-cache path enters Plan or output.
+
+### Upgrade Proof
+
+- change at least one packed Harness Artifact's managed tree and one bounded
+  declaration;
+- capture old/new plans through the upgrade skill;
+- inspect and approve the new hash;
+- apply and check again;
+- demonstrate that target-owned feedback/wiki content survives.
+
+### Gate
+
+V1 is not releasable until this complete two-Harness tracer passes.
+
+## Slice 8: Release Cleanup
+
+- rewrite root and CLI README around convergence only;
+- ensure AGENTS and all active docs agree;
+- remove old scripts, fixtures, examples, dependencies, and Knip exceptions;
+- scan active surfaces for retired terms;
+- run full verification in Prelude, Effect Harness, Psychogram, and Partita;
+- pack all published packages and repeat the tracer from installed Artifacts;
+- add release changesets and publish through repository workflows;
+- confirm public package contents and exports after release.
+
+## Test Strategy
+
+Prioritize tests in this order:
+
+1. Partita installed-Artifact tracer.
+2. Built CLI plan/apply/check acceptance.
+3. Cross-package Contract conformance.
+4. Output composition and failure injection.
+5. Focused Effect service/unit tests.
+
+Do not preserve tests merely because they cover deleted code. A passing old
+create/provider test is negative evidence if it prevents deletion.
+
+## Verification Commands
+
+At minimum:
+
+```bash
+pnpm verify
+pnpm pack
+pnpm exec prelude plan --json
+pnpm exec prelude apply --plan-hash <approved-hash>
+pnpm exec prelude check
+```
+
+Run repository-specific verification in all four repositories. Public npm
+publication is a release gate, not a prerequisite for local packed integration
+proof.
+
+## Completion Matrix
+
+| Capability | Required proof |
+| --- | --- |
+| Shared dependency | All three producer/consumer repos use `@sayoriqwq/prelude-contract` |
+| Effect runtime | Core uses Effect v4/Platform/Schema boundaries rather than old imperative architecture |
+| Multi-Harness | Real Effect Harness and Psychogram run together in Partita |
+| Artifact selection | Direct root dependencies and lockfile select exact exports |
+| Read-only planning | Module planning changes no Target bytes |
+| Composition | Four Output types conflict and compose globally |
+| Approval | Apply rejects every hash except the current approved hash |
+| Apply | Managed Trees and bounded Outputs converge without committed state |
+| Recovery | Partial failure is reported and a new plan is rerunnable |
+| Verification | Both Harness Check sets run through one `prelude check` |
+| Ownership | Effect feedback and Psychogram wiki content remain target-owned |
+| Deletion | No create/provider/TUI/manifest/`.prelude` active surface remains |
+| Packaging | Packed and published package exports contain the complete runtime/assets |
+
+## Deferred
+
+Do not implement these incidentally:
+
+- TUI;
+- project creation;
+- Integration removal;
+- Harness config options;
+- Owned File or executable AST merge;
+- Extension Surface declarations;
+- multi-wiki modeling;
+- automatic package mutation in core;
+- durable multi-file transactions;
+- arbitrary third-party Harness sandboxing;
+- non-pnpm targets.

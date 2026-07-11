@@ -5,7 +5,7 @@ authors:
 reviewed_by:
   - sayori
 purpose: 记录 prelude 的产品北极星、第一用户、能力取舍和非目标。
-status: active
+status: archived
 sources:
   - docs/create-maintain-architecture.md
 updated: 2026-06-29

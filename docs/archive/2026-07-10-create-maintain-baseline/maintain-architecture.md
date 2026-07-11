@@ -5,7 +5,7 @@ authors:
 reviewed_by:
   - sayori
 purpose: 定义 maintain 主线、manifest、managed claims、drift 检查和 maintain domain 的位置。
-status: active
+status: archived
 sources:
   - docs/create-maintain-architecture.md
   - docs/provider-artifact-placement-architecture.md

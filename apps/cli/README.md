@@ -1,75 +1,48 @@
-# @sayoriqwq/prelude
+# @sayoriqwq/prelude CLI
 
-@sayoriqwq/prelude is a focused local project genesis CLI.
+This package will contain Prelude's Effect v4 multi-Harness convergence host.
 
-It currently supports generating:
+## Public Surface
 
-- React and Vue standalone apps
-- TypeScript ESM Node apps
-- TypeScript ESM CLI tools
-- TypeScript ESM library packages
-- pnpm workspace roots
-- structured workspace package graphs with `apps/*` and `libs/*` packages
+V1 exposes only:
 
-The active create API accepts a complete canonical `CreateSpec`. Reusable shapes
-are stored as complete CreateSpec files, not preset names or compatibility
-aliases.
+- `prelude plan`: load every configured Harness Module, compose declarations,
+  compare current state, and emit one Plan Document and execution hash;
+- `prelude apply`: replan under the Target write boundary and materialize only
+  an exact approved hash;
+- `prelude check`: require structural convergence and execute all composed
+  target command Checks.
 
-## Quick Start
+Configuration is the root `prelude.config.jsonc`. Prelude and every Harness
+Artifact are direct root `devDependencies` selected by the Target lockfile.
+Modules implement the separately published `@sayoriqwq/prelude-contract`.
 
-After the package is published, run:
+## Implementation Constraint
 
-```bash
-pnpm dlx @sayoriqwq/prelude --spec ./prelude.create-spec.json --name my-app --no-input
-```
+The runtime is a new Effect v4 implementation using Effect Schema and
+`@effect/platform`. Exact service and file names follow Effect-native module
+design; preserving the old imperative helper graph is not a goal.
 
-For CI or agent-driven generation, use complete non-interactive input:
+The checked-in package still contains the retired create/provider
+implementation. Delete its create routes, workbench, materializers, provider
+adapters, manifests, fixtures, commands, and tests at the rebuild deletion gate.
+Do not add compatibility around them.
 
-```bash
-pnpm dlx @sayoriqwq/prelude --spec ./cli-tool.create-spec.json --name my-tool --no-input
-```
+V1 has no create, init, maintain, provider, remove, TUI, generic confirmation,
+or `.prelude/` product surface.
 
-Preview the generation plan without writing files:
-
-```bash
-pnpm dlx @sayoriqwq/prelude --spec ./workspace.create-spec.json --name my-workspace --dry-run --no-input
-```
-
-Maintain lifecycle commands only target declared provider-managed surfaces:
-
-```bash
-prelude verify --provider effect-harness
-prelude update --provider effect-harness
-prelude adopt --provider effect-harness --dry-run
-prelude transition --provider effect-harness --plan '[{ "kind": "add", "surfaceId": "..." }]'
-```
-
-Use structured JSON for custom workspace package graphs:
-
-```bash
-pnpm dlx @sayoriqwq/prelude --spec prelude.json --name my-workspace --no-input
-```
+Read [the active docs](../../docs/README.md) and
+[the rebuild plan](../../docs/prelude-rebuild-plan.md) before editing production
+code.
 
 ## Local Development
 
 ```bash
 pnpm install
 pnpm --filter @sayoriqwq/prelude build
-node apps/cli/dist/index.js --help
-```
-
-Release confidence checks live in the repository root:
-
-```bash
 pnpm verify
-pnpm --filter @sayoriqwq/prelude smoke:generated
-pnpm --filter @sayoriqwq/prelude smoke:examples
 ```
 
-`smoke:generated` and `smoke:examples` run the same canonical generated
-project check. They generate `canonical-worker` and `react-counter-app` under
-`apps/examples/.generated/`, print the target paths, and keep the generated
-projects for inspection. The generated directory is gitignored and contains a
-local `pnpm-workspace.yaml` so the generated packages can install and build.
-After a stable commit has passed smoke, do not rerun smoke again unless code,
-docs that affect the contract, or the harness/package baseline changes.
+Current generated-project smoke tests describe code scheduled for deletion and
+do not define V1 acceptance. The real gate is the packed two-Harness Partita
+tracer.

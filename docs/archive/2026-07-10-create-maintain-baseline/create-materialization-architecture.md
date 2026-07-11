@@ -5,7 +5,7 @@ authors:
 reviewed_by:
   - sayori
 purpose: 定义 create materialization 如何从 CreateSpec 生成文件，并说明 create 不拥有 maintain manifest。
-status: active
+status: archived
 sources:
   - docs/create-maintain-architecture.md
 updated: 2026-06-29

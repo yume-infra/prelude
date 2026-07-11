@@ -5,7 +5,7 @@ authors:
 reviewed_by:
   - sayori
 purpose: 定义 prelude 重建验收门禁和每个门禁的验证 seam。
-status: active
+status: archived
 sources:
   - docs/create-maintain-architecture.md
   - docs/prelude-final-state.md

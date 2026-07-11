@@ -5,7 +5,7 @@ authors:
 reviewed_by:
   - sayori
 purpose: 记录 create 和 maintain 两条主线的终态架构、关联点和最小设计边界。
-status: active
+status: archived
 sources: []
 updated: 2026-07-08
 ---

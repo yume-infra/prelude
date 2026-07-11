@@ -5,7 +5,7 @@ authors:
 reviewed_by:
   - sayori
 purpose: 定义 provider artifact selection、target placement、managed claims 和 npm provider package 的主口径。
-status: active
+status: archived
 sources:
   - docs/create-maintain-architecture.md
   - docs/maintain-architecture.md

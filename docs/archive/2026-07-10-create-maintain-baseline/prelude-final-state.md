@@ -5,7 +5,7 @@ authors:
 reviewed_by:
   - sayori
 purpose: 定义 prelude 重建后的最终架构状态和不可破坏的主线边界。
-status: active
+status: archived
 sources:
   - docs/create-maintain-architecture.md
 updated: 2026-07-08
