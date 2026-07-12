@@ -36,6 +36,18 @@
         "src/**/*.ts",
         "tests/**/*.ts"
       ]
+    },
+    "packages/harness-contract": {
+      "entry": [
+        "src/index.ts",
+        "src/conformance.ts",
+        "tests/**/*.ts"
+      ],
+      "project": [
+        "*.config.ts",
+        "src/**/*.ts",
+        "tests/**/*.ts"
+      ]
     }
   }
 }

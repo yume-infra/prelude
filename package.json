@@ -29,8 +29,8 @@
     "lint:fix": "eslint --fix",
     "prepare": "effect-tsgo patch",
     "knip": "knip",
-    "typecheck": "pnpm --filter @sayoriqwq/prelude typecheck",
-    "typecheck:tsc": "pnpm --filter @sayoriqwq/prelude typecheck:tsc"
+    "typecheck": "pnpm -r --if-present typecheck",
+    "typecheck:tsc": "pnpm -r --if-present typecheck:tsc"
   },
   "dependencies": {
     "@effect/platform-node": "4.0.0-beta.92",

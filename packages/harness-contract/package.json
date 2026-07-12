@@ -1,0 +1,59 @@
+{
+  "name": "@sayoriqwq/prelude-contract",
+  "type": "module",
+  "version": "0.1.0",
+  "description": "Effect Schema-backed contract for Prelude Harness Modules",
+  "author": "sayoriqwq",
+  "license": "ISC",
+  "keywords": [
+    "effect",
+    "harness",
+    "prelude",
+    "schema"
+  ],
+  "sideEffects": false,
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "default": "./dist/index.js"
+    },
+    "./conformance": {
+      "types": "./dist/conformance.d.ts",
+      "import": "./dist/conformance.js",
+      "default": "./dist/conformance.js"
+    },
+    "./package.json": "./package.json"
+  },
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "files": [
+    "dist"
+  ],
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "build": "tsdown --config tsdown.config.ts",
+    "typecheck": "tsgo --noEmit",
+    "typecheck:tsc": "tsc -p tsconfig.json --noEmit",
+    "test": "pnpm build && vitest run",
+    "prepack": "pnpm build"
+  },
+  "peerDependencies": {
+    "effect": "4.0.0-beta.92"
+  },
+  "devDependencies": {
+    "@effect/tsgo": "catalog:",
+    "@effect/vitest": "catalog:",
+    "@types/node": "catalog:",
+    "@typescript/native-preview": "catalog:",
+    "effect": "catalog:",
+    "tsdown": "catalog:",
+    "typescript": "catalog:",
+    "vitest": "catalog:"
+  },
+  "publishConfig": {
+    "access": "public"
+  }
+}
