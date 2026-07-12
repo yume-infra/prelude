@@ -144,10 +144,12 @@ Before declaring V1 complete:
 
 ## Current Verification Note
 
-`pnpm verify` passed before the final architecture documentation amendments.
-The latest documentation set still needs its own link/term scan and repository
-verification before commit. No implementation work should assume the current
-old test suite remains relevant after the deletion gate.
+`pnpm verify` passed against the repository state immediately before the
+architecture baseline commit. Active-document link validation, retired-term
+classification, and `git diff --check` also passed. Remaining retired terms in
+active docs are explicit deletion or rejection evidence. No implementation work
+should assume the current old test suite remains relevant after the deletion
+gate.
 
 ## Residual Risks
 

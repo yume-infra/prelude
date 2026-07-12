@@ -21,7 +21,7 @@ root-selected Artifacts + prelude.config.jsonc
 ## V1
 
 The V1 release proof is
-[`partita`](https://github.com/yume-infra/partita) running real Effect Harness
+[`partita`](https://github.com/sayoriqwq/partita) running real Effect Harness
 and Psychogram Artifacts together.
 
 V1 supports four managed Output capabilities:
@@ -44,7 +44,6 @@ config names exact package exports and target package roots:
 
 ```jsonc
 {
-  "$schema": "./node_modules/@sayoriqwq/prelude/prelude-config.schema.json",
   "schemaVersion": 1,
   "integrations": [
     {
