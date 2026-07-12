@@ -47,6 +47,25 @@ describe('exact root Artifact selection', () => {
     expect(linkedSelectionPath('file:../packs/tool.tgz')).toBeUndefined()
   }))
 
+  it.effect('uses the leading pnpm 11 registry version rather than nested peer versions', () => Effect.sync(() => {
+    expect(evaluateRequirementSelection({ range: '^9.0.0', directSpecifier: '^9.0.0', lockSpecifier: '^9.0.0', lockVersion: '9.1.0(@typescript-eslint/parser@8.50.0)(eslint@10.5.0(@types/node@25.9.3))(typescript@6.0.3)(vitest@4.1.9(@types/node@25.9.3))', installedVersion: '9.1.0' }).satisfied).toBe(true)
+    expect(evaluateRequirementSelection({ range: '^4.1.8', directSpecifier: '^4.1.8', lockSpecifier: '^4.1.8', lockVersion: '4.1.9(@types/node@25.9.3)(vite@8.0.16(@types/node@25.9.3))', installedVersion: '4.1.9' }).satisfied).toBe(true)
+  }))
+
+  it.effect('preserves registry prerelease and build versions before patch and peer suffixes', () => Effect.sync(() => {
+    const prereleaseManifest = JSON.stringify({ devDependencies: { '@synthetic/alpha': '^1.2.3-beta.1' } })
+    const prereleaseLock = `lockfileVersion: '9.0'
+importers:
+  .:
+    devDependencies:
+      '@synthetic/alpha':
+        specifier: ^1.2.3-beta.1
+        version: 1.2.3-beta.1+build.7(patch_hash=abc)(peer@2.0.0)
+`
+    const installed = JSON.stringify({ name: '@synthetic/alpha', version: '1.2.3-beta.1+build.7' })
+    expect(selectRootArtifact({ manifestSource: prereleaseManifest, lockSource: prereleaseLock, installedLockSource: prereleaseLock.replace('specifier: ^1.2.3-beta.1\n', ''), packageName: '@synthetic/alpha', installedManifestSource: installed }).packageVersion).toBe('1.2.3-beta.1+build.7')
+  }))
+
   it.effect('hashes file selection context without leaking its path', () => Effect.sync(() => {
     const fileManifest = JSON.stringify({ devDependencies: { '@synthetic/alpha': 'file:../packs/alpha.tgz' } })
     const fileLock = `lockfileVersion: '9.0'

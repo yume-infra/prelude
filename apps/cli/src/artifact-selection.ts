@@ -38,8 +38,8 @@ function parseObject(source: string, label: string): Record<string, unknown> {
 function selectedVersion(lockVersion: string): string | undefined {
   if (/^(?:file|link|workspace):/.test(lockVersion))
     return undefined
-  const matches = [...lockVersion.matchAll(/(?:^|@)(\d+\.\d+\.\d+(?:-[0-9A-Z.-]+)?)(?=\(|#|$)/gi)]
-  return matches.at(-1)?.[1]
+  const selected = /^(\d+\.\d+\.\d+(?:-[0-9A-Z-]+(?:\.[0-9A-Z-]+)*)?(?:\+[0-9A-Z-]+(?:\.[0-9A-Z-]+)*)?)(?=[(#_]|$)/i.exec(lockVersion)?.[1]
+  return selected !== undefined && semver.valid(selected) !== null ? selected : undefined
 }
 
 export function evaluateRequirementSelection(input: { readonly range: string, readonly packageName?: string | undefined, readonly installedName?: string | undefined, readonly directSpecifier?: string | undefined, readonly lockSpecifier?: string | undefined, readonly lockVersion?: string | undefined, readonly installedLockVersion?: string | undefined, readonly installedVersion?: string | undefined, readonly lockIdentityMatches?: boolean | undefined }): { readonly satisfied: boolean } {
