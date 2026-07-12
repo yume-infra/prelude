@@ -1,7 +1,6 @@
 {
   "extends": "./tsconfig.json",
   "compilerOptions": {
-    // 开启后 tsdown 将采用更快的 oxc-transform 生成 d.ts
     "isolatedDeclarations": true
   },
   "include": ["src/**/*"],

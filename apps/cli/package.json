@@ -2,14 +2,14 @@
   "name": "@sayoriqwq/prelude",
   "type": "module",
   "version": "0.2.3",
-  "description": "A focused local project scaffolding CLI for React, Vue, Node, CLI tools, libraries, and pnpm workspaces",
+  "description": "Effect v4 multi-Harness convergence host for pnpm targets",
   "author": "sayoriqwq",
   "license": "ISC",
   "keywords": [
-    "create",
     "cli",
-    "scaffold",
-    "generator",
+    "convergence",
+    "effect",
+    "harness",
     "pnpm"
   ],
   "main": "dist/index.js",
@@ -28,29 +28,32 @@
     "typecheck": "tsgo --noEmit",
     "typecheck:tsc": "tsc -p tsconfig.json --noEmit",
     "test": "vitest run",
-    "prototype:create-workbench": "tsx src/core/create-workbench-prototype/index.ts",
-    "smoke:generated": "pnpm build && tsx tests/generated-projects.smoke.ts",
-    "smoke:examples": "pnpm build && tsx tests/generated-projects.smoke.ts",
-    "prepare": "effect-tsgo patch",
-    "link:global": "pnpm link --global",
-    "unlink:global": "pnpm unlink --global"
+    "smoke:installed": "pnpm build && tsx tests/installed-tracer.ts",
+    "prepack": "pnpm build"
   },
   "dependencies": {
-    "@clack/prompts": "catalog:",
     "@effect/platform-node": "4.0.0-beta.92",
+    "@sayoriqwq/prelude-contract": "workspace:^",
     "effect": "4.0.0-beta.92",
-    "strip-json-comments": "catalog:"
+    "import-meta-resolve": "catalog:",
+    "jsonc-parser": "catalog:",
+    "semver": "catalog:",
+    "yaml": "catalog:"
   },
   "devDependencies": {
     "@effect/language-service": "0.86.2",
     "@effect/tsgo": "0.15.0",
     "@effect/vitest": "4.0.0-beta.92",
     "@types/node": "catalog:",
+    "@types/semver": "catalog:",
     "@typescript/native-preview": "7.0.0-dev.20260630.1",
     "execa": "catalog:",
     "tsdown": "catalog:",
     "tsx": "catalog:",
     "typescript": "catalog:",
     "vitest": "^4.1.8"
+  },
+  "publishConfig": {
+    "access": "public"
   }
 }

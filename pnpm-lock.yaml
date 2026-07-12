@@ -9,9 +9,6 @@ catalogs:
     '@changesets/cli':
       specifier: ^2.31.0
       version: 2.31.0
-    '@clack/prompts':
-      specifier: ^1.3.0
-      version: 1.6.0
     '@commitlint/cli':
       specifier: ^20.5.3
       version: 20.5.3
@@ -27,6 +24,9 @@ catalogs:
     '@types/node':
       specifier: 25.6.0
       version: 25.6.0
+    '@types/semver':
+      specifier: ^7.7.1
+      version: 7.7.1
     '@typescript/native-preview':
       specifier: 7.0.0-dev.20260630.1
       version: 7.0.0-dev.20260630.1
@@ -39,15 +39,21 @@ catalogs:
     husky:
       specifier: ^9.1.7
       version: 9.1.7
+    import-meta-resolve:
+      specifier: ^4.2.0
+      version: 4.2.0
+    jsonc-parser:
+      specifier: ^3.3.1
+      version: 3.3.1
     knip:
       specifier: ^6.12.0
       version: 6.23.0
     lint-staged:
       specifier: ^17.0.2
       version: 17.0.8
-    strip-json-comments:
-      specifier: ^5.0.3
-      version: 5.0.3
+    semver:
+      specifier: ^7.8.5
+      version: 7.8.5
     taze:
       specifier: ^19.11.0
       version: 19.14.1
@@ -66,6 +72,9 @@ catalogs:
     vitest:
       specifier: ^4.1.8
       version: 4.1.9
+    yaml:
+      specifier: ^2.9.0
+      version: 2.9.0
 
 overrides:
   '@effect/platform-node@4.0.0-beta.92>@effect/platform-node-shared': 4.0.0-beta.92
@@ -132,18 +141,27 @@ importers:
 
   apps/cli:
     dependencies:
-      '@clack/prompts':
-        specifier: 'catalog:'
-        version: 1.6.0
       '@effect/platform-node':
         specifier: 4.0.0-beta.92
         version: 4.0.0-beta.92(effect@4.0.0-beta.92)(ioredis@5.11.1)
+      '@sayoriqwq/prelude-contract':
+        specifier: workspace:^
+        version: link:../../packages/harness-contract
       effect:
         specifier: 4.0.0-beta.92
         version: 4.0.0-beta.92
-      strip-json-comments:
+      import-meta-resolve:
         specifier: 'catalog:'
-        version: 5.0.3
+        version: 4.2.0
+      jsonc-parser:
+        specifier: 'catalog:'
+        version: 3.3.1
+      semver:
+        specifier: 'catalog:'
+        version: 7.8.5
+      yaml:
+        specifier: 'catalog:'
+        version: 2.9.0
     devDependencies:
       '@effect/language-service':
         specifier: 0.86.2
@@ -157,6 +175,9 @@ importers:
       '@types/node':
         specifier: 'catalog:'
         version: 25.6.0
+      '@types/semver':
+        specifier: 'catalog:'
+        version: 7.7.1
       '@typescript/native-preview':
         specifier: 7.0.0-dev.20260630.1
         version: 7.0.0-dev.20260630.1
@@ -1443,6 +1464,9 @@ packages:
   '@types/node@25.6.0':
     resolution: {integrity: sha512-+qIYRKdNYJwY3vRCZMdJbPLJAtGjQBudzZzdzwQYkEPQd+PJGixUL5QfvCLDaULoLv+RhT3LDkwEfKaAkgSmNQ==}
 
+  '@types/semver@7.7.1':
+    resolution: {integrity: sha512-FmgJfu+MOcQ370SD0ev7EI8TlCAfKYU+B4m5T3yXc1CiRN94g/SZPtsCkk506aUDtlMnFZvasDwHHUcZUEaYuA==}
+
   '@types/unist@3.0.3':
     resolution: {integrity: sha512-ko/gIFJRv177XgZsZcBwnqJN5x/Gien8qNOn0D5bQU/zAzVf9Zt3BlcUiLqhV9y4ARk0GbT3tnUiPNgnTXzc/Q==}
 
@@ -2526,6 +2550,9 @@ packages:
   jsonc-eslint-parser@3.1.0:
     resolution: {integrity: sha512-75EA7EWZExL/j+MDKQrRbdzcRI2HOkRlmUw8fZJc1ioqFEOvBsq7Rt+A6yCxOt9w/TYNpkt52gC6nm/g5tFIng==}
     engines: {node: ^20.19.0 || ^22.13.0 || >=24}
+
+  jsonc-parser@3.3.1:
+    resolution: {integrity: sha512-HUgH65KyejrUFPvHFPbqOY0rsFip3Bo5wb4ngvdi1EpCYWUQDC5V+Y7mZws+DLkr4M//zQJoanu1SP+87Dv1oQ==}
 
   jsonfile@4.0.0:
     resolution: {integrity: sha512-m6F1R3z8jjlf2imQHS2Qez5sjKWQzbuuhuJ/FKYFRZvPE3PuHcSMVZzfsLhGVOkfd20obL5SWEBew5ShlquNxg==}
@@ -4691,6 +4718,8 @@ snapshots:
     dependencies:
       undici-types: 7.19.2
 
+  '@types/semver@7.7.1': {}
+
   '@types/unist@3.0.3': {}
 
   '@types/ws@8.18.1':
@@ -5803,6 +5832,8 @@ snapshots:
       acorn: 8.17.0
       eslint-visitor-keys: 5.0.1
       semver: 7.8.5
+
+  jsonc-parser@3.3.1: {}
 
   jsonfile@4.0.0:
     optionalDependencies:

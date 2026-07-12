@@ -5,22 +5,12 @@
   ],
   "ignoreDependencies": [
     "@effect/platform-node",
+    "@effect/tsgo",
     "@typescript/native-preview",
     "effect",
     "@effect/vitest",
     "husky"
   ],
-  "ignoreIssues": {
-    "apps/cli/src/core/create/index.ts": [
-      "types"
-    ],
-    "apps/cli/src/core/create/model.ts": [
-      "types"
-    ],
-    "apps/cli/src/core/lifecycle/index.ts": [
-      "types"
-    ]
-  },
   "workspaces": {
     ".": {
       "project": [

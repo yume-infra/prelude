@@ -6,10 +6,17 @@ export default defineConfig({
   format: 'esm',
   fixedExtension: false,
   dts: false,
-  // 外部依赖：不打进包，由运行时从 node_modules 加载
   deps: {
-    neverBundle: ['effect', '@clack/prompts'],
+    neverBundle: [
+      '@effect/platform-node',
+      '@sayoriqwq/prelude-contract',
+      'effect',
+      'jsonc-parser',
+      'semver',
+      'yaml',
+    ],
   },
   tsconfig: 'tsconfig.build.json',
-  minify: true,
+  minify: false,
+  sourcemap: true,
 })

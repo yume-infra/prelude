@@ -1,70 +1,49 @@
 #!/usr/bin/env node
-
+/* eslint-disable style/max-statements-per-line */
 import process from 'node:process'
+
 import { NodeRuntime, NodeServices } from '@effect/platform-node'
-import { Console, Effect, Layer, Logger, ManagedRuntime, References } from 'effect'
-import { DevTools } from 'effect/unstable/devtools'
-import { AppConfig } from '@/config/app-config'
-import { formatPreludeCommandError, printPreludeCommandHelp, runPreludeCommand, shouldPrintPreludeCommandHelp } from '@/core/cli-command'
-import { EffectHarnessProviderDiscoveryService } from '@/core/create/effect-harness-discovery'
-import { TracingLive } from '@/core/services/tracing'
-import { FsLive } from '~/fs'
-import packageManifest from '../package.json' with { type: 'json' }
+import { Console, Effect } from 'effect'
 
-const DevToolsLive = Layer.unwrap(
-  Effect.gen(function* () {
-    const config = yield* AppConfig
-    return config.debug ? DevTools.layer() : Layer.empty
-  }),
+import { planConvergence } from './convergence.js'
+import { errorMessage, preludeError } from './errors.js'
+import { stableJson } from './model.js'
+import { applyConvergence, changedCount, checkConvergence } from './runtime.js'
+
+function usage(): string { return 'Usage: prelude {plan [--json] | apply --plan-hash <sha256> [--json] | check [--json]}' }
+
+function argumentValue(args: ReadonlyArray<string>, flag: string): string | undefined { const index = args.indexOf(flag); return index < 0 ? undefined : args[index + 1] }
+
+const program = Effect.gen(function* () {
+  const args = process.argv.slice(2); const command = args[0]; const json = args.includes('--json'); const controlRoot = process.cwd()
+  if (command === 'plan') {
+    if (args.some(arg => arg !== 'plan' && arg !== '--json'))
+      return yield* Effect.fail(preludeError('cli', usage()))
+    const plan = yield* planConvergence(controlRoot)
+    yield* Console.log(json ? stableJson(plan.document, true) : `Plan ${plan.document.executionHash}\n${changedCount(plan)} output(s) change; ${plan.document.blocked ? 'blocked' : 'ready'}`)
+    if (plan.document.blocked)
+      process.exitCode = 2
+    return
+  }
+  if (command === 'apply') {
+    const hash = argumentValue(args, '--plan-hash')
+    if (hash === undefined || !/^[a-f0-9]{64}$/.test(hash) || args.some((arg, index) => arg !== 'apply' && arg !== '--plan-hash' && arg !== hash && arg !== '--json' && index !== args.indexOf('--plan-hash') + 1))
+      return yield* Effect.fail(preludeError('cli', usage()))
+    const result = yield* applyConvergence(controlRoot, hash)
+    yield* Console.log(json ? stableJson(result, true) : `Applied ${result.executionHash}: ${result.published} publication(s), ${result.remaining} remaining`)
+    return
+  }
+  if (command === 'check') {
+    if (args.some(arg => arg !== 'check' && arg !== '--json'))
+      return yield* Effect.fail(preludeError('cli', usage()))
+    const result = yield* checkConvergence(controlRoot)
+    yield* Console.log(json ? stableJson(result, true) : `Checks passed: ${result.checks.length}`)
+    return
+  }
+  return yield* Effect.fail(preludeError('cli', usage()))
+}).pipe(
+  Effect.provide(NodeServices.layer),
+  Effect.catch((error: unknown) => Console.error(`prelude: ${errorMessage(error)}`).pipe(Effect.andThen(Effect.sync(() => { process.exitCode = 1 })))),
 )
 
-const LoggerLevelLive = Layer.unwrap(
-  Effect.gen(function* () {
-    const config = yield* AppConfig
-    return Layer.succeed(References.MinimumLogLevel, config.logLevel)
-  }),
-)
-
-const PlatformLayer = Layer.mergeAll(
-  NodeServices.layer,
-  AppConfig.Default,
-)
-
-const BaseLayer = Layer.mergeAll(
-  DevToolsLive,
-  TracingLive,
-  LoggerLevelLive,
-  Logger.layer([Logger.consolePretty()]),
-  FsLive,
-  EffectHarnessProviderDiscoveryService.Default,
-).pipe(Layer.provideMerge(PlatformLayer))
-
-const commandOptions = {
-  preludeVersion: packageManifest.version ?? '0.0.0',
-  stdinIsTTY: process.stdin.isTTY === true,
-}
-
-const main = runPreludeCommand(commandOptions)
-
-const program = main.pipe(
-  Effect.catch((error: unknown) =>
-    Effect.gen(function* () {
-      yield* Console.error(formatPreludeCommandError(error))
-      if (shouldPrintPreludeCommandHelp(error)) {
-        yield* Console.error('')
-        yield* printPreludeCommandHelp(commandOptions)
-      }
-      yield* Effect.sync(() => {
-        process.exitCode = shouldPrintPreludeCommandHelp(error) ? 2 : 0
-      })
-    })),
-)
-
-const runtime = ManagedRuntime.make(BaseLayer)
-
-// https://effect.website/docs/platform/runtime/#running-your-main-program-with-runmain
-NodeRuntime.runMain(
-  Effect.promise(() => runtime.runPromise(program)).pipe(
-    Effect.ensuring(runtime.disposeEffect),
-  ),
-)
+NodeRuntime.runMain(program)

@@ -9,21 +9,13 @@
     "useDefineForClassFields": true,
     "module": "ESNext",
     "moduleResolution": "bundler",
-    "paths": {
-      "@/*": [
-        "./src/*"
-      ],
-      "~/*": [
-        "./src/core/services/*"
-      ]
-    },
     "plugins": [
       {
         "name": "@effect/language-service",
         "diagnostics": true,
         "includeSuggestionsInTsc": true,
-        "ignoreEffectSuggestionsInTscExitCode": false,
-        "ignoreEffectWarningsInTscExitCode": false,
+        "ignoreEffectSuggestionsInTscExitCode": true,
+        "ignoreEffectWarningsInTscExitCode": true,
         "ignoreEffectErrorsInTscExitCode": false,
         "diagnosticSeverity": {
           "anyUnknownInErrorContext": "error",

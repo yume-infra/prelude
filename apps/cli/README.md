@@ -1,6 +1,6 @@
 # @sayoriqwq/prelude CLI
 
-This package will contain Prelude's Effect v4 multi-Harness convergence host.
+This package contains Prelude's Effect v4 multi-Harness convergence host.
 
 ## Public Surface
 
@@ -23,11 +23,6 @@ The runtime is a new Effect v4 implementation using Effect Schema and
 `@effect/platform`. Exact service and file names follow Effect-native module
 design; preserving the old imperative helper graph is not a goal.
 
-The checked-in package still contains the retired create/provider
-implementation. Delete its create routes, workbench, materializers, provider
-adapters, manifests, fixtures, commands, and tests at the rebuild deletion gate.
-Do not add compatibility around them.
-
 V1 has no create, init, maintain, provider, remove, TUI, generic confirmation,
 or `.prelude/` product surface.
 
@@ -43,6 +38,6 @@ pnpm --filter @sayoriqwq/prelude build
 pnpm verify
 ```
 
-Current generated-project smoke tests describe code scheduled for deletion and
-do not define V1 acceptance. The real gate is the packed two-Harness Partita
-tracer.
+`pnpm smoke:installed` packs the CLI and Contract, installs two synthetic
+Harness Artifacts into a temporary pnpm Target, and exercises plan, stale-hash
+rejection, apply, and check across root and workspace Integration scopes.
