@@ -61,6 +61,10 @@ export const harnessModule = {
   await writeFile(join(target, 'packages/app/scope.txt'), 'beta scope\n')
   await writeFile(join(target, 'tsconfig.json'), '{ "compilerOptions": {} }\n'); await writeFile(join(target, 'settings.json'), '{ "plugins": [] }\n')
   await run(['install'])
+  for (const skill of ['prelude-bootstrap', 'prelude-repair', 'prelude-upgrade']) {
+    const source = await readFile(join(target, 'node_modules/@sayoriqwq/prelude/skills', skill, 'SKILL.md'), 'utf8')
+    assert.match(source, new RegExp(`^---\\nname: ${skill}\\ndescription: .+\\n---\\n`, 's'))
+  }
   const cli = join(target, 'node_modules/.bin/prelude')
   const first = await execa(cli, ['plan', '--json'], { cwd: target }); const second = await execa(cli, ['plan', '--json'], { cwd: target })
   assert.equal(first.stdout, second.stdout, 'plan JSON must be byte-stable')

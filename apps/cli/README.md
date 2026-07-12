@@ -17,6 +17,19 @@ Configuration is the root `prelude.config.jsonc`. Prelude and every Harness
 Artifact are direct root `devDependencies` selected by the Target lockfile.
 Modules implement the separately published `@sayoriqwq/prelude-contract`.
 
+## Agent Skills
+
+The Target-selected Artifact provides version-matched skills at
+`node_modules/@sayoriqwq/prelude/skills/<name>/SKILL.md`:
+
+- `prelude-bootstrap` prepares exact root package selection and minimal
+  Integration config; it does not approve or apply a plan.
+- `prelude-repair` handles plan blockers and target-owned executable-config
+  preparation after a concrete, authorized diff; it does not edit managed
+  Outputs.
+- `prelude-upgrade` compares temporary old/new Plans around a package update
+  and separates any residue cleanup from that update for its own authorization.
+
 ## Implementation Constraint
 
 The runtime is a new Effect v4 implementation using Effect Schema and

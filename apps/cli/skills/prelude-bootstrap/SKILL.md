@@ -1,0 +1,35 @@
+---
+name: prelude-bootstrap
+description: Prepare a pnpm Control Root for Prelude convergence after explicit user authorization.
+---
+
+# Prelude Bootstrap
+
+Use this skill from the selected `@sayoriqwq/prelude` Artifact. Work at the
+Control Root containing `package.json`.
+
+For every `prelude plan --json` invocation, capture stdout. Exit status `0` or
+`2` is a Plan result: validate captured stdout against the selected Prelude
+Plan schema and version. Treat the command as failed only when stdout is not a
+valid Plan Document.
+
+1. Inspect the root package state and requested exact Prelude and Harness
+   Artifact versions, then derive only the requested `id`, `module`, and
+   `packageRoot` Integration entries. Stop if an exact package selection or
+   Integration is ambiguous.
+2. Before any real Target mutation, use an isolated temporary copy or session
+   replica that preserves the same repo-relative package inputs. In that copy,
+   use pnpm to generate the complete candidate `package.json`,
+   `pnpm-lock.yaml`, and minimal `prelude.config.jsonc`; the config contains
+   `schemaVersion: 1` and the selected Integrations only. Show the concrete
+   diffs for all three files together. Clean up the preview and never create
+   `Target/.prelude/`.
+3. Apply its exact three-file changes to the real Target and run `pnpm install`
+   to verify the installed graph only after explicit user authorization of that
+   exact candidate. Confirm the root package, lockfile, and config select the
+   requested values.
+4. Run `prelude plan --json` and return the Plan Document and blockers for
+   review. Do not run `prelude apply` and do not approve an execution hash.
+
+Completion: the root selects the requested Artifacts, the minimal config is
+valid, and the user has a current Plan to inspect.
