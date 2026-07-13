@@ -2,22 +2,25 @@ import { Schema } from 'effect'
 
 import { StableIdSchema } from './primitives.js'
 
-export const MODULE_PROTOCOL_V1 = 1
+export const MODULE_PROTOCOL_V2 = 2
 
-export const V1_FEATURE = {
+export const V2_FEATURE = {
   artifactAssets: 'planning.artifact-assets',
   blockingIssues: 'issues.blocking',
   jsonKeyedItem: 'outputs.json-keyed-item',
   jsonValue: 'outputs.json-value',
   managedBlock: 'outputs.managed-block',
   managedTree: 'outputs.managed-tree',
+  pinnedReferenceTree: 'outputs.pinned-reference-tree',
   packageRequirements: 'requirements.package',
+  rootedLocators: 'locators.rooted',
+  selectedPackageRoots: 'integrations.package-roots',
   targetChecks: 'checks.argv',
-  targetObservation: 'planning.target-observation',
+  targetObservation: 'planning.rooted-target-observation',
 } as const
 
-export const PRELUDE_V1_SUPPORTED_FEATURES = Object.freeze(
-  Object.values(V1_FEATURE).sort(),
+export const PRELUDE_V2_SUPPORTED_FEATURES = Object.freeze(
+  Object.values(V2_FEATURE).sort(),
 )
 
 export const ProtocolVersionSchema = Schema.Finite.pipe(

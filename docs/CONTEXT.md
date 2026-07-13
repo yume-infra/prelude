@@ -2,7 +2,7 @@
 audience: [agent, human]
 purpose: Define Prelude's active domain language.
 status: active
-updated: 2026-07-12
+updated: 2026-07-13
 ---
 
 # Domain Context
@@ -18,12 +18,19 @@ approval for one complete plan.
 ### Target
 
 The repository whose Harness Integrations are planned, applied, and checked.
-Partita is the V1 acceptance Target.
+Isolated single-package and pnpm-workspace Targets are the V2 Gate 1 acceptance
+Targets. Partita remains a later real cross-Harness migration target.
 
 ### Control Root
 
-The repository root containing `prelude.config.jsonc`, root `package.json`, and
-`pnpm-lock.yaml`. It is the only V1 importer for Prelude and Harness Modules.
+The nearest ancestor containing `.prelude/config.jsonc`. Its root
+`package.json` and `pnpm-lock.yaml` select exact Prelude and Harness Artifacts.
+
+### Prelude Configuration
+
+The sole committed Integration configuration at `.prelude/config.jsonc`. V2
+accepts only `schemaVersion: 2` and contains no Harness options or applied
+state.
 
 ### Harness
 
@@ -45,9 +52,21 @@ the Target.
 
 ### Harness Integration
 
-One configured use of a Harness Module at one target `packageRoot`. Its stable
-`integrationId` owns every declaration it returns. Multiple Harnesses and
-multiple Integrations of one Module are ordinary.
+One configured use of a Harness Module over a nonempty explicit collection of
+approved `packageRoots`. Its stable `integrationId` owns every declaration it
+returns and one encoded Integration Workspace. Multiple Harnesses and multiple
+Integrations of one Module are ordinary.
+
+### Integration Workspace
+
+The committed `.prelude/<encoded-integration-id>/` namespace for one
+Integration. `managed/` and `repos/` are converged Output zones. `feedback/` is
+neighboring Target-owned evidence and is never an Output.
+
+### Package Root
+
+One Target package importer explicitly authorized to an Integration by its
+committed `packageRoots`. Prelude does not discover or claim new packages.
 
 ### Harness Identity
 
@@ -62,20 +81,29 @@ data. It contains no target mutation or Harness domain policy.
 
 ### Output
 
-A current declaration of Harness authority. V1 has four Output capabilities:
+A current declaration of Harness authority. V2 has five Output capabilities:
 
 - `ManagedTree`: exact byte-for-byte authority over one complete target tree;
 - `ManagedBlock`: authority over one bounded block in a shared text file;
 - `JsonValue`: authority over one JSON/JSONC logical pointer;
 - `JsonKeyedItem`: authority over one stable-key item in a JSON/JSONC collection.
+- `PinnedReferenceTree`: complete immutable-provenance, reference-only
+  Harness authority over one Integration Workspace tree.
 
 Everything outside active Output authority is target-owned by default.
 
+### Output Locator Root
+
+The explicit semantic base of every Output: Control Root, the declaring
+Integration Workspace, or one approved Package Root. Prelude resolves these to
+physical Control-Root-relative paths before conflict and feedback-zone checks.
+
 ### Requirement
 
-A direct package prerequisite at an exact target importer and manifest section.
-It blocks until the direct declaration, lockfile resolution, and installation
-state satisfy the requested range.
+A direct package prerequisite at an approved Package Root and manifest section.
+Missing or incompatible manifest/lock selection blocks for an exact-diff repair.
+A compatible Approved Package Selection may be installed only through a frozen
+install after its manifest and lockfile bytes enter the Plan hash.
 
 ### Issue
 
@@ -107,9 +135,8 @@ approve a Plan on the user's behalf.
 
 ### Target-Owned Content
 
-All content outside active Output locators. Examples include
-`effect/feedback/**`, real Psychogram wikis under `psychogram/wikis/**`, and the
-root executable ESLint composition file.
+All content outside active Output locators. Examples include Integration
+`feedback/**`, real Psychogram content, and Target-authored executable config.
 
 ### Source Diagnostics
 

@@ -43,6 +43,8 @@ describe('exact root Artifact selection', () => {
     expect(evaluateRequirementSelection({ range: '^1.0.0', directSpecifier: 'workspace:*', lockVersion: 'link:packages/tool', installedVersion: '1.4.0' }).satisfied).toBe(true)
     expect(evaluateRequirementSelection({ range: '^1.0.0', directSpecifier: 'file:../packs/tool.tgz', lockVersion: 'file:../packs/tool.tgz', installedVersion: '1.3.0' }).satisfied).toBe(true)
     expect(evaluateRequirementSelection({ range: '^2.0.0', directSpecifier: 'file:../packs/tool.tgz', lockVersion: 'file:../packs/tool.tgz', installedVersion: '1.3.0' }).satisfied).toBe(false)
+    expect(evaluateRequirementSelection({ packageName: '@typescript/native', installedName: 'typescript', range: 'npm:typescript@7.0.2', directSpecifier: 'npm:typescript@7.0.2', lockSpecifier: 'npm:typescript@7.0.2', lockVersion: 'typescript@7.0.2', installedVersion: '7.0.2' }).satisfied).toBe(true)
+    expect(evaluateRequirementSelection({ packageName: 'typescript', installedName: '@typescript/typescript6', range: 'npm:@typescript/typescript6@6.0.2', directSpecifier: 'npm:@typescript/typescript6@6.0.2', lockSpecifier: 'npm:@typescript/typescript6@6.0.2', lockVersion: '@typescript/typescript6@6.0.2', installedVersion: '6.0.2' }).satisfied).toBe(true)
     expect(linkedSelectionPath('link:packages/tool')).toBe('packages/tool')
     expect(linkedSelectionPath('file:../packs/tool.tgz')).toBeUndefined()
   }))

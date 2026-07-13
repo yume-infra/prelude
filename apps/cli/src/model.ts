@@ -1,3 +1,5 @@
+import type { DecodedCanonicalTreeArchive } from '@sayoriqwq/prelude-contract'
+
 import { createHash } from 'node:crypto'
 
 import {
@@ -11,8 +13,8 @@ import {
 } from '@sayoriqwq/prelude-contract'
 import { Schema } from 'effect'
 
-const PLAN_SCHEMA_VERSION = 1
-const EXECUTION_HASH_VERSION = 1
+export const PLAN_SCHEMA_VERSION = 2
+export const EXECUTION_HASH_VERSION = 2
 
 const OwnerSchema = Schema.Struct({
   integrationId: Schema.String,
@@ -23,7 +25,8 @@ export type Owner = Schema.Schema.Type<typeof OwnerSchema>
 
 const IntegrationPlanSchema = Schema.Struct({
   integrationId: Schema.String,
-  packageRoot: Schema.String,
+  packageRoots: Schema.NonEmptyArray(Schema.String),
+  integrationWorkspace: Schema.String,
   module: Schema.String,
   descriptor: HarnessModuleDescriptorSchema,
   artifact: ArtifactIdentitySchema,
@@ -35,6 +38,7 @@ export type IntegrationPlan = Schema.Schema.Type<typeof IntegrationPlanSchema>
 const PlannedOutputSchema = Schema.Struct({
   owner: OwnerSchema,
   declaration: OutputSchema,
+  resolvedPath: Schema.String,
   status: Schema.Literals(['converged', 'change']),
   currentHash: Schema.optionalKey(Schema.String),
   desiredHash: Schema.String,
@@ -46,7 +50,11 @@ export type PlannedOutput = Schema.Schema.Type<typeof PlannedOutputSchema>
 const RequirementResultSchema = Schema.Struct({
   owner: OwnerSchema,
   declaration: PackageRequirementSchema,
+  selectionSatisfied: Schema.Boolean,
+  installationSatisfied: Schema.Boolean,
   satisfied: Schema.Boolean,
+  manifestHash: Schema.String,
+  lockfileHash: Schema.String,
   directDeclaration: Schema.optionalKey(Schema.String),
   lockResolution: Schema.optionalKey(Schema.String),
   installedVersion: Schema.optionalKey(Schema.String),
@@ -86,9 +94,10 @@ const ConflictSchema = Schema.Struct({
 
 export type Conflict = Schema.Schema.Type<typeof ConflictSchema>
 
-const _PlanDocumentSchema = Schema.Struct({
+const PlanDocumentSchema = Schema.Struct({
   schemaVersion: Schema.Literal(PLAN_SCHEMA_VERSION),
   executionHashVersion: Schema.Literal(EXECUTION_HASH_VERSION),
+  controlRoot: Schema.String,
   integrations: Schema.Array(IntegrationPlanSchema),
   outputs: Schema.Array(PlannedOutputSchema),
   requirements: Schema.Array(RequirementResultSchema),
@@ -96,19 +105,36 @@ const _PlanDocumentSchema = Schema.Struct({
   checks: Schema.Array(OwnedCheckSchema),
   conflicts: Schema.Array(ConflictSchema),
   blocked: Schema.Boolean,
+  converged: Schema.Boolean,
   executionHash: Schema.String,
 })
 
-export type PlanDocument = Schema.Schema.Type<typeof _PlanDocumentSchema>
+export type PlanDocument = Schema.Schema.Type<typeof PlanDocumentSchema>
 
-export interface TreeOperation {
+export const decodePlanDocument = Schema.decodeUnknownSync(PlanDocumentSchema, {
+  errors: 'all',
+  onExcessProperty: 'error',
+})
+
+interface TreeOperationBase {
   readonly kind: 'tree'
   readonly owner: Owner
-  readonly sourcePath: string
   readonly targetPath: string
   readonly desiredHash: string
   readonly changed: boolean
 }
+
+interface ManagedTreeOperation extends TreeOperationBase {
+  readonly outputKind: 'ManagedTree'
+  readonly sourcePath: string
+}
+
+interface PinnedReferenceTreeOperation extends TreeOperationBase {
+  readonly outputKind: 'PinnedReferenceTree'
+  readonly archive: DecodedCanonicalTreeArchive
+}
+
+export type TreeOperation = ManagedTreeOperation | PinnedReferenceTreeOperation
 
 export interface FileOperation {
   readonly kind: 'file'
@@ -121,8 +147,14 @@ export interface FileOperation {
 export type ApplyOperation = TreeOperation | FileOperation
 
 export interface PlannedConvergence {
+  readonly controlRoot: string
   readonly document: PlanDocument
   readonly operations: ReadonlyArray<ApplyOperation>
+  readonly installRequired: boolean
+}
+
+export function compareText(left: string, right: string): number {
+  return left < right ? -1 : left > right ? 1 : 0
 }
 
 function sortJson(value: unknown): unknown {
@@ -132,7 +164,7 @@ function sortJson(value: unknown): unknown {
   if (value !== null && typeof value === 'object') {
     return Object.fromEntries(
       Object.entries(value)
-        .sort(([left], [right]) => left.localeCompare(right))
+        .sort(([left], [right]) => compareText(left, right))
         .map(([key, entry]) => [key, sortJson(entry)]),
     )
   }
@@ -152,9 +184,11 @@ export function executionHash(input: Omit<PlanDocument, 'executionHash'>): strin
   const execution = {
     schemaVersion: input.schemaVersion,
     executionHashVersion: input.executionHashVersion,
+    controlRoot: input.controlRoot,
     integrations: input.integrations.map(integration => ({
       integrationId: integration.integrationId,
-      packageRoot: integration.packageRoot,
+      packageRoots: integration.packageRoots,
+      integrationWorkspace: integration.integrationWorkspace,
       module: integration.module,
       descriptor: integration.descriptor,
       artifact: integration.artifact,
@@ -162,6 +196,7 @@ export function executionHash(input: Omit<PlanDocument, 'executionHash'>): strin
     outputs: input.outputs.map(output => ({
       owner: output.owner,
       declaration: output.declaration,
+      resolvedPath: output.resolvedPath,
       status: output.status,
       ...(output.currentHash === undefined ? {} : { currentHash: output.currentHash }),
       desiredHash: output.desiredHash,
@@ -169,21 +204,19 @@ export function executionHash(input: Omit<PlanDocument, 'executionHash'>): strin
     requirements: input.requirements.map(requirement => ({
       owner: requirement.owner,
       declaration: requirement.declaration,
-      satisfied: requirement.satisfied,
+      selectionSatisfied: requirement.selectionSatisfied,
+      installationSatisfied: requirement.installationSatisfied,
+      manifestHash: requirement.manifestHash,
+      lockfileHash: requirement.lockfileHash,
       ...(requirement.directDeclaration === undefined ? {} : { directDeclaration: requirement.directDeclaration }),
       ...(requirement.lockResolution === undefined ? {} : { lockResolution: requirement.lockResolution }),
       ...(requirement.installedVersion === undefined ? {} : { installedVersion: requirement.installedVersion }),
     })),
-    issues: input.issues.map(issue => ({ owner: issue.owner, id: issue.declaration.id })),
-    checks: input.checks.map(check => ({
-      owner: check.owner,
-      declaration: {
-        id: check.declaration.id,
-        packageRoot: check.declaration.packageRoot,
-        argv: check.declaration.argv,
-      },
-    })),
-    conflicts: input.conflicts.map(conflict => ({ kind: conflict.kind, owners: conflict.owners })),
+    issues: input.issues,
+    checks: input.checks,
+    conflicts: input.conflicts,
+    blocked: input.blocked,
+    converged: input.converged,
   }
 
   return sha256(stableJson(execution))

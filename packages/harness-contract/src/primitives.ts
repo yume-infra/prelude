@@ -3,6 +3,7 @@ import { Schema } from 'effect'
 const StableIdPattern = /^[a-z0-9]+(?:[._:/-][a-z0-9]+)*$/
 const PackageNamePattern = /^(?:@[a-z0-9][a-z0-9._-]*\/)?[a-z0-9][a-z0-9._-]*$/
 const BarePackageExportPattern = /^(?:@[a-z0-9][a-z0-9._-]*\/[a-z0-9][a-z0-9._-]*|[a-z0-9][a-z0-9._-]*)(?:\/[a-z0-9][a-z0-9._-]*)*$/
+const Sha256Pattern = /^[a-f0-9]{64}$/
 
 const isTrimmedNonEmpty = Schema.makeFilter<string>(
   value => value.length > 0 && value.trim() === value,
@@ -123,6 +124,12 @@ export const CommandArgumentSchema = Schema.String.pipe(
 )
 
 export type CommandArgument = Schema.Schema.Type<typeof CommandArgumentSchema>
+
+export const Sha256DigestSchema = Schema.String.pipe(
+  Schema.check(Schema.isPattern(Sha256Pattern, { expected: 'a lowercase SHA-256 digest' })),
+)
+
+export type Sha256Digest = Schema.Schema.Type<typeof Sha256DigestSchema>
 
 export const NonEmptyCommandSchema = Schema.NonEmptyArray(CommandArgumentSchema).pipe(
   Schema.check(Schema.makeFilter(

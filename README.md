@@ -9,7 +9,7 @@ writing, shows one complete Plan, applies only its exact approved hash, and runs
 the Target's combined verification.
 
 ```text
-root-selected Artifacts + prelude.config.jsonc
+root-selected Artifacts + .prelude/config.jsonc
   -> read-only Harness Module plans
   -> global Output, Requirement, Issue, and Check composition
   -> versioned Plan Document + execution hash
@@ -18,49 +18,53 @@ root-selected Artifacts + prelude.config.jsonc
   -> target-executed prelude check
 ```
 
-## V1
+## V2
 
-The V1 release proof is
-[`partita`](https://github.com/sayoriqwq/partita) running real Effect Harness
-and Psychogram Artifacts together.
+V2 is a breaking successor protocol. It accepts only V2 config, Module, tagged
+locator, Plan, and execution-hash shapes; it does not adapt released V1
+Harnesses. Gate 1 requires packed Prelude and Effect Harness Artifacts to pass
+real plan/apply/check in isolated single-package and pnpm-workspace Targets.
 
-V1 supports four managed Output capabilities:
+V2 supports five Output capabilities:
 
 - complete Managed Trees;
 - bounded blocks in shared text files;
 - logical JSON/JSONC values;
 - stable-key JSON/JSONC collection items.
+- complete reference-only Pinned Reference Trees with immutable provenance.
 
 Package Requirements block missing or incompatible direct dependencies. Module
 Issues are blockers. Checks are post-convergence target commands.
 
-All other content is target-owned, including Effect feedback and Psychogram
-wiki content. Prelude has no `.prelude/` directory or committed applied state.
+All other content is target-owned. Each Integration Workspace has neighboring
+`managed/`, `repos/`, and Target-owned `feedback/` zones. Prelude has no
+manifest, receipt, journal, rollback, or committed applied state.
 
 ## Configuration
 
 Prelude and Harness packages are direct root `devDependencies`. The committed
-config names exact package exports and target package roots:
+config at `.prelude/config.jsonc` names exact package exports and explicit
+approved package-root collections:
 
 ```jsonc
 {
-  "schemaVersion": 1,
+  "schemaVersion": 2,
   "integrations": [
     {
       "id": "effect",
       "module": "@sayoriqwq/effect-harness/prelude",
-      "packageRoot": "."
+      "packageRoots": [".", "packages/app"]
     },
     {
       "id": "psychogram",
       "module": "@sayoriqwq/psychogram/prelude",
-      "packageRoot": "."
+      "packageRoots": ["."]
     }
   ]
 }
 ```
 
-V1 config has no Harness options or package versions. The root package graph
+V2 config has no Harness options or package versions. The root package graph
 owns Artifact selection.
 
 ## Target CLI
@@ -77,22 +81,20 @@ prelude check
 execution hash. `check` first proves managed convergence, then executes all
 Harness-declared target checks.
 
-## Rebuild Status
+## Checkpoint Status
 
-The architecture is frozen, but the checked-in CLI still primarily implements
-the retired create/provider product. That code, its TUI, manifests, fixtures,
-and compatibility surfaces are scheduled for wholesale deletion. They are not
-public contract evidence.
-
-Prelude V1 is being rewritten around Effect v4, Effect Schema, and
-`@effect/platform`. Final Partita behavior is authoritative over old TypeScript
-interfaces or module layout.
+The V2 Contract and host lifecycle are being completed as a local checkpoint.
+Canonical ordinary-file archive transport avoids pnpm's loss of package
+symlinks, and composed provenance represents the nested tsgo Source Pin without
+Target Git or gitlinks. Gate 1 remains open until the packed Prelude and real
+packed Effect Harness pass isolated single-package and monorepo acceptance.
 
 ## Documentation
 
 Start with [the active docs index](./docs/README.md), then read:
 
 - [goal](./docs/harness-convergence-goal.md)
+- [V2 Contract and Gate](./docs/v2-harness-convergence-contract.md)
 - [architecture](./docs/multi-harness-convergence-architecture.md)
 - [Module contract](./docs/harness-module-contract.md)
 - [lifecycle](./docs/harness-integration-lifecycle.md)

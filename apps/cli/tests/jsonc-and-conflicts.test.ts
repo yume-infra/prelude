@@ -3,12 +3,21 @@ import type { Output } from '@sayoriqwq/prelude-contract'
 import { describe, expect, it } from '@effect/vitest'
 import { Effect } from 'effect'
 
-import { applyJsonOutput, detectOutputConflicts } from '../src/convergence.js'
+import { applyJsonOutput, detectOutputConflicts, outputOverlapsFeedbackZone } from '../src/convergence.js'
 
-const value: Output = { kind: 'JsonValue', id: 'value', path: 'settings.json', pointer: '/plugins/0/enabled', value: true }
-const keyed: Output = { kind: 'JsonKeyedItem', id: 'keyed', path: 'settings.json', collectionPointer: '/plugins', keyField: 'name', keyValue: 'alpha', item: { name: 'alpha', enabled: true } }
+const value: Extract<Output, { kind: 'JsonValue' }> = { kind: 'JsonValue', id: 'value', locator: { root: 'PackageRoot', packageRoot: '.', path: 'settings.json' }, pointer: '/plugins/0/enabled', value: true }
+const keyed: Extract<Output, { kind: 'JsonKeyedItem' }> = { kind: 'JsonKeyedItem', id: 'keyed', locator: { root: 'PackageRoot', packageRoot: '.', path: 'settings.json' }, collectionPointer: '/plugins', keyField: 'name', keyValue: 'alpha', item: { name: 'alpha', enabled: true } }
 
 describe('JSON authority composition', () => {
+  it.effect('rejects every physical alias that enters or contains a Target-owned feedback zone', () => Effect.sync(() => {
+    const workspaces = ['.prelude/i-effect', '.prelude/i-psychogram']
+    expect(outputOverlapsFeedbackZone('.prelude/i-effect/feedback/notes.md', workspaces)).toBe(true)
+    expect(outputOverlapsFeedbackZone('.prelude/i-effect', workspaces)).toBe(true)
+    expect(outputOverlapsFeedbackZone('.prelude', workspaces)).toBe(true)
+    expect(outputOverlapsFeedbackZone('.prelude/i-effect/managed', workspaces)).toBe(false)
+    expect(outputOverlapsFeedbackZone('.prelude/i-effect/repos', workspaces)).toBe(false)
+  }))
+
   it.effect('rejects JsonValue and JsonKeyedItem equal or ancestor authority in either order', () => Effect.sync(() => {
     for (const declarations of [[value, keyed], [keyed, value]]) {
       expect(detectOutputConflicts(declarations).map(conflict => conflict.kind)).toContain('jsonPointerOverlap')

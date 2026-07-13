@@ -7,6 +7,15 @@ updated: 2026-07-12
 
 # Harness Module Contract
 
+## V2 Successor Note
+
+The sections below preserve the released V1 contract rationale. The active V2
+wire and host behavior is defined by
+[`v2-harness-convergence-contract.md`](./v2-harness-convergence-contract.md):
+explicit tagged locators, selected `packageRoots`, rooted observations, and
+`PinnedReferenceTree` supersede conflicting V1 shapes. Prelude does not adapt
+the V1 wire.
+
 ## Published Boundary
 
 The contract is published from this repository as

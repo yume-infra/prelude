@@ -7,6 +7,13 @@ updated: 2026-07-12
 
 # Multi-Harness Convergence Architecture
 
+## V2 Successor Note
+
+This document preserves the released V1 architecture. The active V2 changes to
+Control Root discovery, committed Integration Workspaces, selected Package
+Roots, tagged locators, and pinned reference materialization are authoritative
+in [`v2-harness-convergence-contract.md`](./v2-harness-convergence-contract.md).
+
 ## End State
 
 Prelude is a domain-blind host that turns several independently versioned

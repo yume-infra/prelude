@@ -1,4 +1,4 @@
-import { chmod, link, mkdir, mkdtemp, readdir, readFile, symlink, writeFile } from 'node:fs/promises'
+import { chmod, link, lstat, mkdir, mkdtemp, readdir, readFile, symlink, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 
@@ -38,6 +38,25 @@ describe('Target confinement', () => {
     yield* Effect.promise(() => symlink(join(outside, 'file.txt'), join(source, 'file-link')))
     yield* Effect.promise(() => symlink(outside, join(source, 'directory-link')))
     expect((yield* Effect.exit(scanTree(source, 'planning')))._tag).toBe('Failure')
+  }).pipe(Effect.provide(NodeServices.layer)))
+
+  it.effect('digests safe relative PinnedReferenceTree target symlinks without dereferencing', () => Effect.gen(function* () {
+    const root = yield* Effect.promise(() => mkdtemp(join(tmpdir(), 'prelude-pinned-link-')))
+    const source = join(root, 'source')
+    yield* Effect.promise(() => mkdir(source))
+    yield* Effect.promise(() => writeFile(join(source, 'AGENTS.md'), 'source guidance'))
+    yield* Effect.promise(() => symlink('AGENTS.md', join(source, 'CLAUDE.md')))
+    const sourceLinkMode = (yield* Effect.promise(() => lstat(join(source, 'CLAUDE.md')))).mode & 0o777
+    const snapshot = yield* scanTree(source, 'planning', { allowSafeSymlinks: true })
+    expect(snapshot.entries).toContainEqual({ path: 'CLAUDE.md', kind: 'symbolicLink', mode: sourceLinkMode, target: 'AGENTS.md' })
+  }).pipe(Effect.provide(NodeServices.layer)))
+
+  it.effect('rejects a PinnedReferenceTree symlink that lexically escapes the complete tree', () => Effect.gen(function* () {
+    const root = yield* Effect.promise(() => mkdtemp(join(tmpdir(), 'prelude-pinned-escape-')))
+    const source = join(root, 'source')
+    yield* Effect.promise(() => mkdir(source))
+    yield* Effect.promise(() => symlink('../outside', join(source, 'escape')))
+    expect((yield* Effect.exit(scanTree(source, 'planning', { allowSafeSymlinks: true })))._tag).toBe('Failure')
   }).pipe(Effect.provide(NodeServices.layer)))
 
   it.effect('rejects Target hardlinks', () => Effect.gen(function* () {

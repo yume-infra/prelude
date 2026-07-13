@@ -7,6 +7,12 @@ updated: 2026-07-12
 
 # Harness Convergence Goal
 
+## V2 Successor Note
+
+The north star remains current. Released V1 examples below are historical when
+they conflict with the active V2 cutover and Gate 1 contract in
+[`v2-harness-convergence-contract.md`](./v2-harness-convergence-contract.md).
+
 ## First-Principles Goal
 
 A Target can depend on several versioned Harnesses, inspect the complete effect

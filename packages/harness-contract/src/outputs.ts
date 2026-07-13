@@ -1,26 +1,60 @@
 import { Schema } from 'effect'
 
+import { OutputLocatorSchema } from './locators.js'
 import {
+  ArtifactFilePathSchema,
   ArtifactPathSchema,
   JsonPointerSchema,
   NonEmptyTextSchema,
+  Sha256DigestSchema,
   StableIdSchema,
-  TargetPathSchema,
 } from './primitives.js'
+import { CANONICAL_TREE_ARCHIVE_FORMAT } from './tree-archive.js'
 
 export const ManagedTreeSchema = Schema.Struct({
   kind: Schema.Literal('ManagedTree'),
   id: StableIdSchema,
   sourceRoot: ArtifactPathSchema,
-  targetRoot: TargetPathSchema,
+  locator: OutputLocatorSchema,
 })
 
 export type ManagedTree = Schema.Schema.Type<typeof ManagedTreeSchema>
 
+export const PinnedReferenceArchiveSchema = Schema.Struct({
+  path: ArtifactFilePathSchema,
+  format: Schema.Literal(CANONICAL_TREE_ARCHIVE_FORMAT),
+})
+
+export type PinnedReferenceArchive = Schema.Schema.Type<typeof PinnedReferenceArchiveSchema>
+
+export const PinnedReferenceProvenanceSchema = Schema.Struct({
+  sourceUrl: NonEmptyTextSchema,
+  revision: NonEmptyTextSchema,
+  treeDigest: Sha256DigestSchema,
+})
+
+export type PinnedReferenceProvenance = Schema.Schema.Type<typeof PinnedReferenceProvenanceSchema>
+
+export const PinnedReferenceTreeSchema = Schema.Struct({
+  kind: Schema.Literal('PinnedReferenceTree'),
+  id: StableIdSchema,
+  archive: PinnedReferenceArchiveSchema,
+  locator: OutputLocatorSchema,
+  provenance: PinnedReferenceProvenanceSchema,
+  referenceOnly: Schema.Literal(true),
+}).pipe(
+  Schema.check(Schema.makeFilter(
+    output => output.locator.root === 'IntegrationWorkspace',
+    { expected: 'an IntegrationWorkspace-scoped pinned reference tree' },
+  )),
+)
+
+export type PinnedReferenceTree = Schema.Schema.Type<typeof PinnedReferenceTreeSchema>
+
 export const ManagedBlockSchema = Schema.Struct({
   kind: Schema.Literal('ManagedBlock'),
   id: StableIdSchema,
-  path: TargetPathSchema,
+  locator: OutputLocatorSchema,
   blockId: StableIdSchema,
   content: Schema.String,
 })
@@ -41,12 +75,12 @@ function ownsPackageDependencies(path: string, pointer: string): boolean {
 export const JsonValueSchema = Schema.Struct({
   kind: Schema.Literal('JsonValue'),
   id: StableIdSchema,
-  path: TargetPathSchema,
+  locator: OutputLocatorSchema,
   pointer: JsonPointerSchema,
   value: Schema.Json,
 }).pipe(
   Schema.check(Schema.makeFilter(
-    output => !ownsPackageDependencies(output.path, output.pointer),
+    output => !ownsPackageDependencies(output.locator.path, output.pointer),
     { expected: 'a JsonValue outside package dependency fields' },
   )),
 )
@@ -58,7 +92,7 @@ const JsonObjectSchema = Schema.Record(Schema.String, Schema.Json)
 export const JsonKeyedItemSchema = Schema.Struct({
   kind: Schema.Literal('JsonKeyedItem'),
   id: StableIdSchema,
-  path: TargetPathSchema,
+  locator: OutputLocatorSchema,
   collectionPointer: JsonPointerSchema,
   keyField: NonEmptyTextSchema,
   keyValue: NonEmptyTextSchema,
@@ -74,6 +108,7 @@ export type JsonKeyedItem = Schema.Schema.Type<typeof JsonKeyedItemSchema>
 
 export const OutputSchema = Schema.Union([
   ManagedTreeSchema,
+  PinnedReferenceTreeSchema,
   ManagedBlockSchema,
   JsonValueSchema,
   JsonKeyedItemSchema,

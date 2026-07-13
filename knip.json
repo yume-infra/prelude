@@ -6,10 +6,13 @@
   "ignoreDependencies": [
     "@effect/platform-node",
     "@effect/tsgo",
-    "@typescript/native-preview",
+    "@typescript/native",
     "effect",
     "@effect/vitest",
     "husky"
+  ],
+  "ignoreBinaries": [
+    "tsgo"
   ],
   "workspaces": {
     ".": {
