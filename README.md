@@ -35,7 +35,10 @@ Package Requirements block missing or incompatible direct dependencies. Module
 Issues are blockers. Checks are post-convergence target commands.
 
 All other content is target-owned, including Effect feedback and Psychogram
-wiki content. Prelude has no `.prelude/` directory or committed applied state.
+wiki content. The released packages are `@sayoriqwq/prelude-contract@0.1.0`
+and `@sayoriqwq/prelude@0.2.3`. V1 does not create or require a `.prelude/`
+directory or committed applied state; a tracked legacy root `.prelude/`
+provider tree remains under reconciliation audit.
 
 ## Configuration
 
@@ -77,17 +80,6 @@ prelude check
 execution hash. `check` first proves managed convergence, then executes all
 Harness-declared target checks.
 
-## Rebuild Status
-
-The architecture is frozen, but the checked-in CLI still primarily implements
-the retired create/provider product. That code, its TUI, manifests, fixtures,
-and compatibility surfaces are scheduled for wholesale deletion. They are not
-public contract evidence.
-
-Prelude V1 is being rewritten around Effect v4, Effect Schema, and
-`@effect/platform`. Final Partita behavior is authoritative over old TypeScript
-interfaces or module layout.
-
 ## Documentation
 
 Start with [the active docs index](./docs/README.md), then read:
@@ -96,11 +88,8 @@ Start with [the active docs index](./docs/README.md), then read:
 - [architecture](./docs/multi-harness-convergence-architecture.md)
 - [Module contract](./docs/harness-module-contract.md)
 - [lifecycle](./docs/harness-integration-lifecycle.md)
-- [rebuild plan](./docs/prelude-rebuild-plan.md)
-- [architecture handoff](./docs/architecture-handoff.md)
-
 Everything under [`docs/archive/`](./docs/archive/) is historical and
-non-authoritative.
+non-authoritative, including the dated V1 implementation records.
 
 ## Development
 

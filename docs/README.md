@@ -4,7 +4,7 @@ authors: [codex]
 reviewed_by: [sayori]
 purpose: Define the authoritative Prelude V1 knowledge set and reading order.
 status: active
-updated: 2026-07-12
+updated: 2026-07-13
 ---
 
 # Prelude Docs
@@ -12,9 +12,10 @@ updated: 2026-07-12
 ## Authority
 
 `docs/` is the only active project knowledge source. Everything under
-`docs/archive/` is historical and non-authoritative. Existing production code
-still implements the retired create/provider product and is not evidence of the
-new design.
+`docs/archive/` is historical and non-authoritative. The released V1 baseline
+is implemented and published as `@sayoriqwq/prelude-contract@0.1.0` and
+`@sayoriqwq/prelude@0.2.3`; the tracked legacy root `.prelude/` provider tree
+remains under reconciliation audit and is not evidence of the V1 contract.
 
 The current product is a narrow multi-Harness convergence host. It is not a
 project generator and has no compatibility obligation to old Prelude commands,
@@ -31,13 +32,15 @@ models, manifests, tests, or TUI code.
    contract and the four V1 Output capabilities.
 5. [`harness-integration-lifecycle.md`](./harness-integration-lifecycle.md) -
    plan, approval, apply, check, bootstrap, and upgrade behavior.
-6. [`prelude-rebuild-plan.md`](./prelude-rebuild-plan.md) - replacement slices
-   and cross-repository acceptance gates.
+6. [`next-protocol-host-contract.md`](./next-protocol-host-contract.md) -
+   accepted post-V1 control and scope semantics plus the remaining design
+   branches.
 7. [`adr/`](./adr/) - accepted architectural decisions.
-8. [`architecture-review.md`](./architecture-review.md) - pressure-test result
-   and retained risks.
-9. [`architecture-handoff.md`](./architecture-handoff.md) - compact continuation
-   entry point for the implementation lead.
+
+Completed implementation records are archived under
+[`archive/2026-07-12-v1-release/`](./archive/2026-07-12-v1-release/): the
+rebuild plan, architecture review, and architecture handoff. They are retained
+for history, not as active requirements.
 
 ## V1 Baseline
 
@@ -87,6 +90,10 @@ V1 has no:
 - executable-config AST merge;
 - TUI delivery obligation;
 - support promise for arbitrary third-party Harnesses or non-pnpm targets.
+
+These are V1 behavior and scope statements, not a claim that the tracked
+legacy root `.prelude/` provider tree has already been removed; that residue
+remains under reconciliation audit.
 
 A future TUI may present the same Plan Document and plan/apply/check lifecycle.
 It will be rebuilt from this baseline and will not revive project generation.

@@ -12,14 +12,14 @@ Engineering skills should consume project knowledge in this order:
 6. Read `docs/harness-integration-lifecycle.md` for stateless planning,
    current-to-desired comparison, approval, apply, recovery, and target
    verification.
-7. Read `docs/prelude-rebuild-plan.md` for implementation sequence and deletion
-   gates.
-8. Read accepted decisions under `docs/adr/`.
-9. Read `docs/architecture-review.md` and `docs/architecture-handoff.md` when
-   continuing the rebuild.
+7. Read accepted decisions under `docs/adr/`.
 
 Everything under `docs/archive/` is historical and non-authoritative. Do not
 use it to infer current requirements.
+
+The dated V1 archive contains completed implementation, review, and handoff
+records that may be consulted as optional historical evidence only. Archived
+documents cannot supply current requirements or override active docs and ADRs.
 
 ## Removed Local Skill Baseline
 
@@ -39,8 +39,9 @@ Implementation work must use Effect v4, Effect Schema, and `@effect/platform`
 as specified by the active architecture. Exact helper and service names are not
 domain requirements; the Partita two-Harness end state is.
 
-Do not preserve create/provider/TUI/state code to keep old tests green. Delete
-retired tests and fixtures at the rebuild deletion gate.
+Do not preserve create/provider/TUI/state code to keep old tests green. Treat
+remaining retired surfaces as rejection evidence and keep them outside the V1
+product contract.
 
 ## ADR Conflicts
 

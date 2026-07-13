@@ -14,10 +14,7 @@ Start with:
 4. `docs/multi-harness-convergence-architecture.md`
 5. `docs/harness-module-contract.md`
 6. `docs/harness-integration-lifecycle.md`
-7. `docs/prelude-rebuild-plan.md`
-8. `docs/adr/`
-9. `docs/architecture-review.md`
-10. `docs/architecture-handoff.md`
+7. `docs/adr/`
 
 Everything under `docs/archive/` is historical and non-authoritative. Do not use
 archived requirements to fill gaps in the active design.
@@ -68,9 +65,13 @@ Required invariants:
 - production runtime and shared codecs use Effect v4, Effect Schema, and `@effect/platform`;
 - observable Partita behavior is authoritative over old code shape or helper interfaces.
 
+The V1 invariant above describes released behavior. A tracked legacy root
+`.prelude/` provider tree remains under reconciliation audit; do not describe
+that residue as already clean.
+
 Do not preserve the retired create/provider architecture through compatibility
-layers. Delete superseded paths at the deletion gates in
-`docs/prelude-rebuild-plan.md`.
+layers. The implementation-phase rebuild plan is archived with the other
+completed V1 records and is not an active requirement source.
 
 ## Initial Scope
 

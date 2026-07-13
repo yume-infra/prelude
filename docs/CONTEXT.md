@@ -2,7 +2,7 @@
 audience: [agent, human]
 purpose: Define Prelude's active domain language.
 status: active
-updated: 2026-07-12
+updated: 2026-07-13
 ---
 
 # Domain Context
@@ -22,8 +22,15 @@ Partita is the V1 acceptance Target.
 
 ### Control Root
 
-The repository root containing `prelude.config.jsonc`, root `package.json`, and
-`pnpm-lock.yaml`. It is the only V1 importer for Prelude and Harness Modules.
+The Target-wide authority boundary identified by the nearest ancestor Prelude
+Configuration. Its root package graph and lockfile select Prelude and every
+Harness Artifact.
+
+### Prelude Configuration
+
+The sole committed Integration configuration at `.prelude/config.jsonc`. It
+declares complete desired Integration selection and package scope but contains
+no applied-state inventory or Harness-defined options.
 
 ### Harness
 
@@ -45,9 +52,22 @@ the Target.
 
 ### Harness Integration
 
-One configured use of a Harness Module at one target `packageRoot`. Its stable
-`integrationId` owns every declaration it returns. Multiple Harnesses and
-multiple Integrations of one Module are ordinary.
+One configured use of a Harness Module over a nonempty, explicit collection of
+Package Roots. Its stable `integrationId` owns one Integration Workspace and
+every declaration it returns. Multiple Harnesses and multiple Integrations of
+one Module are ordinary.
+
+### Integration Workspace
+
+The committed `.prelude/<encoded-integration-id>/` namespace belonging to one
+Harness Integration. It may contain Harness-managed knowledge and neighboring
+target-owned domain content, but never Prelude runtime or applied state.
+
+### Package Root
+
+One Target package importer explicitly authorized to a Harness Integration by
+its `packageRoots` collection. Newly added workspace packages remain outside an
+Integration until the Target commits them to that collection.
 
 ### Harness Identity
 
@@ -70,6 +90,14 @@ A current declaration of Harness authority. V1 has four Output capabilities:
 - `JsonKeyedItem`: authority over one stable-key item in a JSON/JSONC collection.
 
 Everything outside active Output authority is target-owned by default.
+
+### Output Locator Root
+
+The semantic Target base selected by an Output before applying its relative
+path. The exhaustive roots are Control Root, the declaring Integration's
+Integration Workspace, and one Package Root authorized to that Integration;
+there is no unrestricted Target-relative root. Every Output explicitly selects
+its root in Contract data rather than inheriting a default.
 
 ### Requirement
 
@@ -108,8 +136,8 @@ approve a Plan on the user's behalf.
 ### Target-Owned Content
 
 All content outside active Output locators. Examples include
-`effect/feedback/**`, real Psychogram wikis under `psychogram/wikis/**`, and the
-root executable ESLint composition file.
+Effect feedback and real Psychogram wikis inside their respective Integration
+Workspaces, and the root executable ESLint composition file.
 
 ### Source Diagnostics
 
