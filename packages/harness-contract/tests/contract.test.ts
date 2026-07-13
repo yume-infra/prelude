@@ -16,24 +16,25 @@ import {
   encodeHarnessModuleDescriptor,
   encodeModulePlan,
   HarnessModuleDescriptorSchema,
+  IntegrationIdentitySchema,
   JsonPointerSchema,
-  MODULE_PROTOCOL_V1,
+  MODULE_PROTOCOL_V2,
   ModulePlanSchema,
+  ObservationLocatorSchema,
+  OutputLocatorSchema,
   PackageRootSchema,
-  PRELUDE_V1_SUPPORTED_FEATURES,
+  PRELUDE_V2_SUPPORTED_FEATURES,
   RelativePathSchema,
-  TargetPathSchema,
 } from '../src/index.js'
 
-describe('contract wire codecs', () => {
+describe('V2 contract wire codecs', () => {
   test('round trips plain descriptor and plan data through Effect Schema and JSON', () => {
-    const encodedDescriptor = encodeHarnessModuleDescriptor(validHarnessModuleDescriptorFixture)
-    const encodedPlan = encodeModulePlan(validModulePlanFixture)
-
-    const descriptorJson = JSON.stringify(encodedDescriptor)
-    const planJson = JSON.stringify(encodedPlan)
-    const descriptorWireValue: unknown = JSON.parse(descriptorJson)
-    const planWireValue: unknown = JSON.parse(planJson)
+    const descriptorWireValue: unknown = JSON.parse(JSON.stringify(
+      encodeHarnessModuleDescriptor(validHarnessModuleDescriptorFixture),
+    ))
+    const planWireValue: unknown = JSON.parse(JSON.stringify(
+      encodeModulePlan(validModulePlanFixture),
+    ))
 
     const decodedDescriptor = decodeHarnessModuleDescriptor(descriptorWireValue)
     const decodedPlan = decodeModulePlan(planWireValue)
@@ -44,13 +45,31 @@ describe('contract wire codecs', () => {
     expect(Object.getPrototypeOf(decodedPlan)).toBe(Object.prototype)
   })
 
-  test('contains exactly the four V1 Output capabilities in its valid fixture', () => {
-    expect(validModulePlanFixture.outputs.map(output => output.kind)).toEqual([
-      'ManagedTree',
-      'ManagedBlock',
-      'JsonValue',
-      'JsonKeyedItem',
+  test('carries all five V2 Output capabilities with explicit semantic locators', () => {
+    expect(validModulePlanFixture.outputs.map(output => [output.kind, output.locator.root])).toEqual([
+      ['ManagedTree', 'IntegrationWorkspace'],
+      ['PinnedReferenceTree', 'IntegrationWorkspace'],
+      ['ManagedBlock', 'ControlRoot'],
+      ['JsonValue', 'PackageRoot'],
+      ['JsonKeyedItem', 'PackageRoot'],
     ])
+  })
+
+  test('binds immutable pinned-reference provenance as Contract plain data', () => {
+    const output = validModulePlanFixture.outputs[1]
+
+    expect(output).toEqual({
+      kind: 'PinnedReferenceTree',
+      id: 'effect-source',
+      archive: { path: 'assets/repos/effect.pta', format: 'prelude-canonical-tree-archive-v1' },
+      locator: { root: 'IntegrationWorkspace', path: 'repos/effect' },
+      provenance: {
+        sourceUrl: 'https://github.com/Effect-TS/effect.git',
+        revision: '0123456789abcdef0123456789abcdef01234567',
+        treeDigest: 'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa',
+      },
+      referenceOnly: true,
+    })
   })
 
   test.each(malformedModulePlanFixtures)('rejects malformed Module plans: $label', ({ value }) => {
@@ -58,10 +77,44 @@ describe('contract wire codecs', () => {
     expect(() => decodeModulePlan(value)).toThrow()
   })
 
+  test('rejects released V1 Output and singular Integration identity shapes', () => {
+    expect(Schema.is(ModulePlanSchema)({
+      outputs: [{
+        kind: 'ManagedTree',
+        id: 'legacy-tree',
+        sourceRoot: 'assets/managed',
+        targetRoot: 'managed',
+      }],
+      requirements: [],
+      checks: [],
+      issues: [],
+    })).toBe(false)
+  })
+
+  test('rejects an installed-directory sourceRoot compatibility field on V2 pinned archives', () => {
+    const pinned = validModulePlanFixture.outputs.find(output => output.kind === 'PinnedReferenceTree')!
+    expect(() => decodeModulePlan({
+      outputs: [{ ...pinned, sourceRoot: 'assets/repos/effect' }],
+      requirements: [],
+      checks: [],
+      issues: [],
+    })).toThrow()
+  })
+
+  test('rejects the retired nested provenance closure field', () => {
+    const pinned = validModulePlanFixture.outputs.find(output => output.kind === 'PinnedReferenceTree')!
+    expect(() => decodeModulePlan({
+      outputs: [{ ...pinned, provenance: { ...pinned.provenance, closure: [] } }],
+      requirements: [],
+      checks: [],
+      issues: [],
+    })).toThrow()
+  })
+
   test('rejects duplicate required features', () => {
     const descriptor = {
       harnessId: 'fixture.harness',
-      protocolVersion: MODULE_PROTOCOL_V1,
+      protocolVersion: MODULE_PROTOCOL_V2,
       requiredFeatures: ['outputs.managed-tree', 'outputs.managed-tree'],
     }
 
@@ -73,7 +126,7 @@ describe('contract wire codecs', () => {
       outputs: [{
         kind: 'JsonValue',
         id: 'non-finite',
-        path: 'config.json',
+        locator: { root: 'PackageRoot', packageRoot: '.', path: 'config.json' },
         pointer: '/value',
         value: Number.NaN,
       }],
@@ -86,16 +139,40 @@ describe('contract wire codecs', () => {
   })
 })
 
-describe('safe locators', () => {
-  test.each(unsafeRelativePathFixtures)('rejects unsafe relative paths: $label', ({ value }) => {
-    expect(Schema.is(RelativePathSchema)(value)).toBe(false)
-    expect(Schema.is(TargetPathSchema)(value)).toBe(false)
+describe('V2 tagged locators', () => {
+  test('requires an explicit nonempty, unique, bounded package-root selection', () => {
+    expect(Schema.is(IntegrationIdentitySchema)({ integrationId: 'fixture', packageRoots: ['.', 'packages/api'] })).toBe(true)
+    expect(Schema.is(IntegrationIdentitySchema)({ integrationId: 'fixture', packageRoots: [] })).toBe(false)
+    expect(Schema.is(IntegrationIdentitySchema)({ integrationId: 'fixture', packageRoots: ['.', '.'] })).toBe(false)
+    expect(Schema.is(IntegrationIdentitySchema)({ integrationId: 'fixture', packageRoots: Array.from({ length: 65 }, (_, index) => `packages/p${index}`) })).toBe(false)
   })
 
-  test('allows the package and Artifact roots but not a bounded Target locator at "."', () => {
+  test.each([
+    { root: 'ControlRoot', path: 'AGENTS.md' },
+    { root: 'IntegrationWorkspace', path: 'managed/AGENTS.md' },
+    { root: 'PackageRoot', packageRoot: 'packages/api', path: 'tsconfig.json' },
+  ])('accepts an explicit Output locator %#', (locator) => {
+    expect(Schema.is(OutputLocatorSchema)(locator)).toBe(true)
+  })
+
+  test('allows root observation but not root-wide Output ownership', () => {
+    expect(Schema.is(ObservationLocatorSchema)({ root: 'ControlRoot', path: '.' })).toBe(true)
+    expect(Schema.is(OutputLocatorSchema)({ root: 'ControlRoot', path: '.' })).toBe(false)
+  })
+
+  test('allows feedback observation but never feedback Output ownership', () => {
+    const locator = { root: 'IntegrationWorkspace', path: 'feedback/evidence.json' }
+    expect(Schema.is(ObservationLocatorSchema)(locator)).toBe(true)
+    expect(Schema.is(OutputLocatorSchema)(locator)).toBe(false)
+  })
+
+  test.each(unsafeRelativePathFixtures)('rejects unsafe relative paths: $label', ({ value }) => {
+    expect(Schema.is(RelativePathSchema)(value)).toBe(false)
+  })
+
+  test('allows package and Artifact roots', () => {
     expect(Schema.is(PackageRootSchema)('.')).toBe(true)
     expect(Schema.is(ArtifactPathSchema)('.')).toBe(true)
-    expect(Schema.is(TargetPathSchema)('.')).toBe(false)
   })
 
   test.each(['not/a~2pointer', '#/fragment', 'missing-leading-slash'])('rejects noncanonical JSON pointer %s', (pointer) => {
@@ -103,7 +180,7 @@ describe('safe locators', () => {
   })
 })
 
-describe('protocol negotiation', () => {
+describe('V2 protocol negotiation', () => {
   test('decodes unknown required features and reports them as unsupported', () => {
     expect(unsupportedRequiredFeatureCompatibilityFixture).toEqual({
       compatible: false,
@@ -112,27 +189,27 @@ describe('protocol negotiation', () => {
     })
   })
 
-  test('reports an unsupported protocol version separately', () => {
+  test('reports released V1 as unsupported', () => {
     const descriptor = decodeHarnessModuleDescriptor({
-      harnessId: 'fixture.future-harness',
-      protocolVersion: 2,
+      harnessId: 'fixture.legacy-harness',
+      protocolVersion: 1,
       requiredFeatures: [],
     })
 
     expect(checkProtocolCompatibility(descriptor, {
-      supportedProtocolVersions: [MODULE_PROTOCOL_V1],
-      supportedFeatures: [...PRELUDE_V1_SUPPORTED_FEATURES],
+      supportedProtocolVersions: [MODULE_PROTOCOL_V2],
+      supportedFeatures: [...PRELUDE_V2_SUPPORTED_FEATURES],
     })).toEqual({
       compatible: false,
       reason: 'unsupportedProtocolVersion',
-      protocolVersion: 2,
+      protocolVersion: 1,
     })
   })
 
-  test('accepts the complete V1 protocol and feature set', () => {
+  test('accepts the complete V2 protocol and feature set', () => {
     expect(checkProtocolCompatibility(validHarnessModuleDescriptorFixture, {
-      supportedProtocolVersions: [MODULE_PROTOCOL_V1],
-      supportedFeatures: [...PRELUDE_V1_SUPPORTED_FEATURES],
+      supportedProtocolVersions: [MODULE_PROTOCOL_V2],
+      supportedFeatures: [...PRELUDE_V2_SUPPORTED_FEATURES],
     })).toEqual({ compatible: true })
   })
 })

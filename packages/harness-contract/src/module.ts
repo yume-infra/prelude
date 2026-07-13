@@ -1,15 +1,17 @@
 import type { Effect } from 'effect'
-import type { ArtifactPath, PackageRoot, RootRelativePath, TargetPath } from './primitives.js'
+import type { ObservationLocator } from './locators.js'
+import type { ArtifactPath, PackageRoot } from './primitives.js'
 import { Schema } from 'effect'
 
 import { CheckSchema, IssueSchema, PackageRequirementSchema } from './declarations.js'
+import { ObservationLocatorSchema } from './locators.js'
 import { OutputSchema } from './outputs.js'
 import {
+  ArtifactPathSchema,
   BarePackageExportSchema,
   NonEmptyTextSchema,
   PackageNameSchema,
   PackageRootSchema,
-  RootRelativePathSchema,
   StableIdSchema,
 } from './primitives.js'
 import {
@@ -58,7 +60,15 @@ export type ModulePlan = Schema.Schema.Type<typeof ModulePlanSchema>
 
 export const IntegrationIdentitySchema = Schema.Struct({
   integrationId: StableIdSchema,
-  packageRoot: PackageRootSchema,
+  packageRoots: Schema.NonEmptyArray(PackageRootSchema).pipe(
+    Schema.check(
+      Schema.isMaxLength(64),
+      Schema.makeFilter(
+        roots => new Set(roots).size === roots.length,
+        { expected: 'unique Package Roots' },
+      ),
+    ),
+  ),
 })
 
 export type IntegrationIdentity = Schema.Schema.Type<typeof IntegrationIdentitySchema>
@@ -87,25 +97,40 @@ export const DirectoryEntrySchema = Schema.Struct({
 
 export type DirectoryEntry = Schema.Schema.Type<typeof DirectoryEntrySchema>
 
-export const ObservationErrorSchema = Schema.TaggedStruct('ObservationError', {
-  operation: Schema.Literals(['readBytes', 'readText', 'readDirectory', 'readPackageManifest']),
-  path: RootRelativePathSchema,
+export const ArtifactObservationErrorSchema = Schema.TaggedStruct('ArtifactObservationError', {
+  operation: Schema.Literals(['readBytes', 'readText', 'readDirectory']),
+  path: ArtifactPathSchema,
   message: NonEmptyTextSchema,
 })
+
+export type ArtifactObservationError = Schema.Schema.Type<typeof ArtifactObservationErrorSchema>
+
+export const TargetObservationErrorSchema = Schema.TaggedStruct('TargetObservationError', {
+  operation: Schema.Literals(['readBytes', 'readText', 'readDirectory', 'readPackageManifest']),
+  locator: ObservationLocatorSchema,
+  message: NonEmptyTextSchema,
+})
+
+export type TargetObservationError = Schema.Schema.Type<typeof TargetObservationErrorSchema>
+
+export const ObservationErrorSchema = Schema.Union([
+  ArtifactObservationErrorSchema,
+  TargetObservationErrorSchema,
+])
 
 export type ObservationError = Schema.Schema.Type<typeof ObservationErrorSchema>
 
 export interface ReadonlyArtifactAssets {
-  readonly readBytes: (path: ArtifactPath) => Effect.Effect<Uint8Array | undefined, ObservationError>
-  readonly readText: (path: ArtifactPath) => Effect.Effect<string | undefined, ObservationError>
-  readonly readDirectory: (path: ArtifactPath) => Effect.Effect<ReadonlyArray<DirectoryEntry> | undefined, ObservationError>
+  readonly readBytes: (path: ArtifactPath) => Effect.Effect<Uint8Array | undefined, ArtifactObservationError>
+  readonly readText: (path: ArtifactPath) => Effect.Effect<string | undefined, ArtifactObservationError>
+  readonly readDirectory: (path: ArtifactPath) => Effect.Effect<ReadonlyArray<DirectoryEntry> | undefined, ArtifactObservationError>
 }
 
 export interface ReadonlyTarget {
-  readonly readBytes: (path: TargetPath) => Effect.Effect<Uint8Array | undefined, ObservationError>
-  readonly readText: (path: TargetPath) => Effect.Effect<string | undefined, ObservationError>
-  readonly readDirectory: (path: RootRelativePath) => Effect.Effect<ReadonlyArray<DirectoryEntry> | undefined, ObservationError>
-  readonly readPackageManifest: (packageRoot: PackageRoot) => Effect.Effect<Schema.JsonObject | undefined, ObservationError>
+  readonly readBytes: (locator: ObservationLocator) => Effect.Effect<Uint8Array | undefined, TargetObservationError>
+  readonly readText: (locator: ObservationLocator) => Effect.Effect<string | undefined, TargetObservationError>
+  readonly readDirectory: (locator: ObservationLocator) => Effect.Effect<ReadonlyArray<DirectoryEntry> | undefined, TargetObservationError>
+  readonly readPackageManifest: (packageRoot: PackageRoot) => Effect.Effect<Schema.JsonObject | undefined, TargetObservationError>
 }
 
 export type HarnessModuleContext = HarnessModuleContextIdentity & {
@@ -126,7 +151,7 @@ export function defineHarnessModule<PlanError>(
 
 export const decodeHarnessModuleDescriptor = Schema.decodeUnknownSync(
   HarnessModuleDescriptorSchema,
-  { errors: 'all' },
+  { errors: 'all', onExcessProperty: 'error' },
 )
 
 export const encodeHarnessModuleDescriptor = Schema.encodeUnknownSync(
@@ -136,7 +161,7 @@ export const encodeHarnessModuleDescriptor = Schema.encodeUnknownSync(
 
 export const decodeModulePlan = Schema.decodeUnknownSync(
   ModulePlanSchema,
-  { errors: 'all' },
+  { errors: 'all', onExcessProperty: 'error' },
 )
 
 export const encodeModulePlan = Schema.encodeUnknownSync(

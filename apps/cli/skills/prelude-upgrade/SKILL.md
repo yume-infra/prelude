@@ -18,16 +18,19 @@ valid Plan Document.
 2. Before any real Target mutation, use an isolated temporary copy or session
    replica that preserves the same repo-relative package inputs. Update the
    selected Prelude or Harness packages there and show the complete candidate
-   `package.json` and `pnpm-lock.yaml` diff. Clean up the preview without
-   creating `Target/.prelude/`. Apply that exact candidate and run `pnpm
-   install` only after explicit user authorization.
+   `package.json` and `pnpm-lock.yaml` diff. Clean up the preview. Apply those
+   exact bytes only after explicit user authorization, then run `pnpm install
+   --frozen-lockfile --force` to materialize the Approved Package Selection without
+   dependency re-resolution.
 3. Capture a new `prelude plan --json`. Compare old and new declarations by
    Integration and declaration id. Audit bounded Outputs and Managed Trees
    that disappeared, changed kind, or moved locator or target root.
 4. For each suspicious old location, inspect current Target bytes and active
    new Output authority. Propose residue cleanup only as a concrete diff that
    does not modify an active managed Output. Cleanup requires separate explicit
-   user authorization; do not perform it as part of the package update.
+   user authorization; do not perform it as part of the package update. Never
+   treat Integration `feedback/**` as residue: it is Target-owned and remains
+   untouched across upgrades.
 5. Return the new Plan for normal user approval, `prelude apply` with that
    approved hash, and `prelude check`. Do not approve an execution hash.
 

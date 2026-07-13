@@ -42,12 +42,33 @@ function selectedVersion(lockVersion: string): string | undefined {
   return selected !== undefined && semver.valid(selected) !== null ? selected : undefined
 }
 
+export function inspectLockSelection(input: {
+  readonly lockSource: string
+  readonly importer: string
+  readonly section: 'dependencies' | 'devDependencies'
+  readonly packageName: string
+}): { readonly specifier?: string, readonly version?: string, readonly selectedVersion?: string } {
+  const lock = parseLock(input.lockSource, 'pnpm-lock.yaml lockfile')
+  const raw = lock.importers?.[input.importer]?.[input.section]?.[input.packageName]
+  const specifier = typeof raw === 'string' ? undefined : raw?.specifier
+  const version = typeof raw === 'string' ? raw : raw?.version
+  const registryVersion = typeof version === 'string' ? selectedVersion(version) : undefined
+  return {
+    ...(typeof specifier === 'string' ? { specifier } : {}),
+    ...(typeof version === 'string' ? { version } : {}),
+    ...(registryVersion === undefined ? {} : { selectedVersion: registryVersion }),
+  }
+}
+
 export function evaluateRequirementSelection(input: { readonly range: string, readonly packageName?: string | undefined, readonly installedName?: string | undefined, readonly directSpecifier?: string | undefined, readonly lockSpecifier?: string | undefined, readonly lockVersion?: string | undefined, readonly installedLockVersion?: string | undefined, readonly installedVersion?: string | undefined, readonly lockIdentityMatches?: boolean | undefined }): { readonly satisfied: boolean } {
   if (input.directSpecifier === undefined || input.lockVersion === undefined || input.installedVersion === undefined)
     return { satisfied: false }
-  if (semver.valid(input.installedVersion) === null || !semver.satisfies(input.installedVersion, input.range))
+  const aliasSpecifier = input.directSpecifier.startsWith('npm:') ? input.directSpecifier.slice('npm:'.length) : undefined
+  const aliasTarget = aliasSpecifier?.replace(/@[^@]+$/, '')
+  const effectiveRange = aliasSpecifier === undefined ? input.range : aliasSpecifier.slice(aliasTarget!.length + 1)
+  if (semver.valid(input.installedVersion) === null || !semver.satisfies(input.installedVersion, effectiveRange))
     return { satisfied: false }
-  if (input.packageName !== undefined && input.installedName !== input.packageName)
+  if (input.packageName !== undefined && input.installedName !== (aliasTarget ?? input.packageName))
     return { satisfied: false }
   if (input.lockSpecifier !== undefined && input.lockSpecifier !== input.directSpecifier)
     return { satisfied: false }

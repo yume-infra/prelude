@@ -7,6 +7,14 @@ updated: 2026-07-12
 
 # Harness Integration Lifecycle
 
+## V2 Successor Note
+
+The sections below preserve the released V1 lifecycle rationale. The active V2
+config, Approved Package Selection, per-Output atomicity, feedback ownership,
+and packed Gate 1 requirements are defined by
+[`v2-harness-convergence-contract.md`](./v2-harness-convergence-contract.md)
+and supersede conflicting V1 paths or installation behavior.
+
 ## One Stateless Lifecycle
 
 Initial Integration and Artifact upgrade are the same operation:

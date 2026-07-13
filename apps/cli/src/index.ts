@@ -31,12 +31,14 @@ const program = Effect.gen(function* () {
       return yield* Effect.fail(preludeError('cli', usage()))
     const result = yield* applyConvergence(controlRoot, hash)
     yield* Console.log(json ? stableJson(result, true) : `Applied ${result.executionHash}: ${result.published} publication(s), ${result.remaining} remaining`)
+    if (!result.converged)
+      process.exitCode = 2
     return
   }
   if (command === 'check') {
     if (args.some(arg => arg !== 'check' && arg !== '--json'))
       return yield* Effect.fail(preludeError('cli', usage()))
-    const result = yield* checkConvergence(controlRoot)
+    const result = yield* checkConvergence(controlRoot, json ? 'ignore' : 'inherit')
     yield* Console.log(json ? stableJson(result, true) : `Checks passed: ${result.checks.length}`)
     return
   }

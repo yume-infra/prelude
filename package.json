@@ -12,6 +12,7 @@
     "verify": "pnpm verify:code",
     "verify:code": "pnpm build && pnpm typecheck && pnpm -r --if-present test && pnpm lint --max-warnings 0 && pnpm knip",
     "smoke:installed": "pnpm --filter @sayoriqwq/prelude smoke:installed",
+    "smoke:packed-effect": "pnpm --filter @sayoriqwq/prelude smoke:packed-effect",
     "deps:check": "taze -r",
     "deps:check:all": "taze -r --all",
     "deps:fresh": "taze minor -r -w -i --maturity-period 7",
@@ -32,19 +33,19 @@
     "typecheck:tsc": "pnpm -r --if-present typecheck:tsc"
   },
   "dependencies": {
-    "@effect/platform-node": "4.0.0-beta.92",
-    "effect": "4.0.0-beta.92"
+    "@effect/platform-node": "4.0.0-beta.97",
+    "effect": "4.0.0-beta.97"
   },
   "devDependencies": {
     "@antfu/eslint-config": "^9.0.0",
     "@changesets/cli": "catalog:",
     "@commitlint/cli": "catalog:",
     "@commitlint/config-conventional": "catalog:",
-    "@effect/language-service": "0.86.2",
-    "@effect/tsgo": "0.15.0",
-    "@effect/vitest": "4.0.0-beta.92",
+    "@effect/language-service": "0.86.6",
+    "@effect/tsgo": "0.19.0",
+    "@effect/vitest": "4.0.0-beta.97",
     "@types/node": "catalog:",
-    "@typescript/native-preview": "7.0.0-dev.20260630.1",
+    "@typescript/native": "catalog:",
     "eslint": "^10.3.0",
     "husky": "catalog:",
     "knip": "catalog:",

@@ -26,13 +26,16 @@ valid Plan Document.
 2. For a package repair, before any real Target mutation use an isolated
    temporary copy or session replica that preserves the same repo-relative
    package inputs. Generate and show the complete candidate `package.json` and
-   `pnpm-lock.yaml` diff, then clean up the preview without creating
-   `Target/.prelude/`. Apply that exact candidate and run `pnpm install` only
-   after explicit user authorization. For executable-config repair, show the
+   `pnpm-lock.yaml` diff, then clean up the preview. Apply those exact approved
+   bytes only after explicit user authorization. Do not install or resolve
+   packages in the real Target during repair: the next Plan binds the exact
+   manifest and lockfile bytes, and a later approved `prelude apply` may run
+   only `pnpm install --frozen-lockfile --force`. For executable-config repair, show the
    precise target-owned-file diff and obtain that same authorization before
    editing it.
 3. Never edit a path, block, JSON value, keyed item, or tree declared as a
-   managed Output. Do not turn an unresolved Harness or cross-Harness blocker
+   managed Output. Never edit or remove Target-owned Integration
+   `feedback/**`. Do not turn an unresolved Harness or cross-Harness blocker
    into a local override.
 4. After an authorized repair, run `prelude plan --json` only and return its
    current blockers. Do not run apply or approve an execution hash.
