@@ -38,6 +38,12 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile --prod=false
 
+      - name: Expose TypeScript-Go binary
+        run: |
+          tsgo_path="$(pnpm --filter @sayoriqwq/prelude-contract exec effect-tsgo get-exe-path)"
+          ln -sf "$tsgo_path" packages/harness-contract/node_modules/.bin/tsgo
+          ln -sf "$tsgo_path" apps/cli/node_modules/.bin/tsgo
+
       - name: Create version PR
         id: changesets
         uses: changesets/action@v1
