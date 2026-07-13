@@ -35,7 +35,7 @@
   },
   "scripts": {
     "build": "tsdown --config tsdown.config.ts",
-    "typecheck": "tsgo --noEmit",
+    "typecheck": "node ../../scripts/run-tsgo.mjs --noEmit --project tsconfig.json",
     "typecheck:tsc": "tsc -p tsconfig.json --noEmit",
     "test": "pnpm build && vitest run",
     "prepack": "pnpm build"
