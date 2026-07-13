@@ -8,7 +8,7 @@ const require = createRequire(import.meta.url)
 const packageRoot = dirname(require.resolve('@effect/tsgo/package.json'))
 const runner = join(packageRoot, 'dist/effect-tsgo.js')
 const expectedVersion = 'Version 7.0.2+effect-tsgo.0.19.0'
-const fail = status => {
+function fail(status) {
   process.exit(status && status > 0 ? status : 1)
 }
 
