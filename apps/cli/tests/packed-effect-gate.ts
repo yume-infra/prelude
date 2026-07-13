@@ -7,7 +7,7 @@ import process from 'node:process'
 import { execa } from 'execa'
 
 const EFFECT_DIGEST = 'd797515e8ecb2e164deef65b6b7abde6445201ce9d1e9e584f39d634c2469e95'
-const TSGO_DIGEST = 'c3d01ada0e3e5a404c819499037885947ab46d1eae313432d71bfbbb60ab4e2a'
+const TSGO_DIGEST = 'f76adab084de0de584e0a565679b3afca2b48674a28e36c7dd6398846fd2bd9d'
 const workspaceRoot = join(import.meta.dirname, '../../..')
 const gateInput = join(workspaceRoot, 'tmp/gate-input')
 const harnessTar = process.env.EFFECT_HARNESS_TARBALL ?? join(gateInput, 'sayoriqwq-effect-harness-0.2.0.tgz')
