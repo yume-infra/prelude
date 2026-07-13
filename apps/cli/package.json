@@ -5,6 +5,10 @@
   "description": "Effect v4 multi-Harness convergence host for pnpm targets",
   "author": "sayoriqwq",
   "license": "ISC",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/yume-infra/prelude.git"
+  },
   "keywords": [
     "cli",
     "convergence",

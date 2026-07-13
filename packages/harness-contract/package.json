@@ -5,6 +5,10 @@
   "description": "Effect Schema-backed contract for Prelude Harness Modules",
   "author": "sayoriqwq",
   "license": "ISC",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/yume-infra/prelude.git"
+  },
   "keywords": [
     "effect",
     "harness",
