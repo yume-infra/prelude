@@ -11,6 +11,7 @@ import {
   CANONICAL_TREE_ARCHIVE_LIMITS,
   decodeCanonicalTreeArchive,
   encodeCanonicalTreeArchive,
+  SYMBOLIC_LINK_MODE,
 } from '@sayoriqwq/prelude-contract'
 import { Effect } from 'effect'
 
@@ -18,7 +19,7 @@ import { loadPinnedReferenceTreeArchive } from '../src/convergence.js'
 import { replaceTreeFromArchive, scanTree } from '../src/filesystem.js'
 
 const text = (value: string) => new TextEncoder().encode(value)
-const materializedSymlinkMode = process.platform === 'darwin' ? 0o755 : 0o777
+const materializedSymlinkMode = SYMBOLIC_LINK_MODE
 
 function fixtureArchive() {
   return encodeCanonicalTreeArchive([

@@ -1,9 +1,10 @@
-import { chmod, link, lstat, mkdir, mkdtemp, readdir, readFile, symlink, writeFile } from 'node:fs/promises'
+import { chmod, link, mkdir, mkdtemp, readdir, readFile, symlink, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 
 import { NodeServices } from '@effect/platform-node'
 import { describe, expect, it } from '@effect/vitest'
+import { SYMBOLIC_LINK_MODE } from '@sayoriqwq/prelude-contract'
 import { Effect } from 'effect'
 
 import { assertTargetWritePath, publishFile, replaceTree, scanTree } from '../src/filesystem.js'
@@ -46,9 +47,8 @@ describe('Target confinement', () => {
     yield* Effect.promise(() => mkdir(source))
     yield* Effect.promise(() => writeFile(join(source, 'AGENTS.md'), 'source guidance'))
     yield* Effect.promise(() => symlink('AGENTS.md', join(source, 'CLAUDE.md')))
-    const sourceLinkMode = (yield* Effect.promise(() => lstat(join(source, 'CLAUDE.md')))).mode & 0o777
     const snapshot = yield* scanTree(source, 'planning', { allowSafeSymlinks: true })
-    expect(snapshot.entries).toContainEqual({ path: 'CLAUDE.md', kind: 'symbolicLink', mode: sourceLinkMode, target: 'AGENTS.md' })
+    expect(snapshot.entries).toContainEqual({ path: 'CLAUDE.md', kind: 'symbolicLink', mode: SYMBOLIC_LINK_MODE, target: 'AGENTS.md' })
   }).pipe(Effect.provide(NodeServices.layer)))
 
   it.effect('rejects a PinnedReferenceTree symlink that lexically escapes the complete tree', () => Effect.gen(function* () {

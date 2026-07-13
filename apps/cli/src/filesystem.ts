@@ -2,7 +2,7 @@ import type { DecodedCanonicalTreeArchive, TreeDigestEntry } from '@sayoriqwq/pr
 import type { Stats } from 'node:fs'
 
 import { lstat } from 'node:fs/promises'
-import { canonicalTreeDigest, isSafeRelativeSymlink } from '@sayoriqwq/prelude-contract'
+import { canonicalTreeDigest, isSafeRelativeSymlink, SYMBOLIC_LINK_MODE } from '@sayoriqwq/prelude-contract'
 import { Effect, FileSystem, Option, Path, Schema } from 'effect'
 import { errorMessage, preludeError, PreludeError } from './errors.js'
 import { sha256 } from './model.js'
@@ -208,7 +208,7 @@ export function scanTree(
           )
           if (!isSafeRelativeSymlink(relative, linkTarget))
             return yield* Effect.fail(preludeError(phase, 'PinnedReferenceTree symbolic link escapes its complete tree', `${relative} -> ${linkTarget}`))
-          entries.push({ path: relative, kind: 'symbolicLink', mode: noFollowInfo.mode & 0o777, target: linkTarget })
+          entries.push({ path: relative, kind: 'symbolicLink', mode: SYMBOLIC_LINK_MODE, target: linkTarget })
           continue
         }
         const info = yield* fs.stat(absolute).pipe(Effect.mapError(platformFailure(phase, 'Cannot inspect tree entry')))

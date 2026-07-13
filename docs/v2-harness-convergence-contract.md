@@ -143,15 +143,17 @@ symbolicLink entry: kind, path, mode, target
 
 Entries use deterministic JavaScript string path order. File hashes are
 SHA-256 of exact bytes. Empty directories and POSIX permission modes are part
-of the snapshot.
+of the snapshot. Symbolic-link entries retain the `mode` field for stable
+framing, but its only canonical value is `0777`: POSIX hosts expose symlink
+permission bits differently and do not provide a portable lchmod operation.
 
 Pinned trees may contain safe relative symbolic links. The link target is the
 exact POSIX `readlink` text. Absolute, drive-qualified, backslash-containing,
 NUL-containing, or lexically root-escaping targets are rejected. Scanning uses
-no-follow `lstat` and `readlink`; staging recreates the exact target text and
-then recomputes the complete staged digest. ManagedTree does not opt in. A
-platform inability to materialize the link is an explicit incomplete
-convergence failure; Prelude never dereferences, drops, or translates it.
+no-follow `lstat` and `readlink`; host scans record symlinks with canonical
+mode `0777`, and staging recreates the exact target text before recomputing
+the complete staged digest. ManagedTree does not opt in. Prelude never
+dereferences, drops, or translates a link.
 
 The ordinary-file archive begins with the exact UTF-8 magic
 `prelude-canonical-tree-archive-v1\n`, an unsigned 8-byte big-endian canonical

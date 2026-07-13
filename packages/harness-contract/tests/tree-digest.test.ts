@@ -30,6 +30,10 @@ describe('canonical V2 tree digest', () => {
     expect(canonicalTreeDigest(snapshot)).toBe('ab61d1bcedaf353ae86594c9d1b8e341e44419f299065a3b675cfcdce8d8bafb')
   })
 
+  test('requires the portable symbolic-link mode', () => {
+    expect(() => decodeTreeDigestSnapshot({ rootKind: 'directory', entries: [{ kind: 'symbolicLink', path: 'CLAUDE.md', mode: 0o755, target: 'AGENTS.md' }] })).toThrow()
+  })
+
   test.each(['/outside', 'C:/outside', '..', '../../outside', 'dir\\file', 'bad\0target'])('rejects unsafe symlink target %j', (target) => {
     expect(() => decodeTreeDigestSnapshot({ rootKind: 'directory', entries: [{ kind: 'symbolicLink', path: 'CLAUDE.md', mode: 0o777, target }] })).toThrow()
   })
