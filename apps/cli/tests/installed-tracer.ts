@@ -53,10 +53,11 @@ async function packHarness(name: 'alpha' | 'beta', version: string): Promise<Har
   const archiveRoot = join(temp, `${name}-${version}`); const root = join(archiveRoot, 'package'); const managed = join(root, 'assets/managed')
   await mkdir(managed, { recursive: true })
   const managedText = `${name} managed ${version}\n`; const pinnedText = `${name} pinned source ${version}\n`
+  const materializedSymlinkMode = process.platform === 'darwin' ? 0o755 : 0o777
   await writeFile(join(managed, `${name}.txt`), managedText)
   const encodedTree = encodeCanonicalTreeArchive([
     { kind: 'file', path: 'AGENTS.md', mode: 0o644, bytes: new TextEncoder().encode(pinnedText) },
-    { kind: 'symbolicLink', path: 'CLAUDE.md', mode: 0o755, target: 'AGENTS.md' },
+    { kind: 'symbolicLink', path: 'CLAUDE.md', mode: materializedSymlinkMode, target: 'AGENTS.md' },
     { kind: 'file', path: 'REVISION', mode: 0o644, bytes: new TextEncoder().encode(`${name}-${version}\n`) },
   ])
   await writeFile(join(root, 'assets/repos.pta'), encodedTree.bytes)
