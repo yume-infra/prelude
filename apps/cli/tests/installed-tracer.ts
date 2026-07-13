@@ -21,6 +21,13 @@ const gitSentinel = join(temp, 'git-invoked')
 async function json(path: string, value: unknown) { await writeFile(path, `${JSON.stringify(value, null, 2)}\n`) }
 async function run(args: ReadonlyArray<string>, options: { reject?: boolean } = {}) { return execa('pnpm', args, { cwd: target, reject: options.reject ?? true, env: { ...process.env, CI: '1' } }) }
 
+function parseCliJson(result: { stdout: string, stderr: string, exitCode?: number, signal?: string | undefined }, cliPath: string, args: ReadonlyArray<string>, cwd: string) {
+  if (result.stdout.trim() === '') {
+    throw new Error(`CLI JSON output was empty: argv=${JSON.stringify([cliPath, ...args])} cwd=${cwd} exitCode=${result.exitCode ?? 'null'} signal=${result.signal ?? 'none'} stdout=${JSON.stringify(result.stdout)} stderr=${JSON.stringify(result.stderr)}`)
+  }
+  return JSON.parse(result.stdout)
+}
+
 interface HarnessPack {
   readonly archive: string
   readonly managedText: string
@@ -178,7 +185,7 @@ try {
   assert.equal((await readdir(join(target, '.prelude/i-alpha'))).includes('managed'), false); assert.equal((await readdir(join(target, '.prelude/i-alpha'))).includes('repos'), false); assert.equal(await readFile(alphaFeedback, 'utf8'), 'target-owned evidence before apply\n')
   await writeFile(join(target, 'scope.txt'), 'root scope\n'); assert.equal(JSON.parse((await cliRun(['plan', '--json'])).stdout).executionHash, plan.executionHash)
   const appliedResult = await cliRun(['apply', '--plan-hash', plan.executionHash, '--json'], target, false)
-  const applied = JSON.parse(appliedResult.stdout)
+  const applied = parseCliJson(appliedResult, cli, ['apply', '--plan-hash', plan.executionHash, '--json'], target)
   assert.equal(appliedResult.exitCode, 0, JSON.stringify(applied.plan.requirements, null, 2))
   assert.equal(applied.installed, true); assert.equal(applied.converged, true); assert.equal(applied.published, 7)
   await assert.rejects(
