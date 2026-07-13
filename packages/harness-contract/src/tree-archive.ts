@@ -3,7 +3,7 @@ import type { TreeDigestEntry, TreeDigestSnapshot } from './tree-digest.js'
 import { createHash } from 'node:crypto'
 
 import { isNormalizedRelativePath } from './primitives.js'
-import { canonicalTreeDigest, isSafeRelativeSymlink } from './tree-digest.js'
+import { canonicalTreeDigest, isSafeRelativeSymlink, SYMBOLIC_LINK_MODE } from './tree-digest.js'
 
 export const CANONICAL_TREE_ARCHIVE_FORMAT = 'prelude-canonical-tree-archive-v1' as const
 
@@ -109,11 +109,12 @@ function decodeHeaderEntry(value: unknown): CanonicalTreeArchiveHeaderEntry {
     if (!hasExactKeys(value, ['kind', 'path', 'mode', 'target']))
       return fail(`symbolic link ${value.path} has invalid framing`)
     if (typeof value.target !== 'string'
+      || value.mode !== SYMBOLIC_LINK_MODE
       || encoder.encode(value.target).length > CANONICAL_TREE_ARCHIVE_LIMITS.maxSymlinkTargetBytes
       || !isSafeRelativeSymlink(value.path, value.target)) {
       return fail(`symbolic link ${value.path} has an unsafe target`)
     }
-    return { kind: value.kind, path: value.path, mode: value.mode, target: value.target }
+    return { kind: value.kind, path: value.path, mode: SYMBOLIC_LINK_MODE, target: value.target }
   }
   return fail(`entry ${value.path} uses unsupported kind ${value.kind}`)
 }

@@ -5,6 +5,7 @@ import { Schema } from 'effect'
 import { RootRelativePathSchema, Sha256DigestSchema } from './primitives.js'
 
 export const TREE_DIGEST_ALGORITHM = 'prelude-tree-sha256-v1' as const
+export const SYMBOLIC_LINK_MODE = 0o777 as const
 
 const FileModeSchema = Schema.Finite.pipe(
   Schema.check(
@@ -55,7 +56,7 @@ export const TreeDigestEntrySchema = Schema.Union([
   Schema.Struct({
     kind: Schema.Literal('symbolicLink'),
     path: RootRelativePathSchema,
-    mode: FileModeSchema,
+    mode: Schema.Literal(SYMBOLIC_LINK_MODE),
     target: SymlinkTargetSchema,
   }).pipe(
     Schema.check(Schema.makeFilter(

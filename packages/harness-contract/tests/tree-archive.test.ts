@@ -23,7 +23,7 @@ function frame(header: unknown, payload = new Uint8Array()): Uint8Array {
 describe('canonical PinnedReferenceTree archive', () => {
   test('round trips exact files, empty directories, modes, and safe relative symlinks', () => {
     const encoded = encodeCanonicalTreeArchive([
-      { kind: 'symbolicLink', path: 'CLAUDE.md', mode: 0o755, target: 'AGENTS.md' },
+      { kind: 'symbolicLink', path: 'CLAUDE.md', mode: 0o777, target: 'AGENTS.md' },
       { kind: 'directory', path: 'empty', mode: 0o700 },
       { kind: 'file', path: 'AGENTS.md', mode: 0o644, bytes: encoder.encode('source guidance\n') },
       { kind: 'directory', path: 'docs', mode: 0o755 },
@@ -63,11 +63,11 @@ describe('canonical PinnedReferenceTree archive', () => {
   test('keeps the published archive and logical tree vectors stable', () => {
     const encoded = encodeCanonicalTreeArchive([
       { kind: 'file', path: 'AGENTS.md', mode: 0o644, bytes: encoder.encode('source guidance\n') },
-      { kind: 'symbolicLink', path: 'CLAUDE.md', mode: 0o755, target: 'AGENTS.md' },
+      { kind: 'symbolicLink', path: 'CLAUDE.md', mode: 0o777, target: 'AGENTS.md' },
       { kind: 'directory', path: 'empty', mode: 0o700 },
     ])
-    expect(encoded.treeDigest).toBe('1466c9fd3052cc5a6e7e841ae1931b9f244c75c740d3feaa86308712e8bd5546')
-    expect(createHash('sha256').update(encoded.bytes).digest('hex')).toBe('e4f9f38653ff6835e59c83bdb5babc6c4f0ccc37fd47836843ed18fcc4cc0b2f')
+    expect(encoded.treeDigest).toBe('03676e82dc79b7bd17ca57ff044d98b7acbce7472a16b0a2df6c34ae36e8c4f6')
+    expect(createHash('sha256').update(encoded.bytes).digest('hex')).toBe('afbdbe4a7cb1030e98719c0ae23e05e39ab1471a8d90f6f7dee3728986eff36b')
     expect(encoded.bytes.length).toBe(368)
   })
 
@@ -95,6 +95,7 @@ describe('canonical PinnedReferenceTree archive', () => {
     { label: 'FIFO', entries: [{ kind: 'fifo', path: 'a', mode: 0o600 }] },
     { label: 'socket', entries: [{ kind: 'socket', path: 'a', mode: 0o600 }] },
     { label: 'unsafe symlink', entries: [{ kind: 'symbolicLink', path: 'a', mode: 0o777, target: '../outside' }] },
+    { label: 'noncanonical symlink mode', entries: [{ kind: 'symbolicLink', path: 'a', mode: 0o755, target: 'b' }] },
     { label: 'invalid mode', entries: [{ kind: 'directory', path: 'a', mode: 0o1777 }] },
   ])('rejects $label archive entries', ({ entries }) => {
     expect(() => decodeCanonicalTreeArchive(frame({ format: CANONICAL_TREE_ARCHIVE_FORMAT, entries }))).toThrow()
