@@ -26,7 +26,7 @@
   "scripts": {
     "build": "tsdown --config tsdown.config.ts",
     "dev": "tsdown --config tsdown.config.ts --watch",
-    "typecheck": "tsgo --noEmit",
+    "typecheck": "node ../../scripts/run-tsgo.mjs --noEmit --project tsconfig.json",
     "typecheck:tsc": "tsc -p tsconfig.json --noEmit",
     "test": "vitest run",
     "smoke:installed": "pnpm build && node --experimental-strip-types tests/installed-tracer.ts",
