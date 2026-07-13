@@ -166,7 +166,7 @@ function logicalEntry(entry: CanonicalTreeArchiveHeaderEntry | DecodedCanonicalT
   return entry.kind === 'file'
     ? { kind: entry.kind, path: entry.path, mode: entry.mode, hash: entry.hash }
     : entry.kind === 'symbolicLink'
-      ? { kind: entry.kind, path: entry.path, mode: entry.mode, target: entry.target }
+      ? { kind: entry.kind, path: entry.path, mode: SYMBOLIC_LINK_MODE, target: entry.target }
       : { kind: entry.kind, path: entry.path, mode: entry.mode }
 }
 
