@@ -83,11 +83,13 @@ Harness-declared target checks.
 
 ## Checkpoint Status
 
-The V2 Contract and host lifecycle are being completed as a local checkpoint.
-Canonical ordinary-file archive transport avoids pnpm's loss of package
-symlinks, and composed provenance represents the nested tsgo Source Pin without
-Target Git or gitlinks. Gate 1 remains open until the packed Prelude and real
-packed Effect Harness pass isolated single-package and monorepo acceptance.
+The V2 Contract, host lifecycle, and packed Effect Gate 1 are complete.
+`pnpm acceptance:packed-effect` exercises real packed Prelude, Contract, and
+Effect Harness Artifacts in isolated single-package and pnpm-workspace Targets.
+`pnpm acceptance:installed` independently covers the synthetic multi-Harness
+lifecycle. Registry-reproducible release installation remains blocked until
+Effect Harness 0.2.0 is published; Psychogram and Partita are the next
+cross-repository proof.
 
 ## Documentation
 

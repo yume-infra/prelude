@@ -39,7 +39,7 @@
   },
   "scripts": {
     "build": "tsdown --config tsdown.config.ts",
-    "typecheck": "node ../../scripts/run-tsgo.mjs --noEmit --project tsconfig.json",
+    "typecheck": "node --experimental-strip-types ../../tooling/run-tsgo.ts --noEmit --project tsconfig.json",
     "typecheck:tsc": "tsc -p tsconfig.json --noEmit",
     "test": "pnpm build && vitest run",
     "lint": "eslint .",

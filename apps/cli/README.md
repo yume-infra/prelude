@@ -51,6 +51,6 @@ pnpm --filter @sayoriqwq/prelude build
 pnpm verify
 ```
 
-`pnpm smoke:installed` packs the CLI and Contract, installs two synthetic
+`pnpm acceptance:installed` packs the CLI and Contract, installs two synthetic
 Harness Artifacts into a temporary pnpm Target, and exercises plan, stale-hash
 rejection, apply, and check across root and workspace Integration scopes.

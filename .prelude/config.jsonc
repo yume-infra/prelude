@@ -5,6 +5,7 @@
       "id": "effect",
       "module": "@sayoriqwq/effect-harness/prelude",
       "packageRoots": [
+        ".",
         "apps/cli",
         "packages/harness-contract"
       ]

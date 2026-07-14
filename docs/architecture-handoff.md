@@ -145,8 +145,8 @@ Before declaring V1 complete:
 ## Current Verification Note
 
 On 2026-07-14 the V2 Effect integration passed package verification and both
-installed-Artifact acceptance paths: `pnpm smoke:packed-effect` for isolated
-single-package and pnpm-workspace Targets, and `pnpm smoke:installed` for the
+installed-Artifact acceptance paths: `pnpm acceptance:packed-effect` for isolated
+single-package and pnpm-workspace Targets, and `pnpm acceptance:installed` for the
 multi-Harness lifecycle. Remaining retired terms in active docs are explicit
 deletion or rejection evidence. Psychogram and Partita convergence remain the
 next cross-repository release proof; they are no longer blockers for the

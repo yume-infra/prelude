@@ -3,6 +3,9 @@
   "tags": [
     "-lintignore"
   ],
+  "ignore": [
+    ".prelude/**/repos/**"
+  ],
   "ignoreDependencies": [
     "@effect/platform-node",
     "@effect/tsgo",
@@ -16,11 +19,15 @@
   ],
   "workspaces": {
     ".": {
+      "entry": [
+        "tooling/**/*.ts"
+      ],
       "ignoreDependencies": [
         "@sayoriqwq/prelude"
       ],
       "project": [
-        "*.{js,mjs,cjs,ts}"
+        "*.{js,mjs,cjs,ts}",
+        "tooling/**/*.ts"
       ]
     },
     "apps/cli": {

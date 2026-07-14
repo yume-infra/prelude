@@ -11,9 +11,9 @@
     "dev": "turbo run dev",
     "clean": "turbo run clean && rm -rf node_modules",
     "verify": "pnpm verify:code",
-    "verify:code": "pnpm build && pnpm typecheck && pnpm typecheck:smoke && pnpm -r --if-present test && pnpm lint --max-warnings 0 && pnpm knip",
-    "smoke:installed": "pnpm --filter @sayoriqwq/prelude-contract build && pnpm --filter @sayoriqwq/prelude build && node --experimental-strip-types smoke/installed-tracer.ts",
-    "smoke:packed-effect": "node --experimental-strip-types smoke/packed-effect-gate.ts",
+    "verify:code": "pnpm build && pnpm typecheck && pnpm -r --if-present test && pnpm lint --max-warnings 0 && pnpm knip",
+    "acceptance:installed": "pnpm --filter @sayoriqwq/prelude-contract build && pnpm --filter @sayoriqwq/prelude build && node --experimental-strip-types apps/cli/tests/acceptance/installed-tracer.ts",
+    "acceptance:packed-effect": "node --experimental-strip-types apps/cli/tests/acceptance/packed-effect-gate.ts",
     "deps:check": "taze -r",
     "deps:check:all": "taze -r --all",
     "deps:fresh": "taze minor -r -w -i --maturity-period 7",
@@ -25,14 +25,14 @@
     "unlink": "pnpm --filter @sayoriqwq/prelude unlink --global",
     "changeset": "changeset",
     "version-packages": "changeset version",
-    "release": "pnpm verify && pnpm smoke:installed && changeset publish",
+    "release": "pnpm verify && pnpm acceptance:installed && changeset publish",
     "lint": "eslint",
     "lint:fix": "eslint --fix",
     "prepare": "effect-tsgo patch",
     "knip": "knip --exclude duplicates --no-config-hints",
-    "typecheck": "pnpm -r --if-present typecheck",
-    "typecheck:tsc": "pnpm -r --if-present typecheck:tsc",
-    "typecheck:smoke": "tsc -p tsconfig.smoke.json --noEmit"
+    "typecheck": "pnpm typecheck:root && pnpm -r --if-present typecheck",
+    "typecheck:root": "node --experimental-strip-types tooling/run-tsgo.ts --noEmit --project tsconfig.json",
+    "typecheck:tsc": "tsc -p tsconfig.json --noEmit && pnpm -r --if-present typecheck:tsc"
   },
   "dependencies": {
     "@effect/platform-node": "catalog:",
@@ -51,12 +51,12 @@
     "@types/node": "catalog:",
     "@typescript/native": "catalog:",
     "eslint": "catalog:",
-    "execa": "catalog:",
     "husky": "catalog:",
     "knip": "catalog:",
     "lint-staged": "catalog:",
     "taze": "catalog:",
     "turbo": "catalog:",
-    "typescript": "catalog:"
+    "typescript": "catalog:",
+    "vitest": "catalog:"
   }
 }

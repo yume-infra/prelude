@@ -6,7 +6,6 @@ export default antfu(
     ignores: [
       '.codex/**',
       '.prelude/**/repos/**',
-      'apps/examples/.generated/**',
       'docs/**',
       'node_modules/**',
     ],
@@ -20,7 +19,7 @@ export default antfu(
 ).append(
   ...effectHarness,
   {
-    files: ['smoke/**/*.ts'],
+    files: ['apps/cli/tests/acceptance/**/*.ts', 'tooling/**/*.ts'],
     rules: {
       'antfu/no-top-level-await': 'off',
       'antfu/no-import-dist': 'off',
