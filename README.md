@@ -87,9 +87,11 @@ The V2 Contract, host lifecycle, and packed Effect Gate 1 are complete.
 `pnpm acceptance:packed-effect` exercises real packed Prelude, Contract, and
 Effect Harness Artifacts in isolated single-package and pnpm-workspace Targets.
 `pnpm acceptance:installed` independently covers the synthetic multi-Harness
-lifecycle. Registry-reproducible release installation remains blocked until
-Effect Harness 0.2.0 is published; Psychogram and Partita are the next
-cross-repository proof.
+lifecycle. The published release chain is Partita `0.2.2` → Effect Harness
+`0.2.1` → Prelude Contract `0.2.2` and Prelude `0.4.0`. The cross-repository
+Gate proves deterministic Source Pin publication, packed Artifact consumption,
+Target convergence, Reference Drift repair, feedback preservation, and zero
+Target Git calls.
 
 ## Documentation
 
@@ -97,6 +99,7 @@ Start with [the active docs index](./docs/README.md), then read:
 
 - [goal](./docs/harness-convergence-goal.md)
 - [V2 Contract and Gate](./docs/v2-harness-convergence-contract.md)
+- [canonical tree archive protocol](./packages/harness-contract/README.md#canonical-tree-archive-protocol)
 - [architecture](./docs/multi-harness-convergence-architecture.md)
 - [Module contract](./docs/harness-module-contract.md)
 - [lifecycle](./docs/harness-integration-lifecycle.md)

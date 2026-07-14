@@ -103,6 +103,8 @@ ManagedTree remains symlink-forbidden. Tree sources must be complete
 directories inside the selected Artifact. Target trees reject symlinks,
 hardlinks, special files, path escapes, and unobserved copied content.
 
+### Pinned Reference Trees
+
 V2 adds `PinnedReferenceTree`:
 
 - Artifact-relative ordinary-file archive descriptor `{ path, format }` using
@@ -118,56 +120,34 @@ after normal exact-hash approval, apply replaces the whole tree. It does not
 merge, preserve, or block solely because the pinned tree has local edits.
 Target-authored evidence belongs in `feedback/**`.
 
-Prelude never fetches, pulls, updates, or checks out Git. The Harness
-maintenance/build side owns Source Pins and packs the verified snapshot into
-one canonical archive ordinary file. Prelude does not trust an installed
-Artifact directory to preserve source filesystem semantics.
+The [`@sayoriqwq/prelude-contract` package
+documentation](../packages/harness-contract/README.md#canonical-tree-archive-protocol)
+is the single normative definition of the canonical tree archive wire format,
+logical tree digest, decoder limits, canonicality, and versioning. Prelude does
+not redefine that protocol. [Partita](https://github.com/sayoriqwq/partita#pins)
+is the generic producer that verifies a Source Pin and emits an archive plus
+provenance. A Harness such as [Effect
+Harness](https://github.com/sayoriqwq/effect-harness/blob/main/HARNESS.md)
+composes a selected publication with Target locator, routing, and
+`referenceOnly` policy.
+
+Prelude is the consumer and only Target mutation host. It never fetches, pulls,
+updates, or checks out Git. During planning it reads the ordinary archive from
+the selected Artifact, decodes it through Prelude Contract, validates the
+declared provenance digest, and compares the complete logical tree with the
+Target. After exact-hash approval, apply stages every entry, re-scans the staged
+tree, and replaces the complete Output. A fresh plan must report convergence.
+Prelude does not trust an installed Artifact directory to preserve source
+filesystem semantics.
 
 Source Pin provenance intentionally covers one repository layer. Gitlinks are
 opaque boundaries: the Harness archive may include ordinary outer-repository
 files such as `.gitmodules`, but it omits gitlink entries and does not recurse
 into their repositories. Prelude validates and materializes only the declared
 logical archive and does not interpret Git, fetch nested sources, synthesize a
-checkout, or inject provenance metadata into the Target tree.
-
-## Canonical Tree Digest
-
-The shared Contract exports `prelude-tree-sha256-v1`. The logical tree digest is SHA-256 of
-the UTF-8 bytes of compact JSON with this framing and key order:
-
-```text
-algorithm, rootKind, entries
-directory entry:   kind, path, mode
-file entry:        kind, path, mode, hash
-symbolicLink entry: kind, path, mode, target
-```
-
-Entries use deterministic JavaScript string path order. File hashes are
-SHA-256 of exact bytes. Empty directories and POSIX permission modes are part
-of the snapshot. Symbolic-link entries retain the `mode` field for stable
-framing, but its only canonical value is `0777`: POSIX hosts expose symlink
-permission bits differently and do not provide a portable lchmod operation.
-
-Pinned trees may contain safe relative symbolic links. The link target is the
-exact POSIX `readlink` text. Absolute, drive-qualified, backslash-containing,
-NUL-containing, or lexically root-escaping targets are rejected. Scanning uses
-no-follow `lstat` and `readlink`; host scans record symlinks with canonical
-mode `0777`, and staging recreates the exact target text before recomputing
-the complete staged digest. ManagedTree does not opt in. Prelude never
-dereferences, drops, or translates a link.
-
-The ordinary-file archive begins with the exact UTF-8 magic
-`prelude-canonical-tree-archive-v1\n`, an unsigned 8-byte big-endian canonical
-JSON header length, the compact canonical JSON header, and exact file bytes in
-deterministic entry order. Header file sizes frame payloads; every file hash and
-the complete logical tree digest are recomputed. Any trailing byte is rejected.
-
-The archive represents only directory, file, and symbolicLink entries. It
-requires explicit directory parents and rejects path escape, exact or portable
-case/Unicode collisions, hardlinks, devices, FIFO, sockets, other special
-entries, unsafe links, invalid modes/hashes/UTF-8/framing, and limit overflow.
-Limits are 1 GiB archive, 64 MiB header, 512 MiB per file, 250,000 entries, and
-4 KiB per path or link target.
+checkout, or inject provenance metadata into the Target tree. Target-owned
+`feedback/**` is outside the `PinnedReferenceTree` Output and survives both
+initial materialization and complete-tree drift repair.
 
 ## Package Requirements And Approved Selection
 
