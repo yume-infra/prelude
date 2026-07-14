@@ -63,12 +63,11 @@ function targetRootManifest(name: 'single' | 'monorepo', cliTar: string, harness
     name: `effect-gate-${name}`,
     private: true,
     type: 'module',
-    scripts: targetScripts(name),
+    scripts: {},
     dependencies: name === 'single' ? selectedDependencies : undefined,
     devDependencies: {
       '@sayoriqwq/prelude': `file:${cliTar}`,
       '@sayoriqwq/effect-harness': `file:${harnessTar}`,
-      ...targetToolchainDevDependencies,
     },
   }
 }
@@ -111,16 +110,45 @@ const program = Effect.scoped(Effect.gen(function* () {
     })
     yield* fs.writeFileString(join(root, 'src/index.ts'), source)
     yield* fs.writeFileString(join(root, 'src/approved-exception.ts'), approvedSuppressionSource)
+    const isWeb = name.endsWith('-web')
+    yield* json(join(root, 'tsconfig.json'), {
+      extends: isWeb ? '../../tsconfig.web.json' : '../../tsconfig.core.json',
+      compilerOptions: isWeb ? { exactOptionalPropertyTypes: true } : { noUncheckedIndexedAccess: true },
+      include: ['src/**/*.ts'],
+    })
   })
 
-  const installTarget = (root: string) => runProcess('pnpm', ['install', '--prefer-offline', '--reporter', 'append-only'], {
+  const installTarget = (root: string) => runProcess('pnpm', ['install', '--no-frozen-lockfile', '--prefer-offline', '--reporter', 'append-only'], {
     cwd: root,
     env: { CI: '1', INIT_CWD: root, PNPM_PACKAGE_NAME: undefined, npm_command: undefined, npm_config_dir: undefined, npm_config_filter: undefined, npm_config_recursive: undefined, npm_config_workspace_dir: undefined },
     inherit: true,
     timeout: '5 minutes',
   })
 
-  const adaptTarget = Effect.fn(function* (
+  const legacyHarnessRoot = join(runRoot, 'legacy-harness')
+  const legacyHarnessPackage = join(legacyHarnessRoot, 'package')
+  const legacyHarnessPacks = join(legacyHarnessRoot, 'packs')
+  yield* fs.makeDirectory(legacyHarnessPacks, { recursive: true })
+  yield* runProcess('tar', ['-xzf', harnessTar, '-C', legacyHarnessRoot])
+  const legacyManifest = parseJson(yield* fs.readFileString(join(legacyHarnessPackage, 'package.json')))
+  legacyManifest.version = '0.2.0-control-handoff-legacy'
+  yield* json(join(legacyHarnessPackage, 'package.json'), legacyManifest)
+  const legacyBaselinePath = join(legacyHarnessPackage, 'artifact-assets/effect/managed/data/baseline.json')
+  const legacyBaseline = parseJson(yield* fs.readFileString(legacyBaselinePath))
+  legacyBaseline.legacyAcceptanceArtifact = true
+  yield* json(legacyBaselinePath, legacyBaseline)
+  yield* fs.writeFileString(
+    join(legacyHarnessPackage, 'artifact-assets/effect/managed/obsolete.txt'),
+    'remove on packed Artifact upgrade\n',
+  )
+  yield* runProcess('pnpm', ['pack', '--pack-destination', legacyHarnessPacks], { cwd: legacyHarnessPackage, timeout: '120 seconds' })
+  const legacyHarnessTar = join(
+    legacyHarnessPacks,
+    (yield* fs.readDirectory(legacyHarnessPacks)).find(entry => entry.endsWith('.tgz'))!,
+  )
+  assert.equal(yield* fs.exists(legacyHarnessTar), true)
+
+  const proposeTargetAdaptation = Effect.fn(function* (
     target: string,
     name: 'single' | 'monorepo',
     packageRoots: ReadonlyArray<string>,
@@ -141,6 +169,49 @@ const program = Effect.scoped(Effect.gen(function* () {
     assert.equal(policy.diagnosticSeverity.floatingEffect, 'error')
     assert.equal(policy.ignoreEffectErrorsInTscExitCode, false)
 
+    const authoringChoices: Record<string, Json> = {}
+    for (const packageRoot of packageRoots) {
+      const config = packageRoot === '.' ? 'tsconfig.json' : `${packageRoot}/tsconfig.json`
+      authoringChoices[config] = parseJson(yield* fs.readFileString(join(target, config)))
+    }
+    yield* json(feedback, {
+      controlHandoff: {
+        observation: { targetKind: name, effectAuthoringPackageRoots: packageRoots, authoringChoices },
+        proposal: {
+          toolchainRoot: '.',
+          activationOwner: '.',
+          typescriptTopology: baseline.typescriptTopology,
+          policyLanding: 'tsconfig.effect.json',
+          projectConfigs: packageRoots.map(root => root === '.' ? 'tsconfig.json' : `${root}/tsconfig.json`),
+          editorDecision: 'no supported editor configuration detected',
+          verificationCommands: Object.keys(targetScripts(name)).filter(command => command !== 'prepare'),
+          suppression: { preserveExisting: ['floatingEffect in src/approved-exception.ts'], add: [] },
+        },
+        authorization: { status: 'pending' },
+        durableEvidence: 'feedback/control-handoff.json',
+      },
+    })
+    return { authoringChoices, baseline, policy }
+  })
+
+  const authorizeTargetAdaptation = Effect.fn(function* (feedback: string) {
+    const evidence = parseJson(yield* fs.readFileString(feedback))
+    evidence.controlHandoff.authorization = { status: 'approved', scope: 'packed acceptance fixture' }
+    yield* json(feedback, evidence)
+  })
+
+  const mutateTarget = Effect.fn(function* (
+    target: string,
+    name: 'single' | 'monorepo',
+    packageRoots: ReadonlyArray<string>,
+    policy: Json,
+  ) {
+    const manifestPath = join(target, 'package.json')
+    const manifest = parseJson(yield* fs.readFileString(manifestPath))
+    manifest.scripts = targetScripts(name)
+    manifest.devDependencies = { ...manifest.devDependencies, ...targetToolchainDevDependencies }
+    yield* json(manifestPath, manifest)
+    yield* fs.writeFileString(join(target, 'activate-effect-tsgo.mjs'), activationScript)
     yield* json(join(target, 'tsconfig.effect.json'), {
       compilerOptions: {
         target: 'ES2024',
@@ -153,30 +224,15 @@ const program = Effect.scoped(Effect.gen(function* () {
       },
     })
     for (const packageRoot of packageRoots) {
-      yield* json(join(target, packageRoot === '.' ? '' : packageRoot, 'tsconfig.json'), {
-        extends: packageRoot === '.' ? './tsconfig.effect.json' : '../../tsconfig.effect.json',
-        include: ['src/**/*.ts'],
-      })
+      const configPath = join(target, packageRoot === '.' ? '' : packageRoot, 'tsconfig.json')
+      const existing = parseJson(yield* fs.readFileString(configPath))
+      const policyConfig = packageRoot === '.' ? './tsconfig.effect.json' : '../../tsconfig.effect.json'
+      const inherited = existing.extends === undefined
+        ? policyConfig
+        : [...(Array.isArray(existing.extends) ? existing.extends : [existing.extends]), policyConfig]
+      yield* json(configPath, { ...existing, extends: inherited })
     }
     yield* fs.writeFileString(join(target, 'eslint.config.mjs'), eslintConfig)
-    yield* json(feedback, {
-      controlHandoff: {
-        observation: { targetKind: name, effectAuthoringPackageRoots: packageRoots },
-        proposal: {
-          toolchainRoot: '.',
-          activationOwner: '.',
-          typescriptTopology: baseline.typescriptTopology,
-          policyLanding: 'tsconfig.effect.json',
-          projectConfigs: packageRoots.map(root => root === '.' ? 'tsconfig.json' : `${root}/tsconfig.json`),
-          editorDecision: 'no supported editor configuration detected',
-          verificationCommands: Object.keys(targetScripts(name)).filter(command => command !== 'prepare'),
-          suppression: { preserveExisting: ['floatingEffect in src/approved-exception.ts'], add: [] },
-        },
-        authorization: { status: 'approved', scope: 'packed acceptance fixture' },
-        durableEvidence: 'feedback/control-handoff.json',
-      },
-    })
-    return { baseline, policy }
   })
 
   const runGate = Effect.fn(function* (name: 'single' | 'monorepo', packageRoots: ReadonlyArray<string>, integrationId: string) {
@@ -189,19 +245,21 @@ const program = Effect.scoped(Effect.gen(function* () {
       if (entry.startsWith('.managed.prelude-') || entry.startsWith('.effect.prelude-') || entry.startsWith('.tsgo.prelude-'))
         yield* fs.remove(join(integrationWorkspacePath, entry), { recursive: true, force: true })
     }
-    yield* fs.makeDirectory(join(integrationWorkspacePath, 'managed/data'), { recursive: true })
-    yield* fs.writeFileString(join(integrationWorkspacePath, 'managed/data/baseline.json'), '{"legacy":true}\n')
-    yield* fs.writeFileString(join(integrationWorkspacePath, 'managed/obsolete.txt'), 'remove on managed upgrade\n')
-    yield* json(join(target, 'package.json'), targetRootManifest(name, cliTar, harnessTar))
+    yield* json(join(target, 'package.json'), targetRootManifest(name, cliTar, legacyHarnessTar))
     yield* fs.writeFileString(join(target, 'pnpm-workspace.yaml'), `packages:\n  - packages/*\ndedupeDirectDeps: false\npackageImportMethod: copy\noverrides:\n  '@sayoriqwq/prelude-contract': 'file:${contractTar}'\n  '@effect/platform-node@4.0.0-beta.97>@effect/platform-node-shared': '4.0.0-beta.97'\ntrustPolicy: no-downgrade\ntrustPolicyExclude:\n  - effect@4.0.0-beta.97\n  - '@effect/platform-node@4.0.0-beta.97'\n  - '@effect/platform-node-shared@4.0.0-beta.97'\n  - '@effect/vitest@4.0.0-beta.97'\n`)
-    yield* fs.writeFileString(join(target, 'activate-effect-tsgo.mjs'), activationScript)
     if (packageRoots.includes('.')) {
       yield* fs.makeDirectory(join(target, 'src'), { recursive: true })
       yield* fs.writeFileString(join(target, 'src/index.ts'), source)
       yield* fs.writeFileString(join(target, 'src/approved-exception.ts'), approvedSuppressionSource)
+      yield* json(join(target, 'tsconfig.json'), {
+        compilerOptions: { useUnknownInCatchVariables: true },
+        include: ['src/**/*.ts'],
+      })
     }
     else {
       yield* Effect.forEach(packageRoots, packageRoot => writeSelectedPackage(join(target, packageRoot), `effect-gate-${packageRoot.replaceAll('/', '-')}`), { discard: true })
+      yield* json(join(target, 'tsconfig.web.json'), { compilerOptions: { jsx: 'react-jsx' } })
+      yield* json(join(target, 'tsconfig.core.json'), { compilerOptions: { noImplicitOverride: true } })
     }
     const workspace = `.prelude/${encodeURIComponent(integrationId)}`
     const feedback = join(target, workspace, 'feedback/evidence.md')
@@ -212,12 +270,12 @@ const program = Effect.scoped(Effect.gen(function* () {
       return
 
     yield* installTarget(target)
-    assert.equal(yield* fs.readFileString(join(target, '.effect-tsgo-activation-count')), '1')
-    const rootManifest = parseJson(yield* fs.readFileString(join(target, 'package.json')))
-    assert.equal(rootManifest.scripts.prepare, 'node activate-effect-tsgo.mjs')
-    assert.equal(rootManifest.devDependencies['@effect/tsgo'], '0.19.0')
-    assert.equal(rootManifest.devDependencies['@typescript/native'], 'npm:typescript@7.0.2')
-    assert.equal(rootManifest.devDependencies.typescript, 'npm:@typescript/typescript6@6.0.2')
+    yield* assertAbsent(join(target, '.effect-tsgo-activation-count'))
+    const bootstrapManifest = parseJson(yield* fs.readFileString(join(target, 'package.json')))
+    assert.equal(bootstrapManifest.scripts.prepare, undefined)
+    assert.equal(bootstrapManifest.devDependencies['@effect/tsgo'], undefined)
+    assert.equal(bootstrapManifest.devDependencies['@typescript/native'], undefined)
+    assert.equal(bootstrapManifest.devDependencies.typescript, undefined)
     if (name === 'monorepo') {
       for (const packageRoot of packageRoots) {
         const packageManifest = parseJson(yield* fs.readFileString(join(target, packageRoot, 'package.json')))
@@ -260,7 +318,7 @@ const program = Effect.scoped(Effect.gen(function* () {
     const stale = yield* cliRun(['apply', '--plan-hash', initial.executionHash, '--json'], target, false)
     assert.notEqual(stale.exitCode, 0)
     assert.match(stale.stderr, /Approved execution hash does not match/)
-    assert.equal(yield* fs.readFileString(join(target, workspace, 'managed/obsolete.txt')), 'remove on managed upgrade\n')
+    yield* assertAbsent(join(target, workspace, 'managed'))
     assert.equal(yield* fs.readFileString(feedback), 'target-owned Gate evidence\n')
 
     const approved = parseJson((yield* cliRun(['plan', '--json'])).stdout)
@@ -273,22 +331,74 @@ const program = Effect.scoped(Effect.gen(function* () {
     assert.equal(converged.outputs.every((output: Json) => output.status === 'converged'), true)
     assert.equal(yield* fs.readFileString(feedback), 'target-owned Gate evidence\n')
     assert.deepEqual((yield* fs.readDirectory(join(target, workspace))).sort(), ['feedback', 'managed', 'repos'])
+    assert.equal(yield* fs.readFileString(join(target, workspace, 'managed/obsolete.txt')), 'remove on packed Artifact upgrade\n')
+    assert.equal(parseJson(yield* fs.readFileString(join(target, workspace, 'managed/data/baseline.json'))).legacyAcceptanceArtifact, true)
+
+    const upgradeManifest = parseJson(yield* fs.readFileString(join(target, 'package.json')))
+    upgradeManifest.devDependencies['@sayoriqwq/effect-harness'] = `file:${harnessTar}`
+    yield* json(join(target, 'package.json'), upgradeManifest)
+    yield* installTarget(target)
+    const upgradePlan = parseJson((yield* cliRun(['plan', '--json'])).stdout)
+    assert.equal(upgradePlan.converged, false)
+    const upgraded = parseJson((yield* cliRun(['apply', '--plan-hash', upgradePlan.executionHash, '--json'])).stdout)
+    assert.equal(upgraded.converged, true)
+    assert.equal(yield* fs.readFileString(feedback), 'target-owned Gate evidence\n')
     yield* assertAbsent(join(target, workspace, 'managed/obsolete.txt'))
+    assert.equal(parseJson(yield* fs.readFileString(join(target, workspace, 'managed/data/baseline.json'))).legacyAcceptanceArtifact, undefined)
 
     const diagnosticRoot = packageRoots[0] === '.' ? target : join(target, packageRoots[0]!)
     const approvedException = join(diagnosticRoot, 'src/approved-exception.ts')
     const approvedExceptionBytes = yield* fs.readFileString(approvedException)
-    const adaptation = yield* adaptTarget(
+    const adaptation = yield* proposeTargetAdaptation(
       target,
       name,
       packageRoots,
       join(target, workspace, 'managed/data'),
       controlHandoff,
     )
+    assert.equal((parseJson(yield* fs.readFileString(controlHandoff))).controlHandoff.authorization.status, 'pending')
+    yield* assertAbsent(join(target, 'tsconfig.effect.json'))
+    yield* assertAbsent(join(target, 'eslint.config.mjs'))
+    yield* assertAbsent(join(target, 'activate-effect-tsgo.mjs'))
+    const proposedManifest = parseJson(yield* fs.readFileString(join(target, 'package.json')))
+    assert.equal(proposedManifest.scripts.prepare, undefined)
+    assert.equal(proposedManifest.devDependencies['@effect/tsgo'], undefined)
+    assert.equal(proposedManifest.devDependencies['@typescript/native'], undefined)
+    assert.equal(proposedManifest.devDependencies.typescript, undefined)
+
+    yield* authorizeTargetAdaptation(controlHandoff)
+    assert.equal((parseJson(yield* fs.readFileString(controlHandoff))).controlHandoff.authorization.status, 'approved')
+    yield* mutateTarget(target, name, packageRoots, adaptation.policy)
+    yield* installTarget(target)
+    assert.equal(yield* fs.readFileString(join(target, '.effect-tsgo-activation-count')), '1')
+    const rootManifest = parseJson(yield* fs.readFileString(join(target, 'package.json')))
+    assert.equal(rootManifest.scripts.prepare, 'node activate-effect-tsgo.mjs')
+    assert.equal(rootManifest.devDependencies['@effect/tsgo'], '0.19.0')
+    assert.equal(rootManifest.devDependencies['@typescript/native'], 'npm:typescript@7.0.2')
+    assert.equal(rootManifest.devDependencies.typescript, 'npm:@typescript/typescript6@6.0.2')
+    if (name === 'monorepo') {
+      for (const packageRoot of packageRoots) {
+        const packageManifest = parseJson(yield* fs.readFileString(join(target, packageRoot, 'package.json')))
+        assert.equal(packageManifest.scripts.prepare, undefined)
+        assert.equal(packageManifest.devDependencies['@effect/tsgo'], undefined)
+        assert.equal(packageManifest.devDependencies['@typescript/native'], undefined)
+        assert.equal(packageManifest.devDependencies.typescript, undefined)
+        assert.deepEqual(packageManifest.dependencies, selectedDependencies)
+      }
+    }
     const controlHandoffBytes = yield* fs.readFileString(controlHandoff)
     const adaptedConfigs = new Map<string, string>()
     for (const config of ['tsconfig.effect.json', ...packageRoots.map(root => root === '.' ? 'tsconfig.json' : `${root}/tsconfig.json`)])
       adaptedConfigs.set(config, yield* fs.readFileString(join(target, config)))
+    for (const [config, original] of Object.entries(adaptation.authoringChoices)) {
+      const adapted = parseJson(yield* fs.readFileString(join(target, config)))
+      assert.deepEqual(adapted.compilerOptions, original.compilerOptions)
+      assert.deepEqual(adapted.include, original.include)
+      if (original.extends !== undefined) {
+        assert.equal(Array.isArray(adapted.extends), true)
+        assert.equal(adapted.extends[0], original.extends)
+      }
+    }
     const afterHandoff = parseJson((yield* cliRun(['plan', '--json'])).stdout)
     assert.equal(afterHandoff.converged, true)
     assert.equal(afterHandoff.outputs.length, 4)
