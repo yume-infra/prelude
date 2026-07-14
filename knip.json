@@ -16,6 +16,9 @@
   ],
   "workspaces": {
     ".": {
+      "ignoreDependencies": [
+        "@sayoriqwq/prelude"
+      ],
       "project": [
         "*.{js,mjs,cjs,ts}"
       ]
@@ -28,6 +31,9 @@
         "*.config.ts",
         "src/**/*.ts",
         "tests/**/*.ts"
+      ],
+      "ignoreDependencies": [
+        "@antfu/eslint-config"
       ]
     },
     "packages/harness-contract": {
@@ -40,6 +46,9 @@
         "*.config.ts",
         "src/**/*.ts",
         "tests/**/*.ts"
+      ],
+      "ignoreDependencies": [
+        "@antfu/eslint-config"
       ]
     }
   }

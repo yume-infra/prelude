@@ -253,9 +253,12 @@ feedback survives apply and upgrade, pinned provenance and atomic replacement
 hold, stale approval writes nothing, and no retired surface or Target Git
 operation appears.
 
-Gate 1 is currently open. Safe-link logical identity and ordinary-file archive
-transport are accepted successor behavior; nested Source Pin provenance is not
-part of the product.
-Completion still requires the packed Prelude and real packed Effect Harness to
-pass the isolated single-package and monorepo acceptance above; Contract or
-single-repository green status is not completion evidence.
+Gate 1 closed on 2026-07-14. `pnpm smoke:packed-effect` installed packed
+Prelude `0.3.0`, Contract `0.2.0`, and Effect Harness `0.2.0` Artifacts into
+isolated single-package and pnpm-workspace Targets and exercised the complete
+plan, exact-hash apply, fresh plan, check, stale-hash, drift-repair, and
+target-owned feedback lifecycle above. `pnpm smoke:installed` independently
+proved multi-Harness composition, upgrades, failed installs, failed Checks,
+and the absence of retired state surfaces. Safe-link logical identity and
+ordinary-file archive transport are accepted successor behavior; nested
+Source Pin provenance is not part of the product.

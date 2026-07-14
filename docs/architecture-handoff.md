@@ -2,7 +2,7 @@
 audience: [agent, human]
 purpose: Hand off the accepted Prelude V1 baseline to the implementation lead.
 status: active
-updated: 2026-07-12
+updated: 2026-07-14
 ---
 
 # Architecture Handoff
@@ -13,9 +13,9 @@ Architecture alignment is complete. Stop interviewing for additional minor
 field or helper decisions. Implement the observable final state and let Effect
 Schema and Effect-native module design determine exact TypeScript shapes.
 
-The current branch is `dev`. The repository still contains the old
-create/provider implementation; it is explicitly disposable. Active docs and
-ADRs are the implementation authority.
+The current branch is `dev`. The old create/provider implementation has passed
+its deletion gate and is no longer present. Active docs and ADRs are the
+implementation authority.
 
 ## Objective
 
@@ -144,12 +144,13 @@ Before declaring V1 complete:
 
 ## Current Verification Note
 
-`pnpm verify` passed against the repository state immediately before the
-architecture baseline commit. Active-document link validation, retired-term
-classification, and `git diff --check` also passed. Remaining retired terms in
-active docs are explicit deletion or rejection evidence. No implementation work
-should assume the current old test suite remains relevant after the deletion
-gate.
+On 2026-07-14 the V2 Effect integration passed package verification and both
+installed-Artifact acceptance paths: `pnpm smoke:packed-effect` for isolated
+single-package and pnpm-workspace Targets, and `pnpm smoke:installed` for the
+multi-Harness lifecycle. Remaining retired terms in active docs are explicit
+deletion or rejection evidence. Psychogram and Partita convergence remain the
+next cross-repository release proof; they are no longer blockers for the
+packed Effect Gate.
 
 ## Residual Risks
 

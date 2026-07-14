@@ -3,6 +3,7 @@ import type { PlanDocument } from '../src/model.js'
 import { describe, expect, it } from '@effect/vitest'
 import { Effect } from 'effect'
 
+import { decodeJson } from '../src/json.js'
 import { decodePlanDocument, executionHash, stableJson } from '../src/model.js'
 
 const artifact = { packageName: '@synthetic/alpha', packageVersion: '1.0.0', module: '@synthetic/alpha/prelude', resolutionId: 'lock-a' }
@@ -30,7 +31,7 @@ describe('V2 public plan encoding', () => {
   it.effect('round trips only the strict V2 Plan schema', () => Effect.sync(() => {
     const base = plan()
     const document = { ...base, executionHash: executionHash(base) }
-    expect(decodePlanDocument(JSON.parse(stableJson(document)))).toEqual(document)
+    expect(decodePlanDocument(decodeJson(stableJson(document)))).toEqual(document)
     expect(() => decodePlanDocument({ ...document, schemaVersion: 1 })).toThrow()
     expect(() => decodePlanDocument({ ...document, legacyReceipt: 'unsupported' })).toThrow()
   }))

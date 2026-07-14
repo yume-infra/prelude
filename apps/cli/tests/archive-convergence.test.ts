@@ -1,11 +1,7 @@
 import type { PinnedReferenceTree } from '@sayoriqwq/prelude-contract'
 
-import { chmod, lstat, mkdir, mkdtemp, readdir, readFile, readlink, symlink, truncate, writeFile } from 'node:fs/promises'
-import { tmpdir } from 'node:os'
-import { join } from 'node:path'
-
 import { NodeServices } from '@effect/platform-node'
-import { describe, expect, it } from '@effect/vitest'
+import { describe, expect, layer } from '@effect/vitest'
 import {
   CANONICAL_TREE_ARCHIVE_FORMAT,
   CANONICAL_TREE_ARCHIVE_LIMITS,
@@ -13,7 +9,7 @@ import {
   encodeCanonicalTreeArchive,
   SYMBOLIC_LINK_MODE,
 } from '@sayoriqwq/prelude-contract'
-import { Effect } from 'effect'
+import { Effect, FileSystem, Path } from 'effect'
 
 import { loadPinnedReferenceTreeArchive } from '../src/convergence.js'
 import { replaceTreeFromArchive, scanTree } from '../src/filesystem.js'
@@ -46,72 +42,84 @@ function declaration(treeDigest: string): PinnedReferenceTree {
 }
 
 describe('PinnedReferenceTree canonical archive convergence', () => {
-  it.effect('loads an ordinary Artifact archive and verifies its complete logical digest', () => Effect.gen(function* () {
-    const artifactRoot = yield* Effect.promise(() => mkdtemp(join(tmpdir(), 'prelude-archive-artifact-')))
-    yield* Effect.promise(() => mkdir(join(artifactRoot, 'assets')))
-    const encoded = fixtureArchive()
-    yield* Effect.promise(() => writeFile(join(artifactRoot, 'assets/source.prelude-tree'), encoded.bytes))
+  layer(NodeServices.layer)((it) => {
+    it.effect('loads an ordinary Artifact archive and verifies its complete logical digest', () => Effect.scoped(Effect.gen(function* () {
+      const fs = yield* FileSystem.FileSystem
+      const path = yield* Path.Path
+      const artifactRoot = yield* fs.makeTempDirectoryScoped({ prefix: 'prelude-archive-artifact-' })
+      yield* fs.makeDirectory(path.join(artifactRoot, 'assets'))
+      const encoded = fixtureArchive()
+      yield* fs.writeFile(path.join(artifactRoot, 'assets/source.prelude-tree'), encoded.bytes)
 
-    const loaded = yield* loadPinnedReferenceTreeArchive(artifactRoot, declaration(encoded.treeDigest))
-    expect(loaded.treeDigest).toBe(encoded.treeDigest)
-    expect(loaded.entries.map(entry => entry.path)).toEqual(['.gitmodules', 'AGENTS.md', 'CLAUDE.md', 'empty'])
-  }).pipe(Effect.provide(NodeServices.layer)))
+      const loaded = yield* loadPinnedReferenceTreeArchive(artifactRoot, declaration(encoded.treeDigest))
+      expect(loaded.treeDigest).toBe(encoded.treeDigest)
+      expect(loaded.entries.map(entry => entry.path)).toEqual(['.gitmodules', 'AGENTS.md', 'CLAUDE.md', 'empty'])
+    })))
 
-  it.effect('rejects a symlink in place of the declared ordinary Artifact archive file', () => Effect.gen(function* () {
-    const artifactRoot = yield* Effect.promise(() => mkdtemp(join(tmpdir(), 'prelude-archive-link-')))
-    yield* Effect.promise(() => mkdir(join(artifactRoot, 'assets')))
-    const encoded = fixtureArchive()
-    yield* Effect.promise(() => writeFile(join(artifactRoot, 'actual.prelude-tree'), encoded.bytes))
-    yield* Effect.promise(() => symlink('../actual.prelude-tree', join(artifactRoot, 'assets/source.prelude-tree')))
+    it.effect('rejects a symlink in place of the declared ordinary Artifact archive file', () => Effect.scoped(Effect.gen(function* () {
+      const fs = yield* FileSystem.FileSystem
+      const path = yield* Path.Path
+      const artifactRoot = yield* fs.makeTempDirectoryScoped({ prefix: 'prelude-archive-link-' })
+      yield* fs.makeDirectory(path.join(artifactRoot, 'assets'))
+      const encoded = fixtureArchive()
+      yield* fs.writeFile(path.join(artifactRoot, 'actual.prelude-tree'), encoded.bytes)
+      yield* fs.symlink('../actual.prelude-tree', path.join(artifactRoot, 'assets/source.prelude-tree'))
 
-    const exit = yield* Effect.exit(loadPinnedReferenceTreeArchive(artifactRoot, declaration(encoded.treeDigest)))
-    expect(exit._tag).toBe('Failure')
-  }).pipe(Effect.provide(NodeServices.layer)))
+      const exit = yield* Effect.exit(loadPinnedReferenceTreeArchive(artifactRoot, declaration(encoded.treeDigest)))
+      expect(exit._tag).toBe('Failure')
+    })))
 
-  it.effect('rejects an oversized ordinary archive before reading its payload', () => Effect.gen(function* () {
-    const artifactRoot = yield* Effect.promise(() => mkdtemp(join(tmpdir(), 'prelude-archive-size-')))
-    yield* Effect.promise(() => mkdir(join(artifactRoot, 'assets')))
-    const archivePath = join(artifactRoot, 'assets/source.prelude-tree')
-    yield* Effect.promise(() => writeFile(archivePath, ''))
-    yield* Effect.promise(() => truncate(archivePath, CANONICAL_TREE_ARCHIVE_LIMITS.maxArchiveBytes + 1))
+    it.effect('rejects an oversized ordinary archive before reading its payload', () => Effect.scoped(Effect.gen(function* () {
+      const fs = yield* FileSystem.FileSystem
+      const path = yield* Path.Path
+      const artifactRoot = yield* fs.makeTempDirectoryScoped({ prefix: 'prelude-archive-size-' })
+      yield* fs.makeDirectory(path.join(artifactRoot, 'assets'))
+      const archivePath = path.join(artifactRoot, 'assets/source.prelude-tree')
+      yield* fs.writeFileString(archivePath, '')
+      yield* fs.truncate(archivePath, CANONICAL_TREE_ARCHIVE_LIMITS.maxArchiveBytes + 1)
 
-    const exit = yield* Effect.exit(loadPinnedReferenceTreeArchive(
-      artifactRoot,
-      declaration('0'.repeat(64)),
-    ))
-    expect(exit._tag).toBe('Failure')
-  }).pipe(Effect.provide(NodeServices.layer)))
+      const exit = yield* Effect.exit(loadPinnedReferenceTreeArchive(
+        artifactRoot,
+        declaration('0'.repeat(64)),
+      ))
+      expect(exit._tag).toBe('Failure')
+    })))
 
-  it.effect('atomically materializes exact files, empty directories, modes, and safe links without metadata', () => Effect.gen(function* () {
-    const root = yield* Effect.promise(() => mkdtemp(join(tmpdir(), 'prelude-archive-target-')))
-    const target = join(root, 'repos')
-    yield* Effect.promise(() => mkdir(target))
-    yield* Effect.promise(() => writeFile(join(target, 'target-note.txt'), 'replace me'))
-    const encoded = fixtureArchive()
-    const archive = decodeCanonicalTreeArchive(encoded.bytes)
+    it.effect('atomically materializes exact files, empty directories, modes, and safe links without metadata', () => Effect.scoped(Effect.gen(function* () {
+      const fs = yield* FileSystem.FileSystem
+      const path = yield* Path.Path
+      const root = yield* fs.makeTempDirectoryScoped({ prefix: 'prelude-archive-target-' })
+      const target = path.join(root, 'repos')
+      yield* fs.makeDirectory(target)
+      yield* fs.writeFileString(path.join(target, 'target-note.txt'), 'replace me')
+      const encoded = fixtureArchive()
+      const archive = decodeCanonicalTreeArchive(encoded.bytes)
 
-    yield* replaceTreeFromArchive(archive, target, 'archive-output', archive.treeDigest)
+      yield* replaceTreeFromArchive(archive, target, 'archive-output', archive.treeDigest)
 
-    expect(yield* Effect.promise(() => readFile(join(target, 'AGENTS.md'), 'utf8'))).toBe('source guidance\n')
-    expect(yield* Effect.promise(() => readlink(join(target, 'CLAUDE.md')))).toBe('AGENTS.md')
-    expect((yield* Effect.promise(() => lstat(join(target, 'AGENTS.md')))).mode & 0o777).toBe(0o644)
-    expect((yield* Effect.promise(() => lstat(join(target, 'empty')))).mode & 0o777).toBe(0o750)
-    expect(yield* Effect.promise(() => readdir(join(target, 'empty')))).toEqual([])
-    expect(yield* Effect.promise(() => readdir(target))).toEqual(['.gitmodules', 'AGENTS.md', 'CLAUDE.md', 'empty'])
-    expect((yield* scanTree(target, 'planning', { allowSafeSymlinks: true })).digest).toBe(archive.treeDigest)
-  }).pipe(Effect.provide(NodeServices.layer)))
+      expect(yield* fs.readFileString(path.join(target, 'AGENTS.md'))).toBe('source guidance\n')
+      expect(yield* fs.readLink(path.join(target, 'CLAUDE.md'))).toBe('AGENTS.md')
+      expect((yield* fs.stat(path.join(target, 'AGENTS.md'))).mode & 0o777).toBe(0o644)
+      expect((yield* fs.stat(path.join(target, 'empty'))).mode & 0o777).toBe(0o750)
+      expect(yield* fs.readDirectory(path.join(target, 'empty'))).toEqual([])
+      expect(yield* fs.readDirectory(target)).toEqual(['.gitmodules', 'AGENTS.md', 'CLAUDE.md', 'empty'])
+      expect((yield* scanTree(target, 'planning', { allowSafeSymlinks: true })).digest).toBe(archive.treeDigest)
+    })))
 
-  it.effect('keeps the previous complete tree when the approved archive digest is wrong', () => Effect.gen(function* () {
-    const root = yield* Effect.promise(() => mkdtemp(join(tmpdir(), 'prelude-archive-mismatch-')))
-    const target = join(root, 'repos')
-    yield* Effect.promise(() => mkdir(target))
-    yield* Effect.promise(() => writeFile(join(target, 'current.txt'), 'current'))
-    yield* Effect.promise(() => chmod(join(target, 'current.txt'), 0o644))
-    const archive = decodeCanonicalTreeArchive(fixtureArchive().bytes)
+    it.effect('keeps the previous complete tree when the approved archive digest is wrong', () => Effect.scoped(Effect.gen(function* () {
+      const fs = yield* FileSystem.FileSystem
+      const path = yield* Path.Path
+      const root = yield* fs.makeTempDirectoryScoped({ prefix: 'prelude-archive-mismatch-' })
+      const target = path.join(root, 'repos')
+      yield* fs.makeDirectory(target)
+      yield* fs.writeFileString(path.join(target, 'current.txt'), 'current')
+      yield* fs.chmod(path.join(target, 'current.txt'), 0o644)
+      const archive = decodeCanonicalTreeArchive(fixtureArchive().bytes)
 
-    const exit = yield* Effect.exit(replaceTreeFromArchive(archive, target, 'archive-mismatch', 'f'.repeat(64)))
-    expect(exit._tag).toBe('Failure')
-    expect(yield* Effect.promise(() => readFile(join(target, 'current.txt'), 'utf8'))).toBe('current')
-    expect((yield* Effect.promise(() => readdir(root))).some(name => name.includes('prelude-stage'))).toBe(false)
-  }).pipe(Effect.provide(NodeServices.layer)))
+      const exit = yield* Effect.exit(replaceTreeFromArchive(archive, target, 'archive-mismatch', 'f'.repeat(64)))
+      expect(exit._tag).toBe('Failure')
+      expect(yield* fs.readFileString(path.join(target, 'current.txt'))).toBe('current')
+      expect((yield* fs.readDirectory(root)).some(name => name.includes('prelude-stage'))).toBe(false)
+    })))
+  })
 })

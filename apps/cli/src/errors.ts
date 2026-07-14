@@ -19,7 +19,7 @@ export function preludeError(
   message: string,
   detail?: string,
 ): PreludeError {
-  return new PreludeError({
+  return PreludeError.make({
     phase,
     message,
     ...(detail === undefined ? {} : { detail }),

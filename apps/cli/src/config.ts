@@ -80,7 +80,7 @@ export function discoverControlRoot(start: string): Effect.Effect<string, Prelud
 
       const parent = path.dirname(current)
       if (parent === current)
-        return yield* Effect.fail(preludeError('config', `Cannot find nearest ${CONFIG_RELATIVE_PATH}`, start))
+        return yield* preludeError('config', `Cannot find nearest ${CONFIG_RELATIVE_PATH}`, start)
       current = parent
     }
   })
@@ -99,7 +99,7 @@ export function loadPreludeConfig(controlRoot: string): Effect.Effect<PreludeCon
     const value: unknown = parse(source, errors, { allowTrailingComma: true, disallowComments: false })
 
     if (errors.length > 0)
-      return yield* Effect.fail(preludeError('config', `Invalid ${CONFIG_RELATIVE_PATH}`, formatParseErrors(errors)))
+      return yield* preludeError('config', `Invalid ${CONFIG_RELATIVE_PATH}`, formatParseErrors(errors))
 
     const decoded = yield* decodePreludeConfig(value).pipe(
       Effect.mapError(error => preludeError('config', `Invalid ${CONFIG_RELATIVE_PATH}`, errorMessage(error))),

@@ -1,32 +1,33 @@
-import { mkdir, mkdtemp, realpath, writeFile } from 'node:fs/promises'
-import { tmpdir } from 'node:os'
-import { join } from 'node:path'
-
 import { NodeServices } from '@effect/platform-node'
-import { describe, expect, it } from '@effect/vitest'
-import { Effect } from 'effect'
+import { describe, expect, it, layer } from '@effect/vitest'
+import { Effect, FileSystem, Path } from 'effect'
 
 import { discoverControlRoot, encodeIntegrationId, loadPreludeConfig } from '../src/config.js'
 
 describe('V2 Control Root and Integration configuration', () => {
-  it.effect('discovers the nearest ancestor .prelude/config.jsonc', () => Effect.gen(function* () {
-    const outer = yield* Effect.promise(() => mkdtemp(join(tmpdir(), 'prelude-control-')))
-    const inner = join(outer, 'workspace')
-    const packageRoot = join(inner, 'packages/api/src')
-    yield* Effect.promise(() => mkdir(join(outer, '.prelude'), { recursive: true }))
-    yield* Effect.promise(() => mkdir(join(inner, '.prelude'), { recursive: true }))
-    yield* Effect.promise(() => mkdir(packageRoot, { recursive: true }))
-    yield* Effect.promise(() => writeFile(join(outer, '.prelude/config.jsonc'), '{ "schemaVersion": 2, "integrations": [] }'))
-    yield* Effect.promise(() => writeFile(join(inner, '.prelude/config.jsonc'), '{ "schemaVersion": 2, "integrations": [] }'))
+  layer(NodeServices.layer)((it) => {
+    it.effect('discovers the nearest ancestor .prelude/config.jsonc', () => Effect.scoped(Effect.gen(function* () {
+      const fs = yield* FileSystem.FileSystem
+      const path = yield* Path.Path
+      const outer = yield* fs.makeTempDirectoryScoped({ prefix: 'prelude-control-' })
+      const inner = path.join(outer, 'workspace')
+      const packageRoot = path.join(inner, 'packages/api/src')
+      yield* fs.makeDirectory(path.join(outer, '.prelude'), { recursive: true })
+      yield* fs.makeDirectory(path.join(inner, '.prelude'), { recursive: true })
+      yield* fs.makeDirectory(packageRoot, { recursive: true })
+      yield* fs.writeFileString(path.join(outer, '.prelude/config.jsonc'), '{ "schemaVersion": 2, "integrations": [] }')
+      yield* fs.writeFileString(path.join(inner, '.prelude/config.jsonc'), '{ "schemaVersion": 2, "integrations": [] }')
 
-    const discovered = yield* discoverControlRoot(packageRoot)
-    expect(discovered).toBe(yield* Effect.promise(() => realpath(inner)))
-  }).pipe(Effect.provide(NodeServices.layer)))
+      const discovered = yield* discoverControlRoot(packageRoot)
+      expect(discovered).toBe(yield* fs.realPath(inner))
+    })))
 
-  it.effect('accepts nonempty unique packageRoots and normalizes their order', () => Effect.gen(function* () {
-    const root = yield* Effect.promise(() => mkdtemp(join(tmpdir(), 'prelude-config-')))
-    yield* Effect.promise(() => mkdir(join(root, '.prelude')))
-    yield* Effect.promise(() => writeFile(join(root, '.prelude/config.jsonc'), `{
+    it.effect('accepts nonempty unique packageRoots and normalizes their order', () => Effect.scoped(Effect.gen(function* () {
+      const fs = yield* FileSystem.FileSystem
+      const path = yield* Path.Path
+      const root = yield* fs.makeTempDirectoryScoped({ prefix: 'prelude-config-' })
+      yield* fs.makeDirectory(path.join(root, '.prelude'))
+      yield* fs.writeFileString(path.join(root, '.prelude/config.jsonc'), `{
       // V2 only
       "schemaVersion": 2,
       "integrations": [{
@@ -34,19 +35,22 @@ describe('V2 Control Root and Integration configuration', () => {
         "module": "@synthetic/effect/prelude",
         "packageRoots": ["packages/web", ".", "packages/api"],
       }],
-    }`))
+    }`)
 
-    const config = yield* loadPreludeConfig(root)
-    expect(config.integrations[0]?.packageRoots).toEqual(['.', 'packages/api', 'packages/web'])
-  }).pipe(Effect.provide(NodeServices.layer)))
+      const config = yield* loadPreludeConfig(root)
+      expect(config.integrations[0]?.packageRoots).toEqual(['.', 'packages/api', 'packages/web'])
+    })))
 
-  it.effect('rejects released singular-root V1 config', () => Effect.gen(function* () {
-    const root = yield* Effect.promise(() => mkdtemp(join(tmpdir(), 'prelude-config-v1-')))
-    yield* Effect.promise(() => mkdir(join(root, '.prelude')))
-    yield* Effect.promise(() => writeFile(join(root, '.prelude/config.jsonc'), '{ "schemaVersion": 1, "integrations": [{ "id": "legacy", "module": "legacy/prelude", "packageRoot": "." }] }'))
+    it.effect('rejects released singular-root V1 config', () => Effect.scoped(Effect.gen(function* () {
+      const fs = yield* FileSystem.FileSystem
+      const path = yield* Path.Path
+      const root = yield* fs.makeTempDirectoryScoped({ prefix: 'prelude-config-v1-' })
+      yield* fs.makeDirectory(path.join(root, '.prelude'))
+      yield* fs.writeFileString(path.join(root, '.prelude/config.jsonc'), '{ "schemaVersion": 1, "integrations": [{ "id": "legacy", "module": "legacy/prelude", "packageRoot": "." }] }')
 
-    expect((yield* Effect.exit(loadPreludeConfig(root)))._tag).toBe('Failure')
-  }).pipe(Effect.provide(NodeServices.layer)))
+      expect((yield* Effect.exit(loadPreludeConfig(root)))._tag).toBe('Failure')
+    })))
+  })
 
   it.effect('generates stable reversible cross-platform workspace segments', () => Effect.sync(() => {
     expect(encodeIntegrationId('effect:workspace')).toBe('i-effect%3Aworkspace')

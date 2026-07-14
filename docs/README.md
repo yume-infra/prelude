@@ -48,6 +48,8 @@ conflict, the V2 contract at item 2 has authority.
 
 V2 Gate 1 is complete only when isolated single-package and pnpm-workspace
 Targets select and run real packed Prelude and Effect Harness Artifacts.
+It closed on 2026-07-14 through `pnpm smoke:packed-effect`, using packed
+Prelude `0.3.0`, Contract `0.2.0`, and Effect Harness `0.2.0` Artifacts.
 
 ```text
 root package.json + pnpm-lock.yaml

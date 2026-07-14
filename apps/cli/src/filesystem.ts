@@ -1,7 +1,4 @@
 import type { DecodedCanonicalTreeArchive, TreeDigestEntry } from '@sayoriqwq/prelude-contract'
-import type { Stats } from 'node:fs'
-
-import { lstat } from 'node:fs/promises'
 import { canonicalTreeDigest, isSafeRelativeSymlink, SYMBOLIC_LINK_MODE } from '@sayoriqwq/prelude-contract'
 import { Effect, FileSystem, Option, Path, Schema } from 'effect'
 import { errorMessage, preludeError, PreludeError } from './errors.js'
@@ -17,34 +14,66 @@ function platformFailure(phase: PreludeError['phase'], message: string) {
   return (error: unknown) => preludeError(phase, message, errorMessage(error))
 }
 
-interface NoFollowStatFailure {
-  readonly code: string | undefined
-  readonly message: string
+interface NoFollowInfo {
+  readonly size: number
+  readonly isFile: () => boolean
+  readonly isDirectory: () => boolean
+  readonly isSymbolicLink: () => boolean
 }
 
-function noFollowStatFailure(error: unknown): NoFollowStatFailure {
+function platformErrorCode(error: unknown): string | undefined {
+  if (typeof error !== 'object' || error === null || !('reason' in error))
+    return undefined
+  const reason = error.reason
+  if (typeof reason !== 'object' || reason === null || !('cause' in reason))
+    return undefined
+  const cause = reason.cause
+  return typeof cause === 'object' && cause !== null && 'code' in cause && typeof cause.code === 'string'
+    ? cause.code
+    : undefined
+}
+
+function fromFileInfo(info: FileSystem.File.Info): NoFollowInfo {
   return {
-    code: typeof error === 'object' && error !== null && 'code' in error && typeof error.code === 'string'
-      ? error.code
-      : undefined,
-    message: errorMessage(error),
+    size: Number(info.size),
+    isFile: () => info.type === 'File',
+    isDirectory: () => info.type === 'Directory',
+    isSymbolicLink: () => false,
   }
+}
+
+const symbolicLinkInfo: NoFollowInfo = {
+  size: 0,
+  isFile: () => false,
+  isDirectory: () => false,
+  isSymbolicLink: () => true,
+}
+
+function inspectNoFollow(fs: FileSystem.FileSystem, absolutePath: string) {
+  return fs.readLink(absolutePath).pipe(
+    Effect.as(symbolicLinkInfo),
+    Effect.catch(error => platformErrorCode(error) === 'EINVAL'
+      ? fs.stat(absolutePath).pipe(Effect.map(fromFileInfo))
+      : Effect.fail(error)),
+  )
 }
 
 export function noFollowStat(
   absolutePath: string,
   phase: PreludeError['phase'],
-): Effect.Effect<Stats, PreludeError> {
-  return Effect.tryPromise({
-    try: () => lstat(absolutePath),
-    catch: error => preludeError(phase, 'Cannot inspect tree entry without following symbolic links', noFollowStatFailure(error).message),
+): Effect.Effect<NoFollowInfo, PreludeError, FileSystem.FileSystem> {
+  return Effect.gen(function* () {
+    const fs = yield* FileSystem.FileSystem
+    return yield* inspectNoFollow(fs, absolutePath).pipe(
+      Effect.mapError(error => preludeError(phase, 'Cannot inspect tree entry without following symbolic links', errorMessage(error))),
+    )
   })
 }
 
 export function noFollowEntryKind(
   absolutePath: string,
   phase: PreludeError['phase'],
-): Effect.Effect<'file' | 'directory' | 'symbolicLink' | 'other', PreludeError> {
+): Effect.Effect<'file' | 'directory' | 'symbolicLink' | 'other', PreludeError, FileSystem.FileSystem> {
   return noFollowStat(absolutePath, phase).pipe(Effect.map(info => (
     info.isFile()
       ? 'file'
@@ -59,15 +88,15 @@ export function noFollowEntryKind(
 function noFollowStatOptional(
   absolutePath: string,
   phase: PreludeError['phase'],
-): Effect.Effect<Stats | undefined, PreludeError> {
-  return Effect.tryPromise({
-    try: () => lstat(absolutePath),
-    catch: noFollowStatFailure,
-  }).pipe(Effect.catch(error => (
-    error.code === 'ENOENT'
-      ? Effect.succeed(undefined)
-      : Effect.fail(preludeError(phase, 'Cannot inspect tree root without following symbolic links', error.message))
-  )))
+): Effect.Effect<NoFollowInfo | undefined, PreludeError, FileSystem.FileSystem> {
+  return Effect.gen(function* () {
+    const fs = yield* FileSystem.FileSystem
+    return yield* inspectNoFollow(fs, absolutePath).pipe(
+      Effect.catch(error => platformErrorCode(error) === 'ENOENT'
+        ? Effect.sync(() => undefined)
+        : Effect.fail(preludeError(phase, 'Cannot inspect tree root without following symbolic links', error.message))),
+    )
+  })
 }
 
 function isWithin(path: Path.Path, root: string, candidate: string): boolean {
@@ -84,7 +113,7 @@ export function resolveWithin(
     const path = yield* Path.Path
     const resolved = relative === '.' ? root : path.resolve(root, relative)
     if (!isWithin(path, root, resolved))
-      return yield* Effect.fail(preludeError(phase, 'Path escapes its confined root', relative))
+      return yield* preludeError(phase, 'Path escapes its confined root', relative)
     return resolved
   })
 }
@@ -98,7 +127,7 @@ export function assertNoSymlinkSegments(
     const fs = yield* FileSystem.FileSystem
     const path = yield* Path.Path
     if (!isWithin(path, root, absolutePath))
-      return yield* Effect.fail(preludeError(phase, 'Path escapes its confined root', absolutePath))
+      return yield* preludeError(phase, 'Path escapes its confined root', absolutePath)
 
     const relative = path.relative(root, absolutePath)
     const segments = relative === '' ? [] : relative.split(path.sep)
@@ -112,10 +141,10 @@ export function assertNoSymlinkSegments(
       if (noFollowInfo === undefined)
         break
       if (noFollowInfo.isSymbolicLink())
-        return yield* Effect.fail(preludeError(phase, 'Symbolic links are unsupported in confined paths', current))
+        return yield* preludeError(phase, 'Symbolic links are unsupported in confined paths', current)
       const realCurrent = yield* fs.realPath(current).pipe(Effect.mapError(platformFailure(phase, 'Cannot resolve path')))
       if (realCurrent !== expectedReal)
-        return yield* Effect.fail(preludeError(phase, 'Symbolic links are unsupported in confined paths', current))
+        return yield* preludeError(phase, 'Symbolic links are unsupported in confined paths', current)
     }
   })
 }
@@ -125,12 +154,12 @@ export function assertTargetWritePath(controlRoot: string, absolutePath: string)
     const fs = yield* FileSystem.FileSystem
     const path = yield* Path.Path
     if (!isWithin(path, controlRoot, absolutePath))
-      return yield* Effect.fail(preludeError('planning', 'Target path escapes the Control Root', absolutePath))
+      return yield* preludeError('planning', 'Target path escapes the Control Root', absolutePath)
     yield* assertNoSymlinkSegments(controlRoot, absolutePath, 'planning')
     if (yield* fs.exists(absolutePath)) {
       const info = yield* fs.stat(absolutePath).pipe(Effect.mapError(platformFailure('planning', 'Cannot inspect managed Target surface')))
       if (info.type === 'File' && Option.getOrElse(info.nlink, () => 1) > 1)
-        return yield* Effect.fail(preludeError('planning', 'Hard links are unsupported in Target surfaces', absolutePath))
+        return yield* preludeError('planning', 'Hard links are unsupported in Target surfaces', absolutePath)
     }
   }).pipe(Effect.mapError(error => Schema.is(PreludeError)(error) ? error : preludeError('planning', 'Cannot inspect Target write path', errorMessage(error))))
 }
@@ -172,11 +201,11 @@ export function scanTree(
     }
 
     if (rootNoFollowInfo.isSymbolicLink())
-      return yield* Effect.fail(preludeError(phase, 'Tree roots cannot be symbolic links', absoluteRoot))
+      return yield* preludeError(phase, 'Tree roots cannot be symbolic links', absoluteRoot)
     const realRoot = yield* fs.realPath(absoluteRoot).pipe(Effect.mapError(platformFailure(phase, 'Cannot resolve tree')))
     const realParent = yield* fs.realPath(path.dirname(absoluteRoot)).pipe(Effect.mapError(platformFailure(phase, 'Cannot resolve tree parent')))
     if (realRoot !== path.join(realParent, path.basename(absoluteRoot)))
-      return yield* Effect.fail(preludeError(phase, 'Symbolic links are unsupported in trees', absoluteRoot))
+      return yield* preludeError(phase, 'Symbolic links are unsupported in trees', absoluteRoot)
     const rootInfo = yield* fs.stat(absoluteRoot).pipe(Effect.mapError(platformFailure(phase, 'Cannot inspect tree')))
     yield* assertSupportedInfo(absoluteRoot, rootInfo, phase, options.allowHardLinks ?? false)
     if (rootInfo.type === 'File') {
@@ -191,7 +220,7 @@ export function scanTree(
     }
 
     const entries: Array<TreeDigestEntry> = []
-    const visit = (directory: string, relativeDirectory: string): Effect.Effect<void, PreludeError> => Effect.gen(function* () {
+    const visit = (directory: string, relativeDirectory: string): Effect.Effect<void, PreludeError, FileSystem.FileSystem> => Effect.gen(function* () {
       const names = yield* fs.readDirectory(directory).pipe(
         Effect.mapError(platformFailure(phase, 'Cannot read tree directory')),
       )
@@ -202,19 +231,19 @@ export function scanTree(
         const noFollowInfo = yield* noFollowStat(absolute, phase)
         if (noFollowInfo.isSymbolicLink()) {
           if (options.allowSafeSymlinks !== true)
-            return yield* Effect.fail(preludeError(phase, 'Symbolic links are unsupported in ManagedTree', absolute))
+            return yield* preludeError(phase, 'Symbolic links are unsupported in ManagedTree', absolute)
           const linkTarget = yield* fs.readLink(absolute).pipe(
             Effect.mapError(platformFailure(phase, 'Cannot read tree symbolic link')),
           )
           if (!isSafeRelativeSymlink(relative, linkTarget))
-            return yield* Effect.fail(preludeError(phase, 'PinnedReferenceTree symbolic link escapes its complete tree', `${relative} -> ${linkTarget}`))
+            return yield* preludeError(phase, 'PinnedReferenceTree symbolic link escapes its complete tree', `${relative} -> ${linkTarget}`)
           entries.push({ path: relative, kind: 'symbolicLink', mode: SYMBOLIC_LINK_MODE, target: linkTarget })
           continue
         }
         const info = yield* fs.stat(absolute).pipe(Effect.mapError(platformFailure(phase, 'Cannot inspect tree entry')))
         const realEntry = yield* fs.realPath(absolute).pipe(Effect.mapError(platformFailure(phase, 'Cannot resolve tree entry')))
         if (realEntry !== path.join(realRoot, ...relative.split('/')))
-          return yield* Effect.fail(preludeError(phase, 'Tree entry resolves outside its complete tree', absolute))
+          return yield* preludeError(phase, 'Tree entry resolves outside its complete tree', absolute)
         yield* assertSupportedInfo(absolute, info, phase, options.allowHardLinks ?? false)
         if (info.type === 'Directory') {
           entries.push({ path: relative, kind: 'directory', mode: entryMode(info) })
@@ -262,7 +291,7 @@ export function publishFile(
     const parent = path.dirname(absolutePath)
     const staged = path.join(parent, `.${path.basename(absolutePath)}.prelude-stage-${safeOperationId(operationId)}`)
     yield* fs.makeDirectory(parent, { recursive: true }).pipe(Effect.mapError(platformFailure('apply', 'Cannot create output directory')))
-    yield* Effect.addFinalizer(() => fs.remove(staged, { force: true }).pipe(Effect.catch(() => Effect.void)))
+    yield* Effect.addFinalizer(() => fs.remove(staged, { force: true }).pipe(Effect.ignore))
     yield* fs.remove(staged, { force: true }).pipe(Effect.mapError(platformFailure('apply', 'Cannot clean staged file')))
     yield* fs.writeFileString(staged, content).pipe(Effect.mapError(platformFailure('apply', 'Cannot stage output file')))
     yield* fs.rename(staged, absolutePath).pipe(Effect.mapError(platformFailure('apply', 'Cannot publish output file')))
@@ -282,7 +311,7 @@ export function replaceTree(
     const staged = path.join(parent, `.${path.basename(targetPath)}.prelude-stage-${safeOperationId(operationId)}`)
     const previous = path.join(parent, `.${path.basename(targetPath)}.prelude-previous-${safeOperationId(operationId)}`)
     yield* fs.makeDirectory(parent, { recursive: true }).pipe(Effect.mapError(platformFailure('apply', 'Cannot create tree parent')))
-    yield* Effect.addFinalizer(() => fs.remove(staged, { recursive: true, force: true }).pipe(Effect.catch(() => Effect.void)))
+    yield* Effect.addFinalizer(() => fs.remove(staged, { recursive: true, force: true }).pipe(Effect.ignore))
     yield* fs.remove(staged, { recursive: true, force: true }).pipe(Effect.mapError(platformFailure('apply', 'Cannot clean staged tree')))
     yield* fs.remove(previous, { recursive: true, force: true }).pipe(Effect.mapError(platformFailure('apply', 'Cannot clean previous tree staging')))
     yield* fs.copy(sourcePath, staged, { overwrite: true, preserveTimestamps: false }).pipe(
@@ -290,7 +319,7 @@ export function replaceTree(
     )
     const stagedSnapshot = yield* scanTree(staged, 'apply')
     if (stagedSnapshot.digest !== expectedDigest)
-      return yield* Effect.fail(preludeError('apply', 'Staged tree digest does not match approved desired state', `${stagedSnapshot.digest} != ${expectedDigest}`))
+      return yield* preludeError('apply', 'Staged tree digest does not match approved desired state', `${stagedSnapshot.digest} != ${expectedDigest}`)
     const hadTarget = yield* fs.exists(targetPath).pipe(Effect.mapError(platformFailure('apply', 'Cannot inspect existing tree')))
     if (hadTarget)
       yield* fs.rename(targetPath, previous).pipe(Effect.mapError(platformFailure('apply', 'Cannot stage previous complete tree')))
@@ -322,10 +351,10 @@ export function replaceTreeFromArchive(
     const previous = path.join(parent, `.${path.basename(targetPath)}.prelude-previous-${safeOperationId(operationId)}`)
 
     if (archive.treeDigest !== expectedDigest)
-      return yield* Effect.fail(preludeError('apply', 'Decoded archive digest does not match approved desired state', `${archive.treeDigest} != ${expectedDigest}`))
+      return yield* preludeError('apply', 'Decoded archive digest does not match approved desired state', `${archive.treeDigest} != ${expectedDigest}`)
 
     yield* fs.makeDirectory(parent, { recursive: true }).pipe(Effect.mapError(platformFailure('apply', 'Cannot create tree parent')))
-    yield* Effect.addFinalizer(() => fs.remove(staged, { recursive: true, force: true }).pipe(Effect.catch(() => Effect.void)))
+    yield* Effect.addFinalizer(() => fs.remove(staged, { recursive: true, force: true }).pipe(Effect.ignore))
     yield* fs.remove(staged, { recursive: true, force: true }).pipe(Effect.mapError(platformFailure('apply', 'Cannot clean staged tree')))
     yield* fs.remove(previous, { recursive: true, force: true }).pipe(Effect.mapError(platformFailure('apply', 'Cannot clean previous tree staging')))
     yield* fs.makeDirectory(staged).pipe(Effect.mapError(platformFailure('apply', 'Cannot stage PinnedReferenceTree root')))
@@ -350,7 +379,7 @@ export function replaceTreeFromArchive(
 
     const stagedSnapshot = yield* scanTree(staged, 'apply', { allowSafeSymlinks: true })
     if (stagedSnapshot.digest !== expectedDigest)
-      return yield* Effect.fail(preludeError('apply', 'Staged archive tree digest does not match approved desired state', `${stagedSnapshot.digest} != ${expectedDigest}`))
+      return yield* preludeError('apply', 'Staged archive tree digest does not match approved desired state', `${stagedSnapshot.digest} != ${expectedDigest}`)
 
     const hadTarget = yield* fs.exists(targetPath).pipe(Effect.mapError(platformFailure('apply', 'Cannot inspect existing tree')))
     if (hadTarget)
