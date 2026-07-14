@@ -1,5 +1,13 @@
 # @sayoriqwq/prelude-contract
 
+## 0.2.2
+
+### Patch Changes
+
+- f73fbaa: Publish the normative canonical tree archive and logical digest protocol,
+  including compatibility, decoder limits, and producer/composer/consumer
+  ownership.
+
 ## 0.2.1
 
 ### Patch Changes
