@@ -61,9 +61,12 @@ checks
 ```
 
 Planning runs once per Integration, not once per selected Package Root. A
-Harness therefore declares Integration-scoped knowledge once and emits any
-package-scoped JSON policy, Requirements, and Checks explicitly for the
-selected roots that need them. Prelude does not infer Harness domain policy.
+Harness therefore declares Integration-scoped knowledge once and emits only
+the Contract declarations it currently owns. Prelude does not infer Harness
+domain policy. In the shipped Effect Harness Baseline, the Module declares four
+stable Outputs and returns empty Requirements, Issues, and Checks; package,
+TypeScript, editor, lint, activation, and verification adaptation begins only
+after Control Handoff to the delivered skill.
 
 The context identifies the exact installed Artifact and gives two read-only
 views:
@@ -214,9 +217,12 @@ Prelude does not discover TypeScript projects, infer which packages author
 Effect, or implement Effect/tsgo policy. Effect Harness ships Target-aware
 adaptation guidance. That skill inspects the real Target, selects and commits
 `packageRoots`, proposes reviewable Target-owned TypeScript config changes,
-and returns to plan/apply/check. The Harness declares canonical package-scoped
-JSON policy and target Checks. Core claims materialization correctness, not
-automatic coverage of every TypeScript project.
+and returns to plan/apply/check. It reads canonical policy from the managed
+bundle, obtains authorization before mutation, preserves Target conventions,
+and proves the Target's real commands directly. The Effect Module does not
+declare package-scoped JSON policy, Requirements, Issues, or Checks. Core
+claims materialization correctness, not automatic coverage of every TypeScript
+project or the skill's Target-owned verification evidence.
 
 ## Gate 1 Evidence
 
@@ -229,14 +235,18 @@ plan -> exact-hash apply -> fresh plan -> check
 ```
 
 The acceptance must prove Integration-scoped `managed/` and `repos/` are each
-delivered once, package policy/Requirements/Checks cover every selected root,
-feedback survives apply and upgrade, pinned provenance and atomic replacement
-hold, stale approval writes nothing, and no retired surface or Target Git
-operation appears.
+delivered once, the Effect Module keeps exactly four stable Outputs with empty
+Requirements, Issues, and Checks, the delivered skill adapts every selected
+root only after explicit authorization, existing Target scripts and executable
+ESLint composition survive that adaptation, feedback survives apply and
+upgrade, pinned provenance and atomic replacement hold, stale approval writes
+nothing, and no retired surface or Target Git operation appears.
 
-Gate 1 closed on 2026-07-14. `pnpm acceptance:packed-effect` installed packed
-Prelude `0.3.0`, Contract `0.2.0`, and Effect Harness `0.2.0` Artifacts into
-isolated single-package and pnpm-workspace Targets and exercised the complete
+Gate 1 closed on 2026-07-14 and its current release Baseline is Prelude `0.4.0`,
+Contract `0.2.2`, Effect Harness `0.3.0`, and Partita `0.2.2`.
+`pnpm acceptance:packed-effect` installs those packed Prelude, Contract, and
+Effect Harness Artifacts through a natural dependency graph without a Contract
+override into isolated single-package and pnpm-workspace Targets and exercises the complete
 plan, exact-hash apply, fresh plan, check, stale-hash, drift-repair, and
 target-owned feedback lifecycle above. `pnpm acceptance:installed` independently
 proved multi-Harness composition, upgrades, failed installs, failed Checks,

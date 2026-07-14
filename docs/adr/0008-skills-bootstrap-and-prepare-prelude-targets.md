@@ -6,6 +6,11 @@ amended: 2026-07-12
 
 # Prelude owns hard core and soft-boundary skills
 
+> Ownership successor: ADR-0018 supersedes the exclusive assignment of
+> package and executable-config adaptation below. Prelude-owned skills retain
+> orchestration; a Harness-delivered skill may own authorized domain-specific
+> Target Adaptation after Control Handoff.
+
 The Prelude product contains both a deterministic hard core and user-authorized soft-boundary skills. Harnesses own declarative intent and domain guidance; they do not own competing target integration mutators.
 
 Prelude core begins after a pnpm target selects Prelude and its Harness Artifacts and has schema-valid Integration config. Prelude-owned bootstrap skills may run pnpm, create control-plane inputs, and prepare target-owned content after explicit user authorization. Core has no create or init command.

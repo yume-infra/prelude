@@ -7,6 +7,16 @@ updated: 2026-07-14
 
 # Architecture Handoff
 
+## V2 Successor Note
+
+This document retains the released V1 implementation handoff. Current work must
+start from the V2 Contract and ADR-0018. In particular, V2 uses
+`.prelude/config.jsonc` and Integration Workspaces, adds PinnedReferenceTree,
+and gives the delivered Effect skill Target Adaptation ownership after Control
+Handoff. The shipped Effect Module has four stable Outputs and empty
+Requirements, Issues, and Checks. Conflicting V1 bullets below are historical
+baseline evidence, not current authority.
+
 ## Status
 
 Architecture alignment is complete. Stop interviewing for additional minor

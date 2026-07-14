@@ -47,26 +47,33 @@ function targetScripts(name: 'single' | 'monorepo') {
   }
 }
 
+const targetOwnedScripts = {
+  'target:verify': 'node -e "process.stdout.write(\'target conventions verified\\n\')"',
+  'verify': 'pnpm target:verify',
+}
+
 const packageScripts = {
   typecheck: 'node ../../node_modules/@typescript/native/bin/tsc --noEmit --project tsconfig.json',
 }
 
-const eslintConfig = `import antfu from '@antfu/eslint-config'\nimport effectHarness from '@sayoriqwq/effect-harness/eslint'\n\nexport default antfu().append(...effectHarness)\n`
+const targetOwnedEslintConfig = `import antfu from '@antfu/eslint-config'\n\nconst targetConventions = {\n  name: 'target/conventions',\n  files: ['**/*.ts'],\n  rules: { 'no-console': 'error' },\n}\n\nexport default antfu({ stylistic: false }).append(targetConventions)\n`
+const adaptedEslintConfig = `import antfu from '@antfu/eslint-config'\nimport effectHarness from '@sayoriqwq/effect-harness/eslint'\n\nconst targetConventions = {\n  name: 'target/conventions',\n  files: ['**/*.ts'],\n  rules: { 'no-console': 'error' },\n}\n\nexport default antfu({ stylistic: false }).append(targetConventions, ...effectHarness)\n`
 const source = `import { Effect } from 'effect'\n\nexport const program = Effect.succeed('gate')\n`
 const suppressionDirective = ['@effect', 'diagnostics-next-line floatingEffect:off'].join('-')
 const approvedSuppressionSource = `import { Effect } from 'effect'\n\nexport function approvedExistingException(): void {\n  // Existing Target exception: upstream callback intentionally discards this Effect.\n  // ${suppressionDirective}\n  Effect.succeed('approved existing exception')\n}\n`
 const unsuppressedDiagnosticSource = `import { Effect } from 'effect'\n\nexport function unsuppressedDiagnostic(): void {\n  Effect.succeed('must fail the real Target typecheck')\n}\n`
 const activationScript = `import { spawnSync } from 'node:child_process'\nimport { existsSync, readFileSync, writeFileSync } from 'node:fs'\n\nconst counter = '.effect-tsgo-activation-count'\nconst count = existsSync(counter) ? Number(readFileSync(counter, 'utf8')) : 0\nwriteFileSync(counter, String(count + 1))\nconst result = spawnSync(process.execPath, ['node_modules/@effect/tsgo/dist/effect-tsgo.js', 'patch', '--typescript-package', '@typescript/native'], { stdio: 'inherit' })\nif (result.status !== 0) process.exit(result.status ?? 1)\n`
 
-function targetRootManifest(name: 'single' | 'monorepo', cliTar: string, harnessTar: string): Json {
+function targetRootManifest(name: 'single' | 'monorepo', cliTar: string, contractTar: string, harnessTar: string): Json {
   return {
     name: `effect-gate-${name}`,
     private: true,
     type: 'module',
-    scripts: {},
+    scripts: targetOwnedScripts,
     dependencies: name === 'single' ? selectedDependencies : undefined,
     devDependencies: {
       '@sayoriqwq/prelude': `file:${cliTar}`,
+      '@sayoriqwq/prelude-contract': `file:${contractTar}`,
       '@sayoriqwq/effect-harness': `file:${harnessTar}`,
     },
   }
@@ -78,9 +85,9 @@ const program = Effect.scoped(Effect.gen(function* () {
   const join = path.join
   const workspaceRoot = join(import.meta.dirname, '../../../..')
   const gateInput = join(workspaceRoot, 'tmp/gate-input')
-  const harnessTar = yield* Config.string('EFFECT_HARNESS_TARBALL').pipe(Config.withDefault(join(gateInput, 'sayoriqwq-effect-harness-0.2.0.tgz')))
-  const contractTar = yield* Config.string('PRELUDE_CONTRACT_TARBALL').pipe(Config.withDefault(join(gateInput, 'sayoriqwq-prelude-contract-0.2.0.tgz')))
-  const cliTar = yield* Config.string('PRELUDE_CLI_TARBALL').pipe(Config.withDefault(join(gateInput, 'sayoriqwq-prelude-0.3.0.tgz')))
+  const harnessTar = yield* Config.string('EFFECT_HARNESS_TARBALL').pipe(Config.withDefault(join(gateInput, 'sayoriqwq-effect-harness-0.3.0.tgz')))
+  const contractTar = yield* Config.string('PRELUDE_CONTRACT_TARBALL').pipe(Config.withDefault(join(gateInput, 'sayoriqwq-prelude-contract-0.2.2.tgz')))
+  const cliTar = yield* Config.string('PRELUDE_CLI_TARBALL').pipe(Config.withDefault(join(gateInput, 'sayoriqwq-prelude-0.4.0.tgz')))
   const fixtureRoot = join(workspaceRoot, 'tmp')
   const requestedRunRoot = Option.getOrUndefined(yield* Config.option(Config.string('PRELUDE_GATE_ROOT')))
   const prepareOnly = yield* Config.boolean('PRELUDE_GATE_PREPARE_ONLY').pipe(Config.withDefault(false))
@@ -153,7 +160,6 @@ const program = Effect.scoped(Effect.gen(function* () {
     name: 'single' | 'monorepo',
     packageRoots: ReadonlyArray<string>,
     managedData: string,
-    feedback: string,
   ) {
     const baseline = parseJson(yield* fs.readFileString(join(managedData, 'baseline.json')))
     const policy = parseJson(yield* fs.readFileString(join(managedData, 'tsgo-policy.json')))
@@ -174,7 +180,7 @@ const program = Effect.scoped(Effect.gen(function* () {
       const config = packageRoot === '.' ? 'tsconfig.json' : `${packageRoot}/tsconfig.json`
       authoringChoices[config] = parseJson(yield* fs.readFileString(join(target, config)))
     }
-    yield* json(feedback, {
+    const evidence = {
       controlHandoff: {
         observation: { targetKind: name, effectAuthoringPackageRoots: packageRoots, authoringChoices },
         proposal: {
@@ -190,14 +196,18 @@ const program = Effect.scoped(Effect.gen(function* () {
         authorization: { status: 'pending' },
         durableEvidence: 'feedback/control-handoff.json',
       },
-    })
-    return { authoringChoices, baseline, policy }
+    }
+    return { authoringChoices, baseline, evidence, policy }
   })
 
-  const authorizeTargetAdaptation = Effect.fn(function* (feedback: string) {
-    const evidence = parseJson(yield* fs.readFileString(feedback))
-    evidence.controlHandoff.authorization = { status: 'approved', scope: 'packed acceptance fixture' }
-    yield* json(feedback, evidence)
+  const authorizeTargetAdaptation = Effect.fn(function* (evidence: Json) {
+    return {
+      ...evidence,
+      controlHandoff: {
+        ...evidence.controlHandoff,
+        authorization: { status: 'approved', scope: 'packed acceptance fixture' },
+      },
+    }
   })
 
   const mutateTarget = Effect.fn(function* (
@@ -205,10 +215,19 @@ const program = Effect.scoped(Effect.gen(function* () {
     name: 'single' | 'monorepo',
     packageRoots: ReadonlyArray<string>,
     policy: Json,
+    durableEvidencePath: string,
+    approvedEvidence: Json,
   ) {
     const manifestPath = join(target, 'package.json')
     const manifest = parseJson(yield* fs.readFileString(manifestPath))
-    manifest.scripts = targetScripts(name)
+    const harnessScripts = targetScripts(name)
+    manifest.scripts = {
+      ...manifest.scripts,
+      ...harnessScripts,
+      verify: manifest.scripts?.verify === undefined
+        ? harnessScripts.verify
+        : `${manifest.scripts.verify} && ${harnessScripts.verify}`,
+    }
     manifest.devDependencies = { ...manifest.devDependencies, ...targetToolchainDevDependencies }
     yield* json(manifestPath, manifest)
     yield* fs.writeFileString(join(target, 'activate-effect-tsgo.mjs'), activationScript)
@@ -232,7 +251,9 @@ const program = Effect.scoped(Effect.gen(function* () {
         : [...(Array.isArray(existing.extends) ? existing.extends : [existing.extends]), policyConfig]
       yield* json(configPath, { ...existing, extends: inherited })
     }
-    yield* fs.writeFileString(join(target, 'eslint.config.mjs'), eslintConfig)
+    assert.equal(yield* fs.readFileString(join(target, 'eslint.config.mjs')), targetOwnedEslintConfig)
+    yield* fs.writeFileString(join(target, 'eslint.config.mjs'), adaptedEslintConfig)
+    yield* json(durableEvidencePath, approvedEvidence)
   })
 
   const runGate = Effect.fn(function* (name: 'single' | 'monorepo', packageRoots: ReadonlyArray<string>, integrationId: string) {
@@ -245,8 +266,9 @@ const program = Effect.scoped(Effect.gen(function* () {
       if (entry.startsWith('.managed.prelude-') || entry.startsWith('.effect.prelude-') || entry.startsWith('.tsgo.prelude-'))
         yield* fs.remove(join(integrationWorkspacePath, entry), { recursive: true, force: true })
     }
-    yield* json(join(target, 'package.json'), targetRootManifest(name, cliTar, legacyHarnessTar))
-    yield* fs.writeFileString(join(target, 'pnpm-workspace.yaml'), `packages:\n  - packages/*\ndedupeDirectDeps: false\npackageImportMethod: copy\noverrides:\n  '@sayoriqwq/prelude-contract': 'file:${contractTar}'\n  '@effect/platform-node@4.0.0-beta.97>@effect/platform-node-shared': '4.0.0-beta.97'\ntrustPolicy: no-downgrade\ntrustPolicyExclude:\n  - effect@4.0.0-beta.97\n  - '@effect/platform-node@4.0.0-beta.97'\n  - '@effect/platform-node-shared@4.0.0-beta.97'\n  - '@effect/vitest@4.0.0-beta.97'\n`)
+    yield* json(join(target, 'package.json'), targetRootManifest(name, cliTar, contractTar, legacyHarnessTar))
+    yield* fs.writeFileString(join(target, 'eslint.config.mjs'), targetOwnedEslintConfig)
+    yield* fs.writeFileString(join(target, 'pnpm-workspace.yaml'), `packages:\n  - packages/*\ndedupeDirectDeps: false\npackageImportMethod: copy\noverrides:\n  '@effect/platform-node@4.0.0-beta.97>@effect/platform-node-shared': '4.0.0-beta.97'\ntrustPolicy: no-downgrade\ntrustPolicyExclude:\n  - effect@4.0.0-beta.97\n  - '@effect/platform-node@4.0.0-beta.97'\n  - '@effect/platform-node-shared@4.0.0-beta.97'\n  - '@effect/vitest@4.0.0-beta.97'\n`)
     if (packageRoots.includes('.')) {
       yield* fs.makeDirectory(join(target, 'src'), { recursive: true })
       yield* fs.writeFileString(join(target, 'src/index.ts'), source)
@@ -270,9 +292,24 @@ const program = Effect.scoped(Effect.gen(function* () {
       return
 
     yield* installTarget(target)
+    const dependencyGraph = decodeJson((yield* runProcess('pnpm', ['list', '@sayoriqwq/prelude-contract', '--depth', 'Infinity', '--json'], { cwd: target })).stdout) as ReadonlyArray<Json>
+    const contractInstances = new Map<string, string>()
+    const visitDependencies = (node: Json): void => {
+      for (const section of ['dependencies', 'devDependencies', 'optionalDependencies']) {
+        for (const [dependencyName, dependency] of Object.entries(node[section] ?? {}) as ReadonlyArray<[string, Json]>) {
+          if (dependencyName === '@sayoriqwq/prelude-contract')
+            contractInstances.set(dependency.path, dependency.version)
+          visitDependencies(dependency)
+        }
+      }
+    }
+    for (const importer of dependencyGraph) visitDependencies(importer)
+    assert.deepEqual([...new Set(contractInstances.values())], ['0.2.2'], `${name}: packed graph must resolve one Prelude Contract version`)
     yield* assertAbsent(join(target, '.effect-tsgo-activation-count'))
     const bootstrapManifest = parseJson(yield* fs.readFileString(join(target, 'package.json')))
     assert.equal(bootstrapManifest.scripts.prepare, undefined)
+    assert.equal(bootstrapManifest.scripts['target:verify'], targetOwnedScripts['target:verify'])
+    assert.equal(bootstrapManifest.scripts.verify, targetOwnedScripts.verify)
     assert.equal(bootstrapManifest.devDependencies['@effect/tsgo'], undefined)
     assert.equal(bootstrapManifest.devDependencies['@typescript/native'], undefined)
     assert.equal(bootstrapManifest.devDependencies.typescript, undefined)
@@ -354,28 +391,35 @@ const program = Effect.scoped(Effect.gen(function* () {
       name,
       packageRoots,
       join(target, workspace, 'managed/data'),
-      controlHandoff,
     )
-    assert.equal((parseJson(yield* fs.readFileString(controlHandoff))).controlHandoff.authorization.status, 'pending')
+    assert.equal(adaptation.evidence.controlHandoff.authorization.status, 'pending')
+    yield* assertAbsent(controlHandoff)
     yield* assertAbsent(join(target, 'tsconfig.effect.json'))
-    yield* assertAbsent(join(target, 'eslint.config.mjs'))
+    assert.equal(yield* fs.readFileString(join(target, 'eslint.config.mjs')), targetOwnedEslintConfig)
     yield* assertAbsent(join(target, 'activate-effect-tsgo.mjs'))
     const proposedManifest = parseJson(yield* fs.readFileString(join(target, 'package.json')))
     assert.equal(proposedManifest.scripts.prepare, undefined)
+    assert.equal(proposedManifest.scripts['target:verify'], targetOwnedScripts['target:verify'])
+    assert.equal(proposedManifest.scripts.verify, targetOwnedScripts.verify)
     assert.equal(proposedManifest.devDependencies['@effect/tsgo'], undefined)
     assert.equal(proposedManifest.devDependencies['@typescript/native'], undefined)
     assert.equal(proposedManifest.devDependencies.typescript, undefined)
 
-    yield* authorizeTargetAdaptation(controlHandoff)
+    const approvedEvidence = yield* authorizeTargetAdaptation(adaptation.evidence)
+    assert.equal(approvedEvidence.controlHandoff.authorization.status, 'approved')
+    yield* assertAbsent(controlHandoff)
+    yield* mutateTarget(target, name, packageRoots, adaptation.policy, controlHandoff, approvedEvidence)
     assert.equal((parseJson(yield* fs.readFileString(controlHandoff))).controlHandoff.authorization.status, 'approved')
-    yield* mutateTarget(target, name, packageRoots, adaptation.policy)
     yield* installTarget(target)
     assert.equal(yield* fs.readFileString(join(target, '.effect-tsgo-activation-count')), '1')
     const rootManifest = parseJson(yield* fs.readFileString(join(target, 'package.json')))
     assert.equal(rootManifest.scripts.prepare, 'node activate-effect-tsgo.mjs')
+    assert.equal(rootManifest.scripts['target:verify'], targetOwnedScripts['target:verify'])
+    assert.equal(rootManifest.scripts.verify, 'pnpm target:verify && pnpm typecheck && pnpm lint')
     assert.equal(rootManifest.devDependencies['@effect/tsgo'], '0.19.0')
     assert.equal(rootManifest.devDependencies['@typescript/native'], 'npm:typescript@7.0.2')
     assert.equal(rootManifest.devDependencies.typescript, 'npm:@typescript/typescript6@6.0.2')
+    assert.equal(yield* fs.readFileString(join(target, 'eslint.config.mjs')), adaptedEslintConfig)
     if (name === 'monorepo') {
       for (const packageRoot of packageRoots) {
         const packageManifest = parseJson(yield* fs.readFileString(join(target, packageRoot, 'package.json')))

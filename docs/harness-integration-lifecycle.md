@@ -15,6 +15,15 @@ and packed Gate 1 requirements are defined by
 [`v2-harness-convergence-contract.md`](./v2-harness-convergence-contract.md)
 and supersede conflicting V1 paths or installation behavior.
 
+V2 Control Handoff ownership is defined by
+[`ADR-0018`](./adr/0018-control-handoff-separates-orchestration-from-target-adaptation.md).
+Prelude-owned skills orchestrate bootstrap and cross-Harness convergence. After
+stable Outputs are delivered, the Effect Harness-delivered skill owns
+domain-specific Target Adaptation. Its Observe, Propose, and Authorize phases
+write nothing; only the explicitly authorized Mutate phase may change
+Target-owned files or durable `feedback/**` evidence. The shipped Effect Module
+returns four stable Outputs and empty Requirements, Issues, and Checks.
+
 ## One Stateless Lifecycle
 
 Initial Integration and Artifact upgrade are the same operation:
@@ -137,7 +146,9 @@ apply.
 
 ## Executable Config Preparation
 
-For `eslint.config.mjs` and similar target-owned code:
+The following describes the released V1 ownership split. For V2 Effect Control
+Handoff it is superseded by ADR-0018. For `eslint.config.mjs` and similar
+target-owned code:
 
 1. The Harness package exports a stable reusable config API.
 2. The Module observes that the effective policy is absent or incompatible.

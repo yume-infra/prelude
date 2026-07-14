@@ -37,7 +37,7 @@ catalog:
   '@effect/platform-node': 4.0.0-beta.97
   '@effect/tsgo': 0.19.0
   '@effect/vitest': 4.0.0-beta.97
-  '@sayoriqwq/effect-harness': 0.2.1
+  '@sayoriqwq/effect-harness': 0.3.0
   '@types/node': 25.6.0
   '@types/semver': ^7.7.1
   '@typescript/native': npm:typescript@7.0.2

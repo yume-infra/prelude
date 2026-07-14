@@ -95,6 +95,11 @@ They may bootstrap package/config state, patch target-owned executable config,
 and assist upgrades or residue cleanup. Harnesses may ship guidance, but they do
 not own competing integration mutators.
 
+For the V2 Effect Integration, ADR-0018 supersedes that exclusive V1 assignment:
+Prelude-owned skills retain orchestration, while the delivered Effect skill
+owns explicitly authorized domain-specific Target Adaptation after Control
+Handoff. Prelude core remains the only writer of active Outputs.
+
 ## Artifact Selection
 
 The directory containing `prelude.config.jsonc` is the Control Root. Prelude and

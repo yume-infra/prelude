@@ -138,9 +138,24 @@ refuses to write unless the current execution hash equals the approved hash.
 ### Prelude-Owned Skill
 
 A user-authorized soft boundary for operations too semantic for deterministic
-core: bootstrap package/config state, patch target-owned executable config, and
-assist upgrades or residue cleanup. Skills may propose broad edits but cannot
-approve a Plan on the user's behalf.
+core: bootstrap package/config state, coordinate cross-Harness upgrades, drive
+Plan/apply/check, and assist residue cleanup. Skills may propose broad edits but
+cannot approve a Plan on the user's behalf.
+
+### Harness-Delivered Skill
+
+A versioned domain skill delivered inside one Harness's managed bundle. After
+Control Handoff it may adapt Target-owned package, TypeScript, executable
+configuration, editor, verification, or feedback state, but only after explicit
+authorization. Its Observe, Propose, and Authorize phases are non-mutating.
+
+### Control Handoff
+
+The phase boundary after Prelude delivers stable Harness-owned Outputs and
+before a Harness-delivered skill makes authorized domain-specific Target
+Adaptation. Prelude-owned orchestration routes to the skill without reproducing
+Harness policy; the delivered skill returns control after recording and
+verifying the approved Target-owned result.
 
 ### Target-Owned Content
 

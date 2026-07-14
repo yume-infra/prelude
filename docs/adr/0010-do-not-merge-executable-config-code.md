@@ -6,6 +6,11 @@ amended: 2026-07-12
 
 # Keep executable config outside the V1 Output contract
 
+> Ownership successor: ADR-0018 preserves the Target-owned executable-config
+> boundary but assigns Effect-specific composition after Control Handoff to the
+> delivered Effect Target Adaptation skill, not exclusively to a Prelude-owned
+> skill.
+
 Prelude does not parse or partially rewrite JavaScript or TypeScript configuration files. V1 also does not expose an Owned File Output. Executable configs such as `eslint.config.mjs`, `vitest.config.ts`, and `vite.config.ts` remain target-owned integration entry points rather than complete Harness-owned files.
 
 A Harness Artifact may export a stable, reusable configuration API through its package. Its Harness Module inspects the target read-only and reports a blocking issue when the target's effective executable configuration has not integrated that API correctly. A Prelude-owned bootstrap or reconciliation skill may patch the target-owned entry point after explicit user authorization, show the concrete diff, and then return to normal plan, apply, and check. Harnesses may provide domain guidance for that patch but do not own competing mutators.

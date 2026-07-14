@@ -10,14 +10,16 @@ Start with:
 
 1. `docs/README.md`
 2. `docs/CONTEXT.md`
-3. `docs/harness-convergence-goal.md`
-4. `docs/multi-harness-convergence-architecture.md`
-5. `docs/harness-module-contract.md`
-6. `docs/harness-integration-lifecycle.md`
-7. `docs/prelude-rebuild-plan.md`
-8. `docs/adr/`
-9. `docs/architecture-review.md`
-10. `docs/architecture-handoff.md`
+3. `docs/v2-harness-convergence-contract.md`
+4. `docs/adr/0018-control-handoff-separates-orchestration-from-target-adaptation.md`
+5. `docs/harness-convergence-goal.md`
+6. `docs/multi-harness-convergence-architecture.md`
+7. `docs/harness-module-contract.md`
+8. `docs/harness-integration-lifecycle.md`
+9. `docs/prelude-rebuild-plan.md`
+10. `docs/adr/`
+11. `docs/architecture-review.md`
+12. `docs/architecture-handoff.md`
 
 Everything under `docs/archive/` is historical and non-authoritative. Do not use
 archived requirements to fill gaps in the active design.
@@ -44,9 +46,12 @@ target package graph and lockfile
 ```
 
 The architecture has one stateless lifecycle for initial Integration and
-Artifact upgrades. User-authorized Prelude skills own bootstrap, blocker
-repair, executable-config preparation, upgrade coordination, and residue
-cleanup outside core. Integration removal is deferred beyond V1.
+Artifact upgrades. Prelude-owned skills orchestrate bootstrap, cross-Harness
+upgrade coordination, approval, convergence, and residue cleanup. After stable
+Harness-owned Outputs are delivered, a Harness-delivered skill may own
+domain-specific Target Adaptation through an explicit Control Handoff. Proposal
+and authorization remain session state; only its authorized Mutate phase may
+write Target-owned durable evidence. Integration removal is deferred.
 
 Required invariants:
 
@@ -58,13 +63,18 @@ Required invariants:
 - Prelude composes every integration before any write;
 - integration id, not package id, is the stable Output owner;
 - approval binds an exact plan hash and observed target state;
-- selected Artifacts plus `prelude.config.jsonc` are complete desired truth;
-- V1 Outputs are ManagedTree, ManagedBlock, JsonValue, and JsonKeyedItem only;
+- selected Artifacts plus `.prelude/config.jsonc` are complete desired truth;
+- V2 Outputs are ManagedTree, ManagedBlock, JsonValue, JsonKeyedItem, and
+  PinnedReferenceTree;
 - everything outside active Output locators is target-owned by default;
-- `.prelude/` does not exist in V1;
+- `.prelude/` contains committed config and Integration Workspaces in V2, but
+  never runtime receipts, manifests, journals, or applied state;
 - `projection` remains a Psychogram domain term, not a Prelude abstraction;
 - Prelude core has no create, init, remove, provider, maintain, or TUI product surface;
-- Harnesses declare verification, Prelude composes it, and targets execute it through `prelude check`; verification failure does not roll back apply.
+- Harnesses may declare verification, Prelude composes it, and targets execute
+  it through `prelude check`; the shipped Effect Harness instead delegates
+  Target-specific verification to its delivered adaptation skill and returns
+  empty Requirements, Issues, and Checks;
 - production runtime and shared codecs use Effect v4, Effect Schema, and `@effect/platform`;
 - observable Partita behavior is authoritative over old code shape or helper interfaces.
 

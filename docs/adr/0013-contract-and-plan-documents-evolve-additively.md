@@ -6,6 +6,11 @@ amended: 2026-07-12
 
 # Module and Plan contracts evolve additively
 
+> V2 successor: V2 was an explicit breaking protocol cutover and does not load
+> or adapt V1 Modules. Within the V2 line, feature negotiation and frozen field
+> semantics retain the additive-evolution rule. V2 also adds
+> `PinnedReferenceTree`; see the active V2 Contract.
+
 The stable Harness Module seam is `descriptor + plan(read-only target, Integration, selected Artifact)`. A plan has four top-level categories: outputs, Package Requirements, checks, and issues. Modules return complete current declarations and never target mutation callbacks or hidden lifecycle state.
 
 V1 freezes the semantic meaning of every published field and output type. Future versions may add optional fields or new output capabilities, but may not reinterpret existing values. A module declares its protocol version and required features; Prelude rejects unsupported required features before partial planning or materialization.

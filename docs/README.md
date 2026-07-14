@@ -26,20 +26,23 @@ models, manifests, tests, or TUI code.
 2. [`v2-harness-convergence-contract.md`](./v2-harness-convergence-contract.md)
    - authoritative V2 Module/host lifecycle and Gate 1 seam; canonical tree
      archive framing is normative in the Contract package README linked there.
-3. [`harness-convergence-goal.md`](./harness-convergence-goal.md) - north star,
+3. [`adr/0018-control-handoff-separates-orchestration-from-target-adaptation.md`](./adr/0018-control-handoff-separates-orchestration-from-target-adaptation.md)
+   - successor ownership boundary between Prelude orchestration and a
+     Harness-delivered Target Adaptation skill.
+4. [`harness-convergence-goal.md`](./harness-convergence-goal.md) - north star,
    V1 outcome, scope, and non-goals.
-4. [`multi-harness-convergence-architecture.md`](./multi-harness-convergence-architecture.md)
+5. [`multi-harness-convergence-architecture.md`](./multi-harness-convergence-architecture.md)
    - system boundaries and final operating model.
-5. [`harness-module-contract.md`](./harness-module-contract.md) - shared Module
+6. [`harness-module-contract.md`](./harness-module-contract.md) - shared Module
    contract and the four V1 Output capabilities.
-6. [`harness-integration-lifecycle.md`](./harness-integration-lifecycle.md) -
+7. [`harness-integration-lifecycle.md`](./harness-integration-lifecycle.md) -
    plan, approval, apply, check, bootstrap, and upgrade behavior.
-7. [`prelude-rebuild-plan.md`](./prelude-rebuild-plan.md) - released V1 slices
+8. [`prelude-rebuild-plan.md`](./prelude-rebuild-plan.md) - released V1 slices
    and cross-repository acceptance gates.
-8. [`adr/`](./adr/) - accepted architectural decisions.
-9. [`architecture-review.md`](./architecture-review.md) - pressure-test result
+9. [`adr/`](./adr/) - accepted architectural decisions.
+10. [`architecture-review.md`](./architecture-review.md) - pressure-test result
    and retained risks.
-10. [`architecture-handoff.md`](./architecture-handoff.md) - compact continuation
+11. [`architecture-handoff.md`](./architecture-handoff.md) - compact continuation
    entry point for the implementation lead.
 
 The V1-named documents remain useful released-baseline evidence. Where they
@@ -50,7 +53,7 @@ conflict, the V2 contract at item 2 has authority.
 V2 Gate 1 is complete only when isolated single-package and pnpm-workspace
 Targets select and run real packed Prelude and Effect Harness Artifacts.
 It closed on 2026-07-14 through the release-level cross-repository Gate and is
-published as Prelude `0.4.0`, Contract `0.2.2`, Effect Harness `0.2.1`, and
+published as Prelude `0.4.0`, Contract `0.2.2`, Effect Harness `0.3.0`, and
 Partita `0.2.2`.
 
 ```text

@@ -6,6 +6,11 @@ amended: 2026-07-12
 
 # Coarse authoritative surfaces need no applied state directory
 
+> V2 successor: `.prelude/` now contains committed config and Integration
+> Workspaces (`managed/`, `repos/`, and Target-owned `feedback/`). The invariant
+> retained from this ADR is the absence of runtime receipts, manifests,
+> journals, bases, or applied state. See the active V2 Contract.
+
 Selected Harness Artifacts and Integration config are the complete current desired truth. Prelude does not persist previous bases, receipts, drift history, seed handoffs, ownership transitions, or a managed output inventory.
 
 A Managed Tree is the primary V1 authority unit. It references one static directory inside the selected Harness Artifact and one exclusive target root. Prelude compares tree digests, stages the complete Artifact tree, and replaces the target root as a unit. It does not model per-file add, replace, delete, rename, retirement, or handoff semantics inside that tree. File-level path and text differences are display evidence only.
