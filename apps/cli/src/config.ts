@@ -11,7 +11,7 @@ const CONFIG_RELATIVE_PATH = '.prelude/config.jsonc'
 const CONFIG_SCHEMA_VERSION = 2
 
 export function encodeIntegrationId(integrationId: string): string {
-  return `i-${encodeURIComponent(integrationId)}`
+  return encodeURIComponent(integrationId)
 }
 
 export function integrationWorkspaceRelativePath(integrationId: string): string {

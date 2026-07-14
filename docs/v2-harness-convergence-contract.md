@@ -34,7 +34,8 @@ are normalized, confined beneath the Control Root, must contain `package.json`,
 and must not traverse symbolic links.
 
 Each Integration owns `.prelude/<encoded-id>/`, where the exact Prelude-owned
-encoding is `i-` followed by JavaScript `encodeURIComponent(id)`. The direct
+encoding is JavaScript `encodeURIComponent(id)` with no host-added prefix. An
+Integration whose id is `effect` therefore owns `.prelude/effect/`. The direct
 sibling zones are:
 
 - `managed/`, converged from Harness Outputs;

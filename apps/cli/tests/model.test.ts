@@ -15,8 +15,8 @@ function plan(overrides: Partial<Omit<PlanDocument, 'executionHash'>> = {}): Omi
     schemaVersion: 2,
     executionHashVersion: 2,
     controlRoot: '.',
-    integrations: [{ integrationId: 'alpha', packageRoots: ['.'], integrationWorkspace: '.prelude/i-alpha', module: '@synthetic/alpha/prelude', descriptor: { harnessId: 'alpha', protocolVersion: 2, requiredFeatures: [] }, artifact, plan: { outputs: [declaration], requirements: [], issues: [], checks: [] } }],
-    outputs: [{ owner, declaration, resolvedPath: '.prelude/i-alpha/managed/alpha', status: 'change', currentHash: 'current', desiredHash: 'desired', evidence: ['display one'] }],
+    integrations: [{ integrationId: 'alpha', packageRoots: ['.'], integrationWorkspace: '.prelude/alpha', module: '@synthetic/alpha/prelude', descriptor: { harnessId: 'alpha', protocolVersion: 2, requiredFeatures: [] }, artifact, plan: { outputs: [declaration], requirements: [], issues: [], checks: [] } }],
+    outputs: [{ owner, declaration, resolvedPath: '.prelude/alpha/managed/alpha', status: 'change', currentHash: 'current', desiredHash: 'desired', evidence: ['display one'] }],
     requirements: [],
     issues: [{ owner: { integrationId: 'alpha', declarationId: 'issue' }, declaration: { id: 'issue', summary: 'display summary', detail: 'display detail' } }],
     checks: [],
@@ -56,7 +56,7 @@ describe('V2 public plan encoding', () => {
     expect(executionHash(plan({ outputs: [{ ...original.outputs[0]!, declaration: { ...declaration, locator: { root: 'ControlRoot', path: 'managed/alpha' } } }] }))).not.toBe(executionHash(original))
     expect(executionHash(plan({ integrations: [{ ...original.integrations[0]!, artifact: { ...artifact, resolutionId: 'lock-b' } }] }))).not.toBe(executionHash(original))
     expect(executionHash(plan({ integrations: [{ ...original.integrations[0]!, packageRoots: ['.', 'packages/api'] }] }))).not.toBe(executionHash(original))
-    expect(executionHash(plan({ integrations: [{ ...original.integrations[0]!, integrationWorkspace: '.prelude/i-renamed' }] }))).not.toBe(executionHash(original))
+    expect(executionHash(plan({ integrations: [{ ...original.integrations[0]!, integrationWorkspace: '.prelude/renamed' }] }))).not.toBe(executionHash(original))
     expect(executionHash(plan({ issues: [{ ...original.issues[0]!, declaration: { id: 'issue', summary: 'changed declaration' } }] }))).not.toBe(executionHash(original))
   }))
 

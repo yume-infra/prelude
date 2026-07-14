@@ -10,12 +10,12 @@ const keyed: Extract<Output, { kind: 'JsonKeyedItem' }> = { kind: 'JsonKeyedItem
 
 describe('JSON authority composition', () => {
   it.effect('rejects every physical alias that enters or contains a Target-owned feedback zone', () => Effect.sync(() => {
-    const workspaces = ['.prelude/i-effect', '.prelude/i-psychogram']
-    expect(outputOverlapsFeedbackZone('.prelude/i-effect/feedback/notes.md', workspaces)).toBe(true)
-    expect(outputOverlapsFeedbackZone('.prelude/i-effect', workspaces)).toBe(true)
+    const workspaces = ['.prelude/effect', '.prelude/psychogram']
+    expect(outputOverlapsFeedbackZone('.prelude/effect/feedback/notes.md', workspaces)).toBe(true)
+    expect(outputOverlapsFeedbackZone('.prelude/effect', workspaces)).toBe(true)
     expect(outputOverlapsFeedbackZone('.prelude', workspaces)).toBe(true)
-    expect(outputOverlapsFeedbackZone('.prelude/i-effect/managed', workspaces)).toBe(false)
-    expect(outputOverlapsFeedbackZone('.prelude/i-effect/repos', workspaces)).toBe(false)
+    expect(outputOverlapsFeedbackZone('.prelude/effect/managed', workspaces)).toBe(false)
+    expect(outputOverlapsFeedbackZone('.prelude/effect/repos', workspaces)).toBe(false)
   }))
 
   it.effect('rejects JsonValue and JsonKeyedItem equal or ancestor authority in either order', () => Effect.sync(() => {

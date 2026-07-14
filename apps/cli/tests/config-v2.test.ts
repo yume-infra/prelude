@@ -53,8 +53,9 @@ describe('V2 Control Root and Integration configuration', () => {
   })
 
   it.effect('generates stable reversible cross-platform workspace segments', () => Effect.sync(() => {
-    expect(encodeIntegrationId('effect:workspace')).toBe('i-effect%3Aworkspace')
-    expect(encodeIntegrationId('effect/workspace')).toBe('i-effect%2Fworkspace')
-    expect(decodeURIComponent(encodeIntegrationId('effect/workspace').slice(2))).toBe('effect/workspace')
+    expect(encodeIntegrationId('effect')).toBe('effect')
+    expect(encodeIntegrationId('effect:workspace')).toBe('effect%3Aworkspace')
+    expect(encodeIntegrationId('effect/workspace')).toBe('effect%2Fworkspace')
+    expect(decodeURIComponent(encodeIntegrationId('effect/workspace'))).toBe('effect/workspace')
   }))
 })

@@ -107,8 +107,8 @@ async function assertAbsent(path: string) {
 
 async function runGate(name: 'single' | 'monorepo', packageRoots: ReadonlyArray<string>, integrationId: string) {
   const target = join(runRoot, name)
-  await mkdir(join(target, '.prelude', `i-${encodeURIComponent(integrationId)}`, 'feedback'), { recursive: true })
-  const integrationWorkspacePath = join(target, '.prelude', `i-${encodeURIComponent(integrationId)}`)
+  await mkdir(join(target, '.prelude', encodeURIComponent(integrationId), 'feedback'), { recursive: true })
+  const integrationWorkspacePath = join(target, '.prelude', encodeURIComponent(integrationId))
   await rm(join(integrationWorkspacePath, 'managed'), { recursive: true, force: true })
   await rm(join(integrationWorkspacePath, 'repos'), { recursive: true, force: true })
   for (const entry of await readdir(integrationWorkspacePath)) {
@@ -127,7 +127,7 @@ async function runGate(name: 'single' | 'monorepo', packageRoots: ReadonlyArray<
   else {
     for (const packageRoot of packageRoots) await writeSelectedPackage(join(target, packageRoot), `effect-gate-${packageRoot.replaceAll('/', '-')}`)
   }
-  const workspace = `.prelude/i-${encodeURIComponent(integrationId)}`
+  const workspace = `.prelude/${encodeURIComponent(integrationId)}`
   const feedback = join(target, workspace, 'feedback/evidence.md')
   await writeFile(feedback, 'target-owned Gate evidence\n')
   await writeFile(join(target, '.prelude/config.jsonc'), `// packed Effect Harness Gate\n{ "schemaVersion": 2, "integrations": [{ "id": ${JSON.stringify(integrationId)}, "module": "@sayoriqwq/effect-harness/prelude", "packageRoots": ${JSON.stringify(packageRoots)} }] }\n`)
