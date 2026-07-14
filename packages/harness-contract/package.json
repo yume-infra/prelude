@@ -1,7 +1,7 @@
 {
   "name": "@sayoriqwq/prelude-contract",
   "type": "module",
-  "version": "0.2.1",
+  "version": "0.2.2",
   "description": "Effect Schema-backed contract for Prelude Harness Modules",
   "author": "sayoriqwq",
   "license": "ISC",
