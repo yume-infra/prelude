@@ -1,7 +1,7 @@
 {
   "name": "@sayoriqwq/prelude",
   "type": "module",
-  "version": "0.3.0",
+  "version": "0.4.0",
   "description": "Effect v4 multi-Harness convergence host for pnpm targets",
   "author": "sayoriqwq",
   "license": "ISC",
