@@ -39,20 +39,25 @@
   },
   "scripts": {
     "build": "tsdown --config tsdown.config.ts",
-    "typecheck": "node ../../scripts/run-tsgo.mjs --noEmit --project tsconfig.json",
+    "typecheck": "node --experimental-strip-types ../../tooling/run-tsgo.ts --noEmit --project tsconfig.json",
     "typecheck:tsc": "tsc -p tsconfig.json --noEmit",
     "test": "pnpm build && vitest run",
+    "lint": "eslint .",
+    "verify": "pnpm build && pnpm typecheck && pnpm test && pnpm lint --max-warnings 0",
     "prepack": "pnpm build"
   },
   "peerDependencies": {
     "effect": "4.0.0-beta.97"
   },
   "devDependencies": {
+    "@antfu/eslint-config": "catalog:",
+    "@effect/platform-node": "catalog:",
     "@effect/tsgo": "catalog:",
     "@effect/vitest": "catalog:",
     "@types/node": "catalog:",
     "@typescript/native": "catalog:",
     "effect": "catalog:",
+    "eslint": "catalog:",
     "tsdown": "catalog:",
     "typescript": "catalog:",
     "vitest": "catalog:"

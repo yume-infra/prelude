@@ -12,6 +12,7 @@ import { compareLockSelection, evaluateRequirementSelection, inspectLockSelectio
 import { discoverControlRoot, loadPreludeConfig } from './config.js'
 import { errorMessage, preludeError } from './errors.js'
 import { assertNoSymlinkSegments, assertTargetWritePath, noFollowStat, readOptionalText, resolveWithin, scanTree } from './filesystem.js'
+import { decodeJson } from './json.js'
 import { compareText, EXECUTION_HASH_VERSION, executionHash, ownerKey, PLAN_SCHEMA_VERSION, sha256, stableJson } from './model.js'
 import { loadIntegration } from './module-loader.js'
 
@@ -79,6 +80,15 @@ export function applyJsonOutput(source: string, output: JsonValue | JsonKeyedIte
   return applyEdits(source, modify(source, [...collectionPath, -1], output.item, { formattingOptions, isArrayInsertion: true }))
 }
 
+function applyBoundedOutput(source: string, output: ManagedBlock | JsonValue | JsonKeyedItem, path: string): { readonly desired: string } | { readonly error: unknown } {
+  try {
+    return { desired: output.kind === 'ManagedBlock' ? applyBlock(source, output) : applyJsonOutput(source, output, path) }
+  }
+  catch (error) {
+    return { error }
+  }
+}
+
 export function detectOutputConflicts(declarations: ReadonlyArray<Output>): ReadonlyArray<{ readonly kind: Conflict['kind'] }> {
   const conflicts: Array<{ readonly kind: Conflict['kind'] }> = []
   for (let index = 0; index < declarations.length; index++) {
@@ -110,7 +120,7 @@ function resolveOutputLocator(controlRoot: string, integration: LoadedIntegratio
   return Effect.gen(function* () {
     const path = yield* Path.Path
     if (locator.root === 'PackageRoot' && !integration.config.packageRoots.includes(locator.packageRoot))
-      return yield* Effect.fail(preludeError('planning', 'Output Package Root is not approved for this Integration', locator.packageRoot))
+      return yield* preludeError('planning', 'Output Package Root is not approved for this Integration', locator.packageRoot)
     const baseRelative = locator.root === 'ControlRoot' ? '.' : locator.root === 'IntegrationWorkspace' ? integration.integrationWorkspace : locator.packageRoot
     const base = yield* resolveWithin(controlRoot, baseRelative, 'planning'); const targetPath = yield* resolveWithin(base, locator.path, 'planning'); yield* assertTargetWritePath(controlRoot, targetPath)
     const relative = path.relative(controlRoot, targetPath); const resolvedPath = relative.split(path.sep).join('/')
@@ -128,9 +138,9 @@ export function loadPinnedReferenceTreeArchive(
     yield* assertNoSymlinkSegments(artifactRoot, archivePath, 'planning')
     const archiveInfo = yield* noFollowStat(archivePath, 'planning')
     if (!archiveInfo.isFile())
-      return yield* Effect.fail(preludeError('planning', `PinnedReferenceTree ${declaration.id} archive must be an ordinary Artifact file`, archivePath))
+      return yield* preludeError('planning', `PinnedReferenceTree ${declaration.id} archive must be an ordinary Artifact file`, archivePath)
     if (archiveInfo.size > CANONICAL_TREE_ARCHIVE_LIMITS.maxArchiveBytes)
-      return yield* Effect.fail(preludeError('planning', `PinnedReferenceTree ${declaration.id} archive exceeds the protocol size limit`, String(archiveInfo.size)))
+      return yield* preludeError('planning', `PinnedReferenceTree ${declaration.id} archive exceeds the protocol size limit`, String(archiveInfo.size))
 
     const bytes = yield* fs.readFile(archivePath).pipe(
       Effect.mapError(error => preludeError('planning', `Cannot read PinnedReferenceTree ${declaration.id} archive`, errorMessage(error))),
@@ -141,9 +151,9 @@ export function loadPinnedReferenceTreeArchive(
     })
 
     if (archive.format !== declaration.archive.format)
-      return yield* Effect.fail(preludeError('planning', `PinnedReferenceTree ${declaration.id} archive format does not match its declaration`, `${archive.format} != ${declaration.archive.format}`))
+      return yield* preludeError('planning', `PinnedReferenceTree ${declaration.id} archive format does not match its declaration`, `${archive.format} != ${declaration.archive.format}`)
     if (archive.treeDigest !== declaration.provenance.treeDigest)
-      return yield* Effect.fail(preludeError('planning', `PinnedReferenceTree ${declaration.id} archive does not match packed provenance`, `${archive.treeDigest} != ${declaration.provenance.treeDigest}`))
+      return yield* preludeError('planning', `PinnedReferenceTree ${declaration.id} archive does not match packed provenance`, `${archive.treeDigest} != ${declaration.provenance.treeDigest}`)
 
     return archive
   })
@@ -175,7 +185,7 @@ function findInstalledPackage(
 function requirementResult(controlRoot: string, owner: Owner, requirement: PackageRequirement): Effect.Effect<RequirementResult, PreludeError, FileSystem.FileSystem | Path.Path> {
   return Effect.gen(function* () {
     const fs = yield* FileSystem.FileSystem; const path = yield* Path.Path; const importer = requirement.packageRoot === '.' ? controlRoot : path.join(controlRoot, requirement.packageRoot)
-    const manifestSource = yield* fs.readFileString(path.join(importer, 'package.json')); const manifest = JSON.parse(manifestSource) as Record<string, Record<string, string> | undefined>; const directDeclaration = manifest[requirement.section]?.[requirement.packageName]
+    const manifestSource = yield* fs.readFileString(path.join(importer, 'package.json')); const manifest = decodeJson(manifestSource) as Record<string, Record<string, string> | undefined>; const directDeclaration = manifest[requirement.section]?.[requirement.packageName]
     const lockSource = yield* fs.readFileString(path.join(controlRoot, 'pnpm-lock.yaml')); const selected = inspectLockSelection({ lockSource, importer: requirement.packageRoot, section: requirement.section, packageName: requirement.packageName })
     const selectedVersionMatches = selected.selectedVersion === undefined || semver.satisfies(selected.selectedVersion, requirement.range)
     const selectionSatisfied = directDeclaration !== undefined && selected.version !== undefined && (selected.specifier ?? directDeclaration) === directDeclaration && selectedVersionMatches
@@ -183,9 +193,9 @@ function requirementResult(controlRoot: string, owner: Owner, requirement: Packa
     const installedPackage = yield* findInstalledPackage(controlRoot, importer, requirement.packageName)
     if (installedPackage !== undefined) {
       const installed = yield* Effect.try({
-        try: () => JSON.parse(installedPackage.manifestSource) as { name?: string, version?: string },
+        try: () => decodeJson(installedPackage.manifestSource) as { name?: string, version?: string },
         catch: () => undefined,
-      }).pipe(Effect.catch(() => Effect.succeed(undefined)))
+      }).pipe(Effect.orElseSucceed(() => undefined))
       installedVersion = installed?.version
       installedName = installed?.name
     }
@@ -197,7 +207,7 @@ function requirementResult(controlRoot: string, owner: Owner, requirement: Packa
         fs.realPath(installedPackage.root),
       ]).pipe(
         Effect.map(([selectedRealPath, installedRealPath]) => selectedRealPath === installedRealPath),
-        Effect.catch(() => Effect.succeed(false)),
+        Effect.orElseSucceed(() => false),
       )
     }
     else if (linkedPath !== undefined) {
@@ -214,11 +224,11 @@ export function planConvergence(start: string): Effect.Effect<PlannedConvergence
     for (const integration of loaded) {
       for (const requirement of integration.plan.requirements) {
         if (!integration.config.packageRoots.includes(requirement.packageRoot))
-          return yield* Effect.fail(preludeError('planning', `Requirement ${requirement.id} uses an unapproved Package Root`, requirement.packageRoot)); yield* resolveWithin(controlRoot, requirement.packageRoot, 'planning')
+          return yield* preludeError('planning', `Requirement ${requirement.id} uses an unapproved Package Root`, requirement.packageRoot); yield* resolveWithin(controlRoot, requirement.packageRoot, 'planning')
       }
       for (const check of integration.plan.checks) {
         if (!integration.config.packageRoots.includes(check.packageRoot))
-          return yield* Effect.fail(preludeError('planning', `Check ${check.id} uses an unapproved Package Root`, check.packageRoot)); yield* resolveWithin(controlRoot, check.packageRoot, 'planning')
+          return yield* preludeError('planning', `Check ${check.id} uses an unapproved Package Root`, check.packageRoot); yield* resolveWithin(controlRoot, check.packageRoot, 'planning')
       }
     }
     const integrations: Array<IntegrationPlan> = loaded.map(item => ({ integrationId: item.config.id, packageRoots: item.config.packageRoots, integrationWorkspace: item.integrationWorkspace, module: item.config.module, descriptor: item.descriptor, artifact: item.artifact, plan: item.plan }))
@@ -228,7 +238,7 @@ export function planConvergence(start: string): Effect.Effect<PlannedConvergence
       for (const declaration of integration.plan.outputs) {
         const owner = { integrationId: integration.config.id, declarationId: declaration.id }; const resolved = yield* resolveOutputLocator(controlRoot, integration, declaration.locator)
         if (outputOverlapsFeedbackZone(resolved.resolvedPath, integrationWorkspaces))
-          return yield* Effect.fail(preludeError('planning', `Output ${declaration.id} overlaps a Target-owned feedback zone`, resolved.resolvedPath))
+          return yield* preludeError('planning', `Output ${declaration.id} overlaps a Target-owned feedback zone`, resolved.resolvedPath)
         owned.push({ owner, declaration, integration, ...resolved })
       }
     }
@@ -264,7 +274,7 @@ export function planConvergence(start: string): Effect.Effect<PlannedConvergence
           yield* assertNoSymlinkSegments(item.integration.artifactRoot, sourcePath, 'planning')
           const desired = yield* scanTree(sourcePath, 'planning', { allowHardLinks: true })
           if (desired.rootKind !== 'directory')
-            return yield* Effect.fail(preludeError('planning', `ManagedTree ${item.declaration.id} sourceRoot must be a complete directory`, sourcePath))
+            return yield* preludeError('planning', `ManagedTree ${item.declaration.id} sourceRoot must be a complete directory`, sourcePath)
           const current = yield* scanTree(item.targetPath, 'planning')
           const changed = desired.digest !== current.digest
           outputs.push({ owner: item.owner, declaration: item.declaration, resolvedPath: item.resolvedPath, status: changed ? 'change' : 'converged', currentHash: current.digest, desiredHash: desired.digest, evidence: [changed ? 'managed tree differs' : 'managed tree converged'] })
@@ -280,8 +290,11 @@ export function planConvergence(start: string): Effect.Effect<PlannedConvergence
       }
       else {
         let state = files.get(item.targetPath); if (state === undefined) { const source = (yield* readOptionalText(item.targetPath, 'planning')) ?? (item.declaration.kind === 'ManagedBlock' ? '' : '{}\n'); state = { source, desired: source, owners: [] }; files.set(item.targetPath, state) }
-        try { state.desired = item.declaration.kind === 'ManagedBlock' ? applyBlock(state.desired, item.declaration) : applyJsonOutput(state.desired, item.declaration, item.resolvedPath) }
-        catch (error) { conflicts.push({ kind: 'invalidCurrentState', owners: [item.owner], summary: errorMessage(error) }) }
+        const applied = applyBoundedOutput(state.desired, item.declaration, item.resolvedPath)
+        if ('desired' in applied)
+          state.desired = applied.desired
+        else
+          conflicts.push({ kind: 'invalidCurrentState', owners: [item.owner], summary: errorMessage(applied.error) })
         state.owners.push(item.owner); outputs.push({ owner: item.owner, declaration: item.declaration, resolvedPath: item.resolvedPath, status: state.source === state.desired ? 'converged' : 'change', currentHash: sha256(state.source), desiredHash: sha256(state.desired), evidence: [state.source === state.desired ? 'bounded output converged' : 'bounded output differs'] })
       }
     }

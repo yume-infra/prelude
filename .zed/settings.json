@@ -60,13 +60,10 @@
       "initialization_options": {
         "preferences": {
           "autoImportFileExcludePatterns": [
-            "repos/**"
+            ".prelude/**/repos/**"
           ]
         }
       }
     }
-  },
-  "file_scan_exclusions": [
-    "repos/**"
-  ]
+  }
 }

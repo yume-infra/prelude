@@ -1,5 +1,6 @@
 {
   "name": "prelude-workspace",
+  "type": "module",
   "private": true,
   "packageManager": "pnpm@10.33.4",
   "engines": {
@@ -11,8 +12,8 @@
     "clean": "turbo run clean && rm -rf node_modules",
     "verify": "pnpm verify:code",
     "verify:code": "pnpm build && pnpm typecheck && pnpm -r --if-present test && pnpm lint --max-warnings 0 && pnpm knip",
-    "smoke:installed": "pnpm --filter @sayoriqwq/prelude smoke:installed",
-    "smoke:packed-effect": "pnpm --filter @sayoriqwq/prelude smoke:packed-effect",
+    "acceptance:installed": "pnpm --filter @sayoriqwq/prelude-contract build && pnpm --filter @sayoriqwq/prelude build && node --experimental-strip-types apps/cli/tests/acceptance/installed-tracer.ts",
+    "acceptance:packed-effect": "node --experimental-strip-types apps/cli/tests/acceptance/packed-effect-gate.ts",
     "deps:check": "taze -r",
     "deps:check:all": "taze -r --all",
     "deps:fresh": "taze minor -r -w -i --maturity-period 7",
@@ -24,34 +25,38 @@
     "unlink": "pnpm --filter @sayoriqwq/prelude unlink --global",
     "changeset": "changeset",
     "version-packages": "changeset version",
-    "release": "pnpm verify && pnpm smoke:installed && changeset publish",
+    "release": "pnpm verify && pnpm acceptance:installed && changeset publish",
     "lint": "eslint",
     "lint:fix": "eslint --fix",
     "prepare": "effect-tsgo patch",
     "knip": "knip --exclude duplicates --no-config-hints",
-    "typecheck": "pnpm -r --if-present typecheck",
-    "typecheck:tsc": "pnpm -r --if-present typecheck:tsc"
+    "typecheck": "pnpm typecheck:root && pnpm -r --if-present typecheck",
+    "typecheck:root": "node --experimental-strip-types tooling/run-tsgo.ts --noEmit --project tsconfig.json",
+    "typecheck:tsc": "tsc -p tsconfig.json --noEmit && pnpm -r --if-present typecheck:tsc"
   },
   "dependencies": {
-    "@effect/platform-node": "4.0.0-beta.97",
-    "effect": "4.0.0-beta.97"
+    "@effect/platform-node": "catalog:",
+    "effect": "catalog:"
   },
   "devDependencies": {
-    "@antfu/eslint-config": "^9.0.0",
+    "@antfu/eslint-config": "catalog:",
     "@changesets/cli": "catalog:",
     "@commitlint/cli": "catalog:",
     "@commitlint/config-conventional": "catalog:",
-    "@effect/language-service": "0.86.6",
-    "@effect/tsgo": "0.19.0",
-    "@effect/vitest": "4.0.0-beta.97",
+    "@effect/language-service": "catalog:",
+    "@effect/tsgo": "catalog:",
+    "@effect/vitest": "catalog:",
+    "@sayoriqwq/effect-harness": "catalog:",
+    "@sayoriqwq/prelude": "workspace:^",
     "@types/node": "catalog:",
     "@typescript/native": "catalog:",
-    "eslint": "^10.3.0",
+    "eslint": "catalog:",
     "husky": "catalog:",
     "knip": "catalog:",
     "lint-staged": "catalog:",
     "taze": "catalog:",
     "turbo": "catalog:",
-    "typescript": "catalog:"
+    "typescript": "catalog:",
+    "vitest": "catalog:"
   }
 }

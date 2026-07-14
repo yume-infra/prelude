@@ -11,7 +11,7 @@ const CONFIG_RELATIVE_PATH = '.prelude/config.jsonc'
 const CONFIG_SCHEMA_VERSION = 2
 
 export function encodeIntegrationId(integrationId: string): string {
-  return `i-${encodeURIComponent(integrationId)}`
+  return encodeURIComponent(integrationId)
 }
 
 export function integrationWorkspaceRelativePath(integrationId: string): string {
@@ -80,7 +80,7 @@ export function discoverControlRoot(start: string): Effect.Effect<string, Prelud
 
       const parent = path.dirname(current)
       if (parent === current)
-        return yield* Effect.fail(preludeError('config', `Cannot find nearest ${CONFIG_RELATIVE_PATH}`, start))
+        return yield* preludeError('config', `Cannot find nearest ${CONFIG_RELATIVE_PATH}`, start)
       current = parent
     }
   })
@@ -99,7 +99,7 @@ export function loadPreludeConfig(controlRoot: string): Effect.Effect<PreludeCon
     const value: unknown = parse(source, errors, { allowTrailingComma: true, disallowComments: false })
 
     if (errors.length > 0)
-      return yield* Effect.fail(preludeError('config', `Invalid ${CONFIG_RELATIVE_PATH}`, formatParseErrors(errors)))
+      return yield* preludeError('config', `Invalid ${CONFIG_RELATIVE_PATH}`, formatParseErrors(errors))
 
     const decoded = yield* decodePreludeConfig(value).pipe(
       Effect.mapError(error => preludeError('config', `Invalid ${CONFIG_RELATIVE_PATH}`, errorMessage(error))),

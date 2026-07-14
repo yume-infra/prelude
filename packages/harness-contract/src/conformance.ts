@@ -38,7 +38,7 @@ export const validModulePlanFixture = decodeModulePlan({
       id: 'agent-routing',
       locator: { root: 'ControlRoot', path: 'AGENTS.md' },
       blockId: 'reference-routing',
-      content: 'Read .prelude/i-fixture/managed/AGENTS.md.',
+      content: 'Read .prelude/fixture/managed/AGENTS.md.',
     },
     {
       kind: 'JsonValue',

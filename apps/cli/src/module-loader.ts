@@ -27,6 +27,7 @@ import { linkedSelectionPath, selectRootArtifact } from './artifact-selection.js
 import { integrationWorkspaceRelativePath } from './config.js'
 import { errorMessage, preludeError, PreludeError } from './errors.js'
 import { assertNoSymlinkSegments, noFollowEntryKind, resolveWithin } from './filesystem.js'
+import { decodeJson, encodeJson } from './json.js'
 
 export interface LoadedIntegration {
   readonly config: IntegrationConfig
@@ -108,7 +109,7 @@ function resolveObservationLocator(
         ? integrationWorkspace
         : locator.packageRoot
     if (locator.root === 'PackageRoot' && !packageRoots.includes(locator.packageRoot))
-      return yield* Effect.fail(preludeError('planning', 'Observation Package Root is not approved for this Integration', locator.packageRoot))
+      return yield* preludeError('planning', 'Observation Package Root is not approved for this Integration', locator.packageRoot)
     const base = yield* resolveWithin(controlRoot, baseRelative, 'planning')
     const absolute = yield* resolveWithin(base, locator.path, 'planning')
     yield* assertNoSymlinkSegments(controlRoot, absolute, 'planning')
@@ -157,9 +158,9 @@ export function readonlyTarget(
     const locator: ObservationLocator = { root: 'PackageRoot', packageRoot, path: 'package.json' }
     return readText(locator).pipe(
       Effect.flatMap(source => source === undefined
-        ? Effect.succeed(undefined)
+        ? Effect.sync(() => undefined)
         : Effect.try({
-            try: () => JSON.parse(source) as Schema.JsonObject,
+            try: () => decodeJson(source) as Schema.JsonObject,
             catch: error => targetObservationError('readPackageManifest', locator, error),
           })),
     )
@@ -174,15 +175,15 @@ export function loadIntegration(controlRoot: string, config: IntegrationConfig):
     const manifestSource = yield* fs.readFileString(path.join(controlRoot, 'package.json')).pipe(
       Effect.mapError(error => preludeError('artifact', 'Cannot read Control Root package.json', errorMessage(error))),
     )
-    const manifest = yield* Effect.try({ try: () => JSON.parse(manifestSource) as Record<string, unknown>, catch: error => preludeError('artifact', 'Invalid Control Root package.json', errorMessage(error)) })
+    const manifest = yield* Effect.try({ try: () => decodeJson(manifestSource) as Record<string, unknown>, catch: error => preludeError('artifact', 'Invalid Control Root package.json', errorMessage(error)) })
     const name = packageName(config.module)
     if (typeof (manifest.devDependencies as Record<string, unknown> | undefined)?.[name] !== 'string')
-      return yield* Effect.fail(preludeError('artifact', 'Harness Artifact must be a direct root devDependencies entry', name))
+      return yield* preludeError('artifact', 'Harness Artifact must be a direct root devDependencies entry', name)
     for (const packageRoot of config.packageRoots) {
       const root = yield* resolveWithin(controlRoot, packageRoot, 'config')
       yield* assertNoSymlinkSegments(controlRoot, root, 'config')
       if (!(yield* fs.exists(path.join(root, 'package.json'))))
-        return yield* Effect.fail(preludeError('config', 'Approved Package Root has no package.json', packageRoot))
+        return yield* preludeError('config', 'Approved Package Root has no package.json', packageRoot)
     }
     const lockSource = yield* fs.readFileString(path.join(controlRoot, 'pnpm-lock.yaml')).pipe(Effect.mapError(error => preludeError('artifact', 'Control Root pnpm-lock.yaml is required', errorMessage(error))))
     const installedLockSource = yield* fs.readFileString(path.join(controlRoot, 'node_modules/.pnpm/lock.yaml')).pipe(Effect.mapError(error => preludeError('artifact', 'Installed pnpm lock evidence is required', errorMessage(error))))
@@ -196,7 +197,7 @@ export function loadIntegration(controlRoot: string, config: IntegrationConfig):
       const selectedRealPath = yield* fs.realPath(path.resolve(controlRoot, linkedPath)).pipe(Effect.mapError(error => preludeError('artifact', `Cannot resolve linked Artifact ${name}`, errorMessage(error))))
       const installedRealPath = yield* fs.realPath(artifactRoot).pipe(Effect.mapError(error => preludeError('artifact', `Cannot resolve installed Artifact ${name}`, errorMessage(error))))
       if (selectedRealPath !== installedRealPath)
-        return yield* Effect.fail(preludeError('artifact', `Installed linked Artifact does not match selected path for ${name}`))
+        return yield* preludeError('artifact', `Installed linked Artifact does not match selected path for ${name}`)
     }
     const installedPrelude = yield* findPackageManifest(fileURLToPath(import.meta.url), '@sayoriqwq/prelude')
     yield* Effect.try({ try: () => selectRootArtifact({ manifestSource, lockSource, installedLockSource, packageName: '@sayoriqwq/prelude', installedManifestSource: installedPrelude.source }), catch: error => preludeError('artifact', 'Prelude selection does not match the root lockfile', errorMessage(error)) })
@@ -205,13 +206,13 @@ export function loadIntegration(controlRoot: string, config: IntegrationConfig):
     const imported = yield* Effect.tryPromise({ try: () => import(entryUrl), catch: error => preludeError('artifact', `Cannot import ${config.module}`, errorMessage(error)) })
     const candidate: unknown = imported.harnessModule
     if (candidate === null || typeof candidate !== 'object' || typeof (candidate as { plan?: unknown }).plan !== 'function')
-      return yield* Effect.fail(preludeError('artifact', `${config.module} must export named harnessModule`))
+      return yield* preludeError('artifact', `${config.module} must export named harnessModule`)
     const module = candidate as HarnessModule<PreludeError>
     const descriptor = yield* Effect.try({ try: () => decodeHarnessModuleDescriptor(module.descriptor), catch: error => preludeError('artifact', 'Malformed Harness Module descriptor', errorMessage(error)) })
     const host = { supportedProtocolVersions: [MODULE_PROTOCOL_V2] as [number], supportedFeatures: [...PRELUDE_V2_SUPPORTED_FEATURES] }
     const compatibility = checkProtocolCompatibility(descriptor, host)
     if (!compatibility.compatible)
-      return yield* Effect.fail(preludeError('artifact', 'Unsupported Harness Module protocol or required features', JSON.stringify(compatibility)))
+      return yield* preludeError('artifact', 'Unsupported Harness Module protocol or required features', encodeJson(compatibility))
     const artifact: ArtifactIdentity = { packageName: name, packageVersion: selected.packageVersion, module: config.module, resolutionId: selected.resolutionId }
     const integrationWorkspace = integrationWorkspaceRelativePath(config.id)
     const context: HarnessModuleContext = {
@@ -236,13 +237,13 @@ function findPackageManifest(start: string, expectedName: string): Effect.Effect
       const candidatePath = path.join(current, 'package.json')
       if (yield* fs.exists(candidatePath)) {
         const source = yield* fs.readFileString(candidatePath)
-        const packageManifest = JSON.parse(source) as { name?: unknown }
+        const packageManifest = decodeJson(source) as { name?: unknown }
         if (packageManifest.name === expectedName)
           return { root: current, source }
       }
       const parent = path.dirname(current)
       if (parent === current)
-        return yield* Effect.fail(preludeError('artifact', `Cannot locate installed package identity for ${expectedName}`))
+        return yield* preludeError('artifact', `Cannot locate installed package identity for ${expectedName}`)
       current = parent
     }
   }).pipe(Effect.mapError(error => Schema.is(PreludeError)(error) ? error : preludeError('artifact', `Cannot inspect installed package ${expectedName}`, errorMessage(error))))

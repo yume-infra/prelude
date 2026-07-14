@@ -14,8 +14,8 @@
         "name": "@effect/language-service",
         "diagnostics": true,
         "includeSuggestionsInTsc": true,
-        "ignoreEffectSuggestionsInTscExitCode": true,
-        "ignoreEffectWarningsInTscExitCode": true,
+        "ignoreEffectSuggestionsInTscExitCode": false,
+        "ignoreEffectWarningsInTscExitCode": false,
         "ignoreEffectErrorsInTscExitCode": false,
         "diagnosticSeverity": {
           "anyUnknownInErrorContext": "error",
@@ -93,7 +93,9 @@
           "unnecessaryPipe": "suggestion",
           "unnecessaryPipeChain": "suggestion",
           "unnecessaryTypeofType": "suggestion",
-          "unsafeEffectTypeAssertion": "warning"
+          "unsafeEffectTypeAssertion": "warning",
+          "catchToIgnore": "suggestion",
+          "flatMapToMap": "suggestion"
         },
         "barrelImportPackages": [
           "effect"

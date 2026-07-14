@@ -63,7 +63,12 @@ export function inspectLockSelection(input: {
 export function evaluateRequirementSelection(input: { readonly range: string, readonly packageName?: string | undefined, readonly installedName?: string | undefined, readonly directSpecifier?: string | undefined, readonly lockSpecifier?: string | undefined, readonly lockVersion?: string | undefined, readonly installedLockVersion?: string | undefined, readonly installedVersion?: string | undefined, readonly lockIdentityMatches?: boolean | undefined }): { readonly satisfied: boolean } {
   if (input.directSpecifier === undefined || input.lockVersion === undefined || input.installedVersion === undefined)
     return { satisfied: false }
-  const aliasSpecifier = input.directSpecifier.startsWith('npm:') ? input.directSpecifier.slice('npm:'.length) : undefined
+  const aliasSource = input.directSpecifier.startsWith('npm:')
+    ? input.directSpecifier
+    : input.range.startsWith('npm:')
+      ? input.range
+      : undefined
+  const aliasSpecifier = aliasSource?.slice('npm:'.length)
   const aliasTarget = aliasSpecifier?.replace(/@[^@]+$/, '')
   const effectiveRange = aliasSpecifier === undefined ? input.range : aliasSpecifier.slice(aliasTarget!.length + 1)
   if (semver.valid(input.installedVersion) === null || !semver.satisfies(input.installedVersion, effectiveRange))

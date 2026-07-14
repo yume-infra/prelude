@@ -100,3 +100,9 @@ Repo-local agent configuration lives under `docs/agents/`.
 - Use the default triage labels: `needs-triage`, `needs-info`,
   `ready-for-agent`, `ready-for-human`, and `wontfix`.
 - Domain reading starts at `docs/README.md`.
+
+<!-- prelude:effect-harness-routing:start -->
+## Effect Harness
+
+For Effect application, test, package, TypeScript, editor, or lint changes, read the current Effect integration's `.prelude/**/managed/docs/index.md` first. Use `.prelude/**/managed/skills/adapt-effect-target/SKILL.md` when package selection or target-owned TypeScript topology needs adaptation. Keep `.prelude/**/feedback/**` target-owned. Treat `.prelude/**/repos/**` as read-only source diagnostics: consult it when installed declarations and managed guidance are insufficient, but never import or edit it.
+<!-- prelude:effect-harness-routing:end -->

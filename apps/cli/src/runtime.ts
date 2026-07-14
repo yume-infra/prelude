@@ -9,6 +9,7 @@ import { discoverControlRoot } from './config.js'
 import { planConvergence, resolveCheckRoot } from './convergence.js'
 import { errorMessage, preludeError } from './errors.js'
 import { assertTargetWritePath, publishFile, replaceTree, replaceTreeFromArchive } from './filesystem.js'
+import { encodeJson } from './json.js'
 
 function withWriteBoundary<A, E, R>(controlRoot: string, effect: Effect.Effect<A, E, R>) {
   return Effect.acquireUseRelease(
@@ -18,7 +19,7 @@ function withWriteBoundary<A, E, R>(controlRoot: string, effect: Effect.Effect<A
       return lock
     }),
     () => effect,
-    lock => Effect.gen(function* () { const fs = yield* FileSystem.FileSystem; yield* fs.remove(lock, { recursive: true, force: true }).pipe(Effect.catch(() => Effect.void)) }),
+    lock => Effect.gen(function* () { const fs = yield* FileSystem.FileSystem; yield* fs.remove(lock, { recursive: true, force: true }).pipe(Effect.ignore) }),
   )
 }
 
@@ -55,13 +56,13 @@ function runPnpm(controlRoot: string, args: ReadonlyArray<string>, failureSummar
       Effect.mapError(error => preludeError('apply', `${failureSummary} or timed out`, errorMessage(error))),
     )
     if (result.exitCode !== 0) {
-      return yield* Effect.fail(preludeError('apply', failureSummary, JSON.stringify({
+      return yield* preludeError('apply', failureSummary, encodeJson({
         argv: ['pnpm', ...args],
         cwd: controlRoot,
         exitCode: result.exitCode,
         stdout: decodeChildOutput(result.stdout),
         stderr: decodeChildOutput(result.stderr),
-      })))
+      }))
     }
   })
 }
@@ -86,9 +87,9 @@ export function applyConvergence(start: string, approvedHash: string) {
     return yield* withWriteBoundary(controlRoot, Effect.gen(function* () {
       const planned = yield* planConvergence(controlRoot)
       if (planned.document.executionHash !== approvedHash)
-        return yield* Effect.fail(preludeError('apply', 'Approved execution hash does not match current Target state', `approved=${approvedHash} current=${planned.document.executionHash}`))
+        return yield* preludeError('apply', 'Approved execution hash does not match current Target state', `approved=${approvedHash} current=${planned.document.executionHash}`)
       if (planned.document.blocked)
-        return yield* Effect.fail(preludeError('apply', 'Plan is blocked', planned.document.executionHash))
+        return yield* preludeError('apply', 'Plan is blocked', planned.document.executionHash)
       let published = 0
       for (const operation of planned.operations) {
         if (!operation.changed)
@@ -119,7 +120,7 @@ export function checkConvergence(start: string, childStdout: 'inherit' | 'ignore
   return Effect.scoped(Effect.gen(function* () {
     const before = yield* planConvergence(start); const controlRoot = before.controlRoot
     if (!before.document.converged)
-      return yield* Effect.fail(preludeError('check', 'Target is not a Converged Integration', before.document.executionHash))
+      return yield* preludeError('check', 'Target is not a Converged Integration', before.document.executionHash)
     const results: Array<{ integrationId: string, checkId: string, exitCode: number | null, error?: string }> = []
     for (const owned of before.document.checks) {
       const [command, ...args] = owned.declaration.argv; const cwd = yield* resolveCheckRoot(controlRoot, owned.declaration)
@@ -128,10 +129,10 @@ export function checkConvergence(start: string, childStdout: 'inherit' | 'ignore
     }
     const finalPlan = yield* Effect.result(planConvergence(controlRoot))
     if (Result.isFailure(finalPlan))
-      return yield* Effect.fail(preludeError('check', 'Checks completed but final replan failed', JSON.stringify({ checks: results, replanError: errorMessage(finalPlan.failure) })))
+      return yield* preludeError('check', 'Checks completed but final replan failed', encodeJson({ checks: results, replanError: errorMessage(finalPlan.failure) }))
     const after = finalPlan.success; const changed = !after.document.converged
     if (changed || results.some(result => result.exitCode !== 0))
-      return yield* Effect.fail(preludeError('check', changed ? 'Checks failed or changed managed or blocking Target state' : 'One or more checks failed', JSON.stringify({ checks: results, finalPlanHash: after.document.executionHash, converged: !changed })))
+      return yield* preludeError('check', changed ? 'Checks failed or changed managed or blocking Target state' : 'One or more checks failed', encodeJson({ checks: results, finalPlanHash: after.document.executionHash, converged: !changed }))
     return { checks: results, plan: after.document }
   }))
 }

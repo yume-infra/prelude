@@ -3,6 +3,9 @@
   "tags": [
     "-lintignore"
   ],
+  "ignore": [
+    ".prelude/**/repos/**"
+  ],
   "ignoreDependencies": [
     "@effect/platform-node",
     "@effect/tsgo",
@@ -16,8 +19,15 @@
   ],
   "workspaces": {
     ".": {
+      "entry": [
+        "tooling/**/*.ts"
+      ],
+      "ignoreDependencies": [
+        "@sayoriqwq/prelude"
+      ],
       "project": [
-        "*.{js,mjs,cjs,ts}"
+        "*.{js,mjs,cjs,ts}",
+        "tooling/**/*.ts"
       ]
     },
     "apps/cli": {
@@ -28,6 +38,9 @@
         "*.config.ts",
         "src/**/*.ts",
         "tests/**/*.ts"
+      ],
+      "ignoreDependencies": [
+        "@antfu/eslint-config"
       ]
     },
     "packages/harness-contract": {
@@ -40,6 +53,9 @@
         "*.config.ts",
         "src/**/*.ts",
         "tests/**/*.ts"
+      ],
+      "ignoreDependencies": [
+        "@antfu/eslint-config"
       ]
     }
   }

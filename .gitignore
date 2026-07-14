@@ -43,6 +43,3 @@ vendor/
 coverage/
 .cache/
 tmp/
-
-# Generated CLI example projects
-apps/examples/.generated/
