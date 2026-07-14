@@ -79,6 +79,15 @@ The Effect Schema-backed, published package
 `@sayoriqwq/prelude-contract`. It defines plain JSON-compatible Module and Plan
 data. It contains no target mutation or Harness domain policy.
 
+### Source Pin And Publication
+
+A Source Pin is a producer-maintained, Git-index-authoritative snapshot of one
+outer repository layer. A publication is the deterministic canonical tree
+archive plus provenance JSON derived from one verified Source Pin. Prelude
+Contract owns their shared archive and digest protocol; Partita is the generic
+producer; a Harness composes concrete publication identity and Target policy;
+Prelude consumes the declaration without becoming a Git or Source Pin owner.
+
 ### Output
 
 A current declaration of Harness authority. V2 has five Output capabilities:

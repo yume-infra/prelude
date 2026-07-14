@@ -24,7 +24,8 @@ models, manifests, tests, or TUI code.
 
 1. [`CONTEXT.md`](./CONTEXT.md) - domain language and ownership boundaries.
 2. [`v2-harness-convergence-contract.md`](./v2-harness-convergence-contract.md)
-   - authoritative V2 Contract, host lifecycle, tree framing, and Gate 1 seam.
+   - authoritative V2 Module/host lifecycle and Gate 1 seam; canonical tree
+     archive framing is normative in the Contract package README linked there.
 3. [`harness-convergence-goal.md`](./harness-convergence-goal.md) - north star,
    V1 outcome, scope, and non-goals.
 4. [`multi-harness-convergence-architecture.md`](./multi-harness-convergence-architecture.md)
@@ -48,8 +49,9 @@ conflict, the V2 contract at item 2 has authority.
 
 V2 Gate 1 is complete only when isolated single-package and pnpm-workspace
 Targets select and run real packed Prelude and Effect Harness Artifacts.
-It closed on 2026-07-14 through `pnpm acceptance:packed-effect`, using packed
-Prelude `0.3.0`, Contract `0.2.0`, and Effect Harness `0.2.0` Artifacts.
+It closed on 2026-07-14 through the release-level cross-repository Gate and is
+published as Prelude `0.4.0`, Contract `0.2.2`, Effect Harness `0.2.1`, and
+Partita `0.2.2`.
 
 ```text
 root package.json + pnpm-lock.yaml
@@ -66,6 +68,12 @@ root package.json + pnpm-lock.yaml
 The shared package `@sayoriqwq/prelude-contract` is the only integration seam.
 Prelude does not know Effect or Psychogram domain semantics, and Harnesses do
 not write active managed surfaces directly.
+
+For reference publications, the authority chain is [Prelude Contract's
+canonical protocol](../packages/harness-contract/README.md#canonical-tree-archive-protocol)
+→ [Partita producer](https://github.com/sayoriqwq/partita#pins) → [Effect
+Harness composer](https://github.com/sayoriqwq/effect-harness/blob/main/HARNESS.md)
+→ [Prelude consumer](./v2-harness-convergence-contract.md#pinned-reference-trees).
 
 V2 implements only:
 
