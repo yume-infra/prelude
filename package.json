@@ -46,7 +46,7 @@
     "@effect/language-service": "catalog:",
     "@effect/tsgo": "catalog:",
     "@effect/vitest": "catalog:",
-    "@sayoriqwq/effect-harness": "file:tmp/gate-input/sayoriqwq-effect-harness-0.2.0.tgz",
+    "@sayoriqwq/effect-harness": "catalog:",
     "@sayoriqwq/prelude": "workspace:^",
     "@types/node": "catalog:",
     "@typescript/native": "catalog:",

@@ -30,6 +30,9 @@ catalogs:
     '@effect/vitest':
       specifier: 4.0.0-beta.97
       version: 4.0.0-beta.97
+    '@sayoriqwq/effect-harness':
+      specifier: 0.2.0
+      version: 0.2.0
     '@types/node':
       specifier: 25.6.0
       version: 25.6.0
@@ -118,8 +121,8 @@ importers:
         specifier: 'catalog:'
         version: 4.0.0-beta.97(effect@4.0.0-beta.97)(vitest@4.1.9(@types/node@25.6.0)(vite@8.1.2(@types/node@25.6.0)(esbuild@0.28.1)(jiti@2.7.0)(tsx@4.22.4)(yaml@2.9.0)))
       '@sayoriqwq/effect-harness':
-        specifier: file:tmp/gate-input/sayoriqwq-effect-harness-0.2.0.tgz
-        version: file:tmp/gate-input/sayoriqwq-effect-harness-0.2.0.tgz
+        specifier: 'catalog:'
+        version: 0.2.0
       '@sayoriqwq/prelude':
         specifier: workspace:^
         version: link:apps/cli
@@ -1388,9 +1391,8 @@ packages:
   '@rolldown/pluginutils@1.0.1':
     resolution: {integrity: sha512-2j9bGt5Jh8hj+vPtgzPtl72j0yRxHAyumoo6TNfAjsLB04UtpSvPbPcDcBMxz7n+9CYB0c1GxQFxYRg2jimqGw==}
 
-  '@sayoriqwq/effect-harness@file:tmp/gate-input/sayoriqwq-effect-harness-0.2.0.tgz':
-    resolution: {integrity: sha512-fF3qU4SZcd/kRECX/arDLpo29IyWwLW5B1/S2t5METkn+QXc4JIKXSG5dS4Gv78cEMMuQnk90nWN2PnPPtfkaQ==, tarball: file:tmp/gate-input/sayoriqwq-effect-harness-0.2.0.tgz}
-    version: 0.2.0
+  '@sayoriqwq/effect-harness@0.2.0':
+    resolution: {integrity: sha512-wy3g7LdLVAyAsgwbW9I+4wAT/7Z3iTvsjM43vp9PuewGvlL5VYqvIcmtmfDdDOuHUsT5kTV+FBMCZlOp2us4GQ==}
     engines: {node: '>=22.22.1'}
 
   '@sayoriqwq/prelude-contract@0.2.0':
@@ -4739,7 +4741,7 @@ snapshots:
 
   '@rolldown/pluginutils@1.0.1': {}
 
-  '@sayoriqwq/effect-harness@file:tmp/gate-input/sayoriqwq-effect-harness-0.2.0.tgz':
+  '@sayoriqwq/effect-harness@0.2.0':
     dependencies:
       '@sayoriqwq/prelude-contract': 0.2.0(effect@4.0.0-beta.97)
       effect: 4.0.0-beta.97
