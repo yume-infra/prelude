@@ -2,7 +2,7 @@
 audience: [agent, human]
 purpose: Define the accepted Prelude V1 system architecture.
 status: active
-updated: 2026-07-12
+updated: 2026-07-15
 ---
 
 # Multi-Harness Convergence Architecture

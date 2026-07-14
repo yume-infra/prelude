@@ -1,7 +1,7 @@
 ---
 status: accepted
 date: 2026-07-10
-amended: 2026-07-12
+amended: 2026-07-15
 ---
 
 # Use static JSONC integration config

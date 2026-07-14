@@ -2,7 +2,7 @@
 audience: [agent, human]
 purpose: Define plan, approval, apply, check, bootstrap, and upgrade behavior.
 status: active
-updated: 2026-07-12
+updated: 2026-07-15
 ---
 
 # Harness Integration Lifecycle

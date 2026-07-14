@@ -1,10 +1,16 @@
 ---
 status: accepted
 date: 2026-07-10
-amended: 2026-07-12
+amended: 2026-07-15
 ---
 
 # Prelude is the target mutation host
+
+> Ownership successor: ADR-0018 preserves Prelude as the only materialization
+> host for active Harness-owned Outputs, while assigning explicitly authorized
+> domain-specific Target Adaptation after Control Handoff to a
+> Harness-delivered skill. The exclusive skill ownership language below is V1
+> historical rationale.
 
 Multiple real Harnesses already exist: `effect-harness` and `psychogram`. We decided that Harness Artifacts remain independently versioned, inspectable, testable, and able to calculate target-aware plans, while normal materialization for active Integrations is coordinated by Prelude. Direct per-Harness mutators were rejected because they cannot provide global ownership checks, deterministic ordering, one visible update plan, or coordinated verification when Integrations share target surfaces.
 

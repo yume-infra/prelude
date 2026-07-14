@@ -1,7 +1,7 @@
 ---
 status: accepted
 date: 2026-07-10
-amended: 2026-07-12
+amended: 2026-07-15
 ---
 
 # Keep executable config outside the V1 Output contract

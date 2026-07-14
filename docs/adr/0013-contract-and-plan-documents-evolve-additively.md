@@ -1,7 +1,7 @@
 ---
 status: accepted
 date: 2026-07-12
-amended: 2026-07-12
+amended: 2026-07-15
 ---
 
 # Module and Plan contracts evolve additively

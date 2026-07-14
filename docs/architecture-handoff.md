@@ -2,7 +2,7 @@
 audience: [agent, human]
 purpose: Hand off the accepted Prelude V1 baseline to the implementation lead.
 status: active
-updated: 2026-07-14
+updated: 2026-07-15
 ---
 
 # Architecture Handoff

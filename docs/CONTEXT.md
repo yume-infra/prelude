@@ -2,7 +2,7 @@
 audience: [agent, human]
 purpose: Define Prelude's active domain language.
 status: active
-updated: 2026-07-13
+updated: 2026-07-15
 ---
 
 # Domain Context

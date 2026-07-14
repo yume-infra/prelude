@@ -4,7 +4,7 @@ authors: [codex]
 reviewed_by: [sayori]
 purpose: Define the authoritative Prelude V2 knowledge set and reading order.
 status: active
-updated: 2026-07-13
+updated: 2026-07-15
 ---
 
 # Prelude Docs
