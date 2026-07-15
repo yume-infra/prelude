@@ -138,13 +138,23 @@ const program = Effect.scoped(Effect.gen(function* () {
     })
   })
 
-  const installTarget = (root: string) => runProcess('pnpm', ['install', '--no-frozen-lockfile', '--prefer-offline', '--reporter', 'append-only'], {
+  const targetTrustPolicyArguments = [
+    '--trust-policy-exclude',
+    'effect@4.0.0-beta.97',
+    '--trust-policy-exclude',
+    '@effect/platform-node@4.0.0-beta.97',
+    '--trust-policy-exclude',
+    '@effect/platform-node-shared@4.0.0-beta.97',
+  ]
+  const installTargetArguments = ['install', '--no-frozen-lockfile', '--prefer-offline', '--reporter', 'append-only', ...targetTrustPolicyArguments]
+  const bootstrapInstallTargetArguments = ['install', '--ignore-scripts', '--no-frozen-lockfile', '--prefer-offline', '--reporter', 'append-only', ...targetTrustPolicyArguments]
+  const installTarget = (root: string) => runProcess('pnpm', installTargetArguments, {
     cwd: root,
     env: { CI: '1', INIT_CWD: root, PNPM_PACKAGE_NAME: undefined, npm_command: undefined, npm_config_dir: undefined, npm_config_filter: undefined, npm_config_recursive: undefined, npm_config_workspace_dir: undefined },
     inherit: true,
     timeout: '5 minutes',
   })
-  const bootstrapInstallTarget = (root: string) => runProcess('pnpm', ['install', '--ignore-scripts', '--no-frozen-lockfile', '--prefer-offline', '--reporter', 'append-only'], {
+  const bootstrapInstallTarget = (root: string) => runProcess('pnpm', bootstrapInstallTargetArguments, {
     cwd: root,
     env: { CI: '1', INIT_CWD: root, PNPM_PACKAGE_NAME: undefined, npm_command: undefined, npm_config_dir: undefined, npm_config_filter: undefined, npm_config_recursive: undefined, npm_config_workspace_dir: undefined },
     inherit: true,
@@ -343,15 +353,17 @@ const program = Effect.scoped(Effect.gen(function* () {
         plan: preparedPlan,
         targetRoot: target,
         commands: [
-          { phase: 'bootstrap', argv: ['pnpm', 'install', '--ignore-scripts', '--no-frozen-lockfile'] },
+          { phase: 'bootstrap', argv: ['pnpm', ...bootstrapInstallTargetArguments] },
           { phase: 'prepare', argv: [cli, 'plan', '--json'] },
           { phase: 'apply', argv: [cli, 'apply', '--plan-hash', preparedPlan.executionHash, '--json'] },
           { phase: 'verify', argv: ['pnpm', 'verify:code'] },
           { phase: 'verify', argv: ['pnpm', 'verify:integration'] },
           { phase: 'verify', argv: ['pnpm', 'verify'] },
           { phase: 'apply', argv: [cli, 'apply', '--plan-hash', '<fresh-managed-drift-executionHash>', '--json'] },
+          { phase: 'apply', argv: ['pnpm', ...installTargetArguments] },
           { phase: 'apply', argv: [cli, 'apply', '--plan-hash', '<fresh-artifact-upgrade-executionHash>', '--json'] },
           { phase: 'apply', argv: [cli, 'apply', '--plan-hash', '<fresh-pinned-reference-drift-executionHash>', '--json'] },
+          { phase: 'apply', argv: ['pnpm', ...installTargetArguments] },
         ],
       })
       const evidencePath = join(runRoot, `${name}.prepare.json`)
