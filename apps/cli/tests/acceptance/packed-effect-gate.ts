@@ -272,41 +272,55 @@ const program = Effect.scoped(Effect.gen(function* () {
 
   const runGate = Effect.fn(function* (name: 'single' | 'monorepo', packageRoots: ReadonlyArray<string>, integrationId: string) {
     const target = join(runRoot, name)
-    const integrationWorkspacePath = join(target, '.prelude', encodeURIComponent(integrationId))
-    yield* fs.makeDirectory(join(integrationWorkspacePath, 'feedback'), { recursive: true })
-    yield* fs.remove(join(integrationWorkspacePath, 'managed'), { recursive: true, force: true })
-    yield* fs.remove(join(integrationWorkspacePath, 'repos'), { recursive: true, force: true })
-    for (const entry of yield* fs.readDirectory(integrationWorkspacePath)) {
-      if (entry.startsWith('.managed.prelude-') || entry.startsWith('.effect.prelude-') || entry.startsWith('.tsgo.prelude-'))
-        yield* fs.remove(join(integrationWorkspacePath, entry), { recursive: true, force: true })
-    }
-    yield* json(join(target, 'package.json'), targetRootManifest(name, cliTar, contractTar, legacyHarnessTar))
-    yield* fs.writeFileString(join(target, 'eslint.config.mjs'), targetOwnedEslintConfig)
-    yield* fs.writeFileString(join(target, 'pnpm-workspace.yaml'), `packages:\n  - packages/*\ndedupeDirectDeps: false\npackageImportMethod: copy\noverrides:\n  '@effect/platform-node@4.0.0-beta.97>@effect/platform-node-shared': '4.0.0-beta.97'\ntrustPolicy: no-downgrade\ntrustPolicyExclude:\n  - effect@4.0.0-beta.97\n  - '@effect/platform-node@4.0.0-beta.97'\n  - '@effect/platform-node-shared@4.0.0-beta.97'\n  - '@effect/vitest@4.0.0-beta.97'\n`)
-    if (packageRoots.includes('.')) {
-      yield* fs.makeDirectory(join(target, 'src'), { recursive: true })
-      yield* fs.writeFileString(join(target, 'src/index.ts'), source)
-      yield* fs.writeFileString(join(target, 'src/approved-exception.ts'), approvedSuppressionSource)
-      yield* json(join(target, 'tsconfig.json'), {
-        compilerOptions: { useUnknownInCatchVariables: true },
-        include: ['src/**/*.ts'],
-      })
-    }
-    else {
-      yield* Effect.forEach(packageRoots, packageRoot => writeSelectedPackage(join(target, packageRoot), `effect-gate-${packageRoot.replaceAll('/', '-')}`), { discard: true })
-      yield* json(join(target, 'tsconfig.web.json'), { compilerOptions: { jsx: 'react-jsx' } })
-      yield* json(join(target, 'tsconfig.core.json'), { compilerOptions: { noImplicitOverride: true } })
-    }
     const workspace = `.prelude/${encodeURIComponent(integrationId)}`
     const feedback = join(target, workspace, 'feedback/evidence.md')
     const controlHandoff = join(target, workspace, 'feedback/control-handoff.json')
-    yield* fs.writeFileString(feedback, 'target-owned Gate evidence\n')
-    yield* fs.writeFileString(join(target, '.prelude/config.jsonc'), `// packed Effect Harness Gate\n{ "schemaVersion": 2, "integrations": [{ "id": ${encodeJson(integrationId)}, "module": "@sayoriqwq/effect-harness/prelude", "packageRoots": ${encodeJson(packageRoots)} }] }\n`)
     const cli = join(target, 'node_modules/.bin/prelude')
     const cliRun = (args: ReadonlyArray<string>, cwd = target, reject = true) => runProcess(cli, args, { cwd, reject, env: { CI: '1' }, timeout: '120 seconds' })
     const targetRun = (command: string, args: ReadonlyArray<string>, reject = true) => runProcess(command, args, { cwd: target, reject, env: { CI: '1' }, timeout: '120 seconds' })
+    let authorization: ReturnType<typeof authorizePreparedPlan> | undefined
+
+    if (phase === 'apply') {
+      const evidencePath = join(runRoot, `${name}.prepare.json`)
+      const evidence = parseJson(yield* fs.readFileString(evidencePath))
+      const mappedApproval = approvalMap[name]
+      authorization = authorizePreparedPlan(
+        evidence as Parameters<typeof authorizePreparedPlan>[0],
+        mappedApproval?.planHash ?? approvedPlanHash,
+        mappedApproval?.targetRoot ?? approvedTargetRoot,
+      )
+      const preparedPlan = parseJson((yield* cliRun(['plan', '--json'])).stdout)
+      assert.equal(preparedPlan.executionHash, authorization.planHash, `${name}: current plan must equal the approved PREPARE hash`)
+    }
 
     if (phase === 'prepare') {
+      const integrationWorkspacePath = join(target, '.prelude', encodeURIComponent(integrationId))
+      yield* fs.makeDirectory(join(integrationWorkspacePath, 'feedback'), { recursive: true })
+      yield* fs.remove(join(integrationWorkspacePath, 'managed'), { recursive: true, force: true })
+      yield* fs.remove(join(integrationWorkspacePath, 'repos'), { recursive: true, force: true })
+      for (const entry of yield* fs.readDirectory(integrationWorkspacePath)) {
+        if (entry.startsWith('.managed.prelude-') || entry.startsWith('.effect.prelude-') || entry.startsWith('.tsgo.prelude-'))
+          yield* fs.remove(join(integrationWorkspacePath, entry), { recursive: true, force: true })
+      }
+      yield* json(join(target, 'package.json'), targetRootManifest(name, cliTar, contractTar, legacyHarnessTar))
+      yield* fs.writeFileString(join(target, 'eslint.config.mjs'), targetOwnedEslintConfig)
+      yield* fs.writeFileString(join(target, 'pnpm-workspace.yaml'), `packages:\n  - packages/*\ndedupeDirectDeps: false\npackageImportMethod: copy\noverrides:\n  '@effect/platform-node@4.0.0-beta.97>@effect/platform-node-shared': '4.0.0-beta.97'\ntrustPolicy: no-downgrade\ntrustPolicyExclude:\n  - effect@4.0.0-beta.97\n  - '@effect/platform-node@4.0.0-beta.97'\n  - '@effect/platform-node-shared@4.0.0-beta.97'\n  - '@effect/vitest@4.0.0-beta.97'\n`)
+      if (packageRoots.includes('.')) {
+        yield* fs.makeDirectory(join(target, 'src'), { recursive: true })
+        yield* fs.writeFileString(join(target, 'src/index.ts'), source)
+        yield* fs.writeFileString(join(target, 'src/approved-exception.ts'), approvedSuppressionSource)
+        yield* json(join(target, 'tsconfig.json'), {
+          compilerOptions: { useUnknownInCatchVariables: true },
+          include: ['src/**/*.ts'],
+        })
+      }
+      else {
+        yield* Effect.forEach(packageRoots, packageRoot => writeSelectedPackage(join(target, packageRoot), `effect-gate-${packageRoot.replaceAll('/', '-')}`), { discard: true })
+        yield* json(join(target, 'tsconfig.web.json'), { compilerOptions: { jsx: 'react-jsx' } })
+        yield* json(join(target, 'tsconfig.core.json'), { compilerOptions: { noImplicitOverride: true } })
+      }
+      yield* fs.writeFileString(feedback, 'target-owned Gate evidence\n')
+      yield* fs.writeFileString(join(target, '.prelude/config.jsonc'), `// packed Effect Harness Gate\n{ "schemaVersion": 2, "integrations": [{ "id": ${encodeJson(integrationId)}, "module": "@sayoriqwq/effect-harness/prelude", "packageRoots": ${encodeJson(packageRoots)} }] }\n`)
       yield* bootstrapInstallTarget(target)
       const preparedResult = yield* cliRun(['plan', '--json'])
       const preparedPlan = parseJson(preparedResult.stdout)
@@ -323,17 +337,8 @@ const program = Effect.scoped(Effect.gen(function* () {
       yield* Console.log(`PREPARE ${name}: target=${target} planHash=${evidence.planHash} evidence=${evidencePath}`)
       return
     }
-
-    const evidencePath = join(runRoot, `${name}.prepare.json`)
-    const evidence = parseJson(yield* fs.readFileString(evidencePath))
-    const mappedApproval = approvalMap[name]
-    const authorization = authorizePreparedPlan(
-      evidence as Parameters<typeof authorizePreparedPlan>[0],
-      mappedApproval?.planHash ?? approvedPlanHash,
-      mappedApproval?.targetRoot ?? approvedTargetRoot,
-    )
-    const preparedPlan = parseJson((yield* cliRun(['plan', '--json'])).stdout)
-    assert.equal(preparedPlan.executionHash, authorization.planHash, `${name}: current plan must equal the approved PREPARE hash`)
+    if (authorization === undefined)
+      return yield* new AcceptanceError({ message: `${name}: APPLY authorization was not established` })
 
     const dependencyGraph = decodeJson((yield* runProcess('pnpm', ['list', '@sayoriqwq/prelude-contract', '--depth', 'Infinity', '--json'], { cwd: target })).stdout) as ReadonlyArray<Json>
     const contractInstances = new Map<string, string>()
@@ -398,7 +403,7 @@ const program = Effect.scoped(Effect.gen(function* () {
     assert.equal(yield* fs.readFileString(feedback), 'target-owned Gate evidence\n')
 
     yield* fs.remove(join(target, 'AGENTS.md'), { force: true })
-    const approved = phase === 'apply' ? { executionHash: authorization.planHash } : parseJson((yield* cliRun(['plan', '--json'])).stdout)
+    const approved = { executionHash: authorization.planHash }
     const applied = parseJson((yield* cliRun(['apply', '--plan-hash', approved.executionHash, '--json'])).stdout)
     assert.equal(applied.converged, true)
     assert.equal(applied.remaining, 0)
