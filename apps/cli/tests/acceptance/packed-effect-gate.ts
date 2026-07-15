@@ -349,9 +349,9 @@ const program = Effect.scoped(Effect.gen(function* () {
           { phase: 'verify', argv: ['pnpm', 'verify:code'] },
           { phase: 'verify', argv: ['pnpm', 'verify:integration'] },
           { phase: 'verify', argv: ['pnpm', 'verify'] },
-          { phase: 'apply', argv: ['REQUIRES_EXACT_PLAN_APPROVAL', 'managed-drift-repair'] },
-          { phase: 'apply', argv: ['REQUIRES_EXACT_PLAN_APPROVAL', 'artifact-upgrade-repair'] },
-          { phase: 'apply', argv: ['REQUIRES_EXACT_PLAN_APPROVAL', 'pinned-reference-drift-repair'] },
+          { phase: 'apply', argv: [cli, 'apply', '--plan-hash', '<fresh-managed-drift-executionHash>', '--json'] },
+          { phase: 'apply', argv: [cli, 'apply', '--plan-hash', '<fresh-artifact-upgrade-executionHash>', '--json'] },
+          { phase: 'apply', argv: [cli, 'apply', '--plan-hash', '<fresh-pinned-reference-drift-executionHash>', '--json'] },
         ],
       })
       const evidencePath = join(runRoot, `${name}.prepare.json`)
@@ -361,8 +361,6 @@ const program = Effect.scoped(Effect.gen(function* () {
     }
     if (authorization === undefined)
       return yield* new AcceptanceError({ message: `${name}: APPLY authorization was not established` })
-    const gateApproval = approvalMap[name]
-
     const dependencyGraph = decodeJson((yield* runProcess('pnpm', ['list', '@sayoriqwq/prelude-contract', '--depth', 'Infinity', '--json'], { cwd: target })).stdout) as ReadonlyArray<Json>
     const contractInstances = new Map<string, string>()
     const visitDependencies = (node: Json): void => {
@@ -448,7 +446,9 @@ const program = Effect.scoped(Effect.gen(function* () {
     assert.equal(convergedIntegration.exitCode, 0)
     assert.equal(convergedAggregate.exitCode, 0)
 
+    const managedExtra = join(target, workspace, 'managed/target-residue.txt')
     yield* fs.writeFileString(join(target, workspace, 'managed/data/baseline.json'), 'managed drift\n')
+    yield* fs.writeFileString(managedExtra, 'complete-tree replacement must remove this\n')
     const managedDriftPlan = parseJson((yield* cliRun(['plan', '--json'])).stdout)
     const managedDriftCode = yield* targetRun('pnpm', ['verify:code'], false)
     const managedDriftIntegration = yield* targetRun('pnpm', ['verify:integration'], false)
@@ -462,10 +462,9 @@ const program = Effect.scoped(Effect.gen(function* () {
     const managedDriftFailure = parseJson(managedDriftJson.stdout)
     assert.equal(managedDriftFailure.result, 'error')
     assert.equal(managedDriftFailure.error.plan.executionHash, managedDriftPlan.executionHash)
-    if (gateApproval?.managedDriftPlanHash !== managedDriftPlan.executionHash)
-      return yield* new AcceptanceError({ message: `${name}: managed drift requires a separately approved exact Plan hash ${managedDriftPlan.executionHash}` })
-    const managedRepair = parseJson((yield* cliRun(['apply', '--plan-hash', gateApproval.managedDriftPlanHash, '--json'])).stdout)
+    const managedRepair = parseJson((yield* cliRun(['apply', '--plan-hash', managedDriftPlan.executionHash, '--json'])).stdout)
     assert.equal(managedRepair.converged, true)
+    yield* assertAbsent(managedExtra)
     assert.equal(yield* fs.readFileString(feedback), 'target-owned Gate evidence\n')
 
     const upgradeManifest = parseJson(yield* fs.readFileString(join(target, 'package.json')))
@@ -474,9 +473,7 @@ const program = Effect.scoped(Effect.gen(function* () {
     yield* installTarget(target)
     const upgradePlan = parseJson((yield* cliRun(['plan', '--json'])).stdout)
     assert.equal(upgradePlan.converged, false)
-    if (gateApproval?.upgradePlanHash !== upgradePlan.executionHash)
-      return yield* new AcceptanceError({ message: `${name}: Artifact upgrade requires a separately approved exact Plan hash ${upgradePlan.executionHash}` })
-    const upgraded = parseJson((yield* cliRun(['apply', '--plan-hash', gateApproval.upgradePlanHash, '--json'])).stdout)
+    const upgraded = parseJson((yield* cliRun(['apply', '--plan-hash', upgradePlan.executionHash, '--json'])).stdout)
     assert.equal(upgraded.converged, true)
     assert.equal(yield* fs.readFileString(feedback), 'target-owned Gate evidence\n')
     yield* assertAbsent(join(target, workspace, 'managed/obsolete.txt'))
@@ -599,6 +596,28 @@ const program = Effect.scoped(Effect.gen(function* () {
 
     const tsgoReference = join(target, workspace, 'repos/tsgo')
     const gitmodules = yield* fs.readFileString(join(tsgoReference, '.gitmodules'))
+
+    yield* fs.remove(tsgoReference, { recursive: true })
+    const missingReference = parseJson((yield* cliRun(['plan', '--json'])).stdout)
+    const missingOutput = missingReference.outputs.find((output: Json) => output.declaration.id === 'effect.reference.tsgo')
+    assert.equal(missingOutput.status, 'change')
+    assert.match(missingOutput.evidence.join(' '), /reference drift/)
+    assert.equal((yield* targetRun('pnpm', ['verify:code'], false)).exitCode, 0)
+    assert.notEqual((yield* targetRun('pnpm', ['verify:integration'], false)).exitCode, 0)
+    assert.notEqual((yield* targetRun('pnpm', ['verify'], false)).exitCode, 0)
+    assert.equal(parseJson((yield* cliRun(['apply', '--plan-hash', missingReference.executionHash, '--json'])).stdout).converged, true)
+    assert.equal(yield* fs.readFileString(join(tsgoReference, '.gitmodules')), gitmodules)
+    assert.equal(yield* fs.readFileString(feedback), 'target-owned Gate evidence\n')
+
+    yield* fs.remove(join(tsgoReference, '.gitmodules'))
+    const partialReference = parseJson((yield* cliRun(['plan', '--json'])).stdout)
+    const partialOutput = partialReference.outputs.find((output: Json) => output.declaration.id === 'effect.reference.tsgo')
+    assert.equal(partialOutput.status, 'change')
+    assert.match(partialOutput.evidence.join(' '), /reference drift/)
+    assert.equal(parseJson((yield* cliRun(['apply', '--plan-hash', partialReference.executionHash, '--json'])).stdout).converged, true)
+    assert.equal(yield* fs.readFileString(join(tsgoReference, '.gitmodules')), gitmodules)
+    assert.equal(yield* fs.readFileString(feedback), 'target-owned Gate evidence\n')
+
     yield* fs.makeDirectory(join(tsgoReference, 'typescript-go'))
     yield* fs.writeFileString(join(tsgoReference, 'typescript-go/target-invention'), 'must be removed\n')
     yield* fs.writeFileString(join(tsgoReference, '.gitmodules'), 'target drift\n')
@@ -606,9 +625,7 @@ const program = Effect.scoped(Effect.gen(function* () {
     const drifted = drift.outputs.find((output: Json) => output.declaration.id === 'effect.reference.tsgo')
     assert.equal(drifted.status, 'change')
     assert.match(drifted.evidence.join(' '), /reference drift/)
-    if (gateApproval?.pinnedDriftPlanHash !== drift.executionHash)
-      return yield* new AcceptanceError({ message: `${name}: PinnedReferenceTree drift requires a separately approved exact Plan hash ${drift.executionHash}` })
-    const repaired = parseJson((yield* cliRun(['apply', '--plan-hash', gateApproval.pinnedDriftPlanHash, '--json'])).stdout)
+    const repaired = parseJson((yield* cliRun(['apply', '--plan-hash', drift.executionHash, '--json'])).stdout)
     assert.equal(repaired.converged, true)
     assert.equal(yield* fs.readFileString(join(tsgoReference, '.gitmodules')), gitmodules)
     yield* assertAbsent(join(tsgoReference, 'typescript-go'))
