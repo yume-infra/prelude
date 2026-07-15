@@ -7,7 +7,7 @@ import { Console, Effect, Layer, Result } from 'effect'
 
 import { planConvergence } from './convergence.js'
 import { errorMessage, preludeError } from './errors.js'
-import { makeCheckFailureEnvelope, stableJson } from './model.js'
+import { decodeCheckFailureEnvelope, encodeCheckFailureEnvelope, makeCheckFailureEnvelope, stableJson } from './model.js'
 import { applyConvergence, changedCount, checkConvergence } from './runtime.js'
 
 function usage(): string { return 'Usage: prelude {plan [--json] | apply --plan-hash <sha256> [--json] | check [--json]}' }
@@ -46,8 +46,10 @@ const program = Effect.gen(function* () {
       return yield* preludeError('cli', usage())
     const checked = yield* Effect.result(checkConvergence(controlRoot, json ? 'ignore' : 'inherit'))
     if (Result.isFailure(checked)) {
-      if (json)
-        yield* writeOutput(stableJson(checked.failure.data ?? makeCheckFailureEnvelope({ code: 'check-failed', message: errorMessage(checked.failure) }), true))
+      if (json) {
+        const envelope = decodeCheckFailureEnvelope(checked.failure.data ?? makeCheckFailureEnvelope({ code: 'check-failed', message: errorMessage(checked.failure) }))
+        yield* writeOutput(stableJson(encodeCheckFailureEnvelope(envelope), true))
+      }
       return yield* checked.failure
     }
     const result = checked.success

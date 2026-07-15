@@ -113,52 +113,47 @@ export type PlanDocument = Schema.Schema.Type<typeof PlanDocumentSchema>
 
 const CHECK_RESULT_SCHEMA_VERSION = 1
 
-export interface CheckOutcome {
-  readonly integrationId: string
-  readonly checkId: string
-  readonly exitCode: number | null
-  readonly error?: string
-}
+const CheckOutcomeSchema = Schema.Struct({
+  integrationId: Schema.String,
+  checkId: Schema.String,
+  exitCode: Schema.Union([Schema.Int, Schema.Null]),
+  error: Schema.optionalKey(Schema.String),
+})
 
-type CheckFailureCode = 'non-converged' | 'checks-failed' | 'replan-failed' | 'check-failed'
+export type CheckOutcome = Schema.Schema.Type<typeof CheckOutcomeSchema>
 
-type CheckPlanPhase = 'before-checks' | 'after-checks'
+const CheckFailureEnvelopeSchema = Schema.Struct({
+  schemaVersion: Schema.Literal(CHECK_RESULT_SCHEMA_VERSION),
+  result: Schema.Literal('error'),
+  error: Schema.Struct({
+    code: Schema.Literals(['non-converged', 'checks-failed', 'replan-failed', 'check-failed']),
+    message: Schema.String,
+    plan: Schema.optionalKey(PlanDocumentSchema),
+    planPhase: Schema.optionalKey(Schema.Literals(['before-checks', 'after-checks'])),
+    checks: Schema.optionalKey(Schema.Array(CheckOutcomeSchema)),
+    replanError: Schema.optionalKey(Schema.String),
+  }),
+})
 
-export interface CheckFailureEnvelope {
-  readonly schemaVersion: typeof CHECK_RESULT_SCHEMA_VERSION
-  readonly result: 'error'
-  readonly error: {
-    readonly code: CheckFailureCode
-    readonly message: string
-    readonly plan?: PlanDocument
-    readonly planPhase?: CheckPlanPhase
-    readonly checks?: ReadonlyArray<CheckOutcome>
-    readonly replanError?: string
-  }
-}
+export type CheckFailureEnvelope = Schema.Schema.Type<typeof CheckFailureEnvelopeSchema>
 
-export interface CheckFailureOptions {
-  readonly code: CheckFailureCode
-  readonly message: string
-  readonly plan?: PlanDocument
-  readonly planPhase?: CheckPlanPhase
-  readonly checks?: ReadonlyArray<CheckOutcome>
-  readonly replanError?: string
-}
+export type CheckFailureOptions = CheckFailureEnvelope['error']
+
+export const decodeCheckFailureEnvelope = Schema.decodeUnknownSync(CheckFailureEnvelopeSchema, {
+  errors: 'all',
+  onExcessProperty: 'error',
+})
+
+export const encodeCheckFailureEnvelope = Schema.encodeUnknownSync(CheckFailureEnvelopeSchema)
 
 export function makeCheckFailureEnvelope(options: CheckFailureOptions): CheckFailureEnvelope {
-  return {
+  return decodeCheckFailureEnvelope({
     schemaVersion: CHECK_RESULT_SCHEMA_VERSION,
     result: 'error',
     error: {
-      code: options.code,
-      message: options.message,
-      ...(options.plan === undefined ? {} : { plan: options.plan }),
-      ...(options.planPhase === undefined ? {} : { planPhase: options.planPhase }),
-      ...(options.checks === undefined ? {} : { checks: options.checks }),
-      ...(options.replanError === undefined ? {} : { replanError: options.replanError }),
+      ...options,
     },
-  }
+  })
 }
 
 export function formatCheckFailure(envelope: CheckFailureEnvelope): string {

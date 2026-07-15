@@ -4,7 +4,7 @@ import { describe, expect, it } from '@effect/vitest'
 import { Effect } from 'effect'
 
 import { decodeJson } from '../src/json.js'
-import { decodePlanDocument, executionHash, formatCheckFailure, makeCheckFailureEnvelope, stableJson } from '../src/model.js'
+import { decodeCheckFailureEnvelope, decodePlanDocument, encodeCheckFailureEnvelope, executionHash, formatCheckFailure, makeCheckFailureEnvelope, stableJson } from '../src/model.js'
 
 const artifact = { packageName: '@synthetic/alpha', packageVersion: '1.0.0', module: '@synthetic/alpha/prelude', resolutionId: 'lock-a' }
 const owner = { integrationId: 'alpha', declarationId: 'tree' }
@@ -93,9 +93,11 @@ describe('V2 public plan encoding', () => {
     })
     expect(envelope.schemaVersion).toBe(1)
     expect(envelope.result).toBe('error')
-    expect(envelope.error.plan).toBe(canonical)
+    expect(envelope.error.plan).toStrictEqual(canonical)
     expect(envelope.error.planPhase).toBe('before-checks')
     expect(envelope.error.replanError).toBe('Cannot read target state')
+    expect(decodeCheckFailureEnvelope(encodeCheckFailureEnvelope(envelope))).toEqual(envelope)
+    expect(() => decodeCheckFailureEnvelope({ ...envelope, unsupported: true })).toThrow()
     expect(formatCheckFailure(envelope)).toContain('replanError: Cannot read target state')
     expect(formatCheckFailure(envelope)).not.toContain('finalPlanHash:')
     expect(() => makeCheckFailureEnvelope({ code: 'check-failed', message: 'check failed' })).not.toThrow()
