@@ -4,7 +4,7 @@ import { describe, expect, it } from '@effect/vitest'
 import { Effect } from 'effect'
 
 import { decodeJson } from '../src/json.js'
-import { decodePlanDocument, executionHash, stableJson } from '../src/model.js'
+import { decodePlanDocument, executionHash, formatCheckFailure, makeCheckFailureEnvelope, stableJson } from '../src/model.js'
 
 const artifact = { packageName: '@synthetic/alpha', packageVersion: '1.0.0', module: '@synthetic/alpha/prelude', resolutionId: 'lock-a' }
 const owner = { integrationId: 'alpha', declarationId: 'tree' }
@@ -78,5 +78,26 @@ describe('V2 public plan encoding', () => {
     expect(executionHash(plan({ requirements: [{ ...requirement, manifestHash: 'c'.repeat(64) }], checks: [check] }))).not.toBe(executionHash(selected))
     expect(executionHash(plan({ requirements: [{ ...requirement, lockfileHash: 'd'.repeat(64) }], checks: [check] }))).not.toBe(executionHash(selected))
     expect(executionHash(plan({ requirements: [requirement], checks: [{ ...check, declaration: { ...check.declaration, argv: ['pnpm', 'test'] } }] }))).not.toBe(executionHash(selected))
+  }))
+
+  it.effect('centralizes the versioned check failure envelope around the canonical Plan', () => Effect.sync(() => {
+    const base = plan()
+    const canonical = { ...base, executionHash: executionHash(base) }
+    const envelope = makeCheckFailureEnvelope({
+      code: 'replan-failed',
+      message: 'Checks completed but final replan failed',
+      plan: canonical,
+      planPhase: 'before-checks',
+      checks: [{ integrationId: 'alpha', checkId: 'verify', exitCode: 0 }],
+      replanError: 'Cannot read target state',
+    })
+    expect(envelope.schemaVersion).toBe(1)
+    expect(envelope.result).toBe('error')
+    expect(envelope.error.plan).toBe(canonical)
+    expect(envelope.error.planPhase).toBe('before-checks')
+    expect(envelope.error.replanError).toBe('Cannot read target state')
+    expect(formatCheckFailure(envelope)).toContain('replanError: Cannot read target state')
+    expect(formatCheckFailure(envelope)).not.toContain('finalPlanHash:')
+    expect(() => makeCheckFailureEnvelope({ code: 'check-failed', message: 'check failed' })).not.toThrow()
   }))
 })

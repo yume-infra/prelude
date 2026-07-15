@@ -3,11 +3,11 @@
 import process from 'node:process'
 
 import { NodeRuntime, NodeServices } from '@effect/platform-node'
-import { Console, Effect, Layer } from 'effect'
+import { Console, Effect, Layer, Result } from 'effect'
 
 import { planConvergence } from './convergence.js'
 import { errorMessage, preludeError } from './errors.js'
-import { stableJson } from './model.js'
+import { makeCheckFailureEnvelope, stableJson } from './model.js'
 import { applyConvergence, changedCount, checkConvergence } from './runtime.js'
 
 function usage(): string { return 'Usage: prelude {plan [--json] | apply --plan-hash <sha256> [--json] | check [--json]}' }
@@ -44,7 +44,13 @@ const program = Effect.gen(function* () {
   if (command === 'check') {
     if (args.some(arg => arg !== 'check' && arg !== '--json'))
       return yield* preludeError('cli', usage())
-    const result = yield* checkConvergence(controlRoot, json ? 'ignore' : 'inherit')
+    const checked = yield* Effect.result(checkConvergence(controlRoot, json ? 'ignore' : 'inherit'))
+    if (Result.isFailure(checked)) {
+      if (json)
+        yield* writeOutput(stableJson(checked.failure.data ?? makeCheckFailureEnvelope({ code: 'check-failed', message: errorMessage(checked.failure) }), true))
+      return yield* checked.failure
+    }
+    const result = checked.success
     yield* writeOutput(json ? stableJson(result, true) : `Checks passed: ${result.checks.length}`)
     return
   }

@@ -1,5 +1,5 @@
 /* eslint-disable style/max-statements-per-line */
-import type { PlannedConvergence } from './model.js'
+import type { CheckFailureOptions, CheckOutcome, PlannedConvergence } from './model.js'
 
 import process from 'node:process'
 
@@ -10,6 +10,12 @@ import { planConvergence, resolveCheckRoot } from './convergence.js'
 import { errorMessage, preludeError } from './errors.js'
 import { assertTargetWritePath, publishFile, replaceTree, replaceTreeFromArchive } from './filesystem.js'
 import { encodeJson } from './json.js'
+import { formatCheckFailure, makeCheckFailureEnvelope } from './model.js'
+
+function checkFailure(options: CheckFailureOptions) {
+  const envelope = makeCheckFailureEnvelope(options)
+  return preludeError('check', options.message, formatCheckFailure(envelope), envelope)
+}
 
 function withWriteBoundary<A, E, R>(controlRoot: string, effect: Effect.Effect<A, E, R>) {
   return Effect.acquireUseRelease(
@@ -120,8 +126,8 @@ export function checkConvergence(start: string, childStdout: 'inherit' | 'ignore
   return Effect.scoped(Effect.gen(function* () {
     const before = yield* planConvergence(start); const controlRoot = before.controlRoot
     if (!before.document.converged)
-      return yield* preludeError('check', 'Target is not a Converged Integration', before.document.executionHash)
-    const results: Array<{ integrationId: string, checkId: string, exitCode: number | null, error?: string }> = []
+      return yield* checkFailure({ code: 'non-converged', message: 'Target is not a Converged Integration', plan: before.document, planPhase: 'before-checks' })
+    const results: Array<CheckOutcome> = []
     for (const owned of before.document.checks) {
       const [command, ...args] = owned.declaration.argv; const cwd = yield* resolveCheckRoot(controlRoot, owned.declaration)
       const outcome = yield* Effect.result(Effect.gen(function* () { const handle = yield* ChildProcess.make(command!, args, { cwd, stdin: 'inherit', stdout: childStdout, stderr: 'inherit' }); return yield* handle.exitCode }))
@@ -129,10 +135,10 @@ export function checkConvergence(start: string, childStdout: 'inherit' | 'ignore
     }
     const finalPlan = yield* Effect.result(planConvergence(controlRoot))
     if (Result.isFailure(finalPlan))
-      return yield* preludeError('check', 'Checks completed but final replan failed', encodeJson({ checks: results, replanError: errorMessage(finalPlan.failure) }))
+      return yield* checkFailure({ code: 'replan-failed', message: 'Checks completed but final replan failed', plan: before.document, planPhase: 'before-checks', checks: results, replanError: errorMessage(finalPlan.failure) })
     const after = finalPlan.success; const changed = !after.document.converged
     if (changed || results.some(result => result.exitCode !== 0))
-      return yield* preludeError('check', changed ? 'Checks failed or changed managed or blocking Target state' : 'One or more checks failed', encodeJson({ checks: results, finalPlanHash: after.document.executionHash, converged: !changed }))
+      return yield* checkFailure({ code: results.some(result => result.exitCode !== 0) ? 'checks-failed' : 'non-converged', message: changed ? 'Checks failed or changed managed or blocking Target state' : 'One or more checks failed', plan: after.document, planPhase: 'after-checks', checks: results })
     return { checks: results, plan: after.document }
   }))
 }

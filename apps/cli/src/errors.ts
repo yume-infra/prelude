@@ -12,17 +12,20 @@ export class PreludeError extends Schema.TaggedErrorClass<PreludeError>()('Prelu
   ]),
   message: Schema.String,
   detail: Schema.optionalKey(Schema.String),
+  data: Schema.optionalKey(Schema.Unknown),
 }) {}
 
 export function preludeError(
   phase: PreludeError['phase'],
   message: string,
   detail?: string,
+  data?: unknown,
 ): PreludeError {
   return PreludeError.make({
     phase,
     message,
     ...(detail === undefined ? {} : { detail }),
+    ...(data === undefined ? {} : { data }),
   })
 }
 
