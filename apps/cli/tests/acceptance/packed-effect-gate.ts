@@ -145,6 +145,8 @@ const program = Effect.scoped(Effect.gen(function* () {
     '@effect/platform-node@4.0.0-beta.97',
     '--trust-policy-exclude',
     '@effect/platform-node-shared@4.0.0-beta.97',
+    '--trust-policy-exclude',
+    '@effect/vitest@4.0.0-beta.97',
   ]
   const installTargetArguments = ['install', '--no-frozen-lockfile', '--prefer-offline', '--reporter', 'append-only', ...targetTrustPolicyArguments]
   const bootstrapInstallTargetArguments = ['install', '--ignore-scripts', '--no-frozen-lockfile', '--prefer-offline', '--reporter', 'append-only', ...targetTrustPolicyArguments]
@@ -167,7 +169,7 @@ const program = Effect.scoped(Effect.gen(function* () {
   yield* fs.makeDirectory(legacyHarnessPacks, { recursive: true })
   yield* runProcess('tar', ['-xzf', harnessTar, '-C', legacyHarnessRoot])
   const legacyManifest = parseJson(yield* fs.readFileString(join(legacyHarnessPackage, 'package.json')))
-  legacyManifest.version = '0.2.0-control-handoff-legacy'
+  legacyManifest.version = '0.2.0-legacy'
   yield* json(join(legacyHarnessPackage, 'package.json'), legacyManifest)
   const legacyBaselinePath = join(legacyHarnessPackage, 'artifact-assets/effect/managed/data/baseline.json')
   const legacyBaseline = parseJson(yield* fs.readFileString(legacyBaselinePath))
@@ -177,7 +179,7 @@ const program = Effect.scoped(Effect.gen(function* () {
     join(legacyHarnessPackage, 'artifact-assets/effect/managed/obsolete.txt'),
     'remove on packed Artifact upgrade\n',
   )
-  yield* runProcess('pnpm', ['pack', '--pack-destination', legacyHarnessPacks], { cwd: legacyHarnessPackage, timeout: '120 seconds' })
+  yield* runProcess('pnpm', ['--config.ignore-scripts=true', 'pack', '--pack-destination', legacyHarnessPacks], { cwd: legacyHarnessPackage, timeout: '120 seconds' })
   const legacyHarnessTar = join(
     legacyHarnessPacks,
     (yield* fs.readDirectory(legacyHarnessPacks)).find(entry => entry.endsWith('.tgz'))!,
