@@ -50,7 +50,9 @@ function targetScripts(name: 'single' | 'monorepo') {
 
 const targetOwnedScripts = {
   'target:verify': 'node -e "process.stdout.write(\'target conventions verified\\n\')"',
-  'verify': 'pnpm target:verify',
+  'verify:code': 'pnpm target:verify',
+  'verify:integration': 'prelude check',
+  'verify': 'pnpm verify:code && pnpm verify:integration',
 }
 
 const packageScripts = {
@@ -91,7 +93,10 @@ const program = Effect.scoped(Effect.gen(function* () {
   const cliTar = yield* Config.string('PRELUDE_CLI_TARBALL').pipe(Config.withDefault(join(gateInput, 'sayoriqwq-prelude-0.4.0.tgz')))
   const fixtureRoot = join(workspaceRoot, 'tmp')
   const requestedRunRoot = Option.getOrUndefined(yield* Config.option(Config.string('PRELUDE_GATE_ROOT')))
-  const phase = yield* Config.string('PRELUDE_GATE_PHASE').pipe(Config.withDefault('prepare'))
+  const phaseOption = yield* Config.option(Config.string('PRELUDE_GATE_PHASE'))
+  if (Option.isNone(phaseOption))
+    return yield* new AcceptanceError({ message: 'PRELUDE_GATE_PHASE must be explicitly set to prepare or apply' })
+  const phase = phaseOption.value
   const approvedPlanHash = Option.getOrUndefined(yield* Config.option(Config.string('PRELUDE_GATE_APPROVED_PLAN_HASH')))
   const approvedTargetRoot = Option.getOrUndefined(yield* Config.option(Config.string('PRELUDE_GATE_APPROVED_TARGET_ROOT')))
   const approvalMapText = yield* Config.string('PRELUDE_GATE_APPROVALS').pipe(Config.withDefault('{}'))
@@ -235,12 +240,13 @@ const program = Effect.scoped(Effect.gen(function* () {
     const manifestPath = join(target, 'package.json')
     const manifest = parseJson(yield* fs.readFileString(manifestPath))
     const harnessScripts = targetScripts(name)
+    const aggregate = manifest.scripts?.verify
+    const codeGate = manifest.scripts?.['verify:code']
     manifest.scripts = {
       ...manifest.scripts,
       ...harnessScripts,
-      verify: manifest.scripts?.verify === undefined
-        ? harnessScripts.verify
-        : `${manifest.scripts.verify} && ${harnessScripts.verify}`,
+      'verify:code': codeGate === undefined ? harnessScripts.verify : `${codeGate} && ${harnessScripts.verify}`,
+      verify: aggregate ?? 'pnpm verify:code',
     }
     manifest.devDependencies = { ...manifest.devDependencies, ...targetToolchainDevDependencies }
     yield* json(manifestPath, manifest)
@@ -285,9 +291,10 @@ const program = Effect.scoped(Effect.gen(function* () {
       const evidence = parseJson(yield* fs.readFileString(evidencePath))
       const mappedApproval = approvalMap[name]
       authorization = authorizePreparedPlan(
-        evidence as Parameters<typeof authorizePreparedPlan>[0],
+        evidence,
         mappedApproval?.planHash ?? approvedPlanHash,
         mappedApproval?.targetRoot ?? approvedTargetRoot,
+        target,
       )
       const preparedPlan = parseJson((yield* cliRun(['plan', '--json'])).stdout)
       assert.equal(preparedPlan.executionHash, authorization.planHash, `${name}: current plan must equal the approved PREPARE hash`)
@@ -324,12 +331,27 @@ const program = Effect.scoped(Effect.gen(function* () {
       yield* bootstrapInstallTarget(target)
       const preparedResult = yield* cliRun(['plan', '--json'])
       const preparedPlan = parseJson(preparedResult.stdout)
+      const freshCode = yield* targetRun('pnpm', ['verify:code'], false)
+      const freshIntegration = yield* targetRun('pnpm', ['verify:integration'], false)
+      const freshAggregate = yield* targetRun('pnpm', ['verify'], false)
+      assert.equal(freshCode.exitCode, 0, `${name}: fresh code gate must pass independently`)
+      assert.notEqual(freshIntegration.exitCode, 0, `${name}: fresh Integration gate must classify unconverged Outputs`)
+      assert.match(`${freshIntegration.stdout}\n${freshIntegration.stderr}`, /Execution hash:|Changed Outputs:/u)
+      assert.notEqual(freshAggregate.exitCode, 0, `${name}: fresh root aggregate must fail on Integration drift`)
+      assert.match(freshAggregate.stdout, /target conventions verified/u)
       const evidence = makePreparedPlanEvidence({
         plan: preparedPlan,
         targetRoot: target,
         commands: [
           { phase: 'bootstrap', argv: ['pnpm', 'install', '--ignore-scripts', '--no-frozen-lockfile'] },
           { phase: 'prepare', argv: [cli, 'plan', '--json'] },
+          { phase: 'apply', argv: [cli, 'apply', '--plan-hash', preparedPlan.executionHash, '--json'] },
+          { phase: 'verify', argv: ['pnpm', 'verify:code'] },
+          { phase: 'verify', argv: ['pnpm', 'verify:integration'] },
+          { phase: 'verify', argv: ['pnpm', 'verify'] },
+          { phase: 'apply', argv: ['REQUIRES_EXACT_PLAN_APPROVAL', 'managed-drift-repair'] },
+          { phase: 'apply', argv: ['REQUIRES_EXACT_PLAN_APPROVAL', 'artifact-upgrade-repair'] },
+          { phase: 'apply', argv: ['REQUIRES_EXACT_PLAN_APPROVAL', 'pinned-reference-drift-repair'] },
         ],
       })
       const evidencePath = join(runRoot, `${name}.prepare.json`)
@@ -339,6 +361,7 @@ const program = Effect.scoped(Effect.gen(function* () {
     }
     if (authorization === undefined)
       return yield* new AcceptanceError({ message: `${name}: APPLY authorization was not established` })
+    const gateApproval = approvalMap[name]
 
     const dependencyGraph = decodeJson((yield* runProcess('pnpm', ['list', '@sayoriqwq/prelude-contract', '--depth', 'Infinity', '--json'], { cwd: target })).stdout) as ReadonlyArray<Json>
     const contractInstances = new Map<string, string>()
@@ -357,6 +380,8 @@ const program = Effect.scoped(Effect.gen(function* () {
     const bootstrapManifest = parseJson(yield* fs.readFileString(join(target, 'package.json')))
     assert.equal(bootstrapManifest.scripts.prepare, undefined)
     assert.equal(bootstrapManifest.scripts['target:verify'], targetOwnedScripts['target:verify'])
+    assert.equal(bootstrapManifest.scripts['verify:code'], targetOwnedScripts['verify:code'])
+    assert.equal(bootstrapManifest.scripts['verify:integration'], targetOwnedScripts['verify:integration'])
     assert.equal(bootstrapManifest.scripts.verify, targetOwnedScripts.verify)
     assert.equal(bootstrapManifest.devDependencies['@effect/tsgo'], undefined)
     assert.equal(bootstrapManifest.devDependencies['@typescript/native'], undefined)
@@ -416,13 +441,42 @@ const program = Effect.scoped(Effect.gen(function* () {
     assert.equal(yield* fs.readFileString(join(target, workspace, 'managed/obsolete.txt')), 'remove on packed Artifact upgrade\n')
     assert.equal(parseJson(yield* fs.readFileString(join(target, workspace, 'managed/data/baseline.json'))).legacyAcceptanceArtifact, true)
 
+    const convergedCode = yield* targetRun('pnpm', ['verify:code'], false)
+    const convergedIntegration = yield* targetRun('pnpm', ['verify:integration'], false)
+    const convergedAggregate = yield* targetRun('pnpm', ['verify'], false)
+    assert.equal(convergedCode.exitCode, 0)
+    assert.equal(convergedIntegration.exitCode, 0)
+    assert.equal(convergedAggregate.exitCode, 0)
+
+    yield* fs.writeFileString(join(target, workspace, 'managed/data/baseline.json'), 'managed drift\n')
+    const managedDriftPlan = parseJson((yield* cliRun(['plan', '--json'])).stdout)
+    const managedDriftCode = yield* targetRun('pnpm', ['verify:code'], false)
+    const managedDriftIntegration = yield* targetRun('pnpm', ['verify:integration'], false)
+    const managedDriftAggregate = yield* targetRun('pnpm', ['verify'], false)
+    const managedDriftJson = yield* cliRun(['check', '--json'], target, false)
+    assert.equal(managedDriftCode.exitCode, 0, `${name}: managed drift must leave code health independently visible`)
+    assert.notEqual(managedDriftIntegration.exitCode, 0)
+    assert.notEqual(managedDriftAggregate.exitCode, 0)
+    assert.match(`${managedDriftIntegration.stdout}\n${managedDriftIntegration.stderr}`, /Execution hash:|Changed Outputs:/u)
+    assert.notEqual(managedDriftJson.exitCode, 0)
+    const managedDriftFailure = parseJson(managedDriftJson.stdout)
+    assert.equal(managedDriftFailure.result, 'error')
+    assert.equal(managedDriftFailure.error.plan.executionHash, managedDriftPlan.executionHash)
+    if (gateApproval?.managedDriftPlanHash !== managedDriftPlan.executionHash)
+      return yield* new AcceptanceError({ message: `${name}: managed drift requires a separately approved exact Plan hash ${managedDriftPlan.executionHash}` })
+    const managedRepair = parseJson((yield* cliRun(['apply', '--plan-hash', gateApproval.managedDriftPlanHash, '--json'])).stdout)
+    assert.equal(managedRepair.converged, true)
+    assert.equal(yield* fs.readFileString(feedback), 'target-owned Gate evidence\n')
+
     const upgradeManifest = parseJson(yield* fs.readFileString(join(target, 'package.json')))
     upgradeManifest.devDependencies['@sayoriqwq/effect-harness'] = `file:${harnessTar}`
     yield* json(join(target, 'package.json'), upgradeManifest)
     yield* installTarget(target)
     const upgradePlan = parseJson((yield* cliRun(['plan', '--json'])).stdout)
     assert.equal(upgradePlan.converged, false)
-    const upgraded = parseJson((yield* cliRun(['apply', '--plan-hash', upgradePlan.executionHash, '--json'])).stdout)
+    if (gateApproval?.upgradePlanHash !== upgradePlan.executionHash)
+      return yield* new AcceptanceError({ message: `${name}: Artifact upgrade requires a separately approved exact Plan hash ${upgradePlan.executionHash}` })
+    const upgraded = parseJson((yield* cliRun(['apply', '--plan-hash', gateApproval.upgradePlanHash, '--json'])).stdout)
     assert.equal(upgraded.converged, true)
     assert.equal(yield* fs.readFileString(feedback), 'target-owned Gate evidence\n')
     yield* assertAbsent(join(target, workspace, 'managed/obsolete.txt'))
@@ -445,6 +499,8 @@ const program = Effect.scoped(Effect.gen(function* () {
     const proposedManifest = parseJson(yield* fs.readFileString(join(target, 'package.json')))
     assert.equal(proposedManifest.scripts.prepare, undefined)
     assert.equal(proposedManifest.scripts['target:verify'], targetOwnedScripts['target:verify'])
+    assert.equal(proposedManifest.scripts['verify:code'], targetOwnedScripts['verify:code'])
+    assert.equal(proposedManifest.scripts['verify:integration'], targetOwnedScripts['verify:integration'])
     assert.equal(proposedManifest.scripts.verify, targetOwnedScripts.verify)
     assert.equal(proposedManifest.devDependencies['@effect/tsgo'], undefined)
     assert.equal(proposedManifest.devDependencies['@typescript/native'], undefined)
@@ -460,7 +516,9 @@ const program = Effect.scoped(Effect.gen(function* () {
     const rootManifest = parseJson(yield* fs.readFileString(join(target, 'package.json')))
     assert.equal(rootManifest.scripts.prepare, 'node activate-effect-tsgo.mjs')
     assert.equal(rootManifest.scripts['target:verify'], targetOwnedScripts['target:verify'])
-    assert.equal(rootManifest.scripts.verify, 'pnpm target:verify && pnpm typecheck && pnpm lint')
+    assert.equal(rootManifest.scripts['verify:code'], 'pnpm target:verify && pnpm typecheck && pnpm lint')
+    assert.equal(rootManifest.scripts['verify:integration'], targetOwnedScripts['verify:integration'])
+    assert.equal(rootManifest.scripts.verify, targetOwnedScripts.verify)
     assert.equal(rootManifest.devDependencies['@effect/tsgo'], '0.19.0')
     assert.equal(rootManifest.devDependencies['@typescript/native'], 'npm:typescript@7.0.2')
     assert.equal(rootManifest.devDependencies.typescript, 'npm:@typescript/typescript6@6.0.2')
@@ -548,7 +606,9 @@ const program = Effect.scoped(Effect.gen(function* () {
     const drifted = drift.outputs.find((output: Json) => output.declaration.id === 'effect.reference.tsgo')
     assert.equal(drifted.status, 'change')
     assert.match(drifted.evidence.join(' '), /reference drift/)
-    const repaired = parseJson((yield* cliRun(['apply', '--plan-hash', drift.executionHash, '--json'])).stdout)
+    if (gateApproval?.pinnedDriftPlanHash !== drift.executionHash)
+      return yield* new AcceptanceError({ message: `${name}: PinnedReferenceTree drift requires a separately approved exact Plan hash ${drift.executionHash}` })
+    const repaired = parseJson((yield* cliRun(['apply', '--plan-hash', gateApproval.pinnedDriftPlanHash, '--json'])).stdout)
     assert.equal(repaired.converged, true)
     assert.equal(yield* fs.readFileString(join(tsgoReference, '.gitmodules')), gitmodules)
     yield* assertAbsent(join(tsgoReference, 'typescript-go'))
