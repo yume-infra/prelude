@@ -134,14 +134,17 @@ Harness](https://github.com/sayoriqwq/effect-harness/blob/main/HARNESS.md)
 composes a selected publication with Target locator, routing, and
 `referenceOnly` policy.
 
-Prelude is the consumer and only Target mutation host. It never fetches, pulls,
-updates, or checks out Git. During planning it reads the ordinary archive from
-the selected Artifact, decodes it through Prelude Contract, validates the
-declared provenance digest, and compares the complete logical tree with the
-Target. After exact-hash approval, apply stages every entry, re-scans the staged
-tree, and replaces the complete Output. A fresh plan must report convergence.
-Prelude does not trust an installed Artifact directory to preserve source
-filesystem semantics.
+Prelude is the consumer and only materialization host for active Harness-owned
+Outputs. It never fetches, pulls, updates, or checks out Git. During planning it
+reads the ordinary archive from the selected Artifact, decodes it through
+Prelude Contract, validates the declared provenance digest, and compares the
+complete logical tree with the Target. After exact-hash approval, apply stages
+every entry, re-scans the staged tree, and replaces the complete Output. A fresh
+plan must report convergence. After those stable Outputs are delivered, an
+explicitly authorized Harness-delivered skill may adapt Target-owned surfaces;
+Prelude core does not make those domain-specific choices or mutations. Prelude
+does not trust an installed Artifact directory to preserve source filesystem
+semantics.
 
 Source Pin provenance intentionally covers one repository layer. Gitlinks are
 opaque boundaries: the Harness archive may include ordinary outer-repository
