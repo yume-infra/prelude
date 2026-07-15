@@ -33,10 +33,25 @@ valid Plan Document.
    untouched across upgrades.
 5. Return the new Plan for normal user approval, `prelude apply` with that
    approved hash, and `prelude check`. Do not approve an execution hash.
+6. Read the root `package.json` scripts only to identify a non-conflicting,
+   Target-owned Integration gate alias. Prefer `verify:integration` when it is
+   absent, with the exact command `pnpm exec prelude check`; if an Integration
+   alias already exists, preserve it and report its exact command. Propose only
+   the Integration gate alias in the candidate package diff. Do not interpret
+   the Target code gate. Preserve the existing Target code gate. Do not rename
+   it. Do not split it. Do not replace it.
+   Do not rebuild it (`verify:code`, `verify`, or another Target-named command),
+   and do not infer its steps from its name. Route Effect-specific code-gate work to the
+   delivered Effect Target Adaptation skill after stable Outputs converge and
+   Control Handoff begins. The alias addition, if any, requires explicit user
+   authorization; it never authorizes package upgrade, apply, or the Target
+   code-gate change.
 
 Without an old Plan Document, a direct package update remains possible, but
 residue guarantees are weaker: current declarations can converge while omitted
 bounded Outputs or retired trees may need manual inspection.
 
 Completion: old/new Plan comparison and any separately authorized cleanup are
-reported, and the user has the current Plan/apply/check path.
+reported, the Integration gate alias is preserved or separately proposed, the
+Target code gate is untouched, and the user has the current Plan/apply/check
+path.

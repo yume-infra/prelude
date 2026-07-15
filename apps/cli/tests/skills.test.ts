@@ -65,6 +65,30 @@ describe('prelude-owned skills', () => {
         expect(source).toContain('feedback')
     }))
 
+    it.effect('routes only a non-conflicting Integration gate and preserves Target code gates', () => Effect.gen(function* () {
+      const bootstrap = (yield* skill('prelude-bootstrap')).replaceAll(/\s+/g, ' ').toLowerCase()
+      const upgrade = (yield* skill('prelude-upgrade')).replaceAll(/\s+/g, ' ').toLowerCase()
+
+      for (const source of [bootstrap, upgrade]) {
+        expect(source).toContain('integration gate')
+        expect(source).toContain('`verify:integration`')
+        expect(source).toContain('`pnpm exec prelude check`')
+        expect(source).toContain('non-conflicting')
+        expect(source).toContain('target-owned')
+        expect(source).toContain('preserve')
+        expect(source).toContain('existing target code gate')
+        expect(source).toContain('do not rename')
+        expect(source).toContain('do not rebuild')
+        expect(source).toContain('do not interpret')
+        expect(source).toContain('explicit user authorization')
+      }
+
+      expect(bootstrap).toContain('only the integration gate alias')
+      expect(upgrade).toContain('only the integration gate alias')
+      expect(bootstrap).toContain('effect target adaptation')
+      expect(upgrade).toContain('effect target adaptation')
+    }))
+
     it.effect('does not restore retired lifecycle or local-state surfaces', () => Effect.gen(function* () {
       const source = (yield* Effect.all(skills.map(skill))).join('\n')
       expect(source).not.toMatch(/prelude (?:create|init|remove)|receipt|journal|rollback|provider|target-local dispatcher|TUI/i)
