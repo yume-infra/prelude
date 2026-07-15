@@ -38,6 +38,11 @@ export function makePreparedPlanEvidence(input: {
   }
 }
 
+export const decodePreparedPlanEvidence = Schema.decodeUnknownSync(PreparedPlanEvidenceSchema, {
+  errors: 'all',
+  onExcessProperty: 'error',
+})
+
 export function authorizePreparedPlan(
   input: unknown,
   approvedPlanHash: string | undefined,
@@ -61,8 +66,3 @@ export function authorizePreparedPlan(
     throw new Error(`Approved isolated target does not match: approved=${approvedTargetRoot} prepared=${evidence.targetRoot}`)
   return { approved: true as const, planHash: approvedPlanHash, targetRoot: approvedTargetRoot }
 }
-
-export const decodePreparedPlanEvidence = Schema.decodeUnknownSync(PreparedPlanEvidenceSchema, {
-  errors: 'all',
-  onExcessProperty: 'error',
-})

@@ -246,7 +246,7 @@ const program = Effect.scoped(Effect.gen(function* () {
       ...manifest.scripts,
       ...harnessScripts,
       'verify:code': codeGate === undefined ? harnessScripts.verify : `${codeGate} && ${harnessScripts.verify}`,
-      verify: aggregate ?? 'pnpm verify:code',
+      'verify': aggregate ?? 'pnpm verify:code',
     }
     manifest.devDependencies = { ...manifest.devDependencies, ...targetToolchainDevDependencies }
     yield* json(manifestPath, manifest)
