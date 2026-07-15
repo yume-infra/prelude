@@ -87,6 +87,8 @@ describe('prelude-owned skills', () => {
       expect(upgrade).toContain('only the integration gate alias')
       expect(bootstrap).toContain('effect target adaptation')
       expect(upgrade).toContain('effect target adaptation')
+      expect(bootstrap.indexOf('integration gate alias')).toBeLessThan(bootstrap.indexOf('apply its exact three-file bytes'))
+      expect(upgrade.indexOf('integration gate alias')).toBeLessThan(upgrade.indexOf('apply those exact bytes'))
     }))
 
     it.effect('does not restore retired lifecycle or local-state surfaces', () => Effect.gen(function* () {

@@ -18,11 +18,23 @@ valid Plan Document.
    explicit nonempty `packageRoots` Integration entries. Stop if an exact
    package selection, package-root set, or Integration is ambiguous.
 2. Before any real Target mutation, use an isolated temporary copy or session
-   replica that preserves the same repo-relative package inputs. In that copy,
-   use pnpm to generate the complete candidate `package.json`,
-   `pnpm-lock.yaml`, and minimal `.prelude/config.jsonc`; the config contains
-   `schemaVersion: 2` and the selected Integrations only. Show the concrete
-   diffs for all three files together. Clean up the preview. Do not pre-create
+   replica that preserves the same repo-relative package inputs. Read the root
+   `package.json` scripts only to identify a non-conflicting, Target-owned
+   Integration gate alias. Prefer `verify:integration` when it is unused, with
+   the exact command `pnpm exec prelude check`; if an Integration alias already
+   exists, preserve it and report its exact command. Propose only the
+   Integration gate alias. Preserve the existing Target code gate. Do not
+   interpret it. Do not rename it. Do not split it. Do not replace it. Do not
+   rebuild it (`verify:code`, `verify`, or another Target-named command), and do
+   not infer its steps from its name.
+   Route Effect-specific code-gate work to the delivered Effect Target
+   Adaptation skill after stable Outputs converge and Control Handoff begins.
+   In the isolated copy, use pnpm to generate the complete candidate
+   `package.json`, `pnpm-lock.yaml`, and minimal `.prelude/config.jsonc`; the
+   config contains `schemaVersion: 2` and the selected Integrations only. Any
+   alias addition belongs in this exact candidate diff and requires explicit
+   user authorization with the rest of the candidate. Show the concrete diffs
+   for all three files together. Clean up the preview. Do not pre-create
    Integration Workspaces or their `managed/`, `repos/`, or `feedback/` zones.
 3. Apply its exact three-file bytes to the real Target only after explicit user
    authorization of that exact candidate. Run `pnpm install --frozen-lockfile
@@ -31,20 +43,6 @@ valid Plan Document.
    config select the requested values.
 4. Run `prelude plan --json` and return the Plan Document and blockers for
    review. Do not run `prelude apply` and do not approve an execution hash.
-5. Read the root `package.json` scripts only to identify a non-conflicting,
-   Target-owned Integration gate alias. Prefer `verify:integration` when it is
-   unused, with the exact command `pnpm exec prelude check`; if an Integration
-   alias already exists, preserve it and report its exact command. Propose only
-   the Integration gate alias. Preserve the existing Target code gate. Do not
-   interpret the Target code gate. Do not
-   rename it. Do not split it. Do not replace it. Do not rebuild it
-   (`verify:code`, `verify`, or another Target-named command), and do not infer
-   its steps from its name. Route
-   Effect-specific code-gate work to the delivered Effect Target Adaptation
-   skill after stable Outputs converge and Control Handoff begins. Any alias
-   addition belongs in the exact candidate diff and requires explicit user
-   authorization with the rest of the candidate.
-
 The `.prelude/config.jsonc` file is Prelude control data. Encoded Integration
 Workspaces are created by normal convergence. Never author or remove
 Target-owned `feedback/**` content.
