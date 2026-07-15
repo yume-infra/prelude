@@ -5,6 +5,7 @@ import { NodeRuntime, NodeServices } from '@effect/platform-node'
 import { Config, Console, Data, Effect, FileSystem, Layer, Option, Path } from 'effect'
 
 import { decodeJson, encodeJson } from '../../src/json.ts'
+import { authorizePreparedPlan, makePreparedPlanEvidence } from './phase.ts'
 import { runProcess } from './process.ts'
 
 const EFFECT_DIGEST = 'd797515e8ecb2e164deef65b6b7abde6445201ce9d1e9e584f39d634c2469e95'
@@ -90,7 +91,14 @@ const program = Effect.scoped(Effect.gen(function* () {
   const cliTar = yield* Config.string('PRELUDE_CLI_TARBALL').pipe(Config.withDefault(join(gateInput, 'sayoriqwq-prelude-0.4.0.tgz')))
   const fixtureRoot = join(workspaceRoot, 'tmp')
   const requestedRunRoot = Option.getOrUndefined(yield* Config.option(Config.string('PRELUDE_GATE_ROOT')))
-  const prepareOnly = yield* Config.boolean('PRELUDE_GATE_PREPARE_ONLY').pipe(Config.withDefault(false))
+  const phase = yield* Config.string('PRELUDE_GATE_PHASE').pipe(Config.withDefault('prepare'))
+  const approvedPlanHash = Option.getOrUndefined(yield* Config.option(Config.string('PRELUDE_GATE_APPROVED_PLAN_HASH')))
+  const approvedTargetRoot = Option.getOrUndefined(yield* Config.option(Config.string('PRELUDE_GATE_APPROVED_TARGET_ROOT')))
+  const approvalMapText = yield* Config.string('PRELUDE_GATE_APPROVALS').pipe(Config.withDefault('{}'))
+  const approvalMap = parseJson(approvalMapText)
+  if (phase !== 'prepare' && phase !== 'apply')
+    return yield* new AcceptanceError({ message: `PRELUDE_GATE_PHASE must be prepare or apply, got ${phase}` })
+  const prepareOnly = phase === 'prepare'
   const keepTemp = yield* Config.boolean('PRELUDE_KEEP_TEMP').pipe(Config.withDefault(false))
   const preserveRunRoot = keepTemp || prepareOnly || requestedRunRoot !== undefined
   yield* fs.makeDirectory(fixtureRoot, { recursive: true })
@@ -126,6 +134,12 @@ const program = Effect.scoped(Effect.gen(function* () {
   })
 
   const installTarget = (root: string) => runProcess('pnpm', ['install', '--no-frozen-lockfile', '--prefer-offline', '--reporter', 'append-only'], {
+    cwd: root,
+    env: { CI: '1', INIT_CWD: root, PNPM_PACKAGE_NAME: undefined, npm_command: undefined, npm_config_dir: undefined, npm_config_filter: undefined, npm_config_recursive: undefined, npm_config_workspace_dir: undefined },
+    inherit: true,
+    timeout: '5 minutes',
+  })
+  const bootstrapInstallTarget = (root: string) => runProcess('pnpm', ['install', '--ignore-scripts', '--no-frozen-lockfile', '--prefer-offline', '--reporter', 'append-only'], {
     cwd: root,
     env: { CI: '1', INIT_CWD: root, PNPM_PACKAGE_NAME: undefined, npm_command: undefined, npm_config_dir: undefined, npm_config_filter: undefined, npm_config_recursive: undefined, npm_config_workspace_dir: undefined },
     inherit: true,
@@ -288,10 +302,39 @@ const program = Effect.scoped(Effect.gen(function* () {
     const controlHandoff = join(target, workspace, 'feedback/control-handoff.json')
     yield* fs.writeFileString(feedback, 'target-owned Gate evidence\n')
     yield* fs.writeFileString(join(target, '.prelude/config.jsonc'), `// packed Effect Harness Gate\n{ "schemaVersion": 2, "integrations": [{ "id": ${encodeJson(integrationId)}, "module": "@sayoriqwq/effect-harness/prelude", "packageRoots": ${encodeJson(packageRoots)} }] }\n`)
-    if (prepareOnly)
-      return
+    const cli = join(target, 'node_modules/.bin/prelude')
+    const cliRun = (args: ReadonlyArray<string>, cwd = target, reject = true) => runProcess(cli, args, { cwd, reject, env: { CI: '1' }, timeout: '120 seconds' })
+    const targetRun = (command: string, args: ReadonlyArray<string>, reject = true) => runProcess(command, args, { cwd: target, reject, env: { CI: '1' }, timeout: '120 seconds' })
 
-    yield* installTarget(target)
+    if (phase === 'prepare') {
+      yield* bootstrapInstallTarget(target)
+      const preparedResult = yield* cliRun(['plan', '--json'])
+      const preparedPlan = parseJson(preparedResult.stdout)
+      const evidence = makePreparedPlanEvidence({
+        plan: preparedPlan,
+        targetRoot: target,
+        commands: [
+          { phase: 'bootstrap', argv: ['pnpm', 'install', '--ignore-scripts', '--no-frozen-lockfile'] },
+          { phase: 'prepare', argv: [cli, 'plan', '--json'] },
+        ],
+      })
+      const evidencePath = join(runRoot, `${name}.prepare.json`)
+      yield* json(evidencePath, evidence)
+      yield* Console.log(`PREPARE ${name}: target=${target} planHash=${evidence.planHash} evidence=${evidencePath}`)
+      return
+    }
+
+    const evidencePath = join(runRoot, `${name}.prepare.json`)
+    const evidence = parseJson(yield* fs.readFileString(evidencePath))
+    const mappedApproval = approvalMap[name]
+    const authorization = authorizePreparedPlan(
+      evidence as Parameters<typeof authorizePreparedPlan>[0],
+      mappedApproval?.planHash ?? approvedPlanHash,
+      mappedApproval?.targetRoot ?? approvedTargetRoot,
+    )
+    const preparedPlan = parseJson((yield* cliRun(['plan', '--json'])).stdout)
+    assert.equal(preparedPlan.executionHash, authorization.planHash, `${name}: current plan must equal the approved PREPARE hash`)
+
     const dependencyGraph = decodeJson((yield* runProcess('pnpm', ['list', '@sayoriqwq/prelude-contract', '--depth', 'Infinity', '--json'], { cwd: target })).stdout) as ReadonlyArray<Json>
     const contractInstances = new Map<string, string>()
     const visitDependencies = (node: Json): void => {
@@ -323,10 +366,6 @@ const program = Effect.scoped(Effect.gen(function* () {
         assert.deepEqual(packageManifest.dependencies, selectedDependencies)
       }
     }
-    const cli = join(target, 'node_modules/.bin/prelude')
-    const cliRun = (args: ReadonlyArray<string>, cwd = target, reject = true) => runProcess(cli, args, { cwd, reject, env: { CI: '1' }, timeout: '120 seconds' })
-    const targetRun = (command: string, args: ReadonlyArray<string>, reject = true) => runProcess(command, args, { cwd: target, reject, env: { CI: '1' }, timeout: '120 seconds' })
-
     const initialResult = yield* cliRun(['plan', '--json'])
     const nestedResult = yield* cliRun(['plan', '--json'], packageRoots.at(-1) === '.' ? target : join(target, packageRoots.at(-1)!))
     assert.equal(initialResult.stdout, nestedResult.stdout, `${name}: nested plan must discover the same Control Root`)
@@ -358,7 +397,8 @@ const program = Effect.scoped(Effect.gen(function* () {
     yield* assertAbsent(join(target, workspace, 'managed'))
     assert.equal(yield* fs.readFileString(feedback), 'target-owned Gate evidence\n')
 
-    const approved = parseJson((yield* cliRun(['plan', '--json'])).stdout)
+    yield* fs.remove(join(target, 'AGENTS.md'), { force: true })
+    const approved = phase === 'apply' ? { executionHash: authorization.planHash } : parseJson((yield* cliRun(['plan', '--json'])).stdout)
     const applied = parseJson((yield* cliRun(['apply', '--plan-hash', approved.executionHash, '--json'])).stdout)
     assert.equal(applied.converged, true)
     assert.equal(applied.remaining, 0)
