@@ -155,12 +155,23 @@ Before declaring V1 complete:
 ## Current Verification Note
 
 On 2026-07-14 the V2 Effect integration passed package verification and both
-installed-Artifact acceptance paths: `pnpm acceptance:packed-effect` for isolated
-single-package and pnpm-workspace Targets, and `pnpm acceptance:installed` for the
+installed-Artifact acceptance paths. The runnable packed Gate uses explicit
+cross-repository phases:
+
+```bash
+CROSS_REPO_PHASE=prepare pnpm --dir ../effect-harness acceptance:cross-repo
+CROSS_REPO_PHASE=apply CROSS_REPO_ROOT=/absolute/workspace/from-prepare \
+  CROSS_REPO_APPROVALS='<exact approvals derived from PREPARE evidence>' \
+  pnpm --dir ../effect-harness acceptance:cross-repo
+```
+
+Prelude's `pnpm acceptance:packed-effect` is the internal phase runner beneath
+that orchestration; `PRELUDE_GATE_PHASE=prepare|apply` is mandatory and APPLY
+cannot self-approve. `pnpm acceptance:installed` covers the synthetic
 multi-Harness lifecycle. Remaining retired terms in active docs are explicit
 deletion or rejection evidence. Psychogram and Partita convergence remain the
-next cross-repository release proof; they are no longer blockers for the
-packed Effect Gate.
+next cross-repository release proof; they are no longer blockers for the packed
+Effect Gate.
 
 ## Residual Risks
 

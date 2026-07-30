@@ -83,9 +83,28 @@ Harness-declared target checks.
 
 ## Checkpoint Status
 
-The V2 Contract, host lifecycle, and packed Effect Gate 1 are complete.
-`pnpm acceptance:packed-effect` exercises real packed Prelude, Contract, and
-Effect Harness Artifacts in isolated single-package and pnpm-workspace Targets.
+The V2 Contract, host lifecycle, and packed Effect Gate 1 are complete. The
+user-facing Gate is the Effect Harness cross-repository runner. It deliberately
+separates PREPARE from APPLY so exact Plan and Target evidence can be reviewed
+before authorization:
+
+```bash
+CROSS_REPO_PHASE=prepare pnpm --dir ../effect-harness acceptance:cross-repo
+
+CROSS_REPO_PHASE=apply \
+  CROSS_REPO_ROOT=/absolute/workspace/from-prepare \
+  CROSS_REPO_APPROVALS='<exact approvals derived from PREPARE evidence>' \
+  pnpm --dir ../effect-harness acceptance:cross-repo
+```
+
+PREPARE preserves the workspace, prints its absolute path, and writes
+`cross-repo.apply.json`; inspect its target evidence and execute the recorded
+environment and command only after exact approval. Prelude's
+`pnpm acceptance:packed-effect` is an internal phase runner invoked by that
+orchestrator. It requires `PRELUDE_GATE_PHASE=prepare|apply`, packed Artifact
+paths, a shared Gate root, and exact approvals for APPLY; it is not a standalone
+self-approving command.
+
 `pnpm acceptance:installed` independently covers the synthetic multi-Harness
 lifecycle. The published release chain is Partita `0.2.2` → Effect Harness
 `0.2.1` → Prelude Contract `0.2.2` and Prelude `0.4.0`. The cross-repository

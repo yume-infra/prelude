@@ -258,12 +258,29 @@ nothing, and no retired surface or Target Git operation appears.
 
 Gate 1 closed on 2026-07-14 and its current release Baseline is Prelude `0.4.0`,
 Contract `0.2.2`, Effect Harness `0.3.0`, and Partita `0.2.2`.
-`pnpm acceptance:packed-effect` installs those packed Prelude, Contract, and
-Effect Harness Artifacts through a natural dependency graph without a Contract
-override into isolated single-package and pnpm-workspace Targets and exercises the complete
-plan, exact-hash apply, fresh plan, check, stale-hash, drift-repair, and
-target-owned feedback lifecycle above. `pnpm acceptance:installed` independently
-proved multi-Harness composition, upgrades, failed installs, failed Checks,
-and the absence of retired state surfaces. Safe-link logical identity and
-ordinary-file archive transport are accepted successor behavior; nested
-Source Pin provenance is not part of the product.
+The runnable packed Gate is explicitly two-phase:
+
+```bash
+CROSS_REPO_PHASE=prepare pnpm --dir ../effect-harness acceptance:cross-repo
+
+CROSS_REPO_PHASE=apply \
+  CROSS_REPO_ROOT=/absolute/workspace/from-prepare \
+  CROSS_REPO_APPROVALS='<exact approvals derived from PREPARE evidence>' \
+  pnpm --dir ../effect-harness acceptance:cross-repo
+```
+
+PREPARE writes the exact target evidence and an executable
+`cross-repo.apply.json`; APPLY is valid only after reviewing that evidence and
+supplying its exact approvals. Prelude's `pnpm acceptance:packed-effect` is the
+internal phase runner used by this orchestration and requires
+`PRELUDE_GATE_PHASE=prepare|apply`; it cannot self-approve.
+
+The Gate installs packed Prelude, Contract, and Effect Harness Artifacts through
+a natural dependency graph without a Contract override into isolated
+single-package and pnpm-workspace Targets. It exercises the complete plan,
+exact-hash apply, fresh plan, check, stale-hash, drift-repair, and target-owned
+feedback lifecycle above. `pnpm acceptance:installed` independently proved
+multi-Harness composition, upgrades, failed installs, failed Checks, and the
+absence of retired state surfaces. Safe-link logical identity and ordinary-file
+archive transport are accepted successor behavior; nested Source Pin provenance
+is not part of the product.
