@@ -1,12 +1,14 @@
 ---
 status: accepted
+classification: rationale
 date: 2026-07-10
 amended: 2026-07-15
 ---
 
 # Keep executable config outside the V1 Output contract
 
-> Ownership successor: ADR-0018 preserves the Target-owned executable-config
+> Ownership successor: [`ADR-0018`](./0018-control-handoff-separates-orchestration-from-target-adaptation.md)
+> preserves the Target-owned executable-config
 > boundary but assigns Effect-specific composition after Control Handoff to the
 > delivered Effect Target Adaptation skill, not exclusively to a Prelude-owned
 > skill.

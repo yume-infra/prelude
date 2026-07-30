@@ -1,8 +1,9 @@
 ---
 audience: [agent, human]
 purpose: State Prelude's first-principles goal and V1 success condition.
-status: active
-updated: 2026-07-12
+classification: rationale
+status: reference
+updated: 2026-07-31
 ---
 
 # Harness Convergence Goal

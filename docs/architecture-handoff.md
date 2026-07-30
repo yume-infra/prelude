@@ -1,8 +1,9 @@
 ---
 audience: [agent, human]
 purpose: Hand off the accepted Prelude V1 baseline to the implementation lead.
-status: active
-updated: 2026-07-15
+classification: history
+status: historical
+updated: 2026-07-31
 ---
 
 # Architecture Handoff
@@ -10,7 +11,10 @@ updated: 2026-07-15
 ## V2 Successor Note
 
 This document retains the released V1 implementation handoff. Current work must
-start from the V2 Contract and ADR-0018. In particular, V2 uses
+start from the
+[`V2 Contract`](./v2-harness-convergence-contract.md) and
+[`ADR-0018`](./adr/0018-control-handoff-separates-orchestration-from-target-adaptation.md).
+In particular, V2 uses
 `.prelude/config.jsonc` and Integration Workspaces, adds PinnedReferenceTree,
 and gives the delivered Effect skill Target Adaptation ownership after Control
 Handoff. The shipped Effect Module has four stable Outputs and empty
@@ -23,9 +27,9 @@ Architecture alignment is complete. Stop interviewing for additional minor
 field or helper decisions. Implement the observable final state and let Effect
 Schema and Effect-native module design determine exact TypeScript shapes.
 
-The current branch is `dev`. The old create/provider implementation has passed
-its deletion gate and is no longer present. Active docs and ADRs are the
-implementation authority.
+The branch and implementation instructions below describe the completed V1
+handoff only. They are not current instructions; the minimum normative V2 set
+in [`docs/README.md`](./README.md) is the implementation authority.
 
 ## Objective
 

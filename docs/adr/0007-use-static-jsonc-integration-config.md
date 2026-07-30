@@ -1,5 +1,6 @@
 ---
 status: accepted
+classification: rationale
 date: 2026-07-10
 amended: 2026-07-15
 ---

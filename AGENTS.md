@@ -12,14 +12,9 @@ Start with:
 2. `docs/CONTEXT.md`
 3. `docs/v2-harness-convergence-contract.md`
 4. `docs/adr/0018-control-handoff-separates-orchestration-from-target-adaptation.md`
-5. `docs/harness-convergence-goal.md`
-6. `docs/multi-harness-convergence-architecture.md`
-7. `docs/harness-module-contract.md`
-8. `docs/harness-integration-lifecycle.md`
-9. `docs/prelude-rebuild-plan.md`
-10. `docs/adr/`
-11. `docs/architecture-review.md`
-12. `docs/architecture-handoff.md`
+
+Use the classification table in `docs/README.md` to select rationale,
+implementation-plan, or historical documents only when the task needs them.
 
 Everything under `docs/archive/` is historical and non-authoritative. Do not use
 archived requirements to fill gaps in the active design.

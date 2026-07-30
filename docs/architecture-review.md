@@ -1,11 +1,18 @@
 ---
 audience: [agent, human]
 purpose: Record the architecture pressure test and final V1 reductions.
-status: active
-updated: 2026-07-12
+classification: rationale
+status: reference
+updated: 2026-07-31
 ---
 
 # Architecture Review
+
+## V2 Successor Note
+
+This review preserves V1 design rationale. Current requirements live in
+[`v2-harness-convergence-contract.md`](./v2-harness-convergence-contract.md),
+which supersedes conflicting V1 conclusions below.
 
 ## Review Question
 

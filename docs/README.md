@@ -3,50 +3,62 @@ audience: [agent, human]
 authors: [codex]
 reviewed_by: [sayori]
 purpose: Define the authoritative Prelude V2 knowledge set and reading order.
+classification: normative-current
 status: active
-updated: 2026-07-15
+updated: 2026-07-31
 ---
 
 # Prelude Docs
 
 ## Authority
 
-`docs/` is the only active project knowledge source. Everything under
-`docs/archive/` is historical and non-authoritative. The released V1 packages
-remain historical compatibility boundaries. The active implementation target
-is the breaking V2 successor; V1 shapes are not loaded or adapted.
+`docs/` is the only project knowledge source, but documents within it have
+different authority. Only documents classified `normative-current` define
+current behavior. Rationale, completed plans, and history can explain a
+decision but cannot override the normative set. Everything under
+`docs/archive/` is historical and non-authoritative.
 
 The current product is a narrow multi-Harness convergence host. It is not a
 project generator and has no compatibility obligation to old Prelude commands,
 models, manifests, tests, or TUI code.
 
-## Read Order
+## Minimum Normative V2 Reading Set
 
-1. [`CONTEXT.md`](./CONTEXT.md) - domain language and ownership boundaries.
-2. [`v2-harness-convergence-contract.md`](./v2-harness-convergence-contract.md)
-   - authoritative V2 Module/host lifecycle and Gate 1 seam; canonical tree
-     archive framing is normative in the Contract package README linked there.
-3. [`adr/0018-control-handoff-separates-orchestration-from-target-adaptation.md`](./adr/0018-control-handoff-separates-orchestration-from-target-adaptation.md)
-   - successor ownership boundary between Prelude orchestration and a
-     Harness-delivered Target Adaptation skill.
-4. [`harness-convergence-goal.md`](./harness-convergence-goal.md) - north star,
-   V1 outcome, scope, and non-goals.
-5. [`multi-harness-convergence-architecture.md`](./multi-harness-convergence-architecture.md)
-   - system boundaries and final operating model.
-6. [`harness-module-contract.md`](./harness-module-contract.md) - shared Module
-   contract and the four V1 Output capabilities.
-7. [`harness-integration-lifecycle.md`](./harness-integration-lifecycle.md) -
-   plan, approval, apply, check, bootstrap, and upgrade behavior.
-8. [`prelude-rebuild-plan.md`](./prelude-rebuild-plan.md) - released V1 slices
-   and cross-repository acceptance gates.
-9. [`adr/`](./adr/) - accepted architectural decisions.
-10. [`architecture-review.md`](./architecture-review.md) - pressure-test result
-   and retained risks.
-11. [`architecture-handoff.md`](./architecture-handoff.md) - compact continuation
-   entry point for the implementation lead.
+Read these four documents, in order, before changing current behavior:
 
-The V1-named documents remain useful released-baseline evidence. Where they
-conflict, the V2 contract at item 2 has authority.
+1. [`README.md`](./README.md) - authority, classification, and reading rules.
+2. [`CONTEXT.md`](./CONTEXT.md) - domain language and ownership boundaries.
+3. [`v2-harness-convergence-contract.md`](./v2-harness-convergence-contract.md)
+   - authoritative V2 Module/host lifecycle and Gate 1 seam.
+4. [`adr/0018-control-handoff-separates-orchestration-from-target-adaptation.md`](./adr/0018-control-handoff-separates-orchestration-from-target-adaptation.md)
+   - current ownership boundary between Prelude orchestration and
+     Harness-delivered Target Adaptation.
+
+No other architecture document is required to determine current behavior. For
+the canonical tree archive protocol specifically, the Contract package
+[`README.md`](../packages/harness-contract/README.md#canonical-tree-archive-protocol)
+is the task-local normative source referenced by the V2 contract.
+
+## Document Classification
+
+| Document | Classification | Use |
+| --- | --- | --- |
+| [`README.md`](./README.md) | normative-current | Authority and navigation |
+| [`CONTEXT.md`](./CONTEXT.md) | normative-current | Current domain language and ownership |
+| [`v2-harness-convergence-contract.md`](./v2-harness-convergence-contract.md) | normative-current | Current protocol and lifecycle behavior |
+| [`adr/0018-control-handoff-separates-orchestration-from-target-adaptation.md`](./adr/0018-control-handoff-separates-orchestration-from-target-adaptation.md) | normative-current | Current Control Handoff decision |
+| [`harness-convergence-goal.md`](./harness-convergence-goal.md) | rationale | First-principles goal and released V1 examples |
+| [`multi-harness-convergence-architecture.md`](./multi-harness-convergence-architecture.md) | rationale | Released V1 architecture |
+| [`harness-module-contract.md`](./harness-module-contract.md) | rationale | Released V1 contract reasoning |
+| [`harness-integration-lifecycle.md`](./harness-integration-lifecycle.md) | rationale | Released V1 lifecycle reasoning |
+| [`architecture-review.md`](./architecture-review.md) | rationale | V1 pressure-test record |
+| [`prelude-rebuild-plan.md`](./prelude-rebuild-plan.md) | implementation-plan | Completed V1 delivery plan |
+| [`architecture-handoff.md`](./architecture-handoff.md) | history | Superseded V1 implementation handoff |
+| [`adr/0001-*.md`](./adr/0001-prelude-is-the-target-mutation-host.md) through [`adr/0017-*.md`](./adr/0017-rewrite-the-v1-runtime-in-effect.md) | rationale | Accepted decision history; V2 contract and ADR-0018 govern conflicts |
+
+Frontmatter is machine-checked. `status` records lifecycle while
+`classification` records authority: an accepted ADR can therefore remain
+accepted rationale without being current normative authority.
 
 ## V2 Gate Baseline
 
@@ -58,9 +70,9 @@ Partita `0.2.2`.
 
 ```text
 root package.json + pnpm-lock.yaml
-  -> root-selected Prelude, Effect Harness, and Psychogram Artifacts
+  -> root-selected Prelude and Effect Harness Artifacts
   -> committed .prelude/config.jsonc with explicit packageRoots
-  -> two read-only Harness Module plans
+  -> one read-only Harness Module plan
   -> global composition
   -> one visible, versioned, hashed Plan Document
   -> exact approval
@@ -71,6 +83,9 @@ root package.json + pnpm-lock.yaml
 The shared package `@sayoriqwq/prelude-contract` is the only integration seam.
 Prelude does not know Effect or Psychogram domain semantics, and Harnesses do
 not write active managed surfaces directly.
+
+Psychogram and multi-Harness composition remain architectural goals, not part
+of the closed V2 Gate 1 proof above.
 
 For reference publications, the authority chain is [Prelude Contract's
 canonical protocol](../packages/harness-contract/README.md#canonical-tree-archive-protocol)
@@ -92,6 +107,19 @@ V2 implements only:
 The runtime is rewritten in Effect v4. Effect Schema defines committed config
 and shared wire codecs; Effect and `@effect/platform` own orchestration, typed
 failure, services, resources, filesystem access, and process execution.
+
+## Consistency Checklist
+
+When architecture behavior changes:
+
+1. Update the minimum normative V2 reading set first.
+2. Classify any new architecture document in frontmatter and in the table
+   above; do not silently expand the required reading set.
+3. Keep rationale, plans, and history explanatory. If a statement is
+   superseded, link its current replacement directly from that document.
+4. Keep Gate descriptions consistent with the acceptance proof they describe.
+5. Run the documentation-authority test with the normal Prelude verification
+   suite.
 
 ## Explicit Absences
 

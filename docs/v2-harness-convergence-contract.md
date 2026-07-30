@@ -2,8 +2,9 @@
 audience: [agent, human]
 authors: [codex]
 purpose: Define the active Prelude V2 successor Contract, host lifecycle, and Gate 1 evidence.
+classification: normative-current
 status: active
-updated: 2026-07-15
+updated: 2026-07-31
 ---
 
 # Prelude V2 Harness Convergence Contract

@@ -1,5 +1,6 @@
 ---
 status: accepted
+classification: normative-current
 date: 2026-07-15
 supersedes: [0008, 0010]
 amends: [0001]

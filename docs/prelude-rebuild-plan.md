@@ -1,11 +1,18 @@
 ---
 audience: [agent, human]
 purpose: Define the V1 replacement plan across Prelude, Effect Harness, Psychogram, and Partita.
-status: active
-updated: 2026-07-12
+classification: implementation-plan
+status: completed
+updated: 2026-07-31
 ---
 
 # Prelude V1 Rebuild Plan
+
+## V2 Successor Note
+
+This completed plan records how V1 was delivered. It is not a source of current
+requirements. The active replacement is
+[`v2-harness-convergence-contract.md`](./v2-harness-convergence-contract.md).
 
 ## Objective
 

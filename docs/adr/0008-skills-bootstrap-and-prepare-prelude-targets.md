@@ -1,12 +1,14 @@
 ---
 status: accepted
+classification: rationale
 date: 2026-07-10
 amended: 2026-07-15
 ---
 
 # Prelude owns hard core and soft-boundary skills
 
-> Ownership successor: ADR-0018 supersedes the exclusive assignment of
+> Ownership successor: [`ADR-0018`](./0018-control-handoff-separates-orchestration-from-target-adaptation.md)
+> supersedes the exclusive assignment of
 > package and executable-config adaptation below. Prelude-owned skills retain
 > orchestration; a Harness-delivered skill may own authorized domain-specific
 > Target Adaptation after Control Handoff.

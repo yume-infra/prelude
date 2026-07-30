@@ -1,12 +1,14 @@
 ---
 status: accepted
+classification: rationale
 date: 2026-07-10
 amended: 2026-07-15
 ---
 
 # Prelude is the target mutation host
 
-> Ownership successor: ADR-0018 preserves Prelude as the only materialization
+> Ownership successor: [`ADR-0018`](./0018-control-handoff-separates-orchestration-from-target-adaptation.md)
+> preserves Prelude as the only materialization
 > host for active Harness-owned Outputs, while assigning explicitly authorized
 > domain-specific Target Adaptation after Control Handoff to a
 > Harness-delivered skill. The exclusive skill ownership language below is V1

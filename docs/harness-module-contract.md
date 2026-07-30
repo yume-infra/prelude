@@ -1,8 +1,9 @@
 ---
 audience: [agent, human]
 purpose: Define the behavioral contract between Prelude and Harness Modules.
-status: active
-updated: 2026-07-12
+classification: rationale
+status: reference
+updated: 2026-07-31
 ---
 
 # Harness Module Contract
