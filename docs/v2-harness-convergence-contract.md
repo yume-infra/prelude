@@ -200,6 +200,17 @@ Display-only evidence and redundant copies of the decoded Module Plan are not
 hash inputs. Apply acquires the write boundary, fully replans, and refuses all
 writes when the current hash differs from the approved hash.
 
+The write boundary is an atomic claim backed by generation-bound owner evidence: the
+Control Root, host, PID, process start, acquisition time, and a random nonce. A
+live same-host writer always blocks another apply. A subsequent apply may
+recover only when the recorded same-host PID is provably absent, and it performs
+that replacement under a separate recovery guard. A dead recovery-guard owner
+is not itself auto-recovered because doing so would recreate the same race one
+level higher; Prelude instead reports the exact guard path for operator-verified
+removal. Foreign-host, malformed, and legacy evidence is never expired by age
+or deleted automatically. A finalizer releases only the nonce generation it
+acquired.
+
 Atomicity is per Output publication, not a durable transaction over the whole
 Plan. ManagedTree and PinnedReferenceTree stage a complete tree and validate it
 before replacement; a half-copied tree is never published. Bounded shared-file

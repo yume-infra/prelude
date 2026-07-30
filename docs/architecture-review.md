@@ -113,7 +113,10 @@ V1 does not need a custom filesystem transaction engine. It needs:
 - no false success or durable applied-state claims.
 
 Effect scopes improve live-process cleanup but do not survive power loss or
-SIGKILL. The architecture states this limit instead of claiming crash atomicity.
+SIGKILL. The write boundary therefore carries owner evidence and recovers only
+a provably dead same-host owner; ambiguous evidence remains an operator-visible
+blocker. Output publication remains only per-Output atomic, so the architecture
+does not claim crash atomicity for the complete Plan.
 
 ## Remaining Risks
 

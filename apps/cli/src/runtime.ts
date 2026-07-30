@@ -3,7 +3,7 @@ import type { CheckFailureOptions, CheckOutcome, PlannedConvergence } from './mo
 
 import process from 'node:process'
 
-import { Effect, FileSystem, Path, Result, Stream } from 'effect'
+import { Effect, Path, Result, Stream } from 'effect'
 import { ChildProcess } from 'effect/unstable/process'
 import { discoverControlRoot } from './config.js'
 import { planConvergence, resolveCheckRoot } from './convergence.js'
@@ -11,22 +11,11 @@ import { errorMessage, preludeError } from './errors.js'
 import { assertTargetWritePath, publishFile, replaceTree, replaceTreeFromArchive } from './filesystem.js'
 import { encodeJson } from './json.js'
 import { formatCheckFailure, makeCheckFailureEnvelope } from './model.js'
+import { withTargetWriteBoundary } from './write-boundary.js'
 
 function checkFailure(options: CheckFailureOptions) {
   const envelope = makeCheckFailureEnvelope(options)
   return preludeError('check', options.message, formatCheckFailure(envelope), envelope)
-}
-
-function withWriteBoundary<A, E, R>(controlRoot: string, effect: Effect.Effect<A, E, R>) {
-  return Effect.acquireUseRelease(
-    Effect.gen(function* () {
-      const fs = yield* FileSystem.FileSystem; const path = yield* Path.Path; const lock = path.join(path.dirname(controlRoot), `.prelude-lock-${path.basename(controlRoot)}`)
-      yield* fs.makeDirectory(lock).pipe(Effect.mapError(error => preludeError('apply', 'Target write boundary is already held', errorMessage(error))))
-      return lock
-    }),
-    () => effect,
-    lock => Effect.gen(function* () { const fs = yield* FileSystem.FileSystem; yield* fs.remove(lock, { recursive: true, force: true }).pipe(Effect.ignore) }),
-  )
 }
 
 function packageRootSelector(packageRoot: string): string { return `{${packageRoot}}` }
@@ -90,7 +79,7 @@ function frozenInstall(controlRoot: string, packageRoots: ReadonlyArray<string>)
 export function applyConvergence(start: string, approvedHash: string) {
   return Effect.scoped(Effect.gen(function* () {
     const controlRoot = yield* discoverControlRoot(start)
-    return yield* withWriteBoundary(controlRoot, Effect.gen(function* () {
+    return yield* withTargetWriteBoundary(controlRoot, Effect.gen(function* () {
       const planned = yield* planConvergence(controlRoot)
       if (planned.document.executionHash !== approvedHash)
         return yield* preludeError('apply', 'Approved execution hash does not match current Target state', `approved=${approvedHash} current=${planned.document.executionHash}`)

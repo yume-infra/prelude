@@ -113,6 +113,13 @@ Apply performs:
 
 Effect scopes own temporary files, processes, and lock release while the runtime
 lives. The host uses `@effect/platform` services rather than direct global I/O.
+The write boundary also records Control Root, host, PID, process-start,
+acquisition-time, and nonce evidence in an atomic claim. Another apply blocks
+for a live owner, automatically recovers only a provably dead same-host owner
+under a recovery guard, and refuses automatic cleanup when owner evidence is
+foreign, malformed, or legacy. A stale recovery guard requires operator-verified
+removal rather than recursive automatic recovery. Lock age alone never proves
+staleness.
 
 ## Failure And Rerun
 
